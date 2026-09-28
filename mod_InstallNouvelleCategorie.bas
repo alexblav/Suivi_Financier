@@ -1,4 +1,3 @@
-Attribute VB_Name = "mod_InstallNouvelleCategorie"
 Option Explicit
 
 ' =====================================================================================
@@ -73,7 +72,7 @@ Public Sub CreerFeuilleNouvelleCategorie()
         ws.Cells.Clear
         SupprimerFormes ws
     Else
-        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.count))
         ws.Name = NC_NOM_FEUILLE
     End If
 
@@ -132,7 +131,7 @@ Private Sub ConstruireBoutons(ByVal ws As Worksheet)
 
     Dim zone As Range
 
-    ws.Rows(NC_LIGNE_BOUTONS).RowHeight = 26
+    ws.rows(NC_LIGNE_BOUTONS).RowHeight = 26
 
     Set zone = ws.Cells(NC_LIGNE_BOUTONS, 2)
     AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, "Valider", "NcValider", "btnNcValider"
@@ -165,11 +164,11 @@ Private Sub ConstruireChamps(ByVal ws As Worksheet)
         .Font.Bold = True
         .Font.Color = RGB(60, 60, 60)
     End With
-    ws.Range(NC_ADR_TITRE).Value = TF("Nouvelle cat{e2}gorie / sous-cat{e2}gorie")
+    ws.Range(NC_ADR_TITRE).value = TF("Nouvelle cat{e2}gorie / sous-cat{e2}gorie")
 
     ' --- Categorie ---
     With ws.Range("B6")
-        .Value = TF("Cat{e2}gorie")
+        .value = TF("Cat{e2}gorie")
         .Font.Bold = True
         .Font.Color = RGB(31, 78, 121)
         .VerticalAlignment = xlCenter
@@ -183,11 +182,11 @@ Private Sub ConstruireChamps(ByVal ws As Worksheet)
         .Borders.LineStyle = xlContinuous
         .Borders.Color = RGB(200, 185, 120)
     End With
-    ws.Rows(6).RowHeight = 22
+    ws.rows(6).RowHeight = 22
 
     With ws.Range("B7:E7")
         .Merge
-        .Value = TF("Choisissez une cat{e2}gorie existante dans la liste, ou tapez-en une nouvelle.")
+        .value = TF("Choisissez une cat{e2}gorie existante dans la liste, ou tapez-en une nouvelle.")
         .Font.Size = 8.5
         .Font.Italic = True
         .Font.Color = RGB(120, 120, 120)
@@ -195,7 +194,7 @@ Private Sub ConstruireChamps(ByVal ws As Worksheet)
 
     ' --- Sous-categorie ---
     With ws.Range("B9")
-        .Value = TF("Sous-cat{e2}gorie")
+        .value = TF("Sous-cat{e2}gorie")
         .Font.Bold = True
         .Font.Color = RGB(31, 78, 121)
         .VerticalAlignment = xlCenter
@@ -209,18 +208,18 @@ Private Sub ConstruireChamps(ByVal ws As Worksheet)
         .Borders.LineStyle = xlContinuous
         .Borders.Color = RGB(200, 185, 120)
     End With
-    ws.Rows(9).RowHeight = 22
+    ws.rows(9).RowHeight = 22
 
     With ws.Range("B10:E10")
         .Merge
-        .Value = TF("Sous-cat{e2}gories d{e2}j{a2} connues de la cat{e2}gorie ci-dessus, ou tapez-en une nouvelle.") & vbCrLf & _
+        .value = TF("Sous-cat{e2}gories d{e2}j{a2} connues de la cat{e2}gorie ci-dessus, ou tapez-en une nouvelle.") & vbCrLf & _
                  TF("Vous pouvez aussi laisser ce champ vide.")
         .Font.Size = 8.5
         .Font.Italic = True
         .Font.Color = RGB(120, 120, 120)
         .WrapText = True
     End With
-    ws.Rows(10).RowHeight = 26
+    ws.rows(10).RowHeight = 26
 
     ' --- Message (erreurs de validation) ---
     With ws.Range("B11:E11")
@@ -230,7 +229,7 @@ Private Sub ConstruireChamps(ByVal ws As Worksheet)
         .Font.Size = 9
         .Font.Color = RGB(192, 80, 0)
     End With
-    ws.Rows(11).RowHeight = 26
+    ws.rows(11).RowHeight = 26
 
 End Sub
 
@@ -273,7 +272,7 @@ End Function
 
 Private Sub SupprimerFormes(ByVal ws As Worksheet)
     Dim i As Long
-    For i = ws.Shapes.Count To 1 Step -1
+    For i = ws.Shapes.count To 1 Step -1
         ws.Shapes(i).Delete
     Next i
 End Sub

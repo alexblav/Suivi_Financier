@@ -1,4 +1,3 @@
-Attribute VB_Name = "mod_InstallRechercheOperations"
 Option Explicit
 
 ' =====================================================================================
@@ -10,40 +9,40 @@ Option Explicit
 '   et de correction en masse pour TblOperations, base sur un TABLEAU EXCEL
 '   CLASSIQUE avec filtre automatique natif (les fleches de filtre dans
 '   l'entete font tout le travail de filtrage croise Date/Tiers/Montant/
-'   Catégorie/Notes, sans code personnalise).
+'   CatÃ©gorie/Notes, sans code personnalise).
 '
 '   Colonnes du tableau (dans cet ordre) :
-'     A - Valider       : l'opérateur y inscrit "Oui" sur les lignes finies
+'     A - Valider       : l'opÃ©rateur y inscrit "Oui" sur les lignes finies
 '     B - Date
 '     C - Tiers
 '     D - Montant
-'     E - Catégorie     : liste déroulante (avertissement, pas de blocage :
-'                         on peut taper une nouvelle catégorie qui n'existe
+'     E - CatÃ©gorie     : liste dÃ©roulante (avertissement, pas de blocage :
+'                         on peut taper une nouvelle catÃ©gorie qui n'existe
 '                         pas encore)
-'     F - SousCategorie : idem, PHASE 5 (catégories a 2 niveaux)
-'     G - Notes         : texte libre, SAUF si la valeur est déjà une clé
-'                         santé valide (grisee dans ce cas - voir Phase 5b)
+'     F - SousCategorie : idem, PHASE 5 (catÃ©gories a 2 niveaux)
+'     G - Notes         : texte libre, SAUF si la valeur est dÃ©jÃ  une clÃ©
+'                         santÃ© valide (grisee dans ce cas - voir Phase 5b)
 '     H - Ventile        : colonne INFORMATIVE (non modifiable), PHASE 5.
-'                         "Oui" si la ligne représente une PART VENTILEE
-'                         d'une opération bancaire (elle vient alors de
+'                         "Oui" si la ligne reprÃ©sente une PART VENTILEE
+'                         d'une opÃ©ration bancaire (elle vient alors de
 '                         TblVentilations, pas de TblOperations), ou si
-'                         l'opération PARENTE d'une ligne normale a ete
-'                         ventilee (Catégorie = "Ventile"). C'est le "tag"
-'                         de tracabilite demandé par l'opérateur : "on peut
-'                         prevenir un tag indiquant que cette opération fait
+'                         l'opÃ©ration PARENTE d'une ligne normale a ete
+'                         ventilee (CatÃ©gorie = "Ventile"). C'est le "tag"
+'                         de tracabilite demandÃ© par l'opÃ©rateur : "on peut
+'                         prevenir un tag indiquant que cette opÃ©ration fait
 '                         partie d'une ventilation, pour information". Une
-'                         opération ventilee reste ainsi accessible ICI de 2
-'                         facons : via sa ligne parente (Catégorie="Ventile"),
+'                         opÃ©ration ventilee reste ainsi accessible ICI de 2
+'                         facons : via sa ligne parente (CatÃ©gorie="Ventile"),
 '                         ou directement via chacune de ses parts (une ligne
-'                         par sous-catégorie de la ventilation).
-'     I - ID_Transaction : colonne technique MASQUEE (ID de l'opération, ou
-'                         de l'opération PARENTE pour une part ventilee)
+'                         par sous-catÃ©gorie de la ventilation).
+'     I - ID_Transaction : colonne technique MASQUEE (ID de l'opÃ©ration, ou
+'                         de l'opÃ©ration PARENTE pour une part ventilee)
 '     J - SourceLigne    : colonne technique MASQUEE, PHASE 5 : "O" (ligne de
 '                         TblOperations) ou "V" (part de TblVentilations),
 '                         sert a savoir OU ecrire au moment d'appliquer
 '     K - LigneVentilation : colonne technique MASQUEE, PHASE 5 : pour une
 '                         ligne "V", position de la part DANS TblVentilations
-'                         (DataBodyRange). Vide/non utilisée pour une ligne "O".
+'                         (DataBodyRange). Vide/non utilisÃ©e pour une ligne "O".
 '
 '   La Phase 5b (mod_RechercheOperations) remplira le tableau depuis
 '   TblOperations ET TblVentilations (bouton "Rechercher") et appliquera les
@@ -51,7 +50,7 @@ Option Explicit
 '   table source, colonne par colonne, jamais par un tri/decoupage de texte.
 '
 ' A PROPOS DES ACCENTS : fichier 100% ASCII, textes accentues construits via
-' la fonction FR() (même convention que tout le chantier Suivi Santé).
+' la fonction FR() (mÃªme convention que tout le chantier Suivi SantÃ©).
 '
 ' A FAIRE POUR INSTALLER CE MODULE :
 '   1. Alt+F11, Fichier > Importer un fichier..., choisir ce fichier .bas
@@ -67,7 +66,7 @@ Public Const NOM_TABLE_RECHERCHE As String = "TblRechercheOperations"
 Public Const RO_LIGNE_BOUTONS As Long = 2
 Public Const RO_LIGNE_ENTETES As Long = 4
 
-' Position des colonnes DANS LE TABLEAU (1 = première colonne du tableau, A)
+' Position des colonnes DANS LE TABLEAU (1 = premiÃ¨re colonne du tableau, A)
 Public Const RO_COL_VALIDER As Long = 1
 Public Const RO_COL_DATE As Long = 2
 Public Const RO_COL_TIERS As Long = 3
@@ -178,7 +177,7 @@ Sub CreerFeuilleRechercheOperations()
     End With
     ws.rows(RO_LIGNE_ENTETES - 2).RowHeight = 28
 
-    ' --- Tableau (headers + 1 ligne vide de depart, indispensable pour créer un ListObject) ---
+    ' --- Tableau (headers + 1 ligne vide de depart, indispensable pour crÃ©er un ListObject) ---
     ws.Range("A" & RO_LIGNE_ENTETES).value = "Valider"
     ws.Range("B" & RO_LIGNE_ENTETES).value = "Date"
     ws.Range("C" & RO_LIGNE_ENTETES).value = "Tiers"
@@ -197,7 +196,7 @@ Sub CreerFeuilleRechercheOperations()
     tbl.TableStyle = "TableStyleMedium2"
 
     ' Colonnes techniques masquees (PHASE 5 : Ventile reste VISIBLE, c'est le
-    ' tag informatif demandé par l'opérateur -- seules I/J/K, qui ne servent
+    ' tag informatif demandÃ© par l'opÃ©rateur -- seules I/J/K, qui ne servent
     ' qu'au code, sont masquees)
     ws.Columns("I").Hidden = True
     ws.Columns("J").Hidden = True

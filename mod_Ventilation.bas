@@ -1,4 +1,3 @@
-Attribute VB_Name = "mod_Ventilation"
 Option Explicit
 
 ' =====================================================================================
@@ -101,13 +100,13 @@ Public Function OuvrirVentilation(ByVal idTransaction As String, ByVal dateOp As
     ' puisqu'une ventilation reste tres souvent dans la meme categorie generale.
     evAvant = Application.EnableEvents
     Application.EnableEvents = False
-    ws.Range(VEN_ADR_SAISIE_CAT).Value = ""
-    ws.Range(VEN_ADR_SAISIE_SOUS).Value = ""
-    ws.Range(VEN_ADR_SAISIE_MONTANT).Value = ""
-    ws.Range(VEN_ADR_SAISIE_MESSAGE).Value = ""
+    ws.Range(VEN_ADR_SAISIE_CAT).value = ""
+    ws.Range(VEN_ADR_SAISIE_SOUS).value = ""
+    ws.Range(VEN_ADR_SAISIE_MONTANT).value = ""
+    ws.Range(VEN_ADR_SAISIE_MESSAGE).value = ""
     PoserValidationSaisieCategorie ws
     If categorieActuelle <> "" And categorieActuelle <> CategorieVentilePublique() Then
-        ws.Range(VEN_ADR_SAISIE_CAT).Value = categorieActuelle
+        ws.Range(VEN_ADR_SAISIE_CAT).value = categorieActuelle
         RemplirListeSousCatSaisie ws, categorieActuelle
     Else
         RemplirListeSousCatSaisie ws, ""
@@ -163,17 +162,17 @@ Private Sub RemplirEntete(ByVal ws As Worksheet, ByVal dateOp As Variant, ByVal 
     Application.EnableEvents = False
     On Error GoTo Sortie
 
-    ws.Range(VEN_ADR_DATE).Value = FormaterDate(dateOp)
-    ws.Range(VEN_ADR_TIERS).Value = tiers
-    ws.Range(VEN_ADR_LIBELLE).Value = libelle
-    ws.Range(VEN_ADR_MONTANT).Value = Format(montantOp, "#,##0.00") & " " & ChrW(8364)
+    ws.Range(VEN_ADR_DATE).value = FormaterDate(dateOp)
+    ws.Range(VEN_ADR_TIERS).value = tiers
+    ws.Range(VEN_ADR_LIBELLE).value = libelle
+    ws.Range(VEN_ADR_MONTANT).value = Format(montantOp, "#,##0.00") & " " & ChrW(8364)
 
     catAffichee = categorieActuelle
     If sousCategorieActuelle <> "" Then catAffichee = catAffichee & " / " & sousCategorieActuelle
     If catAffichee = "" Then catAffichee = "(" & TF("aucune") & ")"
-    ws.Range(VEN_ADR_CATACTUELLE).Value = catAffichee
+    ws.Range(VEN_ADR_CATACTUELLE).value = catAffichee
 
-    ws.Range(VEN_ADR_MONTANT_A_VENTILER).Value = Abs(montantOp)
+    ws.Range(VEN_ADR_MONTANT_A_VENTILER).value = Abs(montantOp)
 
 Sortie:
     numErr = Err.Number
@@ -200,9 +199,9 @@ Private Sub RafraichirAffichageLignes(ByVal ws As Worksheet)
 
     For i = 1 To g_VenNbLignes
         ligne = VEN_LIGNE_GRILLE_DEBUT + i - 1
-        ws.Cells(ligne, VEN_COL_CAT).Value = g_VenLigneCat(i)
-        ws.Cells(ligne, VEN_COL_SOUS).Value = g_VenLigneSous(i)
-        ws.Cells(ligne, VEN_COL_MONTANT).Value = g_VenLigneMontant(i)
+        ws.Cells(ligne, VEN_COL_CAT).value = g_VenLigneCat(i)
+        ws.Cells(ligne, VEN_COL_SOUS).value = g_VenLigneSous(i)
+        ws.Cells(ligne, VEN_COL_MONTANT).value = g_VenLigneMontant(i)
     Next i
 
     Application.EnableEvents = evAvant
@@ -228,8 +227,8 @@ Private Sub RecalculerTotaux(ByVal ws As Worksheet)
     aVentiler = mod_DataStructure.ToDouble(ws.Range(VEN_ADR_MONTANT_A_VENTILER).Value2)
     reste = aVentiler - total
 
-    ws.Range(VEN_ADR_TOTAL_SAISI).Value = total
-    ws.Range(VEN_ADR_RESTE).Value = reste
+    ws.Range(VEN_ADR_TOTAL_SAISI).value = total
+    ws.Range(VEN_ADR_RESTE).value = reste
 
     ' Arrondi a 2 decimales avant comparaison (piege des calculs en virgule flottante,
     ' deja documente dans ce projet).
@@ -263,7 +262,7 @@ End Sub
 Private Sub RemplirListeSousCatSaisie(ByVal ws As Worksheet, ByVal categorie As String)
 
     Dim liste() As String
-    Dim sortie() As Variant
+    Dim Sortie() As Variant
     Dim nb As Long, r As Long
 
     ws.Range(ws.Cells(2, VEN_COL_AIDE), ws.Cells(VEN_LIGNE_AIDE_MAX, VEN_COL_AIDE)).ClearContents
@@ -272,13 +271,13 @@ Private Sub RemplirListeSousCatSaisie(ByVal ws As Worksheet, ByVal categorie As 
 
     If EstTableauAlloue(liste) Then
         nb = UBound(liste) - LBound(liste) + 1
-        ReDim sortie(1 To nb, 1 To 1)
+        ReDim Sortie(1 To nb, 1 To 1)
         For r = 1 To nb
-            sortie(r, 1) = liste(LBound(liste) + r - 1)
+            Sortie(r, 1) = liste(LBound(liste) + r - 1)
         Next r
         With ws.Cells(2, VEN_COL_AIDE).Resize(nb, 1)
             .NumberFormat = "@"
-            .Value2 = sortie
+            .Value2 = Sortie
         End With
     End If
 
@@ -312,13 +311,13 @@ Public Sub VenTraiterChangement(ByVal ws As Worksheet, ByVal Target As Range)
     Dim numErr As Long
 
     If Not g_VenEnCours Then Exit Sub
-    If Target.Cells.Count > 1 Then Exit Sub
+    If Target.Cells.count > 1 Then Exit Sub
     If Target.Address(False, False) <> VEN_ADR_SAISIE_CAT Then Exit Sub
 
     On Error GoTo Sortie
     Application.EnableEvents = False
     ws.Range(VEN_ADR_SAISIE_SOUS).ClearContents
-    RemplirListeSousCatSaisie ws, mod_DataStructure.CellText(Target.Value)
+    RemplirListeSousCatSaisie ws, mod_DataStructure.CellText(Target.value)
 
 Sortie:
     numErr = Err.Number
@@ -348,8 +347,8 @@ Public Sub VenNouvelleCategorie()
     On Error GoTo Erreur
     Set ws = ThisWorkbook.Worksheets(VEN_NOM_FEUILLE)
 
-    catActuelle = mod_DataStructure.CellText(ws.Range(VEN_ADR_SAISIE_CAT).Value)
-    sousActuelle = mod_DataStructure.CellText(ws.Range(VEN_ADR_SAISIE_SOUS).Value)
+    catActuelle = mod_DataStructure.CellText(ws.Range(VEN_ADR_SAISIE_CAT).value)
+    sousActuelle = mod_DataStructure.CellText(ws.Range(VEN_ADR_SAISIE_SOUS).value)
 
     ' On suspend le verrou d'ACTIVATION (pas g_VenEnCours) le temps d'ouvrir le
     ' formulaire de creation par-dessus -- meme principe qu'en Phase 2/mod_ControleCategories.
@@ -362,8 +361,8 @@ Public Sub VenNouvelleCategorie()
         mod_Categories.RafraichirListesCategories
         Application.EnableEvents = False
         PoserValidationSaisieCategorie ws
-        ws.Range(VEN_ADR_SAISIE_CAT).Value = catRes
-        ws.Range(VEN_ADR_SAISIE_SOUS).Value = sousRes
+        ws.Range(VEN_ADR_SAISIE_CAT).value = catRes
+        ws.Range(VEN_ADR_SAISIE_SOUS).value = sousRes
         RemplirListeSousCatSaisie ws, catRes
         Application.EnableEvents = True
     End If
@@ -381,7 +380,7 @@ Public Sub VenAjouterLigne()
 
     Dim ws As Worksheet
     Dim cat As String, sous As String
-    Dim montant As Variant
+    Dim Montant As Variant
     Dim listeCat() As String, listeSous() As String
     Dim indiceCible As Long
 
@@ -389,22 +388,22 @@ Public Sub VenAjouterLigne()
     On Error GoTo Erreur
     Set ws = ThisWorkbook.Worksheets(VEN_NOM_FEUILLE)
 
-    cat = mod_DataStructure.CellText(ws.Range(VEN_ADR_SAISIE_CAT).Value)
-    sous = mod_DataStructure.CellText(ws.Range(VEN_ADR_SAISIE_SOUS).Value)
-    montant = ws.Range(VEN_ADR_SAISIE_MONTANT).Value2
+    cat = mod_DataStructure.CellText(ws.Range(VEN_ADR_SAISIE_CAT).value)
+    sous = mod_DataStructure.CellText(ws.Range(VEN_ADR_SAISIE_SOUS).value)
+    Montant = ws.Range(VEN_ADR_SAISIE_MONTANT).Value2
 
     If cat = "" Then
-        ws.Range(VEN_ADR_SAISIE_MESSAGE).Value = TF("La cat{e2}gorie est obligatoire.")
+        ws.Range(VEN_ADR_SAISIE_MESSAGE).value = TF("La cat{e2}gorie est obligatoire.")
         Exit Sub
     End If
-    If Not IsNumeric(montant) Or CDbl(montant) <= 0 Then
-        ws.Range(VEN_ADR_SAISIE_MESSAGE).Value = TF("Le montant doit {ea}tre un nombre positif.")
+    If Not IsNumeric(Montant) Or CDbl(Montant) <= 0 Then
+        ws.Range(VEN_ADR_SAISIE_MESSAGE).value = TF("Le montant doit {ea}tre un nombre positif.")
         Exit Sub
     End If
 
     listeCat = mod_Categories.ObtenirCategories()
     If Not TrouverExact(cat, listeCat) Then
-        ws.Range(VEN_ADR_SAISIE_MESSAGE).Value = TF("La cat{e2}gorie '") & cat & TF("' n'existe pas.")
+        ws.Range(VEN_ADR_SAISIE_MESSAGE).value = TF("La cat{e2}gorie '") & cat & TF("' n'existe pas.")
         Exit Sub
     End If
     cat = mod_Categories.FormeCanonique(cat, listeCat)
@@ -412,7 +411,7 @@ Public Sub VenAjouterLigne()
     If sous <> "" Then
         listeSous = mod_Categories.ObtenirSousCategories(cat)
         If Not TrouverExact(sous, listeSous) Then
-            ws.Range(VEN_ADR_SAISIE_MESSAGE).Value = TF("La sous-cat{e2}gorie '") & sous & _
+            ws.Range(VEN_ADR_SAISIE_MESSAGE).value = TF("La sous-cat{e2}gorie '") & sous & _
                                                       TF("' n'existe pas pour '") & cat & "'."
             Exit Sub
         End If
@@ -422,7 +421,7 @@ Public Sub VenAjouterLigne()
     If g_VenIndexEdition = 0 Then
         ' Mode AJOUT : une ligne de plus.
         If g_VenNbLignes >= VEN_NB_LIGNES Then
-            ws.Range(VEN_ADR_SAISIE_MESSAGE).Value = TF("Limite de ") & VEN_NB_LIGNES & TF(" lignes atteinte.")
+            ws.Range(VEN_ADR_SAISIE_MESSAGE).value = TF("Limite de ") & VEN_NB_LIGNES & TF(" lignes atteinte.")
             Exit Sub
         End If
         g_VenNbLignes = g_VenNbLignes + 1
@@ -436,7 +435,7 @@ Public Sub VenAjouterLigne()
 
     g_VenLigneCat(indiceCible) = cat
     g_VenLigneSous(indiceCible) = sous
-    g_VenLigneMontant(indiceCible) = CDbl(montant)
+    g_VenLigneMontant(indiceCible) = CDbl(Montant)
 
     g_VenIndexEdition = 0
     RafraichirAffichageLignes ws
@@ -471,7 +470,7 @@ Private Sub ViderChampsSaisie(ByVal ws As Worksheet)
     ws.Range(VEN_ADR_SAISIE_CAT).ClearContents
     ws.Range(VEN_ADR_SAISIE_SOUS).ClearContents
     ws.Range(VEN_ADR_SAISIE_MONTANT).ClearContents
-    ws.Range(VEN_ADR_SAISIE_MESSAGE).Value = ""
+    ws.Range(VEN_ADR_SAISIE_MESSAGE).value = ""
     RemplirListeSousCatSaisie ws, ""
     Application.EnableEvents = evAvant
     ws.Range(VEN_ADR_SAISIE_CAT).Select
@@ -512,11 +511,11 @@ Public Sub VenEditerLigne()
     evAvant = Application.EnableEvents
     Application.EnableEvents = False
     PoserValidationSaisieCategorie ws
-    ws.Range(VEN_ADR_SAISIE_CAT).Value = g_VenLigneCat(indice)
+    ws.Range(VEN_ADR_SAISIE_CAT).value = g_VenLigneCat(indice)
     RemplirListeSousCatSaisie ws, g_VenLigneCat(indice)
-    ws.Range(VEN_ADR_SAISIE_SOUS).Value = g_VenLigneSous(indice)
-    ws.Range(VEN_ADR_SAISIE_MONTANT).Value = g_VenLigneMontant(indice)
-    ws.Range(VEN_ADR_SAISIE_MESSAGE).Value = TF("Ligne retir{e2}e du tableau pour modification.") & _
+    ws.Range(VEN_ADR_SAISIE_SOUS).value = g_VenLigneSous(indice)
+    ws.Range(VEN_ADR_SAISIE_MONTANT).value = g_VenLigneMontant(indice)
+    ws.Range(VEN_ADR_SAISIE_MESSAGE).value = TF("Ligne retir{e2}e du tableau pour modification.") & _
         TF(" Cliquez sur 'Ajouter la ligne' pour la remettre (avec vos changements), sinon elle restera supprim{e2}e.")
     Application.EnableEvents = evAvant
 
@@ -552,13 +551,13 @@ Public Sub VenTerminer()
     Set ws = ThisWorkbook.Worksheets(VEN_NOM_FEUILLE)
 
     If g_VenIndexEdition <> 0 Then
-        ws.Range(VEN_ADR_SAISIE_MESSAGE).Value = _
+        ws.Range(VEN_ADR_SAISIE_MESSAGE).value = _
             TF("Une ligne est en cours de modification : cliquez sur 'Ajouter la ligne' pour la valider, ou sur 'Effacer la saisie' pour l'abandonner, avant de terminer.")
         Exit Sub
     End If
 
     If g_VenNbLignes = 0 Then
-        ws.Range(VEN_ADR_SAISIE_MESSAGE).Value = TF("Aucune ligne ajout{e2}e. Renseignez au moins une cat{e2}gorie et un montant.")
+        ws.Range(VEN_ADR_SAISIE_MESSAGE).value = TF("Aucune ligne ajout{e2}e. Renseignez au moins une cat{e2}gorie et un montant.")
         Exit Sub
     End If
 
@@ -568,7 +567,7 @@ Public Sub VenTerminer()
     aVentiler = Abs(g_VenMontantOperation)
 
     If Abs(Round(sommeSaisie, 2) - Round(aVentiler, 2)) >= 0.005 Then
-        ws.Range(VEN_ADR_SAISIE_MESSAGE).Value = _
+        ws.Range(VEN_ADR_SAISIE_MESSAGE).value = _
             TF("Le total saisi (") & Format(sommeSaisie, "#,##0.00") & TF(" {e2}uros) ne correspond pas au montant de l'op{e2}ration (") & _
             Format(aVentiler, "#,##0.00") & TF(" {e2}uros).") & vbCrLf & _
             TF("La somme des lignes doit {ea}tre EXACTEMENT {e2}gale. Corrigez avant de terminer.")
@@ -643,7 +642,7 @@ End Sub
 ' mod_FormulairesNotes sera adapte pour reconnaitre aussi les lignes de
 ' TblVentilations (prochaine etape de ce chantier, pas encore faite).
 Private Sub AjouterLigneVentilation(ByVal idTransaction As String, ByVal categorie As String, _
-                                    ByVal sousCategorie As String, ByVal montant As Double)
+                                    ByVal sousCategorie As String, ByVal Montant As Double)
 
     Dim wsData As Worksheet
     Dim tbl As ListObject
@@ -658,7 +657,7 @@ Private Sub AjouterLigneVentilation(ByVal idTransaction As String, ByVal categor
     EcrireCelluleTexte wsData, tbl, ligne, "ID_Transaction", idTransaction
     EcrireCelluleTexte wsData, tbl, ligne, "Categorie", categorie
     EcrireCelluleTexte wsData, tbl, ligne, "SousCategorie", sousCategorie
-    EcrireCelluleNombre wsData, tbl, ligne, "Montant", montant, "#,##0.00"
+    EcrireCelluleNombre wsData, tbl, ligne, "Montant", Montant, "#,##0.00"
     EcrireCelluleDate wsData, tbl, ligne, "DateVentilation", Now, "dd/mm/yyyy hh:mm"
 
     estSante = (mod_Categories.NormaliserTexte(sousCategorie) = mod_Categories.NormaliserTexte(SousCategorieSanteReference()))
@@ -680,25 +679,25 @@ End Sub
 Private Sub EcrireCelluleTexte(ByVal ws As Worksheet, ByVal tbl As ListObject, ByVal ligne As Long, _
                                ByVal nomColonne As String, ByVal valeur As String)
     Dim col As Long
-    col = tbl.ListColumns(nomColonne).Index
+    col = tbl.ListColumns(nomColonne).index
     ws.Cells(ligne, col).NumberFormat = "@"
-    ws.Cells(ligne, col).Value = valeur
+    ws.Cells(ligne, col).value = valeur
 End Sub
 
 Private Sub EcrireCelluleNombre(ByVal ws As Worksheet, ByVal tbl As ListObject, ByVal ligne As Long, _
                                 ByVal nomColonne As String, ByVal valeur As Double, ByVal formatNombre As String)
     Dim col As Long
-    col = tbl.ListColumns(nomColonne).Index
+    col = tbl.ListColumns(nomColonne).index
     ws.Cells(ligne, col).NumberFormat = formatNombre
-    ws.Cells(ligne, col).Value = valeur
+    ws.Cells(ligne, col).value = valeur
 End Sub
 
 Private Sub EcrireCelluleDate(ByVal ws As Worksheet, ByVal tbl As ListObject, ByVal ligne As Long, _
                               ByVal nomColonne As String, ByVal valeur As Date, ByVal formatDate As String)
     Dim col As Long
-    col = tbl.ListColumns(nomColonne).Index
+    col = tbl.ListColumns(nomColonne).index
     ws.Cells(ligne, col).NumberFormat = formatDate
-    ws.Cells(ligne, col).Value = valeur
+    ws.Cells(ligne, col).value = valeur
 End Sub
 
 Private Function SousCategorieSanteReference() As String

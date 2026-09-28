@@ -1,4 +1,3 @@
-Attribute VB_Name = "mod_NouvelleCategorie"
 Option Explicit
 
 ' =====================================================================================
@@ -114,9 +113,9 @@ Private Sub RemplirChamps(ByVal ws As Worksheet, ByVal catInitiale As String, By
     Application.EnableEvents = False
     On Error GoTo Sortie
 
-    ws.Range(NC_ADR_CAT).Value = catInitiale
-    ws.Range(NC_ADR_SOUS).Value = sousInitiale
-    ws.Range(NC_ADR_MESSAGE).Value = ""
+    ws.Range(NC_ADR_CAT).value = catInitiale
+    ws.Range(NC_ADR_SOUS).value = sousInitiale
+    ws.Range(NC_ADR_MESSAGE).value = ""
 
     ' Liste "Categorie" : le nom "ListeCategories" est cree en Phase 1
     ' (mod_Categories.RafraichirListesCategories).
@@ -160,7 +159,7 @@ End Sub
 Private Sub RemplirListeSousCatNc(ByVal ws As Worksheet, ByVal categorie As String)
 
     Dim liste() As String
-    Dim sortie() As Variant
+    Dim Sortie() As Variant
     Dim nb As Long, r As Long
     Dim colLettre As String
 
@@ -170,13 +169,13 @@ Private Sub RemplirListeSousCatNc(ByVal ws As Worksheet, ByVal categorie As Stri
 
     If EstTableauAlloue(liste) Then
         nb = UBound(liste) - LBound(liste) + 1
-        ReDim sortie(1 To nb, 1 To 1)
+        ReDim Sortie(1 To nb, 1 To 1)
         For r = 1 To nb
-            sortie(r, 1) = liste(LBound(liste) + r - 1)
+            Sortie(r, 1) = liste(LBound(liste) + r - 1)
         Next r
         With ws.Cells(2, NC_COL_AIDE).Resize(nb, 1)
             .NumberFormat = "@"
-            .Value2 = sortie
+            .Value2 = Sortie
         End With
     End If
 
@@ -213,13 +212,13 @@ Public Sub NcTraiterChangement(ByVal ws As Worksheet, ByVal Target As Range)
     Dim numErr As Long
 
     If Not g_NcEnCours Then Exit Sub
-    If Target.Cells.Count > 1 Then Exit Sub
+    If Target.Cells.count > 1 Then Exit Sub
     If Target.Address(False, False) <> NC_ADR_CAT Then Exit Sub
 
     On Error GoTo Sortie
     Application.EnableEvents = False
     ws.Range(NC_ADR_SOUS).ClearContents
-    RemplirListeSousCatNc ws, mod_DataStructure.CellText(Target.Value)
+    RemplirListeSousCatNc ws, mod_DataStructure.CellText(Target.value)
 
 Sortie:
     numErr = Err.Number
@@ -252,11 +251,11 @@ Public Sub NcValider()
     On Error GoTo Erreur
     Set ws = ThisWorkbook.Worksheets(NC_NOM_FEUILLE)
 
-    cat = mod_DataStructure.CellText(ws.Range(NC_ADR_CAT).Value)
-    sous = mod_DataStructure.CellText(ws.Range(NC_ADR_SOUS).Value)
+    cat = mod_DataStructure.CellText(ws.Range(NC_ADR_CAT).value)
+    sous = mod_DataStructure.CellText(ws.Range(NC_ADR_SOUS).value)
 
     If cat = "" Then
-        ws.Range(NC_ADR_MESSAGE).Value = TF("La cat{e2}gorie est obligatoire.")
+        ws.Range(NC_ADR_MESSAGE).value = TF("La cat{e2}gorie est obligatoire.")
         Exit Sub
     End If
 
@@ -295,7 +294,7 @@ Public Sub NcValider()
     ' est pas deja) et renvoie, par ByRef, la forme EXACTE a utiliser ensuite (par
     ' exemple si "sante" existait deja sous la forme "Sante").
     If Not mod_Categories.AjouterCategoriePersonnalisee(cat, sous) Then
-        ws.Range(NC_ADR_MESSAGE).Value = TF("Le tableau de correspondance (feuille Param) est introuvable.") & _
+        ws.Range(NC_ADR_MESSAGE).value = TF("Le tableau de correspondance (feuille Param) est introuvable.") & _
                                           " " & TF("Ex{e2}cutez d'abord PreparerPhase1Categories.")
         Exit Sub
     End If

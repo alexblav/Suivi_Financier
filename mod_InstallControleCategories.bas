@@ -1,4 +1,3 @@
-Attribute VB_Name = "mod_InstallControleCategories"
 Option Explicit
 
 ' =====================================================================================
@@ -90,7 +89,7 @@ Public Sub CreerFeuilleControleCategories()
         SupprimerFormes ws         ' supprime les anciens boutons
     Else
         ' Nouvelle feuille, placee en derniere position pour ne pas perturber les onglets.
-        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.count))
         ws.Name = CTRL_NOM_FEUILLE
     End If
 
@@ -158,7 +157,7 @@ Private Sub ConstruireBoutons(ByVal ws As Worksheet)
 
     Dim zone As Range
 
-    ws.Rows(CTRL_LIGNE_BOUTONS).RowHeight = 26
+    ws.rows(CTRL_LIGNE_BOUTONS).RowHeight = 26
 
     ' --- Bouton "Precedent" (cellule B2) ---
     Set zone = ws.Cells(CTRL_LIGNE_BOUTONS, 2)
@@ -206,7 +205,7 @@ Private Sub ConstruireTitreEtInformations(ByVal ws As Worksheet)
         .Font.Bold = True
         .Font.Color = RGB(60, 60, 60)
     End With
-    ws.Range(CTRL_ADR_TITRE).Value = TF("Contr{o1}le des cat{e2}gories des op{e2}rations import{e2}es")
+    ws.Range(CTRL_ADR_TITRE).value = TF("Contr{o1}le des cat{e2}gories des op{e2}rations import{e2}es")
 
     ' --- Compteur "Operation X / N" (rempli par le programme) ---
     With ws.Range("B5:E5")
@@ -234,14 +233,14 @@ Private Sub ConstruireTitreEtInformations(ByVal ws As Worksheet)
         .Borders(xlEdgeBottom).Color = RGB(225, 225, 220)
         .Borders(xlInsideHorizontal).Color = RGB(225, 225, 220)
     End With
-    ws.Rows(9).RowHeight = 42           ' le libelle peut etre long : on lui laisse 3 lignes
+    ws.rows(9).RowHeight = 42           ' le libelle peut etre long : on lui laisse 3 lignes
     ws.Range(CTRL_ADR_MONTANT).Font.Bold = True
     ws.Range(CTRL_ADR_MONTANT).HorizontalAlignment = xlLeft
 
     ' --- Bouton "Ventiler" (Phase 4) ---
     ' Place a cote du champ Montant (D10:E10). Ouvre la feuille frm_Ventilation (voir
     ' mod_InstallVentilation) ; la logique est dans mod_ControleCategories.ControleVentiler.
-    ws.Rows(10).RowHeight = 22
+    ws.rows(10).RowHeight = 22
     Dim zoneBoutonVentiler As Range
     Set zoneBoutonVentiler = ws.Range("D10:E10")
     AjouterBouton ws, zoneBoutonVentiler.Left, zoneBoutonVentiler.Top, zoneBoutonVentiler.Width, zoneBoutonVentiler.Height, _
@@ -252,7 +251,7 @@ End Sub
 ' Ecrit une etiquette grise (colonne B).
 Private Sub EcrireEtiquette(ByVal ws As Worksheet, ByVal adresse As String, ByVal texte As String)
     With ws.Range(adresse)
-        .Value = texte
+        .value = texte
         .Font.Bold = True
         .Font.Color = RGB(110, 110, 110)
         .VerticalAlignment = xlCenter
@@ -281,7 +280,7 @@ Private Sub ConstruireZoneSaisie(ByVal ws As Worksheet)
         .Borders.LineStyle = xlContinuous
         .Borders.Color = RGB(200, 185, 120)
     End With
-    ws.Rows("13:14").RowHeight = 22
+    ws.rows("13:14").RowHeight = 22
 
     ' --- Bouton "+" pour creer une nouvelle categorie / sous-categorie (Phase 3) ---
     ' Place a cote du champ Categorie (D13:E13). Ouvre la feuille frm_NouvelleCategorie
@@ -300,7 +299,7 @@ Private Sub ConstruireZoneSaisie(ByVal ws As Worksheet)
         .Font.Italic = True
         .Font.Color = RGB(90, 90, 90)
     End With
-    ws.Rows(16).RowHeight = 30
+    ws.rows(16).RowHeight = 30
 
 End Sub
 
@@ -310,13 +309,13 @@ End Sub
 ' =====================================================================================
 Private Sub ConstruireInstructions(ByVal ws As Worksheet)
 
-    ws.Range("B18").Value = "Instructions"
+    ws.Range("B18").value = "Instructions"
     ws.Range("B18").Font.Bold = True
     ws.Range("B18").Font.Size = 11
 
     With ws.Range("B19:E23")
         .Merge
-        .Value = TF("1. V{e2}rifiez les informations de l'op{e2}ration (en haut).") & Chr(10) & _
+        .value = TF("1. V{e2}rifiez les informations de l'op{e2}ration (en haut).") & Chr(10) & _
                  TF("2. Modifiez si besoin la Cat{e2}gorie, puis la Sous-cat{e2}gorie (listes d{e2}roulantes).") & Chr(10) & _
                  TF("3. Passez {a2} l'op{e2}ration suivante avec 'Suivant' (ou revenez avec 'Pr{e2}c{e2}dent').") & Chr(10) & _
                  TF("4. Quand tout est contr{o1}l{e2}, cliquez sur 'Terminer et continuer'.") & Chr(10) & _
@@ -330,7 +329,7 @@ Private Sub ConstruireInstructions(ByVal ws As Worksheet)
         .Borders.LineStyle = xlContinuous
         .Borders.Color = RGB(210, 210, 205)
     End With
-    ws.Rows("19:23").RowHeight = 16
+    ws.rows("19:23").RowHeight = 16
 
 End Sub
 
@@ -376,7 +375,7 @@ End Function
 ' On parcourt a l'envers : supprimer en avancant fait sauter des elements.
 Private Sub SupprimerFormes(ByVal ws As Worksheet)
     Dim i As Long
-    For i = ws.Shapes.Count To 1 Step -1
+    For i = ws.Shapes.count To 1 Step -1
         ws.Shapes(i).Delete
     Next i
 End Sub

@@ -1,4 +1,3 @@
-Attribute VB_Name = "mod_RechercheOperations"
 Option Explicit
 
 ' =====================================================================================
@@ -12,35 +11,35 @@ Option Explicit
 '                            avec les fleches natives Excel dans l'entete du
 '                            tableau).
 '   AppliquerLignesMarquees : pour chaque ligne du tableau de recherche ou
-'                            "Valider" = "Oui", ecrit Catégorie/SousCategorie et
+'                            "Valider" = "Oui", ecrit CatÃ©gorie/SousCategorie et
 '                            Notes dans la table SOURCE de la ligne (TblOperations
 '                            ou TblVentilations -- voir colonne technique
 '                            SourceLigne), puis efface la marque.
 '
 '   Verrouillage "souple" de Notes : il n'y a pas de vraie protection de
-'   feuille (déjà abandonnee ailleurs dans ce chantier a cause d'une erreur
-'   1004). La cellule Notes d'une ligne dont la clé est déjà valide est
+'   feuille (dÃ©jÃ  abandonnee ailleurs dans ce chantier a cause d'une erreur
+'   1004). La cellule Notes d'une ligne dont la clÃ© est dÃ©jÃ  valide est
 '   simplement grisee (indication visuelle), et AppliquerLignesMarquees
 '   IGNORE tout changement sur cette colonne pour cette ligne, quel que soit
 '   ce qui y est ecrit a l'ecran.
 '
 ' PHASE 5 -- CE QUI CHANGE PAR RAPPORT A LA VERSION D'ORIGINE :
-'   (a) BUG CORRIGE : la liste déroulante de la colonne Catégorie utilisait
+'   (a) BUG CORRIGE : la liste dÃ©roulante de la colonne CatÃ©gorie utilisait
 '       Formula1:=Join(listeCategories, ",") -- cela casse des que : (1) une
-'       catégorie contient elle-même une virgule (ex: "Alimentation,
+'       catÃ©gorie contient elle-mÃªme une virgule (ex: "Alimentation,
 '       supermarche"), Excel la scinde alors en plusieurs "fausses"
-'       catégories dans la liste ; (2) le texte assemble depasse 255
-'       caracteres, ce qui arrive vite avec ~80 catégories (limite d'Excel
-'       pour un Formula1 en dur). La correction reutilise la même technique
+'       catÃ©gories dans la liste ; (2) le texte assemble depasse 255
+'       caracteres, ce qui arrive vite avec ~80 catÃ©gories (limite d'Excel
+'       pour un Formula1 en dur). La correction reutilise la mÃªme technique
 '       que le reste du chantier (mod_Categories, mod_ControleCategories...) :
 '       une PLAGE NOMMEE dynamique (OFFSET/COUNTA) pointant sur une colonne
 '       technique de VRAIES cellules, jamais une liste text-jointe.
-'   (b) NOUVELLE colonne SousCategorie (même traitement que Catégorie).
-'   (c) NOUVELLE colonne Ventile (tag informatif) + intégration des lignes de
-'       TblVentilations : une opération ventilee reste desormais accessible
-'       ICI de 2 facons, comme demandé par l'opérateur : via sa ligne
-'       PARENTE (Catégorie = "Ventile"), ou directement via chacune de ses
-'       parts (une ligne par sous-catégorie de la ventilation, marquee
+'   (b) NOUVELLE colonne SousCategorie (mÃªme traitement que CatÃ©gorie).
+'   (c) NOUVELLE colonne Ventile (tag informatif) + intÃ©gration des lignes de
+'       TblVentilations : une opÃ©ration ventilee reste desormais accessible
+'       ICI de 2 facons, comme demandÃ© par l'opÃ©rateur : via sa ligne
+'       PARENTE (CatÃ©gorie = "Ventile"), ou directement via chacune de ses
+'       parts (une ligne par sous-catÃ©gorie de la ventilation, marquee
 '       Ventile = "Oui").
 '
 ' A PROPOS DES ACCENTS : fichier 100% ASCII, textes accentues via FR().
@@ -50,19 +49,19 @@ Option Explicit
 
 ' --- Noms techniques utilises par ce module, DUPLIQUES ICI EN DUR (comme dans
 '     les autres modules de ce chantier) pour que ce module continue a
-'     compiler même si mod_InstallVentilation n'a pas encore ete importe. ---
+'     compiler mÃªme si mod_InstallVentilation n'a pas encore ete importe. ---
 Private Const VEN_FEUILLE As String = "Ventilations"
 Private Const VEN_TABLE As String = "TblVentilations"
 Private Const CATEGORIE_VENTILE As String = "Ventil" ' + e accentue, voir CategorieVentileRO()
 
-' Nom de la sous-catégorie "santé" -- reprise ici uniquement pour référence
+' Nom de la sous-catÃ©gorie "santÃ©" -- reprise ici uniquement pour rÃ©fÃ©rence
 ' dans les commentaires, ce module ne teste jamais directement cette valeur.
 
 Private Function CategorieVentileRO() As String
     CategorieVentileRO = CATEGORIE_VENTILE & ChrW(233)   ' "Ventile"
 End Function
 
-' Petite fonction miroir de FR(), gardee car déjà utilisée dans ce module a
+' Petite fonction miroir de FR(), gardee car dÃ©jÃ  utilisÃ©e dans ce module a
 ' l'origine (voir commentaire d'origine sur les accents en tete de fichier) :
 'Private Function FR(ByVal texte As String) As String
 '    Dim r As String
@@ -80,7 +79,7 @@ End Function
 
 
 ' =====================================================================================
-' HELPERS PHASE 5 : accès a TblVentilations, dupliques comme dans les autres
+' HELPERS PHASE 5 : accÃ¨s a TblVentilations, dupliques comme dans les autres
 ' modules de ce chantier (mod_SuiviSante, mod_FormulairesNotes, ...).
 ' =====================================================================================
 Private Function ObtenirTableVentilationsRO() As ListObject
@@ -121,7 +120,7 @@ Public Sub RechercherOperations()
     Dim listeValeurs() As String
     Dim nbValeurs As Long
 
-    ' --- PHASE 5 : accès a TblVentilations (facultatif) ---
+    ' --- PHASE 5 : accÃ¨s a TblVentilations (facultatif) ---
     Dim tblVen As ListObject
     Dim tblDataVen As Variant
     Dim nbLignesVen As Long
@@ -238,9 +237,9 @@ Public Sub RechercherOperations()
 
     ' =====================================================================
     ' 2) PHASE 5 : lignes de TblVentilations (une ligne par part ventilee).
-    '    Le Tiers est repris de l'opération PARENTE (TblVentilations n'a pas
-    '    sa propre colonne Tiers -- une part ventilee n'est pas une opération
-    '    bancaire indépendante).
+    '    Le Tiers est repris de l'opÃ©ration PARENTE (TblVentilations n'a pas
+    '    sa propre colonne Tiers -- une part ventilee n'est pas une opÃ©ration
+    '    bancaire indÃ©pendante).
     ' =====================================================================
     If venDisponible Then
         ' Index ID_Transaction -> ligne TblOperations, pour retrouver le Tiers
@@ -296,7 +295,7 @@ Public Sub RechercherOperations()
     tblRecherche.ListColumns("Date").DataBodyRange.NumberFormat = "dd/mm/yyyy"
     tblRecherche.ListColumns("Montant").DataBodyRange.NumberFormat = "#,##0.00"
 
-    ' --- PHASE 5 (correction du bug) : liste déroulante Catégorie/SousCategorie
+    ' --- PHASE 5 (correction du bug) : liste dÃ©roulante CatÃ©gorie/SousCategorie
     '     via une VRAIE plage nommee (technique OFFSET/COUNTA), jamais via un
     '     texte joint par des virgules -- voir l'explication en tete de fichier.
     EcrireListeTechniqueRO ws, listeValeurs, nbValeurs
@@ -314,7 +313,7 @@ Public Sub RechercherOperations()
         End If
     End With
 
-    ' --- Griser les cellules Notes déjà verrouillées (clé santé valide) ---
+    ' --- Griser les cellules Notes dÃ©jÃ  verrouillÃ©es (clÃ© santÃ© valide) ---
     For i = 1 To nbTotal
         If cleVerrouillee(i) Then
             tblRecherche.ListColumns("Notes").DataBodyRange.Cells(i).Interior.Color = RGB(240, 240, 240)
@@ -330,8 +329,8 @@ Public Sub RechercherOperations()
 End Sub
 
 ' Petit utilitaire : ajoute "valeur" a listeValeurs()/nbValeurs si non vide et
-' pas déjà présente (compare sans tenir compte de la casse : voir .CompareMode
-' pose par l'appelant sur le Dictionary utilisé comme "déjà vu").
+' pas dÃ©jÃ  prÃ©sente (compare sans tenir compte de la casse : voir .CompareMode
+' pose par l'appelant sur le Dictionary utilisÃ© comme "dÃ©jÃ  vu").
 Private Sub AjouterValeurUnique(ByVal valeur As String, ByRef vues As Object, ByRef listeValeurs() As String, ByRef nbValeurs As Long)
     If valeur = "" Then Exit Sub
     If vues.Exists(valeur) Then Exit Sub
@@ -341,15 +340,15 @@ Private Sub AjouterValeurUnique(ByVal valeur As String, ByRef vues As Object, By
     listeValeurs(nbValeurs) = valeur
 End Sub
 
-' Ecrit la liste unique (Catégorie + SousCategorie confondues) dans une
-' colonne technique HORS du tableau structure (au-dela de sa dernière
+' Ecrit la liste unique (CatÃ©gorie + SousCategorie confondues) dans une
+' colonne technique HORS du tableau structure (au-dela de sa derniÃ¨re
 ' colonne, ligne par ligne, format Texte force), puis (re)definit une plage
-' nommee DYNAMIQUE (OFFSET/COUNTA) pointant dessus. Même principe que
+' nommee DYNAMIQUE (OFFSET/COUNTA) pointant dessus. MÃªme principe que
 ' mod_Categories.RafraichirListesCategories, applique ici localement pour ne
 ' pas dependre de l'existence de mod_Categories.
 Private Sub EcrireListeTechniqueRO(ByVal ws As Worksheet, ByRef listeValeurs() As String, ByVal nbValeurs As Long)
 
-    Const COL_TECHNIQUE As String = "N"   ' au-dela de la colonne K (dernière colonne du tableau)
+    Const COL_TECHNIQUE As String = "N"   ' au-dela de la colonne K (derniÃ¨re colonne du tableau)
     Dim i As Long
 
     ws.Range(COL_TECHNIQUE & "1:" & COL_TECHNIQUE & "1000").ClearContents
@@ -376,7 +375,7 @@ End Sub
 
 
 ' =====================================================================================
-' AppliquerLignesMarquees : applique Catégorie/SousCategorie/Notes des lignes
+' AppliquerLignesMarquees : applique CatÃ©gorie/SousCategorie/Notes des lignes
 ' marquees "Oui", en ecrivant dans la table SOURCE de chaque ligne (colonne
 ' technique SourceLigne : "O" = TblOperations, "V" = TblVentilations).
 ' =====================================================================================

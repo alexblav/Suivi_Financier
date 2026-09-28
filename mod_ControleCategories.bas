@@ -1,4 +1,3 @@
-Attribute VB_Name = "mod_ControleCategories"
 Option Explicit
 
 ' =====================================================================================
@@ -116,7 +115,7 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
 
     Dim ws As Worksheet
     Dim i As Long, nbARanger As Long
-    Dim source As String
+    Dim Source As String
     Dim morceaux() As String
     Dim reponse As VbMsgBoxResult
 
@@ -153,10 +152,10 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
 
     ' --- ETAPE 1 : application automatique de la correspondance --------------------------
     For i = 1 To nbOps
-        source = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_CATSOURCE))
-        If source <> "" And g_CtrlMap.Exists(source) Then
+        Source = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_CATSOURCE))
+        If Source <> "" And g_CtrlMap.Exists(Source) Then
             ' Item = "categorie" & Tab & "sous-categorie" : on le redecoupe.
-            morceaux = Split(CStr(g_CtrlMap(source)), vbTab)
+            morceaux = Split(CStr(g_CtrlMap(Source)), vbTab)
             g_CtrlCat(i) = morceaux(0)
             g_CtrlSous(i) = morceaux(1)
         Else
@@ -280,12 +279,12 @@ End Sub
 Private Sub AfficherOperation(ByVal ws As Worksheet)
 
     Dim i As Long
-    Dim source As String
+    Dim Source As String
     Dim evenementsAvant As Boolean
     Dim numErr As Long, descErr As String
 
     i = g_CtrlIndices(g_CtrlPos)
-    source = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_CATSOURCE))
+    Source = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_CATSOURCE))
 
     ' On coupe les evenements pendant NOS ecritures : sans cela, ecrire dans la cellule
     ' Categorie declencherait Worksheet_Change comme si l'operateur l'avait saisie.
@@ -294,16 +293,16 @@ Private Sub AfficherOperation(ByVal ws As Worksheet)
     On Error GoTo Sortie
 
     ' --- Compteur et informations (lecture seule) ---
-    ws.Range(CTRL_ADR_COMPTEUR).Value = TF("Op{e2}ration ") & g_CtrlPos & " / " & g_CtrlNbAffiches
-    ws.Range(CTRL_ADR_DATE).Value = FormaterDate(g_CtrlOps(i, CTRL_OP_DATE))
-    ws.Range(CTRL_ADR_TIERS).Value = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_TIERS))
-    ws.Range(CTRL_ADR_LIBELLE).Value = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_LIBELLE))
-    ws.Range(CTRL_ADR_MONTANT).Value = Format(mod_DataStructure.ToDouble(g_CtrlOps(i, CTRL_OP_MONTANT)), "#,##0.00") & " " & ChrW(8364)
-    ws.Range(CTRL_ADR_SOURCE).Value = source
+    ws.Range(CTRL_ADR_COMPTEUR).value = TF("Op{e2}ration ") & g_CtrlPos & " / " & g_CtrlNbAffiches
+    ws.Range(CTRL_ADR_DATE).value = FormaterDate(g_CtrlOps(i, CTRL_OP_DATE))
+    ws.Range(CTRL_ADR_TIERS).value = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_TIERS))
+    ws.Range(CTRL_ADR_LIBELLE).value = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_LIBELLE))
+    ws.Range(CTRL_ADR_MONTANT).value = Format(mod_DataStructure.ToDouble(g_CtrlOps(i, CTRL_OP_MONTANT)), "#,##0.00") & " " & ChrW(8364)
+    ws.Range(CTRL_ADR_SOURCE).value = Source
 
     ' --- Zones de saisie : valeurs actuelles + listes deroulantes ---
-    ws.Range(CTRL_ADR_CAT).Value = g_CtrlCat(i)
-    ws.Range(CTRL_ADR_SOUS).Value = g_CtrlSous(i)
+    ws.Range(CTRL_ADR_CAT).value = g_CtrlCat(i)
+    ws.Range(CTRL_ADR_SOUS).value = g_CtrlSous(i)
 
     PoserValidationCategorie ws.Range(CTRL_ADR_CAT)
 
@@ -311,11 +310,11 @@ Private Sub AfficherOperation(ByVal ws As Worksheet)
 
     ' --- Message d'aide adapte ---
     If g_CtrlARanger(i) Then
-        ws.Range(CTRL_ADR_MESSAGE).Value = TF("Cat{e2}gorie source '") & source & _
+        ws.Range(CTRL_ADR_MESSAGE).value = TF("Cat{e2}gorie source '") & Source & _
             TF("' absente du tableau de correspondance (ou vide) : choisissez la cat{e2}gorie {a2} affecter.")
         ws.Range(CTRL_ADR_MESSAGE).Font.Color = RGB(192, 80, 0)
     Else
-        ws.Range(CTRL_ADR_MESSAGE).Value = TF("Cat{e2}gorie propos{e2}e par la correspondance (source : '") & source & _
+        ws.Range(CTRL_ADR_MESSAGE).value = TF("Cat{e2}gorie propos{e2}e par la correspondance (source : '") & Source & _
             TF("'). Vous pouvez la modifier.")
         ws.Range(CTRL_ADR_MESSAGE).Font.Color = RGB(90, 90, 90)
     End If
@@ -342,7 +341,7 @@ Private Sub RemplirListeSousCategories(ByVal ws As Worksheet, ByVal categorie As
     Dim liste() As String
     Dim dejaVu As Object
     Dim nb As Long, r As Long
-    Dim sortie() As Variant
+    Dim Sortie() As Variant
     Dim colLettre As String
 
     ' Nettoyage de l'ancienne liste
@@ -367,13 +366,13 @@ Private Sub RemplirListeSousCategories(ByVal ws As Worksheet, ByVal categorie As
 
     If nb > 0 Then
         TrierTextes liste, nb
-        ReDim sortie(1 To nb, 1 To 1)
+        ReDim Sortie(1 To nb, 1 To 1)
         For r = 1 To nb
-            sortie(r, 1) = liste(r)
+            Sortie(r, 1) = liste(r)
         Next r
         With ws.Cells(2, CTRL_COL_AIDE).Resize(nb, 1)
             .NumberFormat = "@"
-            .Value2 = sortie
+            .Value2 = Sortie
         End With
     End If
 
@@ -433,13 +432,13 @@ Public Sub CtrlTraiterChangement(ByVal ws As Worksheet, ByVal Target As Range)
     Dim numErr As Long
 
     If Not g_CtrlEnCours Then Exit Sub                       ' formulaire ferme : on ignore
-    If Target.Cells.Count > 1 Then Exit Sub                  ' collage multiple : on ignore
+    If Target.Cells.count > 1 Then Exit Sub                  ' collage multiple : on ignore
     If Target.Address(False, False) <> CTRL_ADR_CAT Then Exit Sub   ' autre cellule : on ignore
 
     On Error GoTo Sortie
     Application.EnableEvents = False        ' evite que nos ecritures relancent l'evenement
     ws.Range(CTRL_ADR_SOUS).ClearContents
-    RemplirListeSousCategories ws, mod_DataStructure.CellText(Target.Value)
+    RemplirListeSousCategories ws, mod_DataStructure.CellText(Target.value)
 
 Sortie:
     numErr = Err.Number
@@ -467,8 +466,8 @@ Private Function EnregistrerOperationAffichee(ByVal ws As Worksheet) As Boolean
     Dim cat As String, sous As String
 
     i = g_CtrlIndices(g_CtrlPos)
-    cat = mod_DataStructure.CellText(ws.Range(CTRL_ADR_CAT).Value)
-    sous = mod_DataStructure.CellText(ws.Range(CTRL_ADR_SOUS).Value)
+    cat = mod_DataStructure.CellText(ws.Range(CTRL_ADR_CAT).value)
+    sous = mod_DataStructure.CellText(ws.Range(CTRL_ADR_SOUS).value)
 
     ' Une sous-categorie sans categorie n'a pas de sens.
     If cat = "" And sous <> "" Then
@@ -631,8 +630,8 @@ Public Sub ControleNouvelleCategorie()
     On Error GoTo Erreur
     Set ws = ThisWorkbook.Worksheets(CTRL_NOM_FEUILLE)
 
-    catActuelle = mod_DataStructure.CellText(ws.Range(CTRL_ADR_CAT).Value)
-    sousActuelle = mod_DataStructure.CellText(ws.Range(CTRL_ADR_SOUS).Value)
+    catActuelle = mod_DataStructure.CellText(ws.Range(CTRL_ADR_CAT).value)
+    sousActuelle = mod_DataStructure.CellText(ws.Range(CTRL_ADR_SOUS).value)
 
     ' On suspend le verrou d'ACTIVATION (pas g_CtrlEnCours, voir sa declaration en
     ' tete de module) : sans cela, Worksheet_Deactivate ramenerait de force l'operateur
@@ -652,14 +651,14 @@ Public Sub ControleNouvelleCategorie()
 
         Application.EnableEvents = False
         PoserValidationCategorie ws.Range(CTRL_ADR_CAT)
-        ws.Range(CTRL_ADR_CAT).Value = catRes
+        ws.Range(CTRL_ADR_CAT).value = catRes
         Application.EnableEvents = True
 
         ' RemplirListeSousCategories pose aussi la liste deroulante de la sous-categorie ;
         ' on l'appelle donc APRES avoir ecrit la sous-categorie, pour ne pas la voir
         ' effacee par un declenchement de Worksheet_Change entre-temps.
         Application.EnableEvents = False
-        ws.Range(CTRL_ADR_SOUS).Value = sousRes
+        ws.Range(CTRL_ADR_SOUS).value = sousRes
         RemplirListeSousCategories ws, catRes
         Application.EnableEvents = True
     End If
@@ -725,10 +724,10 @@ Public Sub ControleVentiler()
 
         Application.EnableEvents = False
         PoserValidationCategorie ws.Range(CTRL_ADR_CAT)
-        ws.Range(CTRL_ADR_CAT).Value = CategorieVentile
-        ws.Range(CTRL_ADR_SOUS).Value = ""
+        ws.Range(CTRL_ADR_CAT).value = CategorieVentile
+        ws.Range(CTRL_ADR_SOUS).value = ""
         RemplirListeSousCategories ws, CategorieVentile
-        ws.Range(CTRL_ADR_MESSAGE).Value = TF("Op{e2}ration ventil{e2}e : la cat{e2}gorie '") & CategorieVentile & _
+        ws.Range(CTRL_ADR_MESSAGE).value = TF("Op{e2}ration ventil{e2}e : la cat{e2}gorie '") & CategorieVentile & _
                                             TF("' a {e2}t{e2} affect{e2}e. Le d{e2}tail est enregistr{e2} dans TblVentilations.")
         ws.Range(CTRL_ADR_MESSAGE).Font.Color = RGB(31, 120, 60)
         Application.EnableEvents = True
@@ -875,15 +874,15 @@ Public Sub TesterControleCategories()
     If nbDemande > 30 Then nbDemande = 30
 
     ' On ne lit que les 300 premieres lignes de la table : largement suffisant pour un test.
-    nbLignesLues = tblOps.ListRows.Count
+    nbLignesLues = tblOps.ListRows.count
     If nbLignesLues > 300 Then nbLignesLues = 300
 
-    Set rgDate = PlageColonne(tblOps, "Date_Comptable", nbLignesLues)
-    Set rgTiers = PlageColonne(tblOps, "Tiers", nbLignesLues)
-    Set rgNotes = PlageColonne(tblOps, "Notes", nbLignesLues)
-    Set rgMontant = PlageColonne(tblOps, "Montant", nbLignesLues)
-    Set rgCat = PlageColonne(tblOps, "Categorie", nbLignesLues)
-    Set rgId = PlageColonne(tblOps, "ID_Transaction", nbLignesLues)
+    Set rgDate = plageColonne(tblOps, "Date_Comptable", nbLignesLues)
+    Set rgTiers = plageColonne(tblOps, "Tiers", nbLignesLues)
+    Set rgNotes = plageColonne(tblOps, "Notes", nbLignesLues)
+    Set rgMontant = plageColonne(tblOps, "Montant", nbLignesLues)
+    Set rgCat = plageColonne(tblOps, "Categorie", nbLignesLues)
+    Set rgId = plageColonne(tblOps, "ID_Transaction", nbLignesLues)
     If rgDate Is Nothing Or rgTiers Is Nothing Or rgNotes Is Nothing Or rgMontant Is Nothing Or rgCat Is Nothing Or rgId Is Nothing Then Exit Sub
 
     vDate = LireColonne(rgDate)
@@ -973,7 +972,7 @@ Private Function FeuilleSansErreur(ByVal nomFeuille As String) As Worksheet
 End Function
 
 ' Renvoie les nb premieres lignes d'une colonne de la table (ou Nothing si introuvable).
-Private Function PlageColonne(ByVal t As ListObject, ByVal nom As String, ByVal nb As Long) As Range
+Private Function plageColonne(ByVal t As ListObject, ByVal nom As String, ByVal nb As Long) As Range
     Dim lc As ListColumn
     On Error Resume Next
     Set lc = t.ListColumns(nom)
@@ -981,7 +980,7 @@ Private Function PlageColonne(ByVal t As ListObject, ByVal nom As String, ByVal 
     If lc Is Nothing Then
         MsgBox TF("Colonne introuvable dans TblOperations : ") & nom, vbExclamation
     Else
-        Set PlageColonne = lc.DataBodyRange.Resize(nb, 1)
+        Set plageColonne = lc.DataBodyRange.Resize(nb, 1)
     End If
 End Function
 
@@ -989,7 +988,7 @@ End Function
 ' (Piege VBA : pour UNE seule cellule, .Value2 renvoie une valeur simple, pas un tableau.)
 Private Function LireColonne(ByVal plage As Range) As Variant
     Dim t() As Variant
-    If plage.Cells.Count = 1 Then
+    If plage.Cells.count = 1 Then
         ReDim t(1 To 1, 1 To 1)
         t(1, 1) = plage.Value2
         LireColonne = t

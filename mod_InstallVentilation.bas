@@ -1,4 +1,3 @@
-Attribute VB_Name = "mod_InstallVentilation"
 Option Explicit
 
 ' =====================================================================================
@@ -123,7 +122,7 @@ Public Sub PreparerTableVentilations()
     On Error GoTo 0
 
     If ws Is Nothing Then
-        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.count))
         ws.Name = VEN_NOM_FEUILLE_DONNEES
     End If
 
@@ -133,7 +132,7 @@ Public Sub PreparerTableVentilations()
 
     If tbl Is Nothing Then
         ws.Range("A1:E1").NumberFormat = "@"
-        ws.Range("A1:E1").Value = Array("ID_Transaction", "Categorie", "SousCategorie", "Montant", "DateVentilation")
+        ws.Range("A1:E1").value = Array("ID_Transaction", "Categorie", "SousCategorie", "Montant", "DateVentilation")
         Set tbl = ws.ListObjects.Add(xlSrcRange, ws.Range("A1:E1"), , xlYes)
         tbl.Name = VEN_NOM_TABLE
         ' Pas de mise en forme ici : juste apres sa creation, le tableau n'a AUCUNE
@@ -191,7 +190,7 @@ Public Sub CreerFeuilleVentilation()
         ws.Cells.Clear
         SupprimerFormes ws
     Else
-        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.count))
         ws.Name = VEN_NOM_FEUILLE
     End If
 
@@ -251,7 +250,7 @@ Private Sub ConstruireBoutonsGlobaux(ByVal ws As Worksheet)
 
     Dim zone As Range
 
-    ws.Rows(VEN_LIGNE_BOUTONS).RowHeight = 26
+    ws.rows(VEN_LIGNE_BOUTONS).RowHeight = 26
 
     Set zone = ws.Cells(VEN_LIGNE_BOUTONS, 2)
     AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, _
@@ -284,7 +283,7 @@ Private Sub ConstruireEntete(ByVal ws As Worksheet)
         .Font.Bold = True
         .Font.Color = RGB(60, 60, 60)
     End With
-    ws.Range(VEN_ADR_TITRE).Value = TF("Ventilation de l'op{e2}ration")
+    ws.Range(VEN_ADR_TITRE).value = TF("Ventilation de l'op{e2}ration")
 
     EcrireEtiquette ws, "B6", "Date"
     EcrireEtiquette ws, "B7", "Tiers"
@@ -308,7 +307,7 @@ End Sub
 
 Private Sub EcrireEtiquette(ByVal ws As Worksheet, ByVal adresse As String, ByVal texte As String)
     With ws.Range(adresse)
-        .Value = texte
+        .value = texte
         .Font.Bold = True
         .Font.Color = RGB(110, 110, 110)
         .VerticalAlignment = xlCenter
@@ -349,13 +348,13 @@ Private Sub ConstruireGrilleAffichage(ByVal ws As Worksheet)
     Dim ligne As Long
 
     With ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_CAT)
-        .Value = TF("Cat{e2}gorie")
+        .value = TF("Cat{e2}gorie")
     End With
     With ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_SOUS)
-        .Value = TF("Sous-cat{e2}gorie")
+        .value = TF("Sous-cat{e2}gorie")
     End With
     With ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_MONTANT)
-        .Value = "Montant"
+        .value = "Montant"
     End With
     With ws.Range(ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_CAT), ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_EDITER))
         .Font.Bold = True
@@ -373,7 +372,7 @@ Private Sub ConstruireGrilleAffichage(ByVal ws As Worksheet)
         ws.Cells(ligne, VEN_COL_CAT).NumberFormat = "@"
         ws.Cells(ligne, VEN_COL_SOUS).NumberFormat = "@"
         ws.Cells(ligne, VEN_COL_MONTANT).NumberFormat = "#,##0.00"
-        ws.Rows(ligne).RowHeight = 18
+        ws.rows(ligne).RowHeight = 18
 
         ' Bouton "Editer" de cette ligne. Toutes les lignes ont leur bouton des la
         ' construction (que la ligne soit remplie ou non) : cliquer sur une ligne vide
@@ -401,12 +400,12 @@ Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
     ' --- Titre de la zone ---
     With ws.Range("B" & VEN_LIGNE_SAISIE_TITRE & ":E" & VEN_LIGNE_SAISIE_TITRE)
         .Merge
-        .Value = TF("Ajouter ou modifier une ligne")
+        .value = TF("Ajouter ou modifier une ligne")
         .Font.Bold = True
         .Font.Size = 11
         .Font.Color = RGB(60, 60, 60)
     End With
-    ws.Rows(VEN_LIGNE_SAISIE_TITRE).RowHeight = 20
+    ws.rows(VEN_LIGNE_SAISIE_TITRE).RowHeight = 20
 
     ' --- Categorie + bouton "+" (meme principe que le formulaire de controle) ---
     EcrireEtiquette ws, "B29", TF("Cat{e2}gorie")
@@ -420,7 +419,7 @@ Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
         .Borders.LineStyle = xlContinuous
         .Borders.Color = RGB(200, 185, 120)
     End With
-    ws.Rows(29).RowHeight = 22
+    ws.rows(29).RowHeight = 22
     Dim zoneBoutonNouvelle As Range
     Set zoneBoutonNouvelle = ws.Range("D29:E29")
     AjouterBouton ws, zoneBoutonNouvelle.Left, zoneBoutonNouvelle.Top, zoneBoutonNouvelle.Width, zoneBoutonNouvelle.Height, _
@@ -438,7 +437,7 @@ Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
         .Borders.LineStyle = xlContinuous
         .Borders.Color = RGB(200, 185, 120)
     End With
-    ws.Rows(30).RowHeight = 22
+    ws.rows(30).RowHeight = 22
 
     ' --- Montant ---
     EcrireEtiquette ws, "B31", "Montant"
@@ -452,7 +451,7 @@ Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
         .Borders.LineStyle = xlContinuous
         .Borders.Color = RGB(200, 185, 120)
     End With
-    ws.Rows(31).RowHeight = 22
+    ws.rows(31).RowHeight = 22
 
     ' --- Message (erreurs de saisie de cette ligne) ---
     With ws.Range(VEN_ADR_SAISIE_MESSAGE & ":E32")
@@ -462,10 +461,10 @@ Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
         .Font.Size = 9
         .Font.Color = RGB(192, 80, 0)
     End With
-    ws.Rows(32).RowHeight = 26
+    ws.rows(32).RowHeight = 26
 
     ' --- Boutons "Ajouter la ligne" et "Effacer la saisie" ---
-    ws.Rows(VEN_LIGNE_BOUTON_AJOUTER).RowHeight = 24
+    ws.rows(VEN_LIGNE_BOUTON_AJOUTER).RowHeight = 24
     Dim zoneAjouter As Range, zoneEffacer As Range
     Set zoneAjouter = ws.Range("B" & VEN_LIGNE_BOUTON_AJOUTER)
     AjouterBouton ws, zoneAjouter.Left, zoneAjouter.Top, 150, zoneAjouter.Height, _
@@ -518,7 +517,7 @@ End Function
 
 Private Sub SupprimerFormes(ByVal ws As Worksheet)
     Dim i As Long
-    For i = ws.Shapes.Count To 1 Step -1
+    For i = ws.Shapes.count To 1 Step -1
         ws.Shapes(i).Delete
     Next i
 End Sub

@@ -1,4 +1,3 @@
-Attribute VB_Name = "mod_Categories"
 Option Explicit
 
 ' =====================================================================================
@@ -146,7 +145,7 @@ Public Sub InitialiserTableCategories()
     Dim nbNouvelles As Long
     Dim i As Long
     Dim texte As String
-    Dim sortie() As Variant
+    Dim Sortie() As Variant
     Dim premiereLigne As Long, derniereLigne As Long
     Dim nbAVerifier As Long, verifies As Variant
 
@@ -224,33 +223,33 @@ Public Sub InitialiserTableCategories()
     TrierTextes nouvelles, nbNouvelles
 
     ' --- Preparer le bloc a ecrire (tableau en memoire : 4 colonnes) ----------------------
-    ReDim sortie(1 To nbNouvelles, 1 To NB_COL_TABLE)
+    ReDim Sortie(1 To nbNouvelles, 1 To NB_COL_TABLE)
     For i = 1 To nbNouvelles
-        sortie(i, 1) = nouvelles(i)      ' CategorieSource
-        sortie(i, 2) = nouvelles(i)      ' Categorie : proposition = meme texte
-        sortie(i, 3) = ""                ' SousCategorie : vide
-        sortie(i, 4) = ""                ' Verifie : a faire par l'operateur
+        Sortie(i, 1) = nouvelles(i)      ' CategorieSource
+        Sortie(i, 2) = nouvelles(i)      ' Categorie : proposition = meme texte
+        Sortie(i, 3) = ""                ' SousCategorie : vide
+        Sortie(i, 4) = ""                ' Verifie : a faire par l'operateur
 
         ' Cas particulier decrit par l'operateur : "Frais, remb sante" est une
         ' sous-categorie de "Sante, prevoyance".
         If StrComp(nouvelles(i), CategorieSourceSante(), vbTextCompare) = 0 Then
-            sortie(i, 2) = CategorieSanteNouvelle()
-            sortie(i, 3) = CategorieSourceSante()
-            sortie(i, 4) = "Oui"
+            Sortie(i, 2) = CategorieSanteNouvelle()
+            Sortie(i, 3) = CategorieSourceSante()
+            Sortie(i, 4) = "Oui"
         End If
     Next i
 
     ' --- Ecriture dans la feuille Param -----------------------------------------------------
     If tblCat Is Nothing Then
         ' PREMIERE FOIS : en-tetes + donnees + creation du tableau Excel
-        wsParam.Range(wsParam.Cells(1, COL_DEBUT), wsParam.Cells(1, COL_DEBUT + NB_COL_TABLE - 1)).Value = _
+        wsParam.Range(wsParam.Cells(1, COL_DEBUT), wsParam.Cells(1, COL_DEBUT + NB_COL_TABLE - 1)).value = _
             Array("CategorieSource", "Categorie", "SousCategorie", "Verifie")
         premiereLigne = 2
     Else
         ' Tableau deja present : on ecrit sous la derniere ligne remplie. On se base sur la
         ' colonne L (Categorie) car elle est toujours remplie, contrairement a la colonne K
         ' (une categorie creee a la main n'a pas de categorie source).
-        derniereLigne = wsParam.Cells(wsParam.Rows.Count, COL_DEBUT + 1).End(xlUp).Row
+        derniereLigne = wsParam.Cells(wsParam.rows.count, COL_DEBUT + 1).End(xlUp).Row
         premiereLigne = derniereLigne + 1
     End If
 
@@ -259,7 +258,7 @@ Public Sub InitialiserTableCategories()
     With wsParam.Range(wsParam.Cells(premiereLigne, COL_DEBUT), _
                        wsParam.Cells(premiereLigne + nbNouvelles - 1, COL_DEBUT + NB_COL_TABLE - 1))
         .NumberFormat = "@"
-        .Value2 = sortie
+        .Value2 = Sortie
     End With
 
     If tblCat Is Nothing Then
@@ -313,7 +312,7 @@ Public Sub RafraichirListesCategories()
     Dim donnees As Variant
     Dim dejaVu As Object
     Dim liste() As String
-    Dim sortie() As Variant
+    Dim Sortie() As Variant
     Dim nb As Long, i As Long
     Dim texte As String
 
@@ -347,15 +346,15 @@ Public Sub RafraichirListesCategories()
     TrierTextes liste, nb
 
     ' On efface l'ancienne liste (sous l'en-tete), puis on ecrit la nouvelle.
-    wsParam.Range(wsParam.Cells(2, COL_LISTE), wsParam.Cells(wsParam.Rows.Count, COL_LISTE)).ClearContents
-    wsParam.Cells(1, COL_LISTE).Value = "Liste categories (zone technique - ne pas modifier)"
+    wsParam.Range(wsParam.Cells(2, COL_LISTE), wsParam.Cells(wsParam.rows.count, COL_LISTE)).ClearContents
+    wsParam.Cells(1, COL_LISTE).value = "Liste categories (zone technique - ne pas modifier)"
 
-    ReDim sortie(1 To nb, 1 To 1)
+    ReDim Sortie(1 To nb, 1 To 1)
     For i = 1 To nb
-        sortie(i, 1) = liste(i)
+        Sortie(i, 1) = liste(i)
     Next i
     wsParam.Cells(2, COL_LISTE).Resize(nb, 1).NumberFormat = "@"
-    wsParam.Cells(2, COL_LISTE).Resize(nb, 1).Value2 = sortie
+    wsParam.Cells(2, COL_LISTE).Resize(nb, 1).Value2 = Sortie
 
     ' Nom "ListeCategories" : plage DYNAMIQUE (OFFSET) qui s'adapte au nombre de
     ' categories ecrites. Cree au niveau du CLASSEUR (ThisWorkbook.Names), comme les
@@ -519,10 +518,10 @@ Public Function AjouterCategoriePersonnalisee(ByRef categorie As String, ByRef s
     With wsParam.Range(wsParam.Cells(ligneCible, COL_DEBUT), wsParam.Cells(ligneCible, COL_DEBUT + NB_COL_TABLE - 1))
         .NumberFormat = "@"        ' format TEXTE avant ecriture (voir piege deja rencontre)
     End With
-    wsParam.Cells(ligneCible, COL_DEBUT).Value = ""             ' CategorieSource
-    wsParam.Cells(ligneCible, COL_DEBUT + 1).Value = categorie  ' Categorie
-    wsParam.Cells(ligneCible, COL_DEBUT + 2).Value = sousCategorie   ' SousCategorie
-    wsParam.Cells(ligneCible, COL_DEBUT + 3).Value = "Oui"      ' Verifie : creee volontairement
+    wsParam.Cells(ligneCible, COL_DEBUT).value = ""             ' CategorieSource
+    wsParam.Cells(ligneCible, COL_DEBUT + 1).value = categorie  ' Categorie
+    wsParam.Cells(ligneCible, COL_DEBUT + 2).value = sousCategorie   ' SousCategorie
+    wsParam.Cells(ligneCible, COL_DEBUT + 3).value = "Oui"      ' Verifie : creee volontairement
 
     ' La liste deroulante des categories (Phase 1) doit refleter cet ajout immediatement.
     RafraichirListesCategories
@@ -666,19 +665,19 @@ Public Function NormaliserTexte(ByVal texte As String) As String
     r = Trim(texte)
 
     ' Lettres accentuees courantes (minuscules et majuscules) -> lettre simple.
-    r = Replace(r, ChrW(233), "e") : r = Replace(r, ChrW(201), "e")   ' e aigu
-    r = Replace(r, ChrW(232), "e") : r = Replace(r, ChrW(200), "e")   ' e grave
-    r = Replace(r, ChrW(234), "e") : r = Replace(r, ChrW(202), "e")   ' e circonflexe
-    r = Replace(r, ChrW(235), "e") : r = Replace(r, ChrW(203), "e")   ' e trema
-    r = Replace(r, ChrW(224), "a") : r = Replace(r, ChrW(192), "a")   ' a grave
-    r = Replace(r, ChrW(226), "a") : r = Replace(r, ChrW(194), "a")   ' a circonflexe
-    r = Replace(r, ChrW(238), "i") : r = Replace(r, ChrW(206), "i")   ' i circonflexe
-    r = Replace(r, ChrW(239), "i") : r = Replace(r, ChrW(207), "i")   ' i trema
-    r = Replace(r, ChrW(244), "o") : r = Replace(r, ChrW(212), "o")   ' o circonflexe
-    r = Replace(r, ChrW(249), "u") : r = Replace(r, ChrW(217), "u")   ' u grave
-    r = Replace(r, ChrW(251), "u") : r = Replace(r, ChrW(219), "u")   ' u circonflexe
-    r = Replace(r, ChrW(252), "u") : r = Replace(r, ChrW(220), "u")   ' u trema
-    r = Replace(r, ChrW(231), "c") : r = Replace(r, ChrW(199), "c")   ' c cedille
+    r = Replace(r, ChrW(233), "e"): r = Replace(r, ChrW(201), "e")    ' e aigu
+    r = Replace(r, ChrW(232), "e"): r = Replace(r, ChrW(200), "e")    ' e grave
+    r = Replace(r, ChrW(234), "e"): r = Replace(r, ChrW(202), "e")    ' e circonflexe
+    r = Replace(r, ChrW(235), "e"): r = Replace(r, ChrW(203), "e")    ' e trema
+    r = Replace(r, ChrW(224), "a"): r = Replace(r, ChrW(192), "a")    ' a grave
+    r = Replace(r, ChrW(226), "a"): r = Replace(r, ChrW(194), "a")    ' a circonflexe
+    r = Replace(r, ChrW(238), "i"): r = Replace(r, ChrW(206), "i")    ' i circonflexe
+    r = Replace(r, ChrW(239), "i"): r = Replace(r, ChrW(207), "i")    ' i trema
+    r = Replace(r, ChrW(244), "o"): r = Replace(r, ChrW(212), "o")    ' o circonflexe
+    r = Replace(r, ChrW(249), "u"): r = Replace(r, ChrW(217), "u")    ' u grave
+    r = Replace(r, ChrW(251), "u"): r = Replace(r, ChrW(219), "u")    ' u circonflexe
+    r = Replace(r, ChrW(252), "u"): r = Replace(r, ChrW(220), "u")    ' u trema
+    r = Replace(r, ChrW(231), "c"): r = Replace(r, ChrW(199), "c")    ' c cedille
 
     r = LCase(r)
 
@@ -897,7 +896,7 @@ End Function
 '  valeur et non un tableau ; cette fonction uniformise le resultat.)
 Private Function LireColonne(ByVal plage As Range) As Variant
     Dim t() As Variant
-    If plage.Cells.Count = 1 Then
+    If plage.Cells.count = 1 Then
         ReDim t(1 To 1, 1 To 1)
         t(1, 1) = plage.Value2
         LireColonne = t

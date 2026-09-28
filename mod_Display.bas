@@ -1,29 +1,28 @@
-Attribute VB_Name = "mod_Display"
 Option Explicit
-' Ce module regroupe les macros qui préparent une ZONE D'AFFICHAGE sur une
-' feuille (nettoyage, mise en place des en-têtes) AVANT que d'autres modules
-' n'y écrivent des données. Il ne contient volontairement AUCUNE logique de
+' Ce module regroupe les macros qui prÃ©parent une ZONE D'AFFICHAGE sur une
+' feuille (nettoyage, mise en place des en-tÃªtes) AVANT que d'autres modules
+' n'y Ã©crivent des donnÃ©es. Il ne contient volontairement AUCUNE logique de
 ' calcul ou de filtrage : uniquement de la mise en forme / nettoyage visuel.
 
 ' Les macros de ce module ne sont pas visibles dans la liste "Macros" d'Excel
 Option Private Module
 
 ' ----------------------------------------------------------------------
-' PrepareOutputArea : vide une zone de résultats et y place de nouveaux en-têtes
+' PrepareOutputArea : vide une zone de rÃ©sultats et y place de nouveaux en-tÃªtes
 ' ----------------------------------------------------------------------
-' Paramètres :
+' ParamÃ¨tres :
 '   ws            -> la feuille sur laquelle travailler (ex : Synthese)
-'   headerAddress -> l'adresse où écrire les en-têtes (ex : "E1:J1")
-'   headers       -> un tableau de textes, ex : Array("Date", "Libellé", ...)
+'   headerAddress -> l'adresse oÃ¹ Ã©crire les en-tÃªtes (ex : "E1:J1")
+'   headers       -> un tableau de textes, ex : Array("Date", "LibellÃ©", ...)
 '
-' Pourquoi limiter le nettoyage à "E1:R10000" ? Parce que les colonnes A et B
+' Pourquoi limiter le nettoyage Ã  "E1:R10000" ? Parce que les colonnes A et B
 ' de la feuille Synthese contiennent les PARAMETRES saisis par l'utilisateur
-' (année, mois, seuils...). On ne doit surtout pas les effacer par erreur
-' à chaque nouvel affichage : la zone nettoyée commence donc à la colonne E.
+' (annÃ©e, mois, seuils...). On ne doit surtout pas les effacer par erreur
+' Ã  chaque nouvel affichage : la zone nettoyÃ©e commence donc Ã  la colonne E.
 Public Sub PrepareOutputArea(ByVal ws As Worksheet, Optional ByVal headers As Variant, Optional ByVal debPlageTravail As Range)
     Dim nbCols As Long
 
-    ' 1. On supprime les données d'entête sur une longuenr de 20 colonnes en partant de cellSortieDep
+    ' 1. On supprime les donnÃ©es d'entÃªte sur une longuenr de 20 colonnes en partant de cellSortieDep
     If Not debPlageTravail Is Nothing Then
         debPlageTravail.Resize(10000, 20).ClearContents
         debPlageTravail.Resize(10000, 20).FormatConditions.Delete
@@ -38,76 +37,78 @@ Public Sub PrepareOutputArea(ByVal ws As Worksheet, Optional ByVal headers As Va
         ws.Range(cellSortieDep).Resize(10000, 20).Font.Bold = False
     End If
     
-    ' 2. On désactive les filtre au besoin
+    ' 2. On dÃ©sactive les filtre au besoin
     If ws.AutoFilterMode Then ws.AutoFilterMode = False
     
-    ' 3. On traitÃ© le cas ou les entêtes sont fournit
+    ' 3. On traite le cas ou les entÃªtes sont fournit
     If Not IsMissing(headers) And Not debPlageTravail Is Nothing Then
         nbCols = UBound(headers) - LBound(headers) + 1
-        ' 1. On définit la plage dynamique d'en-têtes à partir de la cellule de départ
+        ' 1. On dÃ©finit la plage dynamique d'en-tÃªtes Ã  partir de la cellule de dÃ©part
         Set plageSortieEnTetes = debPlageTravail.Resize(1, nbCols)
         
-        ' 2. Définit la plage de travail
-        ' la méthode offset par de cellSortieDep décale la ligne de 1 et 0 colonne
-        ' Range étire la plage à partir de la nouvelle valeur Offset, de 10000 lignes et nbCols
+        ' 2. DÃ©finit la plage de travail
+        ' la mÃ©thode offset par de cellSortieDep dÃ©cale la ligne de 1 et 0 colonne
+        ' Range Ã©tire la plage Ã  partir de la nouvelle valeur Offset, de 10000 lignes et nbCols
         Set plageSortieEcriture = debPlageTravail.Offset(1, 0).Resize(10000, nbCols)
         
-        ' 3. Enfin, on écrit les nouveaux en-têtes de colonnes à l'endroit demandé.
+        ' 3. Enfin, on Ã©crit les nouveaux en-tÃªtes de colonnes Ã  l'endroit demandÃ©.
         plageSortieEnTetes.value = headers
     End If
     
 End Sub
 
-' Récupération de la position absolu d'une valeur dans un ARRAY
-' Récupére la position du champs Entete dans l'ARRAY headers (Application.Match est naturellement insensible à la casse)
-Public Sub RecupColSortieIndex(ByVal ws As Worksheet, Optional ByVal posZone As Range)
+' RÃ©cupÃ©ration de la position absolu d'une valeur dans un ARRAY
+' RÃ©cupÃ©re la position du champs Entete dans l'ARRAY headers (Application.Match est naturellement insensible Ã  la casse)
+Public Sub RecupPosSortieIndex(ByVal ws As Worksheet, Optional ByVal posZone As Range)
     If posZone Is Nothing Then
-        colSortieDate = ColSortieIndex(ws, MonArray, "Date")
-        colSortieTiers = ColSortieIndex(ws, MonArray, "Tiers")
-        colSortieType = ColSortieIndex(ws, MonArray, "Type_operation")
-        colSortieCategorie = ColSortieIndex(ws, MonArray, "Catégorie")
-        colSortieMontant = ColSortieIndex(ws, MonArray, "Montant")
-        colSortieCheque = ColSortieIndex(ws, MonArray, "Num_Cheque")
-        colSortieNotes = ColSortieIndex(ws, MonArray, "Notes")
-        colSortieBudget = ColSortieIndex(ws, MonArray, "Budget")
-        colSortieAnneeBudget = ColSortieIndex(ws, MonArray, "AnneeBudget")
-        colSortieMoisBudget = ColSortieIndex(ws, MonArray, "MoisBudget")
-        colSortieDateConsult = ColSortieIndex(ws, MonArray, "Date_consult")
-        colSortieSpeConsult = ColSortieIndex(ws, MonArray, "Spe_Consult")
-        colSortieStatutSante = ColSortieIndex(ws, MonArray, "StatutSante")
-        colSortieSoldeSante = ColSortieIndex(ws, MonArray, "SoldeSante")
+        posSortieDate = mod_Display.PosSortieIndex(ws, MonArray, "Date")
+        posSortieTiers = mod_Display.PosSortieIndex(ws, MonArray, "Tiers")
+        posSortieType = mod_Display.PosSortieIndex(ws, MonArray, "Type_operation")
+        posSortieCategorie = mod_Display.PosSortieIndex(ws, MonArray, "CatÃ©gorie")
+        posSortieMontant = mod_Display.PosSortieIndex(ws, MonArray, "Montant")
+        posSortieCheque = mod_Display.PosSortieIndex(ws, MonArray, "Num_Cheque")
+        posSortieNotes = mod_Display.PosSortieIndex(ws, MonArray, "Notes")
+        posSortieBudget = mod_Display.PosSortieIndex(ws, MonArray, "Budget")
+        posSortieAnneeBudget = mod_Display.PosSortieIndex(ws, MonArray, "AnneeBudget")
+        posSortieMoisBudget = mod_Display.PosSortieIndex(ws, MonArray, "MoisBudget")
+        posSortieDateConsult = mod_Display.PosSortieIndex(ws, MonArray, "Date_consult")
+        posSortieSpeConsult = mod_Display.PosSortieIndex(ws, MonArray, "Spe_Consult")
+        posSortieStatutSante = mod_Display.PosSortieIndex(ws, MonArray, "StatutSante")
+        posSortieSoldeSante = mod_Display.PosSortieIndex(ws, MonArray, "SoldeSante")
+        posSortieID = mod_Display.PosSortieIndex(ws, MonArray, "ID_Transaction")
     Else
-        colSortieDate = ColSortieIndex(ws, MonArray, "Date", posZone)
-        colSortieTiers = ColSortieIndex(ws, MonArray, "Tiers", posZone)
-        colSortieType = ColSortieIndex(ws, MonArray, "Type_operation", posZone)
-        colSortieCategorie = ColSortieIndex(ws, MonArray, "Catégorie", posZone)
-        colSortieMontant = ColSortieIndex(ws, MonArray, "Montant", posZone)
-        colSortieCheque = ColSortieIndex(ws, MonArray, "Num_Cheque", posZone)
-        colSortieNotes = ColSortieIndex(ws, MonArray, "Notes", posZone)
-        colSortieBudget = ColSortieIndex(ws, MonArray, "Budget", posZone)
-        colSortieAnneeBudget = ColSortieIndex(ws, MonArray, "AnneeBudget", posZone)
-        colSortieMoisBudget = ColSortieIndex(ws, MonArray, "MoisBudget", posZone)
-        colSortieDateConsult = ColSortieIndex(ws, MonArray, "Date_consult", posZone)
-        colSortieSpeConsult = ColSortieIndex(ws, MonArray, "Spe_Consult", posZone)
-        colSortieStatutSante = ColSortieIndex(ws, MonArray, "StatutSante", posZone)
-        colSortieSoldeSante = ColSortieIndex(ws, MonArray, "SoldeSante", posZone)
+        posSortieDate = mod_Display.PosSortieIndex(ws, MonArray, "Date", posZone)
+        posSortieTiers = mod_Display.PosSortieIndex(ws, MonArray, "Tiers", posZone)
+        posSortieType = mod_Display.PosSortieIndex(ws, MonArray, "Type_operation", posZone)
+        posSortieCategorie = mod_Display.PosSortieIndex(ws, MonArray, "CatÃ©gorie", posZone)
+        posSortieMontant = mod_Display.PosSortieIndex(ws, MonArray, "Montant", posZone)
+        posSortieCheque = mod_Display.PosSortieIndex(ws, MonArray, "Num_Cheque", posZone)
+        posSortieNotes = mod_Display.PosSortieIndex(ws, MonArray, "Notes", posZone)
+        posSortieBudget = mod_Display.PosSortieIndex(ws, MonArray, "Budget", posZone)
+        posSortieAnneeBudget = mod_Display.PosSortieIndex(ws, MonArray, "AnneeBudget", posZone)
+        posSortieMoisBudget = mod_Display.PosSortieIndex(ws, MonArray, "MoisBudget", posZone)
+        posSortieDateConsult = mod_Display.PosSortieIndex(ws, MonArray, "Date_consult", posZone)
+        posSortieSpeConsult = mod_Display.PosSortieIndex(ws, MonArray, "Spe_Consult", posZone)
+        posSortieStatutSante = mod_Display.PosSortieIndex(ws, MonArray, "StatutSante", posZone)
+        posSortieSoldeSante = mod_Display.PosSortieIndex(ws, MonArray, "SoldeSante", posZone)
+        posSortieID = mod_Display.PosSortieIndex(ws, MonArray, "ID_Transaction", posZone)
     End If
 End Sub
 
-' Fiabilise la récupération de la position absolu d'une colonne dans une feuille en fonction de la valeur de l'entête
-Public Function ColSortieIndex(ByVal ws As Worksheet, ByVal headers As Variant, Entete As String, Optional ByVal posZone As Range)
+' Fiabilise la rÃ©cupÃ©ration de la position absolu d'une colonne dans une feuille en fonction de la valeur de l'entÃªte
+Public Function PosSortieIndex(ByVal ws As Worksheet, ByVal headers As Variant, Entete As String, Optional ByVal posZone As Range)
     Dim posEntete As Long
     Dim colStart As Long
     
-    ' Par défaut, la fonction renvoie 0 (valeur inutilisable car les colonnes commencent à 1)
-    ColSortieIndex = 0
+    ' Par dÃ©faut, la fonction renvoie 0 (valeur inutilisable car les colonnes commencent Ã  1)
+    PosSortieIndex = 0
     
-    ' 1. Vérification des paramètres d'entrée
+    ' 1. VÃ©rification des paramÃ¨tres d'entrÃ©e
     If ws Is Nothing Then Exit Function
     If Not IsArray(headers) Then Exit Function
     If Trim(Entete) = "" Then Exit Function
     
-    ' 2. Vérification de la cellule de départ
+    ' 2. VÃ©rification de la cellule de dÃ©part
     If posZone Is Nothing Then
         On Error Resume Next
         colStart = ws.Range(cellSortieDep).Column
@@ -126,24 +127,24 @@ Public Function ColSortieIndex(ByVal ws As Worksheet, ByVal headers As Variant, 
         On Error GoTo 0
     End If
     
-    ' 3. Recherche (Application.Match est naturellement insensible à la casse)
+    ' 3. Recherche (Application.Match est naturellement insensible Ã  la casse)
     posEntete = GetPosArray(Entete, headers)
     
-    ' 4. Si l'en-tête n'est pas trouvé, posEntete contient une erreur
+    ' 4. Si l'en-tÃªte n'est pas trouvÃ©, posEntete contient une erreur
     If IsError(posEntete) Then Exit Function
     
-    ' 5. Calcul et retour du numéro de colonne
-    ColSortieIndex = colStart + CLng(posEntete) - 1
+    ' 5. Calcul et retour du numÃ©ro de colonne
+    PosSortieIndex = colStart + CLng(posEntete) - 1
     
 End Function
 
-' Récupération de la position absolu d'une valeur dans un ARRAY
-' Récupére la position du champs Entete dans l'ARRAY headers (Application.Match est naturellement insensible à la casse)
+' RÃ©cupÃ©ration de la position absolu d'une valeur dans un ARRAY
+' RÃ©cupÃ©re la position du champs Entete dans l'ARRAY headers (Application.Match est naturellement insensible Ã  la casse)
 Public Sub RecupPosArray()
     posDate = GetPosArray("Date", MonArray)
     posTiers = GetPosArray("Tiers", MonArray)
     posType = GetPosArray("Type_operation", MonArray)
-    posCategorie = GetPosArray("Catégorie", MonArray)
+    posCategorie = GetPosArray("CatÃ©gorie", MonArray)
     posMontant = GetPosArray("Montant", MonArray)
     posCheque = GetPosArray("Num_Cheque", MonArray)
     posNotes = GetPosArray("Notes", MonArray)
@@ -154,17 +155,20 @@ Public Sub RecupPosArray()
     posSpeConsult = GetPosArray("Spe_Consult", MonArray)
     posStatutSante = GetPosArray("StatutSante", MonArray)
     posSoldeSante = GetPosArray("SoldeSante", MonArray)
+    posID = GetPosArray("ID_Transaction", MonArray)
+    posValider = GetPosArray("Valider", MonArray)
 End Sub
 
-' Gére de potentiel erreur dans le nom de la colonne à rechercher dans l'ARRAY
-Private Function GetPosArray(ByVal colName As String, ByVal headers As Variant) As Long
+' GÃ©re de potentiel erreur dans le nom de la colonne Ã  rechercher dans l'ARRAY
+Public Function GetPosArray(ByVal colName As String, ByVal headers As Variant) As Long
     On Error Resume Next
     GetPosArray = Application.Match(colName, headers, 0)
     On Error GoTo 0
     ' Renvoie 0 si la colonne n'existe pas
 End Function
 
-' Récupére le numéro d'index d'une colonne dans un tableau par son nom d'entête
+' RÃ©cupÃ©re le numÃ©ro d'index d'une colonne dans un tableau par son nom d'entÃªte
+' On utlise ListObject car on recherhe dans le tableau nommÃ© "TblOperations"
 Public Sub RecupIndexCol()
     
     colID = GetColumnIndex(tbl, "ID_Transaction")
@@ -172,7 +176,6 @@ Public Sub RecupIndexCol()
     colTiers = GetColumnIndex(tbl, "Tiers")
     colType = GetColumnIndex(tbl, "Type_operation")
     colCategorie = GetColumnIndex(tbl, "Categorie")
-    colSousCategorie = GetColumnIndex(tbl, "SousCategorie")   ' PHASE 1/6 : 0 si Phase 1 pas encore installee
     colMontant = GetColumnIndex(tbl, "Montant")
     colCheque = GetColumnIndex(tbl, "Num_Cheque")
     colNotes = GetColumnIndex(tbl, "Notes")
@@ -190,8 +193,8 @@ Public Sub RecupIndexCol()
     colBeneficiaire = GetColumnIndex(tbl, "Beneficiaire")
 End Sub
 
-' Gére de potentiel erreur dans le nom de la colonne à rechercher
-Private Function GetColumnIndex(ByVal tbl As ListObject, ByVal colName As String) As Long
+' GÃ©re de potentiel erreur dans le nom de la colonne Ã  rechercher
+Public Function GetColumnIndex(ByVal tbl As ListObject, ByVal colName As String) As Long
     On Error Resume Next
     GetColumnIndex = tbl.ListColumns(colName).index
     On Error GoTo 0
@@ -203,31 +206,31 @@ Public Sub MiseEnPage(ws As Worksheet, totalLignes As Long, Optional Filter As B
 
     ' On doit activer la feuille pour pouvoir modifier certains reglages de la FENETRE
     ' (comme l'affichage du quadrillage), car ces reglages sont attaches a la fenetre
-    ' au moment ou une feuille donnee est affichee, et non a la feuille elle-mÃªme.
+    ' au moment ou une feuille donnee est affichee, et non a la feuille elle-meme.
     ws.Activate
     
     
     ' Supprime le quadrillage (les lignes grises entre les cellules) pour donner
-    ' un aspect "formulaire" plutot que "tableur classique", comme demandÃ©.
+    ' un aspect "formulaire" plutot que "tableur classique", comme demande.
     ActiveWindow.DisplayGridlines = False
     
     ' Police par defaut de toute la feuille, coherente avec un rendu "formulaire" sobre.
     ws.Cells.Font.Name = "Calibri"
     ws.Cells.Font.Size = 10
     
-    If colSortieDate <> 0 Then
+    If posSortieDate <> 0 Then
         plageSortieEcriture.Columns(posDate).NumberFormat = "dd/mm/yyyy"
     End If
-    If colSortieBudget <> 0 Then
+    If posSortieBudget <> 0 Then
         plageSortieEcriture.Columns(posBudget).NumberFormat = "mm/yyyy"
     End If
-    If colSortieDateConsult <> 0 Then
+    If posSortieDateConsult <> 0 Then
         plageSortieEcriture.Columns(posDateConsult).NumberFormat = "dd/mm/yyyy"
     End If
-    If colSortieMontant <> 0 Then
+    If posSortieMontant <> 0 Then
         plageSortieEcriture.Columns(posMontant).NumberFormat = "#,##0.00"
     End If
-    If colSortieSoldeSante <> 0 Then
+    If posSortieSoldeSante <> 0 Then
         plageSortieEcriture.Columns(posSoldeSante).NumberFormat = "#,##0.00"
     End If
     
@@ -240,14 +243,14 @@ Public Sub MiseEnPage(ws As Worksheet, totalLignes As Long, Optional Filter As B
     
     'Mise en forme du tableau
 
-    ' 1. Formatage de la ligne d'en-tête
+    ' 1. Formatage de la ligne d'en-tÃªte
     With plageSortieEnTetes
         .Interior.Color = coulEntete
         .Font.Color = RGB(255, 255, 255) ' Texte blanc
         .Font.Bold = True
     End With
     
-    ' 2. Alternance sur les lignes de la plage de données
+    ' 2. Alternance sur les lignes de la plage de donnÃ©es
     For i = 1 To totalLignes
         If i Mod 2 <> 0 Then
             plageSortieEcriture.rows(i).Interior.Color = coulClair1
@@ -266,30 +269,30 @@ End Sub
 
 
 ' =====================================================================================
-' Garantie la bonne transcription des carractère accentué dans les affichages
-' remplace les balise de la chaine par le carractère Unicode lié à son code
+' Garantie la bonne transcription des carractÃ¨re accentuÃ© dans les affichages
+' remplace les balise de la chaine par le carractÃ¨re Unicode liÃ© Ã  son code
 ' =====================================================================================
 Public Function FR(ByVal texte As String) As String
     Dim r As String
     r = texte
-    r = Replace(r, "{e2}", ChrW(233)) ' remplace dans r la chaine "{e2}" par "é"
-    r = Replace(r, "{e1}", ChrW(232)) ' è
-    r = Replace(r, "{ea}", ChrW(234)) ' ê
-    r = Replace(r, "{a2}", ChrW(224)) ' à
-    r = Replace(r, "{c2}", ChrW(231)) ' ç
-    r = Replace(r, "{o2}", ChrW(244)) ' ô
-    r = Replace(r, "{i2}", ChrW(238)) ' î
-    r = Replace(r, "{E2}", ChrW(201)) ' É
-    r = Replace(r, "{E1}", ChrW(200)) ' È
-    r = Replace(r, "{E3}", ChrW(202)) ' Ê
-    r = Replace(r, "{A2}", ChrW(192)) ' À
+    r = Replace(r, "{e2}", ChrW(233)) ' remplace dans r la chaine "{e2}" par "Ã©"
+    r = Replace(r, "{e1}", ChrW(232)) ' Ã¨
+    r = Replace(r, "{ea}", ChrW(234)) ' Ãª
+    r = Replace(r, "{a2}", ChrW(224)) ' Ã 
+    r = Replace(r, "{c2}", ChrW(231)) ' Ã§
+    r = Replace(r, "{o2}", ChrW(244)) ' Ã´
+    r = Replace(r, "{i2}", ChrW(238)) ' Ã®
+    r = Replace(r, "{E2}", ChrW(201)) ' Ã‰
+    r = Replace(r, "{E1}", ChrW(200)) ' Ãˆ
+    r = Replace(r, "{E3}", ChrW(202)) ' ÃŠ
+    r = Replace(r, "{A2}", ChrW(192)) ' Ã€
     FR = r
 End Function
 
-'Suppression de tous les caractères accentués d'une chaine
+'Suppression de tous les caractÃ¨res accentuÃ©s d'une chaine
 ' Suppression de tous les espaces
-' Positionnement de la première lettre en majuscule
-' Utilisé pour le nommage des objet en fonction de leur titre
+' Positionnement de la premiÃ¨re lettre en majuscule
+' UtilisÃ© pour le nommage des objet en fonction de leur titre
 
 Public Function FormaterChaine(ByVal texte As String) As String
     Dim i As Long
@@ -299,27 +302,27 @@ Public Function FormaterChaine(ByVal texte As String) As String
     
     res = texte
     
-    ' 1. Liste des caractères accentués et leurs équivalents
-    accents = "àáâãäåèéêëìíîïòóôõöùúûüçñýÿÀÁÂÃÄÅÈÉÊËÌÍÎÏÒÓÔÕÖÙÚÛÜÇÑÝ"
+    ' 1. Liste des caractÃ¨res accentuÃ©s et leurs Ã©quivalents
+    accents = "Ã Ã¡Ã¢Ã£Ã¤Ã¥Ã¨Ã©ÃªÃ«Ã¬Ã­Ã®Ã¯Ã²Ã³Ã´ÃµÃ¶Ã¹ÃºÃ»Ã¼Ã§Ã±Ã½Ã¿Ã€ÃÃ‚ÃƒÃ„Ã…ÃˆÃ‰ÃŠÃ‹ÃŒÃÃŽÃÃ’Ã“Ã”Ã•Ã–Ã™ÃšÃ›ÃœÃ‡Ã‘Ã"
     sansAccents = "aaaaaaeeeeiiiiooooouuuucnyyAAAAAAEEEEIIIIOOOOOUUUUCNY"
     
-    ' Remplacement des ligatures spécifiques
-    res = Replace(res, "œ", "oe")
-    res = Replace(res, "Œ", "OE")
-    res = Replace(res, "æ", "ae")
-    res = Replace(res, "Æ", "AE")
+    ' Remplacement des ligatures spÃ©cifiques
+    res = Replace(res, "Å“", "oe")
+    res = Replace(res, "Å’", "OE")
+    res = Replace(res, "Ã¦", "ae")
+    res = Replace(res, "Ã†", "AE")
     
-    ' Remplacement caractère par caractère
+    ' Remplacement caractÃ¨re par caractÃ¨re
     For i = 1 To Len(accents)
         res = Replace(res, Mid(accents, i, 1), Mid(sansAccents, i, 1))
     Next i
     
     ' 2. Suppression de tous les types d'espaces (espace standard, insecable, tabulation)
     res = Replace(res, " ", "")
-    res = Replace(res, Chr(160), "") ' Espace insecable (fréquent dans les exports web/Excel)
+    res = Replace(res, Chr(160), "") ' Espace insecable (frÃ©quent dans les exports web/Excel)
     res = Replace(res, vbTab, "")
     
-    ' 3. Première lettre en majuscule
+    ' 3. PremiÃ¨re lettre en majuscule
     If Len(res) > 0 Then
         res = UCase(Left(res, 1)) & Mid(res, 2)
     End If
@@ -362,16 +365,16 @@ Public Sub ConstruireBoutons(ws As Worksheet, zoneBouton As Range, texteBouton A
     zoneBouton.RowHeight = 22
 
     ' Ajout d'un bouton de type "Controle de formulaire"
-    ' plus leger, plus fiable vis-a-vis du problÃ¨me de DPI/multi-ecrans.
+    ' plus leger, plus fiable vis-a-vis du probleme de DPI/multi-ecrans.
     Set bouton = ws.Buttons.Add( _
         zoneBouton.Left, zoneBouton.Top, _
         zoneBouton.Width, zoneBouton.Height)
     With bouton
-        ' IMPORTANT : le texte affiché est déjà son intitulé FINAL,
+        ' IMPORTANT : le texte affichÃ© est dÃ©jÃ  son intitulÃ© FINAL,
         ' a savoir sa fonction de reinitialisation (et non plus "Valider ce cas").
         .Caption = FR(texteBouton)
         ' On affecte le nom de la macro
-        .OnAction = "Sortir"
+        .OnAction = nomMacro
         .Name = "btn" & FR(FormaterChaine(texteBouton))
     End With
 End Sub
@@ -389,10 +392,8 @@ Public Sub ConstruireZoneTexte(ws As Worksheet, Titre As String, Message As Stri
         .Font.Size = 11
     End With
 
-    ' --- Bloc de texte des 4 Ã©tapes, sur une plage fusionnee pour ressembler a un
+    ' --- Bloc de texte des 4 etapes, sur une plage fusionnee pour ressembler a un
     ' encadre de note plutot qu'a des cellules de tableur classiques. ---
-    'Set debutZone = ws.Range(cellSortieDep).Offset(3, 0)
-    'Set finZone = ws.Range(cellSortieDep).Offset(6, 6)
     Dim zoneTexte As Range
     Set zoneTexte = ws.Range(debutZone, finZone)
 
@@ -412,17 +413,8 @@ Public Sub ConstruireZoneTexte(ws As Worksheet, Titre As String, Message As Stri
         .Locked = True                       ' cellule non modifiable par l'utilisateur final
     End With
 
-    ' Remarque : le texte des instructions ci-dessus a ete legerement adapte par
-    ' rapport a l'original du UserForm, car les Ã©tapes 1 a 3 de l'ancien texte
-    ' decrivaient le fonctionnement de l'Option A (clic sur une ligne puis liste
-    ' partagee puis bouton Valider). Comme on est passe a l'Option B (liste
-    ' dÃ©roulante directement sur chaque ligne, statut automatique), le texte des
-    ' Ã©tapes a ete adapte pour rester exact vis-a-vis du nouveau fonctionnement.
-    ' Dis-moi si tu preferes une autre formulation, c'est une simple modification
-    ' de texte, sans impact sur le reste du code.
-
     ' Ajuste la hauteur des lignes du bloc pour laisser de la place au texte
-    ws.rows(LIGNE_DEBUT_TEXTE_INSTRUCTIONS & ":" & LIGNE_FIN_TEXTE_INSTRUCTIONS).RowHeight = 16
+    zoneTexte.rows.AutoFit
 
 End Sub
 

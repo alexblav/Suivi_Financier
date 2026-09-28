@@ -1,0 +1,67 @@
+' =====================================================================================
+' Ce code gere deux evenements automatiques de la feuille :
+'   - Worksheet_Change  : se declenche des qu'une cellule de la feuille change de
+'                         valeur (ex: l'utilisateur choisit une categorie dans une
+'                         liste deroulante). On y detecte le choix et on met a jour
+'                         le statut + le compteur automatiquement (comportement
+'                         "Option B" valide avec toi).
+'   - Worksheet_Deactivate : se declenche des que l'utilisateur essaie de quitter
+'                         cette feuille (changer d'onglet, Ctrl+PageUp/Down...).
+'                         Tant que la saisie est en cours, on le ramene de force
+'                         sur cette feuille : c'est le "verrou modal" convenu.
+' =====================================================================================
+
+Private Sub Worksheet_Change(ByVal Target As Range)
+
+    ' --- Garde-fou n°1 : ignorer les changements que NOUS provoquons nous-memes
+    ' (remplissage automatique du tableau par RemplirTableauCas) ---
+    If g_ChargementEnCours Then Exit Sub
+
+    ' --- Garde-fou n°2 : ne reagir que si la cellule modifiee est dans la colonne
+    ' "Categorie" ET dans la plage des lignes de donnees du tableau ---
+    If Target.Column <> Me.Range(COL_CATEGORIE & "1").Column Then Exit Sub
+    If Target.Row < LIGNE_PREMIERE_DONNEE Then Exit Sub
+    If Target.Row > LIGNE_PREMIERE_DONNEE + g_NbCasAmbigus - 1 Then Exit Sub
+
+    ' --- Garde-fou n°3 : si plusieurs cellules ont change en une fois (ex: collage
+    ' multiple), on ne traite que la premiere pour rester simple et previsible ---
+    If Target.Cells.count > 1 Then Exit Sub
+
+    Dim indiceCas As Long
+    indiceCas = Target.Row - LIGNE_PREMIERE_DONNEE + 1   ' correspond a l'index dans g_CasChoix()
+
+    ' On desactive temporairement les evenements le temps de nos propres ecritures
+    ' (sinon le fait d'ecrire dans la cellule Statut juste apres redeclencherait
+    ' Worksheet_Change en boucle -- precaution standard en VBA evenementiel).
+    Application.EnableEvents = False
+
+    If Trim(Target.value) = "" Then
+        ' La categorie a ete effacee (ex: via le bouton "Reinitialiser cette ligne")
+        g_CasChoix(indiceCas) = ""
+        Me.Range(COL_STATUT & Target.Row).value = "?"
+        Me.Range(COL_STATUT & Target.Row).Font.Color = RGB(150, 150, 150)
+        Me.Range(COL_STATUT & Target.Row).Font.Bold = False
+    Else
+        ' Une categorie vient d'etre choisie dans la liste deroulante
+        g_CasChoix(indiceCas) = Target.value
+        Me.Range(COL_STATUT & Target.Row).value = ChrW(&H2713)   ' caractere "check" (V)
+        Me.Range(COL_STATUT & Target.Row).Font.Color = RGB(30, 130, 76)
+        Me.Range(COL_STATUT & Target.Row).Font.Bold = True
+    End If
+
+    Call MettreAJourCompteur(Me)
+
+    Application.EnableEvents = True
+
+End Sub
+
+
+Private Sub Worksheet_Deactivate()
+
+    ' Verrou "modal" : tant que g_SaisieEnCours vaut True, on empeche l'utilisateur
+    ' de quitter cette feuille en le ramenant immediatement dessus.
+    If g_SaisieEnCours Then
+        Me.Activate
+    End If
+
+End Sub

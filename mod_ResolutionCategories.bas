@@ -1,4 +1,3 @@
-Attribute VB_Name = "mod_ResolutionCategories"
 Option Explicit
 
 ' =====================================================================================
@@ -45,6 +44,33 @@ Private g_NomFeuillePrecedente As String
 Public Const COL_AIDE_CANDIDATS_DEBUT As String = "Z"
 Public Const NB_COL_AIDE_MAX As Long = 15   ' marge large : jusqu'a 15 categories candidates par cas
 
+' --- Zone du tableau des cas ambigus ---
+Public Const LIGNE_ENTETES_TABLEAU As Long = 11   ' ligne des libelles de colonnes
+Public Const LIGNE_PREMIERE_DONNEE As Long = 12   ' premiere ligne ou s'affichera un cas
+
+' Nombre maximal de cas que la mise en forme du tableau preparera a l'avance.
+' Ce n'est PAS une limite dure : en Phase 2, si jamais il y avait plus de cas que
+' cela, le code etendra la mise en forme automatiquement. Ce nombre sert juste a
+' preparer une zone confortable des l'installation, pour un rendu propre immediat.
+Public Const NB_LIGNES_PREPAREES As Long = 200
+
+'' -------------------------------------------------------------------------------------
+'' CONSTANTES DE MISE EN PAGE
+'' -------------------------------------------------------------------------------------
+'' Regrouper ici toutes les positions de cellules evite d'avoir des "nombres magiques"
+'' disperses dans le code. Si un jour tu veux deplacer une zone, tu changes UNE seule
+'' ligne ici plutot que de chercher partout dans le code.
+'' Ces constantes seront reutilisees telles quelles dans le module de la Phase 2.
+
+' --- Colonnes du tableau (une lettre = une colonne Excel) ---
+Public Const COL_STATUT As String = "B"
+Public Const COL_DATE As String = "C"
+Public Const COL_MONTANT As String = "D"
+Public Const COL_TIERS As String = "E"
+Public Const COL_CATEGORIE As String = "F"
+
+
+
 
 ' =====================================================================================
 ' PROCEDURE PRINCIPALE - remplace l'ancien "frmResolutionCategories.Show vbModal"
@@ -55,7 +81,7 @@ Public Const NB_COL_AIDE_MAX As Long = 15   ' marge large : jusqu'a 15 categorie
 Public Sub AfficherFeuilleResolutionEtAttendre()
 
     Dim ws As Worksheet
-    Set ws = ThisWorkbook.Worksheets(NOM_FEUILLE_RESOLUTION)
+    Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RESOLUTION)
 
     ' On retient la feuille actuellement affichee, pour y revenir automatiquement
     ' une fois la resolution terminee (l'utilisateur ne doit pas "atterrir" sur
@@ -97,7 +123,7 @@ Private Sub RemplirTableauCas(ws As Worksheet)
 
     Dim i As Long, ligneCible As Long
     Dim partiesTexte() As String
-    Dim dateTexte As String, montantTexte As String, tiersTexte As String
+    Dim DateTexte As String, montantTexte As String, tiersTexte As String
     Dim montantNombre As Double
 
     ' On leve le garde-fou : le code-behind de la feuille (Worksheet_Change)
@@ -137,7 +163,7 @@ Private Sub RemplirTableauCas(ws As Worksheet)
         ' (le separateur decimal est la virgule car Format() suit les parametres
         ' regionaux francais du poste -- coherent avec le reste du classeur).
         partiesTexte = Split(g_CasTexte(i), "|")
-        dateTexte = Trim(partiesTexte(0))
+        DateTexte = Trim(partiesTexte(0))
         montantTexte = Trim(partiesTexte(1))
         tiersTexte = Trim(partiesTexte(2))
 
@@ -149,13 +175,13 @@ Private Sub RemplirTableauCas(ws As Worksheet)
         montantNombre = CDbl(montantTexte)   ' CDbl respecte la virgule francaise
 
         ' --- Ecriture des cellules de la ligne ---
-        ws.Range(COL_STATUT & ligneCible).Value = "?"
+        ws.Range(COL_STATUT & ligneCible).value = "?"
         ws.Range(COL_STATUT & ligneCible).Font.Color = RGB(150, 150, 150)
         ws.Range(COL_STATUT & ligneCible).Font.Bold = False
 
-        ws.Range(COL_DATE & ligneCible).Value = dateTexte
-        ws.Range(COL_MONTANT & ligneCible).Value = montantNombre
-        ws.Range(COL_TIERS & ligneCible).Value = tiersTexte
+        ws.Range(COL_DATE & ligneCible).value = DateTexte
+        ws.Range(COL_MONTANT & ligneCible).value = montantNombre
+        ws.Range(COL_TIERS & ligneCible).value = tiersTexte
 
         ' --- Liste deroulante de categorie, PROPRE A CETTE LIGNE ---
         ' g_CasCandidats(i) est au format "Categorie1;Categorie2;...". On aurait pu
@@ -176,7 +202,7 @@ Private Sub RemplirTableauCas(ws As Worksheet)
         nbCandidatsCase = UBound(candidatsTableau) - LBound(candidatsTableau) + 1
 
         For k = 0 To nbCandidatsCase - 1
-            ws.Cells(ligneCible, colAideIndex + k).Value = Trim(candidatsTableau(k))
+            ws.Cells(ligneCible, colAideIndex + k).value = Trim(candidatsTableau(k))
         Next k
 
         Dim adresseDebut As String, adresseFin As String
@@ -197,8 +223,8 @@ Private Sub RemplirTableauCas(ws As Worksheet)
         ' Si un choix avait deja ete fait auparavant (cas rare : reprise apres
         ' interruption), on le reaffiche et on marque la ligne comme traitee.
         If g_CasChoix(i) <> "" Then
-            ws.Range(COL_CATEGORIE & ligneCible).Value = g_CasChoix(i)
-            ws.Range(COL_STATUT & ligneCible).Value = ChrW(&H2713)   ' caractere "check" (V)
+            ws.Range(COL_CATEGORIE & ligneCible).value = g_CasChoix(i)
+            ws.Range(COL_STATUT & ligneCible).value = ChrW(&H2713)   ' caractere "check" (V)
             ws.Range(COL_STATUT & ligneCible).Font.Color = RGB(30, 130, 76)
             ws.Range(COL_STATUT & ligneCible).Font.Bold = True
         End If
@@ -223,13 +249,13 @@ Public Sub MettreAJourCompteur(ws As Worksheet)
         If g_CasChoix(i) = "" Then nbRestants = nbRestants + 1
     Next i
 
-    ws.Range("CompteurCasRestants").Value = nbRestants & " restant(s) sur " & g_NbCasAmbigus
+    ws.Range("CompteurCasRestants").value = nbRestants & " restant(s) sur " & g_NbCasAmbigus
 
 End Sub
 
 
 ' =====================================================================================
-' ACTION DU BOUTON "Réinitialiser cette ligne"
+' ACTION DU BOUTON "RÃ©initialiser cette ligne"
 ' Efface le choix de categorie de la ligne actuellement selectionnee. L'effacement
 ' de la cellule declenche automatiquement Worksheet_Change (code-behind), qui se
 ' charge lui-meme de remettre le statut a "?" et de mettre a jour g_CasChoix et
@@ -238,7 +264,7 @@ End Sub
 Public Sub ReinitialiserLigneSelectionnee()
 
     Dim ws As Worksheet
-    Set ws = ThisWorkbook.Worksheets(NOM_FEUILLE_RESOLUTION)
+    Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RESOLUTION)
 
     Dim ligneSelection As Long
     ligneSelection = ActiveCell.Row
@@ -264,7 +290,7 @@ End Sub
 Public Sub TerminerEtAppliquerChoix()
 
     Dim ws As Worksheet
-    Set ws = ThisWorkbook.Worksheets(NOM_FEUILLE_RESOLUTION)
+    Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RESOLUTION)
 
     ' --- Avertissement si des cas restent non traites, comme le faisait
     ' implicitement l'ancien formulaire (les cas non traites gardent
@@ -303,7 +329,7 @@ Public Sub TerminerEtAppliquerChoix()
     ws.Range(ws.Cells(LIGNE_PREMIERE_DONNEE, colAideIndex), _
              ws.Cells(derniereLigneEfface, colAideIndex + NB_COL_AIDE_MAX - 1)).ClearContents
 
-    ws.Range("CompteurCasRestants").Value = ""
+    ws.Range("CompteurCasRestants").value = ""
 
     ' --- Masquage et retour a la feuille sur laquelle etait l'utilisateur avant ---
     ws.Visible = xlSheetVeryHidden
