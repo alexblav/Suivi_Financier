@@ -49,25 +49,47 @@ Option Explicit
 '   lignes marquees (bouton "Appliquer les lignes marquees") dans la bonne
 '   table source, colonne par colonne, jamais par un tri/decoupage de texte.
 '
-'   Ajout suite ù un test opùrateur : un 3e bouton "Revoir la ventilation"
-'   permet, sur une ligne dont la colonne Ventilù vaut "Oui", de rouvrir le
-'   formulaire de ventilation (frm_Ventilation) avec le dùtail dùjù enregistrù
+'   Ajout suite ‡ un test opÈrateur : un 3e bouton "Revoir la ventilation"
+'   permet, sur une ligne dont la colonne VentilÈ vaut "Oui", de rouvrir le
+'   formulaire de ventilation (frm_Ventilation) avec le dÈtail dÈj‡ enregistrÈ
 '   dans TblVentilations, au lieu d'un formulaire vide (voir
-'   mod_RechercheOperations.RevoirVentilationRO et l'explication complùte en
-'   tùte de mod_Ventilation).
+'   mod_RechercheOperations.RevoirVentilationRO et l'explication complËte en
+'   tÍte de mod_Ventilation).
 '
-' ù PROPOS DES ACCENTS : tout ce qui s'affiche dans Excel continue ù passer par
-' la fonction FR() pour rester 100% sùr ù l'import VBA. Les commentaires que
-' j'ajoute ù partir de maintenant utilisent de vrais caractùres accentuùs pour
-' rester lisibles (convention validùe avec l'opùrateur) ; les anciens
+' =====================================================================================
+' REFONTE "ECRAN CENTRAL" (PHASE 6, apres discussion avec l'operateur) :
+'   Ce tableau absorbe desormais les anciens ecrans "Synthese_*" en lecture
+'   seule (Budget mensuel, Erreurs sante, Dernier import, Detail d'un total),
+'   qui n'offraient aucune correction. 5 colonnes REELLES supplementaires ont
+'   ete ajoutees a la table pour cela :
+'
+'     L - Budget         : la date de "mois budgetaire" de l'operation (deja
+'                         une vraie colonne de TblOperations, voir mod_ImportOFX)
+'     M - StatutSante     : statut du suivi sante (deja une vraie colonne)
+'     N - SoldeSante      : solde du suivi sante (deja une vraie colonne)
+'     O - Date_consult    : date de consultation extraite des Notes sante
+'     P - Spe_consult     : specialite extraite des Notes sante
+'
+'   Ces 5 colonnes ne sont PAS toujours utiles (par exemple Budget n'a pas de
+'   sens en recherche libre) : mod_RechercheOperations les affiche/masque
+'   dynamiquement selon le "prefiltre" demande, via DefinirColonnesVisibles()
+'   ci-dessous. Elles restent neanmoins TOUJOURS PRESENTES dans le tableau
+'   (juste masquees) : c'est le moyen le plus simple et le plus fiable de
+'   garder un seul ListObject a colonnes fixes plutot que de le reconstruire
+'   a chaque appel.
+'
+' ¿ PROPOS DES ACCENTS : tout ce qui s'affiche dans Excel continue ‡ passer par
+' la fonction FR() pour rester 100% s˚r ‡ l'import VBA. Les commentaires que
+' j'ajoute ‡ partir de maintenant utilisent de vrais caractËres accentuÈs pour
+' rester lisibles (convention validÈe avec l'opÈrateur) ; les anciens
 ' commentaires du fichier restent tels quels pour l'instant.
 '
 ' A FAIRE POUR INSTALLER CE MODULE :
 '   1. Alt+F11, Fichier > Importer un fichier..., choisir ce fichier .bas
 '   2. Ctrl+G : CreerFeuilleRechercheOperations (ATTENTION : reconstruit toute la
-'      feuille, y compris ses boutons ù c'est le seul moyen de faire apparaùtre
-'      le nouveau bouton "Revoir la ventilation" ; rùimporter le fichier seul
-'      ne suffit pas, comme dùjù repùrù plus tùt sur ce chantier)
+'      feuille, y compris ses boutons ñ c'est le seul moyen de faire apparaÓtre
+'      le nouveau bouton "Revoir la ventilation" ; rÈimporter le fichier seul
+'      ne suffit pas, comme dÈj‡ repÈrÈ plus tÙt sur ce chantier)
 '   3. Pour revoir la feuille : AfficherFeuilleRecherchePourEdition
 '      Pour la remasquer : MasquerFeuilleRechercheApresEdition
 ' =====================================================================================
@@ -91,6 +113,14 @@ Public Const RO_COL_VENTILE As Long = 8         ' PHASE 5 (informatif, non modif
 Public Const RO_COL_ID As Long = 9
 Public Const RO_COL_SOURCE As Long = 10         ' PHASE 5 : "O" ou "V" (technique, masquee)
 Public Const RO_COL_LIGNEVEN As Long = 11       ' PHASE 5 : ligne dans TblVentilations si SourceLigne="V" (technique, masquee)
+
+' PHASE 6 : colonnes issues des anciens ecrans "Synthese_*", visibles ou non
+' selon le prefiltre demande (voir DefinirColonnesVisibles plus bas)
+Public Const RO_COL_BUDGET As Long = 12
+Public Const RO_COL_STATUTSANTE As Long = 13
+Public Const RO_COL_SOLDESANTE As Long = 14
+Public Const RO_COL_DATECONSULT As Long = 15
+Public Const RO_COL_SPECONSULT As Long = 16
 
 
 'Private Function FR(ByVal texte As String) As String
@@ -156,6 +186,11 @@ Sub CreerFeuilleRechercheOperations()
     ws.Columns("I").ColumnWidth = 12
     ws.Columns("J").ColumnWidth = 10
     ws.Columns("K").ColumnWidth = 10
+    ws.Columns("L").ColumnWidth = 12   ' Budget
+    ws.Columns("M").ColumnWidth = 14   ' StatutSante
+    ws.Columns("N").ColumnWidth = 12   ' SoldeSante
+    ws.Columns("O").ColumnWidth = 14   ' Date_consult
+    ws.Columns("P").ColumnWidth = 16   ' Spe_consult
 
     ' --- Boutons ---
     Dim zoneBtn1 As Range, zoneBtn2 As Range
@@ -178,9 +213,9 @@ Sub CreerFeuilleRechercheOperations()
         .Name = "btnAppliquerLignesMarquees"
     End With
 
-    ' Ajout suite ù un test opùrateur : bouton pour rouvrir le dùtail d'une
-    ' opùration dùjù ventilùe (sùlectionner une ligne du tableau dont la colonne
-    ' "Ventilù" vaut "Oui", puis cliquer ici) ù voir mod_RechercheOperations.RevoirVentilationRO.
+    ' Ajout suite ‡ un test opÈrateur : bouton pour rouvrir le dÈtail d'une
+    ' opÈration dÈj‡ ventilÈe (sÈlectionner une ligne du tableau dont la colonne
+    ' "VentilÈ" vaut "Oui", puis cliquer ici) ñ voir mod_RechercheOperations.RevoirVentilationRO.
     Dim zoneBtn3 As Range
     Set zoneBtn3 = ws.Range("F" & RO_LIGNE_BOUTONS & ":G" & RO_LIGNE_BOUTONS)
     Set btn = ws.Buttons.Add(zoneBtn3.Left, zoneBtn3.Top, zoneBtn3.Width, zoneBtn3.Height)
@@ -215,8 +250,13 @@ Sub CreerFeuilleRechercheOperations()
     ws.Range("I" & RO_LIGNE_ENTETES).value = "ID_Transaction"
     ws.Range("J" & RO_LIGNE_ENTETES).value = "SourceLigne"
     ws.Range("K" & RO_LIGNE_ENTETES).value = "LigneVentilation"
+    ws.Range("L" & RO_LIGNE_ENTETES).value = "Budget"
+    ws.Range("M" & RO_LIGNE_ENTETES).value = "StatutSante"
+    ws.Range("N" & RO_LIGNE_ENTETES).value = "SoldeSante"
+    ws.Range("O" & RO_LIGNE_ENTETES).value = "Date_consult"
+    ws.Range("P" & RO_LIGNE_ENTETES).value = "Spe_consult"
 
-    Set plageDepart = ws.Range("A" & RO_LIGNE_ENTETES & ":K" & (RO_LIGNE_ENTETES + 1))
+    Set plageDepart = ws.Range("A" & RO_LIGNE_ENTETES & ":P" & (RO_LIGNE_ENTETES + 1))
     Set tbl = ws.ListObjects.Add(xlSrcRange, plageDepart, , xlYes)
     tbl.Name = NOM_TABLE_RECHERCHE
     tbl.TableStyle = "TableStyleMedium2"
@@ -228,10 +268,52 @@ Sub CreerFeuilleRechercheOperations()
     ws.Columns("J").Hidden = True
     ws.Columns("K").Hidden = True
 
+    ' PHASE 6 : les 5 colonnes issues des anciens ecrans "Synthese_*" sont
+    ' masquees par defaut a l'installation ; mod_RechercheOperations les
+    ' affiche/masque ensuite dynamiquement a chaque appel, selon le prefiltre
+    ' demande (voir DefinirColonnesVisibles ci-dessous).
+    ws.Columns("L").Hidden = True
+    ws.Columns("M").Hidden = True
+    ws.Columns("N").Hidden = True
+    ws.Columns("O").Hidden = True
+    ws.Columns("P").Hidden = True
+
     ws.Visible = xlSheetVeryHidden
 
     MsgBox "La feuille '" & NOM_FEUILLE_RECHERCHE & "' a ete creee et masquee." & vbCrLf & _
            "Pour la revoir : AfficherFeuilleRecherchePourEdition", vbInformation, "Installation terminee"
+
+End Sub
+
+
+' =====================================================================================
+' DefinirColonnesVisibles (PHASE 6) : affiche/masque les 5 colonnes issues des
+' anciens ecrans "Synthese_*" selon le prefiltre demande par l'operateur.
+' Appelee par mod_RechercheOperations.RechercherOperations a chaque ouverture.
+' Les colonnes A a H (Valider...Ventile) et I/J/K (techniques) ne sont JAMAIS
+' concernees ici : elles restent gerees comme avant (I/J/K toujours masquees).
+' =====================================================================================
+Public Sub DefinirColonnesVisibles(ByVal ws As Worksheet, ByVal prefiltre As String)
+
+    ' On repart d'un etat neutre : les 5 colonnes "Synthese_*" masquees.
+    ws.Columns("L").Hidden = True   ' Budget
+    ws.Columns("M").Hidden = True   ' StatutSante
+    ws.Columns("N").Hidden = True   ' SoldeSante
+    ws.Columns("O").Hidden = True   ' Date_consult
+    ws.Columns("P").Hidden = True   ' Spe_consult
+
+    Select Case prefiltre
+        Case "DernierImport"
+            ws.Columns("M").Hidden = False
+            ws.Columns("N").Hidden = False
+        Case "OperationsDuMois", "DetailTotal"
+            ws.Columns("L").Hidden = False
+        Case "ErreursSante"
+            ws.Columns("O").Hidden = False
+            ws.Columns("P").Hidden = False
+        ' Case "" (recherche libre) : aucune des 5 colonnes n'a de sens generique,
+        ' on les laisse toutes masquees (etat neutre defini plus haut).
+    End Select
 
 End Sub
 

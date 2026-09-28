@@ -53,10 +53,9 @@ Public Sub Budget_Bilan_Mensuel()
         wsResultat.Name = NOM_FEUILLE_RESULTAT
     End If
     
-    ' 4. Contrairement aux autres macros, celle-ci REACTIVE le double-clic
-    ' (c'est depuis cet écran de bilan que l'utilisateur double-clique sur
-    ' un total pour en voir le détail -- voir ShowDetailForTotal ci-dessous).
-    AllowDetailDoubleClick = True
+    ' PHASE 6 : le double-clic est abandonné (jugé trop discret par l'operateur),
+    ' remplace par 2 boutons explicites -- voir plus bas. AllowDetailDoubleClick
+    ' n'est donc plus mis a True ici.
     ' Paramètre de navigation
     RecherOperations = False
     ' Désactive les événements
@@ -75,10 +74,23 @@ Public Sub Budget_Bilan_Mensuel()
     ' 5. Construction de la zone des boutons
     ' On détermine la position du bouton
     Set zoneBouton = wsResultat.Range(cellSortieDep).Offset(0, 0)
-    
+
     'On définit son titre
     texteBouton = "Sortir"
     nomMacroBouton = "Sortir"
+    Call mod_Display.ConstruireBoutons(wsResultat, zoneBouton, texteBouton, nomMacroBouton)
+
+    ' PHASE 6 : 2 boutons remplacent l'ancien double-clic sur les cellules de
+    ' total, pour ouvrir le détail correspondant dans le nouvel écran central
+    ' frm_RechercheOperations (prefiltre "DetailTotal").
+    Set zoneBouton = wsResultat.Range(cellSortieDep).Offset(0, 2).Resize(1, 2)
+    texteBouton = FR("Voir le d{e2}tail des entr{e2}es")
+    nomMacroBouton = "VoirDetailEntreesRO"
+    Call mod_Display.ConstruireBoutons(wsResultat, zoneBouton, texteBouton, nomMacroBouton)
+
+    Set zoneBouton = wsResultat.Range(cellSortieDep).Offset(0, 4).Resize(1, 2)
+    texteBouton = FR("Voir le d{e2}tail des d{e2}penses")
+    nomMacroBouton = "VoirDetailDepensesRO"
     Call mod_Display.ConstruireBoutons(wsResultat, zoneBouton, texteBouton, nomMacroBouton)
 
     ' 6. Construction de la zone des instructions
@@ -86,6 +98,7 @@ Public Sub Budget_Bilan_Mensuel()
     Message = " Bilan Mensuel" & Chr(10) & _
                 "Affiche une synth{e2}se des dépenses et des revenus sur la p{e2}riode du:" & Chr(10) & _
                 "Mois: " & critMois & " Ann{e2}e: " & critAnnee & Chr(10) & _
+                 "Utilisez les boutons ci-dessus pour voir le d{e2}tail des op{e2}rations. " & _
                  "{A2} la fin sortez avec le bouton ""Sortir"""
                  
     ' On fournit le titre, la position de la cellule dans laquelle on veut écrire de titre
@@ -151,184 +164,20 @@ Public Sub Budget_Bilan_Mensuel()
 End Sub
 
 ' ------------------------------------------------------------------------
-' ShowDetailForTotal : crée une nouvelle feuille contenant le détail complet
-' (Positif ou Négatif) de la période B1:B2, triée selon les paramètres
-' demandés. Appelée automatiquement par le double-clic défini dans ThisWorkbook
+' PHASE 6 : ShowDetailForTotal (et le double-clic qui l'appelait, côté
+' ThisWorkbook/mod_Actions) est supprimée. Le détail d'un total s'ouvre
+' désormais dans l'écran central frm_RechercheOperations, via les 2 boutons
+' ajoutés dans Budget_Bilan_Mensuel ci-dessus (prefiltre "DetailTotal").
+' NOTE POUR L'OPERATEUR : la case "trier automatiquement par le champ choisi
+' sur Synthese" n'a PAS été reprise -- l'opérateur trie desormais lui-même
+' avec les flèches de filtre natives du nouvel écran, comme pour tout le
+' reste. Simplification assumée pour éviter une correspondance de colonnes
+' fragile entre l'ancien et le nouveau tableau.
 ' ------------------------------------------------------------------------
-Public Sub ShowDetailForTotal(ByVal showType As String, Optional ByVal sortField As String = "Date", Optional ByVal sortOrder As String = "Croissant")
-    Dim wsDetail As Worksheet
-    Dim nomFeuille As String
-    Dim critAnnee As String
-    Dim critMois As String
-    Dim ligneAffichage As Long
-    Dim nbLigne As Long, idxRes As Long
-    Dim sortColumn As Long
-    Dim sortOrderValue As Long
-    Dim debPlageTravail As Range
-    Dim reponse As VbMsgBoxResult
-    
-    ' 1. Récupération des pointeurs vers la feuille et le tableau
-    Set wsSynthese = mod_Criteres.GetFeuille(NOM_FEUILLE_SYNTHESE)
-    Set wsResultat = mod_Criteres.GetFeuille(NOM_FEUILLE_RESULTAT)
-    Set tbl = mod_DonneesTable.GetOperationsValue(NOM_FEUILLE_DONNEES, "TblOperations")
-    If tbl Is Nothing Then
-        MsgBox "Le tableau ne contient aucune ligne de données.", vbExclamation
-        Exit Sub
-    End If
-    If tbl.DataBodyRange Is Nothing Then
-        MsgBox "Le tableau est vide.", vbExclamation
-        Exit Sub
-    End If
+Public Sub VoirDetailEntreesRO()
+    mod_RechercheOperations.RechercherOperations "DetailTotal", "Positif"
+End Sub
 
-    nomFeuille = "frm_" & FormaterChaine("Détail_" & showType)
-    Set wsDetail = mod_Criteres.GetFeuille(nomFeuille)
-    
-    ' 1. Verifier si la feuille de travail existe deja, pour eviter d'ecraser du travail sans prevenir.
-    If Not wsDetail Is Nothing Then
-        ' La feuille existe deja : on demande confirmation avant de tout reconstruire,
-        ' car cela va effacer sa mise en forme actuelle.
-        reponse = MsgBox(FR("La feuille '" & nomFeuille & "' existe deja." & vbCrLf & _
-                            "Voulez-vous la reconstruire enti{e1}rement (sa mise en forme actuelle sera perdue) ?"), _
-                            vbYesNo + vbQuestion, "Confirmation de reconstruction")
-        If reponse = vbNo Then
-            MsgBox FR("Installation annul{e2}e, aucune modification effectu{e2}e."), vbInformation
-            Exit Sub
-        End If
-        
-        ' On la rend visible temporairement : impossible de la modifier/supprimer
-        ' proprement tant qu'elle est en xlSheetVeryHidden.
-        wsDetail.Visible = xlSheetVisible
-        wsDetail.Cells.Clear
-        Call mod_Display.SupprimerFormesExistantesFN(wsDetail)
-        Call mod_Display.SupprimerNomsExistantsFN(wsDetail, nomFeuille)
-    Else
-        ' La feuille n'existe pas encore : on la cree, positionnee en derniere position
-        ' pour ne pas perturber l'ordre des onglets existants (Accueil, Synthese...).
-        Set wsDetail = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.count))
-        wsDetail.Name = nomFeuille
-    End If
-    
-    ' On masque la feuille Synthese. Cette option est prise pour éviter à l'opérateur de se déplacer en dehors de la feuille crée
-    wsResultat.Visible = xlSheetVeryHidden
-    
-    ' 2. Charge TOUT le tableau de données (en-têtes incluses en ligne 1)
-    tblData = tbl.Range.value
-    tblDataLineTotal = UBound(tblData, 1)
-    
-    ' Paramètre de navigation
-    RecherOperations = False
-    
-    ' 3. Récupération des index de colonne dans la base de données
-    mod_Display.RecupIndexCol
-
-    ' 4. Lire les critères saisis par l'utilisateur (B1 à B6).
-    mod_Criteres.GetSelectCriteres
-
-    ' 5. Construction de la zone des boutons
-    ' On détermine la position du bouton
-    Set zoneBouton = wsDetail.Range(cellSortieDep).Offset(0, 0)
-    
-    'On définit son titre
-    texteBouton = "Sortir"
-    nomMacroBouton = "Sortir"
-    Call mod_Display.ConstruireBoutons(wsDetail, zoneBouton, texteBouton, nomMacroBouton)
-
-    ' 6. Construction de la zone des instructions
-    ' On fournit le message à afficher en remplaçant les carractères accentué par les balise de la fonction FR
-    Message = nomFeuille & Chr(10) & _
-                "Affiche toutes les op{e2}rations de la p{e2}riode sélectionn{e2}e et de type " & showType & Chr(10) & _
-                 "{A2} la fin sortez avec le bouton ""Sortir"""
-                 
-    ' On fournit le titre, la position de la cellule dans laquelle on veut écrire le titre
-    Titre = "Instructions"
-    Set PositionTitre = wsDetail.Range(cellSortieDep).Offset(2, 0)
-    
-    ' On détermine la plage de début et de fin de la zone
-    Set debutZone = wsDetail.Range(cellSortieDep).Offset(3, 0)
-    Set finZone = wsDetail.Range(cellSortieDep).Offset(5, 5)
-    
-    Call mod_Display.ConstruireZoneTexte(wsDetail, Titre, Message, PositionTitre, debutZone, finZone)
-    
-    ' 7. Affiche les entêtes du tableau de sortie
-    ' Définit le début de la page de travail
-    Set debPlageTravail = wsDetail.Range(cellSortieDep).Offset(6, 0)
-    
-    MonArray = Array("Date", "Tiers", "Catégorie", "Montant", "Notes", "Budget")
-    Call mod_Display.PrepareOutputArea(wsDetail, MonArray, debPlageTravail)
-    
-    nbColonne = UBound(MonArray) - LBound(MonArray) + 1
-    
-    ' wsDetail.Range("A1:G1").value = Array("Date", "Libellé", "Catégorie", "Montant", "MoisBudget", "AnnéeBudget", "Budget")
-
-    sortColumn = mod_Display.PosSortieIndex(wsDetail, MonArray, critTriChamps)
-    sortOrderValue = mod_Actions.ResolveDetailSortOrder(critTriOrdre)
-    
-    ' Récupére la position du champs dans l'ARRAY (Application.Match est naturellement insensible à la casse)
-    mod_Display.RecupPosArray
-    
-    ' Récupération des index de colonne dans la feuille de sortie
-    Call mod_Display.RecupPosSortieIndex(wsResultat, debPlageTravail)
-    
-    ' Taille maximale du tableau de résultat = nombre total de lignes source
-    ReDim tabResultat(1 To tblDataLineTotal, 1 To nbColonne)
-
-    ' On copie chaque opération correspondant à la période ET au type demandé
-    ' (Positif = une "entrée" d'argent, Négatif = une "dépense").
-    ligneAffichage = 2
-    
-    'For Each ligne In tbl.ListRows
-    For nbLigne = 2 To tblDataLineTotal
-        ' On vérifie qu'on est sur la période désirée
-        If mod_DonneesTable.RowMatchesFilter(nbLigne, tblData(nbLigne, colMoisBud), tblData(nbLigne, colAnneeBud), tblData(nbLigne, colMontant), True) Then
-        'If mod_DonneesTable.RowMatchesPeriod(ligne, tbl, critAnnee, critMois) Then
-            If showType = "Positif" Then
-                If tblData(nbLigne, colMontant) >= 0 Then
-                    idxRes = idxRes + 1
-                    'On écrit la ligne dans le tableau
-                    tabResultat(idxRes, posDate) = tblData(nbLigne, colDate)
-                    tabResultat(idxRes, posTiers) = tblData(nbLigne, colTiers)
-                    tabResultat(idxRes, posCategorie) = tblData(nbLigne, colCategorie)
-                    tabResultat(idxRes, posMontant) = tblData(nbLigne, colMontant)
-                    tabResultat(idxRes, posNotes) = tblData(nbLigne, colNotes)
-                    tabResultat(idxRes, posBudget) = tblData(nbLigne, colBudget)
-                    ligneAffichage = ligneAffichage + 1
-                End If
-            End If
-            If showType = "Négatif" Then
-                If tblData(nbLigne, colMontant) < 0 Then
-                    idxRes = idxRes + 1
-                    'On écrit la ligne dans le tableau
-                    tabResultat(idxRes, posDate) = tblData(nbLigne, colDate)
-                    tabResultat(idxRes, posTiers) = tblData(nbLigne, colTiers)
-                    tabResultat(idxRes, posCategorie) = tblData(nbLigne, colCategorie)
-                    tabResultat(idxRes, posMontant) = tblData(nbLigne, colMontant)
-                    tabResultat(idxRes, posNotes) = tblData(nbLigne, colNotes)
-                    tabResultat(idxRes, posBudget) = tblData(nbLigne, colBudget)
-                    ligneAffichage = ligneAffichage + 1
-                End If
-            End If
-        End If
-    Next nbLigne
-
-    If idxRes > 0 Then
-
-        Application.ScreenUpdating = False
-        
-        ' Injection directe du tableau mémoire dans la plage d'affichage
-        ' On redimentionne la taille de la plage pour pas voir s'afficher des erreur type #N/A dans les cellules en trop
-        plageSortieEcriture.Resize(idxRes, nbColonne).value = tabResultat
-        
-        ' Mise en forme rapide des colonnes
-        mod_Display.MiseEnPage wsResultat, idxRes
-        
-        Application.ScreenUpdating = True
-        ' Tri natif Excel du tableau de détail selon le champ/ordre choisis par l'utilisateur.
-        plageSortieEcriture.Resize(idxRes, nbColonne).Sort Key1:=plageSortieEcriture.Resize(idxRes, nbColonne).Columns(sortColumn), Order1:=sortOrderValue, Header:=xlNo
-    Else
-        ' Aucune opération ne correspond : on l'indique clairement plutôt
-        ' que de laisser une feuille vide sans explication.
-        wsDetail.Range(cellSortieDep).Offset(3, 1).value = "Aucune opération correspondante."
-    End If
-    
-    MsgBox "Feuille créée : " & nomFeuille, vbInformation
+Public Sub VoirDetailDepensesRO()
+    mod_RechercheOperations.RechercherOperations "DetailTotal", "Negatif"
 End Sub
