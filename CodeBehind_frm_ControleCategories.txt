@@ -1,0 +1,30 @@
+' =====================================================================================
+' CODE A COLLER DANS LE MODULE DE LA FEUILLE "frm_ControleCategories"
+' =====================================================================================
+' Pourquoi cette etape manuelle ?
+'   En VBA, les "evenements" d'une feuille (ce qui se passe quand on modifie une cellule
+'   ou qu'on quitte la feuille) doivent obligatoirement etre ecrits dans le module de
+'   code de LA FEUILLE ELLE-MEME. On ne peut pas les livrer dans un fichier .bas.
+'   Le code ci-dessous est volontairement minimal : il ne fait qu'appeler les procedures
+'   de mod_ControleCategories, ou se trouve toute la logique.
+'
+' COMMENT FAIRE :
+'   1. Alt+F11 pour ouvrir l'editeur VBA.
+'   2. Dans l'explorateur de projet (a gauche, Ctrl+R si absent), reperez la ligne :
+'          <CodeName> (frm_ControleCategories)
+'      (le CodeName vous a ete indique dans le message de fin d'installation ;
+'       c'est de la forme Feuil11, Feuil12...). Double-cliquez dessus.
+'   3. La fenetre de code de cette feuille s'ouvre (vide). Collez-y LES LIGNES CI-DESSOUS,
+'      a partir de "Private Sub Worksheet_Change" (sans les lignes de commentaires du haut).
+'   4. Ne collez pas ce code dans une autre feuille : il s'y declencherait a tort.
+' =====================================================================================
+
+' Se declenche des qu'une cellule de la feuille est modifiee par l'operateur.
+Private Sub Worksheet_Change(ByVal Target As Range)
+    mod_ControleCategories.CtrlTraiterChangement Me, Target
+End Sub
+
+' Se declenche quand l'operateur essaie de quitter la feuille (verrou "modal").
+Private Sub Worksheet_Deactivate()
+    mod_ControleCategories.CtrlVerrouiller Me
+End Sub

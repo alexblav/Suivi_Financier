@@ -1,0 +1,24 @@
+' =====================================================================================
+' CODE A COLLER DANS LE MODULE DE LA FEUILLE "frm_Ventilation"
+' =====================================================================================
+' Meme principe qu'en Phase 2 et Phase 3 (voir CodeBehind_frm_ControleCategories.txt) :
+' les evenements d'une feuille doivent obligatoirement etre ecrits dans le module de
+' code de LA FEUILLE ELLE-MEME. Ce code ne fait qu'appeler mod_Ventilation.
+'
+' COMMENT FAIRE :
+'   1. Alt+F11 pour ouvrir l'editeur VBA.
+'   2. Dans l'explorateur de projet (Ctrl+R si absent), reperez la ligne :
+'          <CodeName> (frm_Ventilation)
+'      (le CodeName vous a ete indique dans le message de fin d'installation).
+'      Double-cliquez dessus.
+'   3. Collez-y LES LIGNES CI-DESSOUS, a partir de "Private Sub Worksheet_Change".
+'   4. Ne collez pas ce code dans une autre feuille : il s'y declencherait a tort.
+' =====================================================================================
+
+Private Sub Worksheet_Change(ByVal Target As Range)
+    mod_Ventilation.VenTraiterChangement Me, Target
+End Sub
+
+Private Sub Worksheet_Deactivate()
+    mod_Ventilation.VenVerrouiller Me
+End Sub
