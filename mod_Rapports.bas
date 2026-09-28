@@ -1,27 +1,27 @@
 Option Explicit
 ' Ce module regroupe toute la logique de SELECTION, DE COMPTAGE ET DE TRI
-' des opÃ©rations : "combien de dÃ©penses correspondent au filtre ?",
-' "charge-les toutes en mÃ©moire", "trie-les par montant", "identifie les
-' N plus grosses dÃ©penses Ã  surligner"...
+' des opérations : "combien de dépenses correspondent au filtre ?",
+' "charge-les toutes en mémoire", "trie-les par montant", "identifie les
+' N plus grosses dépenses à surligner"...
 
 ' ----------------------------------------------------------------------
-' TOperation : Type utilisÃ© par la macro "Synthese_Care"
-' Elle permet de stocker les dÃ©penses par type
+' TOperation : Type utilisé par la macro "Synthese_Care"
+' Elle permet de stocker les dépenses par type
 ' ----------------------------------------------------------------------
 Public Type TOperation
     LigneOrigine As Long    ' Stocke l'index de la ligne d'origine dans Excel
     Montant As Double       ' Valeur absolue du montant
     Notes As String         ' valeur du champs Notes de l'enregistrement
-    Utilise As Boolean      ' Indique si la ligne a dÃ©jÃ  Ã©tÃ© lettrÃ©e
+    Utilise As Boolean      ' Indique si la ligne a déjà été lettrée
 End Type
 
 ' ----------------------------------------------------------------------
-' AddExpenseForHighlight : ajoute une dÃ©pense candidate au surlignage dans
-' deux tableaux parallÃ¨les : les numÃ©ros de ligne Excel, et les montants.
+' AddExpenseForHighlight : ajoute une dépense candidate au surlignage dans
+' deux tableaux parallèles : les numéros de ligne Excel, et les montants.
 ' ----------------------------------------------------------------------
 ' "ReDim Preserve" agrandit un tableau tout en conservant son contenu actuel.
-' C'est moins performant qu'un ReDim unique fait Ã  l'avance (voir plus haut),
-' mais reste trÃ¨s rapide vu le faible nombre de dÃ©penses par mois habituellement.
+' C'est moins performant qu'un ReDim unique fait à l'avance (voir plus haut),
+' mais reste très rapide vu le faible nombre de dépenses par mois habituellement.
 Public Sub AddExpenseForHighlight(ByRef rows() As Long, ByRef values() As Double, ByRef count As Long, ByVal rowNumber As Long, ByVal amount As Double)
     count = count + 1
     ReDim Preserve rows(1 To count)
@@ -31,12 +31,12 @@ Public Sub AddExpenseForHighlight(ByRef rows() As Long, ByRef values() As Double
 End Sub
 
 ' ----------------------------------------------------------------------
-' GetTopCount : traduit le nombre demandÃ© par l'utilisateur (cellule B3) en
-' un nombre de lignes rÃ©ellement utilisable.
+' GetTopCount : traduit le nombre demandé par l'utilisateur (cellule B3) en
+' un nombre de lignes réellement utilisable.
 ' ----------------------------------------------------------------------
-' RÃ¨gle : si l'utilisateur demande 0, un nombre nÃ©gatif, ou un nombre plus
+' Règle : si l'utilisateur demande 0, un nombre négatif, ou un nombre plus
 ' grand que ce qui est disponible, on affiche/surligne TOUT ce qui est
-' disponible plutÃ´t que de gÃ©nÃ©rer une erreur ou une liste tronquÃ©e Ã  tort.
+' disponible plutôt que de générer une erreur ou une liste tronquée à tort.
 Public Function GetTopCount(ByVal requestedCount As Long, ByVal availableCount As Long) As Long
     If requestedCount <= 0 Or requestedCount > availableCount Then
         GetTopCount = availableCount
@@ -46,9 +46,9 @@ Public Function GetTopCount(ByVal requestedCount As Long, ByVal availableCount A
 End Function
 
 ' ----------------------------------------------------------------------
-' HighlightTopRows : trie les lignes candidates par montant dÃ©croissant,
-' puis met en rouge le texte des "topCount" premiÃ¨res (les plus grosses
-' dÃ©penses du mois).
+' HighlightTopRows : trie les lignes candidates par montant décroissant,
+' puis met en rouge le texte des "topCount" premières (les plus grosses
+' dépenses du mois).
 ' ----------------------------------------------------------------------
 
 Public Sub HighlightTopRows(ByRef rows() As Long, ByRef values() As Double, ByVal count As Long, ByVal topCount As Long)
@@ -58,8 +58,8 @@ Public Sub HighlightTopRows(ByRef rows() As Long, ByRef values() As Double, ByVa
     Dim temporaryDouble As Double
     Dim temporaryLong As Long
 
-    ' MÃªme principe de tri par sÃ©lection que SortOperationsByAmount ci-dessus,
-    ' mais appliquÃ© ici Ã  deux tableaux parallÃ¨les (rows/values) plutÃ´t qu'Ã 
+    ' Même principe de tri par sélection que SortOperationsByAmount ci-dessus,
+    ' mais appliqué ici à deux tableaux parallèles (rows/values) plutôt qu'à
     ' un tableau d'enregistrements.
     For i = 1 To count - 1
         maxIndex = i
@@ -76,8 +76,8 @@ Public Sub HighlightTopRows(ByRef rows() As Long, ByRef values() As Double, ByVa
         End If
     Next i
 
-    ' On applique la couleur rouge uniquement sur les "topCount" premiÃ¨res
-    ' lignes dÃ©sormais triÃ©es en tÃªte du tableau.
+    ' On applique la couleur rouge uniquement sur les "topCount" premières
+    ' lignes désormais triées en tête du tableau.
     For i = 1 To topCount
         plageSortieEcriture.Cells(rows(i) - 1, posMontant).Font.Color = RGB(255, 0, 0)
     Next i

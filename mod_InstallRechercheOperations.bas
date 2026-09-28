@@ -9,52 +9,65 @@ Option Explicit
 '   et de correction en masse pour TblOperations, base sur un TABLEAU EXCEL
 '   CLASSIQUE avec filtre automatique natif (les fleches de filtre dans
 '   l'entete font tout le travail de filtrage croise Date/Tiers/Montant/
-'   Cat√É¬©gorie/Notes, sans code personnalise).
+'   CatÈgorie/Notes, sans code personnalise).
 '
 '   Colonnes du tableau (dans cet ordre) :
-'     A - Valider       : l'op√É¬©rateur y inscrit "Oui" sur les lignes finies
+'     A - Valider       : l'opÈrateur y inscrit "Oui" sur les lignes finies
 '     B - Date
 '     C - Tiers
 '     D - Montant
-'     E - Cat√É¬©gorie     : liste d√É¬©roulante (avertissement, pas de blocage :
-'                         on peut taper une nouvelle cat√É¬©gorie qui n'existe
+'     E - CatÈgorie     : liste dÈroulante (avertissement, pas de blocage :
+'                         on peut taper une nouvelle catÈgorie qui n'existe
 '                         pas encore)
-'     F - SousCategorie : idem, PHASE 5 (cat√É¬©gories a 2 niveaux)
-'     G - Notes         : texte libre, SAUF si la valeur est d√É¬©j√É¬† une cl√É¬©
-'                         sant√É¬© valide (grisee dans ce cas - voir Phase 5b)
+'     F - SousCategorie : idem, PHASE 5 (catÈgories a 2 niveaux)
+'     G - Notes         : texte libre, SAUF si la valeur est dÈj‡ une clÈ
+'                         santÈ valide (grisee dans ce cas - voir Phase 5b)
 '     H - Ventile        : colonne INFORMATIVE (non modifiable), PHASE 5.
-'                         "Oui" si la ligne repr√É¬©sente une PART VENTILEE
-'                         d'une op√É¬©ration bancaire (elle vient alors de
+'                         "Oui" si la ligne reprÈsente une PART VENTILEE
+'                         d'une opÈration bancaire (elle vient alors de
 '                         TblVentilations, pas de TblOperations), ou si
-'                         l'op√É¬©ration PARENTE d'une ligne normale a ete
-'                         ventilee (Cat√É¬©gorie = "Ventile"). C'est le "tag"
-'                         de tracabilite demand√É¬© par l'op√É¬©rateur : "on peut
-'                         prevenir un tag indiquant que cette op√É¬©ration fait
+'                         l'opÈration PARENTE d'une ligne normale a ete
+'                         ventilee (CatÈgorie = "Ventile"). C'est le "tag"
+'                         de tracabilite demandÈ par l'opÈrateur : "on peut
+'                         prevenir un tag indiquant que cette opÈration fait
 '                         partie d'une ventilation, pour information". Une
-'                         op√É¬©ration ventilee reste ainsi accessible ICI de 2
-'                         facons : via sa ligne parente (Cat√É¬©gorie="Ventile"),
+'                         opÈration ventilee reste ainsi accessible ICI de 2
+'                         facons : via sa ligne parente (CatÈgorie="Ventile"),
 '                         ou directement via chacune de ses parts (une ligne
-'                         par sous-cat√É¬©gorie de la ventilation).
-'     I - ID_Transaction : colonne technique MASQUEE (ID de l'op√É¬©ration, ou
-'                         de l'op√É¬©ration PARENTE pour une part ventilee)
+'                         par sous-catÈgorie de la ventilation).
+'     I - ID_Transaction : colonne technique MASQUEE (ID de l'opÈration, ou
+'                         de l'opÈration PARENTE pour une part ventilee)
 '     J - SourceLigne    : colonne technique MASQUEE, PHASE 5 : "O" (ligne de
 '                         TblOperations) ou "V" (part de TblVentilations),
 '                         sert a savoir OU ecrire au moment d'appliquer
 '     K - LigneVentilation : colonne technique MASQUEE, PHASE 5 : pour une
 '                         ligne "V", position de la part DANS TblVentilations
-'                         (DataBodyRange). Vide/non utilis√É¬©e pour une ligne "O".
+'                         (DataBodyRange). Vide/non utilisÈe pour une ligne "O".
 '
 '   La Phase 5b (mod_RechercheOperations) remplira le tableau depuis
 '   TblOperations ET TblVentilations (bouton "Rechercher") et appliquera les
 '   lignes marquees (bouton "Appliquer les lignes marquees") dans la bonne
 '   table source, colonne par colonne, jamais par un tri/decoupage de texte.
 '
-' A PROPOS DES ACCENTS : fichier 100% ASCII, textes accentues construits via
-' la fonction FR() (m√É¬™me convention que tout le chantier Suivi Sant√É¬©).
+'   Ajout suite ù un test opùrateur : un 3e bouton "Revoir la ventilation"
+'   permet, sur une ligne dont la colonne Ventilù vaut "Oui", de rouvrir le
+'   formulaire de ventilation (frm_Ventilation) avec le dùtail dùjù enregistrù
+'   dans TblVentilations, au lieu d'un formulaire vide (voir
+'   mod_RechercheOperations.RevoirVentilationRO et l'explication complùte en
+'   tùte de mod_Ventilation).
+'
+' ù PROPOS DES ACCENTS : tout ce qui s'affiche dans Excel continue ù passer par
+' la fonction FR() pour rester 100% sùr ù l'import VBA. Les commentaires que
+' j'ajoute ù partir de maintenant utilisent de vrais caractùres accentuùs pour
+' rester lisibles (convention validùe avec l'opùrateur) ; les anciens
+' commentaires du fichier restent tels quels pour l'instant.
 '
 ' A FAIRE POUR INSTALLER CE MODULE :
 '   1. Alt+F11, Fichier > Importer un fichier..., choisir ce fichier .bas
-'   2. Ctrl+G : CreerFeuilleRechercheOperations
+'   2. Ctrl+G : CreerFeuilleRechercheOperations (ATTENTION : reconstruit toute la
+'      feuille, y compris ses boutons ù c'est le seul moyen de faire apparaùtre
+'      le nouveau bouton "Revoir la ventilation" ; rùimporter le fichier seul
+'      ne suffit pas, comme dùjù repùrù plus tùt sur ce chantier)
 '   3. Pour revoir la feuille : AfficherFeuilleRecherchePourEdition
 '      Pour la remasquer : MasquerFeuilleRechercheApresEdition
 ' =====================================================================================
@@ -66,7 +79,7 @@ Public Const NOM_TABLE_RECHERCHE As String = "TblRechercheOperations"
 Public Const RO_LIGNE_BOUTONS As Long = 2
 Public Const RO_LIGNE_ENTETES As Long = 4
 
-' Position des colonnes DANS LE TABLEAU (1 = premi√É¬®re colonne du tableau, A)
+' Position des colonnes DANS LE TABLEAU (1 = premiËre colonne du tableau, A)
 Public Const RO_COL_VALIDER As Long = 1
 Public Const RO_COL_DATE As Long = 2
 Public Const RO_COL_TIERS As Long = 3
@@ -165,11 +178,24 @@ Sub CreerFeuilleRechercheOperations()
         .Name = "btnAppliquerLignesMarquees"
     End With
 
+    ' Ajout suite ù un test opùrateur : bouton pour rouvrir le dùtail d'une
+    ' opùration dùjù ventilùe (sùlectionner une ligne du tableau dont la colonne
+    ' "Ventilù" vaut "Oui", puis cliquer ici) ù voir mod_RechercheOperations.RevoirVentilationRO.
+    Dim zoneBtn3 As Range
+    Set zoneBtn3 = ws.Range("F" & RO_LIGNE_BOUTONS & ":G" & RO_LIGNE_BOUTONS)
+    Set btn = ws.Buttons.Add(zoneBtn3.Left, zoneBtn3.Top, zoneBtn3.Width, zoneBtn3.Height)
+    With btn
+        .Caption = FR("Revoir la ventilation")
+        .OnAction = "RevoirVentilationRO"
+        .Name = "btnRevoirVentilationRO"
+    End With
+
     ' --- Petit rappel du fonctionnement, au-dessus du tableau ---
     With ws.Range("A" & (RO_LIGNE_ENTETES - 2) & ":G" & (RO_LIGNE_ENTETES - 2))
         .Merge
         .value = FR("Utilise les fl{e2}ches de filtre dans l'en-t{ea}te (comme un filtre Excel classique) pour restreindre la liste. " & _
-                    "Corrige Cat{e2}gorie/Notes directement dans les cellules, inscris 'Oui' dans Valider, puis clique sur 'Appliquer les lignes marqu{e2}es'.")
+                    "Corrige Cat{e2}gorie/Notes directement dans les cellules, inscris 'Oui' dans Valider, puis clique sur 'Appliquer les lignes marqu{e2}es'. " & _
+                    "Pour revoir le d{e2}tail d'une op{e2}ration ventil{e2}e (colonne Ventil{e2} = Oui) : s{e2}lectionne sa ligne puis clique sur 'Revoir la ventilation'.")
         .Font.Size = 9
         .Font.Color = RGB(80, 80, 80)
         .WrapText = True
@@ -177,7 +203,7 @@ Sub CreerFeuilleRechercheOperations()
     End With
     ws.rows(RO_LIGNE_ENTETES - 2).RowHeight = 28
 
-    ' --- Tableau (headers + 1 ligne vide de depart, indispensable pour cr√É¬©er un ListObject) ---
+    ' --- Tableau (headers + 1 ligne vide de depart, indispensable pour crÈer un ListObject) ---
     ws.Range("A" & RO_LIGNE_ENTETES).value = "Valider"
     ws.Range("B" & RO_LIGNE_ENTETES).value = "Date"
     ws.Range("C" & RO_LIGNE_ENTETES).value = "Tiers"
@@ -196,7 +222,7 @@ Sub CreerFeuilleRechercheOperations()
     tbl.TableStyle = "TableStyleMedium2"
 
     ' Colonnes techniques masquees (PHASE 5 : Ventile reste VISIBLE, c'est le
-    ' tag informatif demand√É¬© par l'op√É¬©rateur -- seules I/J/K, qui ne servent
+    ' tag informatif demandÈ par l'opÈrateur -- seules I/J/K, qui ne servent
     ' qu'au code, sont masquees)
     ws.Columns("I").Hidden = True
     ws.Columns("J").Hidden = True

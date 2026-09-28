@@ -47,12 +47,12 @@ Public Sub RechercherOperations()
     Dim listeCategories() As String
     Dim nbCategories As Long
 
-    ' 1. RÃ©cupÃ©ration des pointeurs vers la feuille et le tableau
+    ' 1. Récupération des pointeurs vers la feuille et le tableau
     Set wsSynthese = mod_Criteres.GetFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
     Set wsResultat = mod_Criteres.GetFeuille(mod_VarGlobales.NOM_FEUILLE_RESULTAT)
     Set tbl = mod_DonneesTable.GetOperationsValue(mod_VarGlobales.NOM_FEUILLE_DONNEES, "TblOperations")
     If tbl Is Nothing Then
-        MsgBox "Le tableau ne contient aucune ligne de donnÃ©es.", vbExclamation
+        MsgBox "Le tableau ne contient aucune ligne de données.", vbExclamation
         Exit Sub
     End If
     If tbl.DataBodyRange Is Nothing Then
@@ -85,98 +85,98 @@ Public Sub RechercherOperations()
         wsResultat.Name = mod_VarGlobales.NOM_FEUILLE_RESULTAT
     End If
         
-    ' On masque la feuille Synthese. Cette option est prise pour Ã©viter Ã  l'opÃ©rateur de se dÃ©placer en dehors de la feuille crÃ©e
+    ' On masque la feuille Synthese. Cette option est prise pour éviter à l'opérateur de se déplacer en dehors de la feuille crée
     wsSynthese.Visible = xlSheetVeryHidden
     
-    ' 2. Charge TOUT le tableau de donnÃ©es (en-tÃªtes incluses en ligne 1)
+    ' 2. Charge TOUT le tableau de données (en-têtes incluses en ligne 1)
     tblData = tbl.Range.value
     tblDataLineTotal = UBound(tblData, 1)
     
-    ' 3. RÃ©cupÃ©ration des index de colonne dans la base de donnÃ©es
+    ' 3. Récupération des index de colonne dans la base de données
     mod_Display.RecupIndexCol
     
     ' 4. Autorise ou non le double click
     AllowDetailDoubleClick = False
-    ' ParamÃ¨tre de navigation
+    ' Paramètre de navigation
     RecherOperations = True
-    ' DÃ©sactive les Ã©vÃ©nements
+    ' Désactive les événements
     Application.EnableEvents = False
     
     ' 5. Construction de la zone des boutons
-    ' On dÃ©termine la position du bouton
+    ' On détermine la position du bouton
     Set zoneBouton = wsResultat.Range(cellSortieDep).Offset(0, 1)
-    'On dÃ©finit son titre
+    'On définit son titre
     texteBouton = "Sortir"
     nomMacroBouton = "Sortir"
     Call mod_Display.ConstruireBoutons(wsResultat, zoneBouton, texteBouton, nomMacroBouton)
 
-    ' On dÃ©termine la plage de dÃ©but et de fin de la zone
+    ' On détermine la plage de début et de fin de la zone
     Set debutZone = wsResultat.Range(cellSortieDep).Offset(0, 2)
     Set finZone = wsResultat.Range(cellSortieDep).Offset(0, 3)
     Set zoneBouton = wsResultat.Range(debutZone, finZone)
     
-    'On dÃ©finit son titre
+    'On définit son titre
     texteBouton = FR("Appliquer les lignes marqu{e2}es")
     nomMacroBouton = "AppliquerLignesMarquees"
     Call mod_Display.ConstruireBoutons(wsResultat, zoneBouton, texteBouton, nomMacroBouton)
     
-    ' On dÃ©termine la plage de dÃ©but et de fin de la zone
+    ' On détermine la plage de début et de fin de la zone
     Set debutZone = wsResultat.Range(cellSortieDep).Offset(0, 4)
     Set finZone = wsResultat.Range(cellSortieDep).Offset(0, 5)
     Set zoneBouton = wsResultat.Range(debutZone, finZone)
     
-'    'On dÃ©finit son titre
+'    'On définit son titre
 '    texteBouton = FR("Rechercher")
 '    nomMacroBouton = "RechercherOperations"
 '    Call mod_Display.ConstruireBoutons(wsResultat, zoneBouton, texteBouton, nomMacroBouton)
 '
     ' 6. Construction de la zone des instructions
-    ' On fournit le message Ã  afficher en remplaÃ§ant les carractÃ¨res accentuÃ© par les balise de la fonction FR
-    Message = " Recherche OpÃ©rations" & Chr(10) & _
+    ' On fournit le message à afficher en remplaçant les carractères accentué par les balise de la fonction FR
+    Message = " Recherche Opérations" & Chr(10) & _
                 "Utilisez les fl{e2}ches de filtre dans l'en-t{ea}te (comme un filtre Excel classique) pour restreindre la liste. " & _
                     "Corrigez Cat{e2}gorie/Notes directement dans les cellules, inscrivez 'Oui' dans Valider, puis cliquez sur 'Appliquer les lignes marqu{e2}es'."
                  
-    ' On fournit le titre, la position de la cellule dans laquelle on veut Ã©crire de titre
+    ' On fournit le titre, la position de la cellule dans laquelle on veut écrire de titre
     Titre = "Instructions"
     Set PositionTitre = wsResultat.Range(cellSortieDep).Offset(2, 1)
     
-    ' On dÃ©termine la plage de dÃ©but et de fin de la zone
+    ' On détermine la plage de début et de fin de la zone
     Set debutZone = wsResultat.Range(cellSortieDep).Offset(3, 1)
     Set finZone = wsResultat.Range(cellSortieDep).Offset(6, 6)
     
     Call mod_Display.ConstruireZoneTexte(wsResultat, Titre, Message, PositionTitre, debutZone, finZone)
     
-    ' 7. Affiche les entÃªtes du tableau de sortie
-    ' DÃ©finit le dÃ©but de la page de travail
+    ' 7. Affiche les entêtes du tableau de sortie
+    ' Définit le début de la page de travail
     Set debPlageTravail = wsResultat.Range(cellSortieDep).Offset(8, 1)
     
-    MonArray = Array("Valider", "Date", "Tiers", "Montant", "CatÃ©gorie", "Notes", "ID_Transaction")
+    MonArray = Array("Valider", "Date", "Tiers", "Montant", "Catégorie", "Notes", "ID_Transaction")
     Call mod_Display.PrepareOutputArea(wsResultat, MonArray, debPlageTravail)
     
     nbColonne = UBound(MonArray) + 1 - LBound(MonArray) + 1
     
-    ' RÃ©cupÃ©re la position du champs dans l'ARRAY (Application.Match est naturellement insensible Ã  la casse)
+    ' Récupére la position du champs dans l'ARRAY (Application.Match est naturellement insensible à la casse)
     mod_Display.RecupPosArray
     
-    ' RÃ©cupÃ©ration des index de colonne dans la feuille de sortie
+    ' Récupération des index de colonne dans la feuille de sortie
     Call mod_Display.RecupPosSortieIndex(wsResultat, debPlageTravail)
     
-    ' Taille maximale du tableau de rÃ©sultat = nombre total de lignes source
+    ' Taille maximale du tableau de résultat = nombre total de lignes source
     ReDim tabResultat(1 To tblDataLineTotal, 1 To nbColonne)
            
-    ' 4. Lire les critÃ¨res saisis par l'utilisateur (B1 Ã  B6).
+    ' 4. Lire les critères saisis par l'utilisateur (B1 à B6).
     mod_Criteres.GetSelectCriteres
 
-    ' DÃ©claration du dictionnaire des catÃ©gories
+    ' Déclaration du dictionnaire des catégories
     Set categoriesVues = CreateObject("Scripting.Dictionary")
     nbCategories = 0
     ReDim cleVerrouillee(1 To tblDataLineTotal)
     
     ' 5. Remplissage du tableau de sortie
     For nbLigne = 2 To tblDataLineTotal
-        ' On rÃ©cupÃ©re la totalitÃ© des lignes
+        ' On récupére la totalité des lignes
         idxRes = idxRes + 1
-        'On Ã©crit la ligne dans le tableau
+        'On écrit la ligne dans le tableau
         tabResultat(idxRes, 1) = ""
         tabResultat(idxRes, posDate) = tblData(nbLigne, colDate)
         tabResultat(idxRes, posTiers) = tblData(nbLigne, colTiers)
@@ -185,7 +185,7 @@ Public Sub RechercherOperations()
         tabResultat(idxRes, posNotes) = tblData(nbLigne, colNotes)
         tabResultat(idxRes, posID) = tblData(nbLigne, colID)
         
-        ' On contrÃ´le que le champ Notes ne contient pas une clÃ© valide de santÃ©
+        ' On contrôle que le champ Notes ne contient pas une clé valide de santé
         notesTexte = mod_DataStructure.CellText(tblData(nbLigne, colNotes))
         seg0 = mod_ImportOFX.SegmentTexte(notesTexte, ";", 0)
         If IsNumeric(seg0) Then
@@ -207,7 +207,7 @@ Public Sub RechercherOperations()
     If idxRes > 0 Then
         Application.ScreenUpdating = False
         
-        ' Injection directe du tableau mÃ©moire dans la plage d'affichage
+        ' Injection directe du tableau mémoire dans la plage d'affichage
         ' On redimentionne la taille de la plage pour pas voir s'afficher des erreur type #N/A dans les cellules en trop
         plageSortieEcriture.Resize(idxRes, nbColonne).value = tabResultat
         
@@ -231,14 +231,14 @@ Public Sub RechercherOperations()
             ' 1. Toujours effacer les validations existantes avant d'en ajouter une nouvelle
             .Delete
     
-            ' 2. Ajouter la liste dÃ©roulante OUI,NON
+            ' 2. Ajouter la liste déroulante OUI,NON
             .Add Type:=xlValidateList, _
                 AlertStyle:=xlValidAlertStop, _
                 Formula1:="OUI,NON"
-            ' 3. Configurer l'affichage et autoriser la valeur vide par dÃ©faut
+            ' 3. Configurer l'affichage et autoriser la valeur vide par défaut
             .IgnoreBlank = True          ' Permet de laisser la cellule vide
-            .InCellDropdown = True       ' Affiche la flÃ¨che de sÃ©lection dans la cellule
-            .ShowInput = True            ' Affiche le message de saisie si configurÃ©
+            .InCellDropdown = True       ' Affiche la flèche de sélection dans la cellule
+            .ShowInput = True            ' Affiche le message de saisie si configuré
             .ShowError = True            ' Affiche l'alerte en cas d'erreur de saisie
         End With
             
@@ -258,7 +258,7 @@ Public Sub RechercherOperations()
         wsResultat.Columns(posSortieID).Hidden = True
         wsResultat.Columns(1).ColumnWidth = 1
         
-         ' RÃ©active les Ã©vÃ©nements
+         ' Réactive les événements
         Application.EnableEvents = True
         Application.ScreenUpdating = True
     End If
@@ -289,11 +289,11 @@ Public Sub AppliquerLignesMarquees()
     Dim nbAppliquees As Long
 
     ' 1. Garde-fous : les variables globales existent-elles encore ?
-    '    (elles sont vides si aucune recherche n'a ete lancÃ©e, ou aprÃ¨s un "Reset" de VBA)
+    '    (elles sont vides si aucune recherche n'a ete lancée, ou après un "Reset" de VBA)
     If tbl Is Nothing Then
         Set tbl = mod_DonneesTable.GetOperationsValue(mod_VarGlobales.NOM_FEUILLE_DONNEES, "TblOperations")
         If tbl Is Nothing Then
-            MsgBox "Le tableau ne contient aucune ligne de donnÃ©es.", vbExclamation
+            MsgBox "Le tableau ne contient aucune ligne de données.", vbExclamation
             Exit Sub
         End If
         If tbl.DataBodyRange Is Nothing Then

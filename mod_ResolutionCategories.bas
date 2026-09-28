@@ -255,7 +255,7 @@ End Sub
 
 
 ' =====================================================================================
-' ACTION DU BOUTON "RÃ©initialiser cette ligne"
+' ACTION DU BOUTON "Réinitialiser cette ligne"
 ' Efface le choix de categorie de la ligne actuellement selectionnee. L'effacement
 ' de la cellule declenche automatiquement Worksheet_Change (code-behind), qui se
 ' charge lui-meme de remettre le statut a "?" et de mettre a jour g_CasChoix et

@@ -1,8 +1,8 @@
 Option Explicit
 ' Ce module regroupe tout ce qui concerne la LECTURE DES CRITERES saisis par
-' l'utilisateur dans les cellules B1 Ã  B6 de la feuille "Synthese"
-' (annÃ©e, mois, nombre d'opÃ©rations Ã  surligner, seuil minimum, champ de tri,
-' ordre de tri) â€” ainsi que la rÃ©cupÃ©ration de la feuille "Synthese" elle-mÃªme.
+' l'utilisateur dans les cellules B1 à B6 de la feuille "Synthese"
+' (année, mois, nombre d'opérations à surligner, seuil minimum, champ de tri,
+' ordre de tri) — ainsi que la récupération de la feuille "Synthese" elle-même.
 
 ' Les macros de ce module ne sont pas visibles dans la liste "Macros" d'Excel
 Option Private Module
@@ -11,7 +11,7 @@ Option Private Module
 ' GetFeuilleSynthese : retourne la feuille "Synthese" du classeur.
 ' ----------------------------------------------------------------------
 ' Centralise ThisWorkbook.Worksheets("Synthese") en un seul endroit :
-' si le nom de cette feuille change un jour, une seule ligne est Ã  corriger.
+' si le nom de cette feuille change un jour, une seule ligne est à corriger.
 'Public Function GetFeuilleSynthese() As Worksheet
 '    Set GetFeuilleSynthese = ThisWorkbook.Worksheets("Synthese")
 'End Function
@@ -27,17 +27,17 @@ Public Function GetFeuille(nomFeuille As String) As Worksheet
 End Function
 
 ' ----------------------------------------------------------------------
-' GetSelectCriteres : lit les 6 cellules de paramÃ¨tres et les renvoie
-' via des paramÃ¨tres ByRef (c'est-Ã -dire que la macro qui appelle cette
-' fonction reÃ§oit les valeurs directement dans ses propres variables).
+' GetSelectCriteres : lit les 6 cellules de paramètres et les renvoie
+' via des paramètres ByRef (c'est-à-dire que la macro qui appelle cette
+' fonction reçoit les valeurs directement dans ses propres variables).
 ' ----------------------------------------------------------------------
-' ws              : la feuille Synthese Ã  lire (gÃ©nÃ©ralement issue de GetFeuilleSynthese)
-' critAnnee        <- lit B1 : annÃ©e sÃ©lectionnÃ©e
-' critMois         <- lit B2 : mois sÃ©lectionnÃ©
-' critNbOperations <- lit B3 : nombre d'opÃ©rations Ã  mettre en Ã©vidence
+' ws              : la feuille Synthese à lire (généralement issue de GetFeuilleSynthese)
+' critAnnee        <- lit B1 : année sélectionnée
+' critMois         <- lit B2 : mois sélectionné
+' critNbOperations <- lit B3 : nombre d'opérations à mettre en évidence
 ' critMontantMin   <- lit B4 : seuil minimum de montant
-' critTriChamps    <- lit B5 : champ utilisÃ© pour trier le dÃ©tail
-' critTriOrdre     <- lit B6 : ordre de tri du dÃ©tail (croissant/dÃ©croissant)
+' critTriChamps    <- lit B5 : champ utilisé pour trier le détail
+' critTriOrdre     <- lit B6 : ordre de tri du détail (croissant/décroissant)
 Public Sub GetSelectCriteres()
     critAnnee = mod_DataStructure.CellText(wsSynthese.Range("critAnnee").Value2)
     critMois = mod_DataStructure.CellText(wsSynthese.Range("critMois").Value2)
@@ -52,21 +52,21 @@ End Sub
 ' ----------------------------------------------------------------------
 ' Pourquoi cette fonction existe : convertir directement avec CLng() plante
 ' avec une erreur si la valeur n'est pas un nombre (ex : cellule vide ou texte).
-' Cette fonction vÃ©rifie D'ABORD que la conversion est possible, puis convertit.
+' Cette fonction vérifie D'ABORD que la conversion est possible, puis convertit.
 '
-' Le rÃ©sultat est un Boolean : True si la conversion a rÃ©ussi, False sinon.
-' Cela permet Ã  qui appelle cette fonction de savoir si la valeur rÃ©cupÃ©rÃ©e
-' (paramÃ¨tre "result", passÃ© par rÃ©fÃ©rence avec ByRef) est fiable ou non,
-' plutÃ´t que de devoir deviner ou de risquer un plantage.
+' Le résultat est un Boolean : True si la conversion a réussi, False sinon.
+' Cela permet à qui appelle cette fonction de savoir si la valeur récupérée
+' (paramètre "result", passé par référence avec ByRef) est fiable ou non,
+' plutôt que de devoir deviner ou de risquer un plantage.
 Public Function TryGetLong(ByVal value As Variant, ByRef result As Long) As Boolean
-    ' On vÃ©rifie 4 cas invalides avant toute conversion :
+    ' On vérifie 4 cas invalides avant toute conversion :
     '   - IsError  : la cellule contient une erreur Excel (#N/A, #REF!, etc.)
-    '   - IsNull   : valeur nulle (rare avec Excel, plutÃ´t issu de bases de donnÃ©es)
-    '   - IsEmpty  : la cellule est complÃ¨tement vide
-    '   - Not IsNumeric : la valeur n'est pas interprÃ©table comme un nombre
+    '   - IsNull   : valeur nulle (rare avec Excel, plutôt issu de bases de données)
+    '   - IsEmpty  : la cellule est complètement vide
+    '   - Not IsNumeric : la valeur n'est pas interprétable comme un nombre
     If IsError(value) Or IsNull(value) Or IsEmpty(value) Or Not IsNumeric(value) Then Exit Function
-    ' Si on arrive ici, la valeur est bien numÃ©rique : la conversion est sÃ»re.
+    ' Si on arrive ici, la valeur est bien numérique : la conversion est sûre.
     result = CLng(value)
-    ' On indique que tout s'est bien passÃ© en renvoyant True.
+    ' On indique que tout s'est bien passé en renvoyant True.
     TryGetLong = True
 End Function

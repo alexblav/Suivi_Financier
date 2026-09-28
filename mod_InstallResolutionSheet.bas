@@ -207,7 +207,7 @@ Private Sub ConstruireZoneBoutons(ws As Worksheet)
     With boutonValider
         ' IMPORTANT : le texte affiche est deja son intitule FINAL valide avec toi,
         ' a savoir sa fonction de reinitialisation (et non plus "Valider ce cas").
-        .Caption = "RÃ©initialiser cette ligne"
+        .Caption = "Réinitialiser cette ligne"
         ' Le nom de macro ci-dessous n'existe pas encore : il sera ecrit en Phase 2.
         ' Cela ne provoque AUCUNE erreur maintenant ; l'erreur n'apparaitrait que si
         ' quelqu'un cliquait sur le bouton avant que la Phase 2 soit installee.
@@ -264,11 +264,11 @@ Private Sub ConstruireZoneInstructions(ws As Worksheet)
         .Merge
         ' Le texte exact que tu m'as fourni, avec des sauts de ligne internes
         ' (Chr(10) est le caractere "retour a la ligne" a l'interieur d'une cellule).
-        .Value = "Les opÃ©rations listÃ©es n'ont pas pu Ãªtre catÃ©gorisÃ©es de faÃ§on automatique." & Chr(10) & _
-                 "Il faut donc le faire manuellement. Pour ce faire suivre les Ã©tapes suivantes :" & Chr(10) & _
-                 "1. SÃ©lectionner une catÃ©gorie dans la liste dÃ©roulante en face de l'opÃ©ration concernÃ©e" & Chr(10) & _
-                 "2. Le statut de la ligne passe automatiquement Ã  "" OK "" une fois la catÃ©gorie choisie" & Chr(10) & _
-                 "3. Recommencer pour chaque opÃ©ration puis cliquer sur ""Terminer et appliquer"""
+        .Value = "Les opérations listées n'ont pas pu être catégorisées de façon automatique." & Chr(10) & _
+                 "Il faut donc le faire manuellement. Pour ce faire suivre les étapes suivantes :" & Chr(10) & _
+                 "1. Sélectionner une catégorie dans la liste déroulante en face de l'opération concernée" & Chr(10) & _
+                 "2. Le statut de la ligne passe automatiquement à "" OK "" une fois la catégorie choisie" & Chr(10) & _
+                 "3. Recommencer pour chaque opération puis cliquer sur ""Terminer et appliquer"""
         .WrapText = True                     ' le texte revient a la ligne dans la cellule
         .VerticalAlignment = xlTop
         .HorizontalAlignment = xlLeft
@@ -315,7 +315,7 @@ Private Sub ConstruireTableauCas(ws As Worksheet)
     ws.Range(COL_DATE & LIGNE_ENTETES_TABLEAU).Value = "Date"
     ws.Range(COL_MONTANT & LIGNE_ENTETES_TABLEAU).Value = "Montant"
     ws.Range(COL_TIERS & LIGNE_ENTETES_TABLEAU).Value = "Tiers"
-    ws.Range(COL_CATEGORIE & LIGNE_ENTETES_TABLEAU).Value = "CatÃ©gorie(s)"
+    ws.Range(COL_CATEGORIE & LIGNE_ENTETES_TABLEAU).Value = "Catégorie(s)"
     ws.Rows(LIGNE_ENTETES_TABLEAU).RowHeight = 20
 
     ' --- Mise en forme "a blanc" des lignes de donnees preparees a l'avance ---
@@ -336,7 +336,7 @@ Private Sub ConstruireTableauCas(ws As Worksheet)
 
     ws.Range(COL_STATUT & LIGNE_PREMIERE_DONNEE & ":" & COL_STATUT & derniereLigne).HorizontalAlignment = xlCenter
     ws.Range(COL_MONTANT & LIGNE_PREMIERE_DONNEE & ":" & COL_MONTANT & derniereLigne).HorizontalAlignment = xlRight
-    ws.Range(COL_MONTANT & LIGNE_PREMIERE_DONNEE & ":" & COL_MONTANT & derniereLigne).NumberFormat = "#,##0.00 â‚¬"
+    ws.Range(COL_MONTANT & LIGNE_PREMIERE_DONNEE & ":" & COL_MONTANT & derniereLigne).NumberFormat = "#,##0.00 €"
     ws.Range(COL_DATE & LIGNE_PREMIERE_DONNEE & ":" & COL_DATE & derniereLigne).NumberFormat = "dd/mm/yyyy"
 
     For ligneCourante = LIGNE_PREMIERE_DONNEE To derniereLigne Step 2

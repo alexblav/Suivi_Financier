@@ -13,17 +13,17 @@
 
 Private Sub Worksheet_Change(ByVal Target As Range)
 
-    ' --- Garde-fou nÂ°1 : ignorer les changements que NOUS provoquons nous-memes
+    ' --- Garde-fou n°1 : ignorer les changements que NOUS provoquons nous-memes
     ' (remplissage automatique du tableau par RemplirTableauCas) ---
     If g_ChargementEnCours Then Exit Sub
 
-    ' --- Garde-fou nÂ°2 : ne reagir que si la cellule modifiee est dans la colonne
+    ' --- Garde-fou n°2 : ne reagir que si la cellule modifiee est dans la colonne
     ' "Categorie" ET dans la plage des lignes de donnees du tableau ---
     If Target.Column <> Me.Range(COL_CATEGORIE & "1").Column Then Exit Sub
     If Target.Row < LIGNE_PREMIERE_DONNEE Then Exit Sub
     If Target.Row > LIGNE_PREMIERE_DONNEE + g_NbCasAmbigus - 1 Then Exit Sub
 
-    ' --- Garde-fou nÂ°3 : si plusieurs cellules ont change en une fois (ex: collage
+    ' --- Garde-fou n°3 : si plusieurs cellules ont change en une fois (ex: collage
     ' multiple), on ne traite que la premiere pour rester simple et previsible ---
     If Target.Cells.count > 1 Then Exit Sub
 

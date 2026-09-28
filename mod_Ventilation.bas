@@ -30,7 +30,29 @@ Option Explicit
 '   supprimee. C'est le seul moyen de supprimer une ligne pour l'instant : simple, et
 '   explicitement signale a l'operateur par un message a chaque fois que cela se produit.
 '
-' A PROPOS DES ACCENTS : fichier 100% ASCII, accents fabriques par la fonction TF().
+'   RùOUVERTURE D'UNE VENTILATION DùJù VALIDùE (ajout suite ù un test opùrateur) :
+'   OuvrirVentilation() commence dùsormais par regarder si TblVentilations contient
+'   dùjù des lignes pour l'ID_Transaction demandù (fonction ChargerLignesExistantes
+'   plus bas). Si oui, elles sont chargùes dans g_VenLigneCat/Sous/Montant AVANT
+'   l'affichage : l'opùrateur retrouve donc ses donnùes au lieu d'un formulaire vide,
+'   que ce soit en revenant en arriùre PENDANT le mùme import (bouton "Prùcùdent" de
+'   frm_ControleCategories) ou en rouvrant plus tard depuis frm_RechercheOperations.
+'   En consùquence, VenTerminer() ne se contente plus d'AJOUTER des lignes ù la fin :
+'   il supprime d'abord les anciennes lignes de cet ID_Transaction (SupprimerLignesExistantes)
+'   avant de rùùcrire la liste actuelle, pour ùviter les doublons dans TblVentilations.
+'   ATTENTION - LIMITE CONNUE : la suppression/rùùcriture rùinitialise TOUJOURS les
+'   colonnes de suivi santù (StatutSante, Notes, etc.) d'une ligne "Frais, remb santù" ù
+'   leur ùtat initial (KO/sentinelle), mùme si l'opùrateur avait dùjù traitù cette ligne
+'   dans le suivi santù. Modifier une ventilation dùjù rapprochùe cùtù santù fera donc
+'   perdre ce rapprochement, qu'il faudra refaire. Signalù ù l'opùrateur, pas encore
+'   traitù plus finement (ù discuter si ùa devient gùnant en pratique).
+'
+' ù PROPOS DES ACCENTS : tout ce qui s'affiche dans Excel (messages, valeurs de
+' cellules) continue ù passer par la fonction TF() pour rester 100% sùr ù l'import
+' VBA. Les commentaires que j'ajoute ù partir de maintenant utilisent de vrais
+' caractùres accentuùs pour rester lisibles (convention validùe avec l'opùrateur) ;
+' les anciens commentaires du fichier restent tels quels pour l'instant (le grand
+' nettoyage gùnùral est volontairement reportù ù aprùs la mise en production).
 ' =====================================================================================
 
 ' --- Etat du formulaire ------------------------------------------------------------------
@@ -92,6 +114,12 @@ Public Function OuvrirVentilation(ByVal idTransaction As String, ByVal dateOp As
     g_VenValide = False
     g_VenNbLignes = 0
     g_VenIndexEdition = 0
+
+    ' Si cette opùration a dùjù ùtù ventilùe auparavant (TblVentilations contient
+    ' dùjù des lignes pour cet ID_Transaction), on les recharge ici AVANT d'afficher
+    ' la feuille, pour que l'opùrateur retrouve son dùtail au lieu d'un formulaire
+    ' vide. Voir l'explication complùte en tùte de module.
+    ChargerLignesExistantes idTransaction
 
     RemplirEntete ws, dateOp, tiers, libelle, montantOp, categorieActuelle, sousCategorieActuelle
     RafraichirAffichageLignes ws
@@ -574,6 +602,12 @@ Public Sub VenTerminer()
         Exit Sub
     End If
 
+    ' On repart d'une TblVentilations "propre" pour cet ID_Transaction avant de
+    ' rùùcrire la liste actuelle : sans ùa, rouvrir une ventilation dùjù existante
+    ' pour la corriger empilerait des lignes en double (voir l'explication complùte
+    ' en tùte de module, y compris sa limite connue cùtù suivi santù).
+    SupprimerLignesExistantes g_VenIdTransaction
+
     For i = 1 To g_VenNbLignes
         AjouterLigneVentilation g_VenIdTransaction, g_VenLigneCat(i), g_VenLigneSous(i), g_VenLigneMontant(i)
     Next i
@@ -673,6 +707,82 @@ Private Sub AjouterLigneVentilation(ByVal idTransaction As String, ByVal categor
         ' colonnes que le moteur sante calcule ou que l'operateur saisit lui-meme
         ' plus tard, jamais a la creation de la ligne (meme principe qu'a l'import).
     End If
+
+End Sub
+
+' =====================================================================================
+' RùOUVERTURE D'UNE VENTILATION EXISTANTE (ajout suite ù un test opùrateur)
+' =====================================================================================
+' Relit TblVentilations et charge dans g_VenLigneCat/Sous/Montant toutes les lignes
+' dùjù enregistrùes pour cet ID_Transaction, dans l'ordre où elles apparaissent dans
+' le tableau. Ne fait rien (g_VenNbLignes reste ù 0) si aucune ligne n'est trouvùe :
+' c'est le cas normal d'une PREMIùRE ventilation, qui doit bien dùmarrer ù vide.
+Private Sub ChargerLignesExistantes(ByVal idTransaction As String)
+
+    Dim wsData As Worksheet
+    Dim tbl As ListObject
+    Dim colID As Long, colCat As Long, colSous As Long, colMontant As Long
+    Dim r As Long
+    Dim idLigne As String
+
+    Set wsData = FeuilleSansErreur(VEN_NOM_FEUILLE_DONNEES)
+    If wsData Is Nothing Then Exit Sub          ' Phase 4 pas encore installùe : rien ù charger
+
+    On Error Resume Next
+    Set tbl = wsData.ListObjects(VEN_NOM_TABLE)
+    On Error GoTo 0
+    If tbl Is Nothing Then Exit Sub
+    If tbl.ListRows.count = 0 Then Exit Sub
+
+    colID = tbl.ListColumns("ID_Transaction").index
+    colCat = tbl.ListColumns("Categorie").index
+    colSous = tbl.ListColumns("SousCategorie").index
+    colMontant = tbl.ListColumns("Montant").index
+
+    For r = 1 To tbl.ListRows.count
+        idLigne = mod_DataStructure.CellText(tbl.DataBodyRange.Cells(r, colID).value)
+        If idLigne = idTransaction Then
+            If g_VenNbLignes >= VEN_NB_LIGNES Then Exit For   ' garde-fou, ne devrait jamais arriver
+            g_VenNbLignes = g_VenNbLignes + 1
+            g_VenLigneCat(g_VenNbLignes) = mod_DataStructure.CellText(tbl.DataBodyRange.Cells(r, colCat).value)
+            g_VenLigneSous(g_VenNbLignes) = mod_DataStructure.CellText(tbl.DataBodyRange.Cells(r, colSous).value)
+            g_VenLigneMontant(g_VenNbLignes) = mod_DataStructure.ToDouble(tbl.DataBodyRange.Cells(r, colMontant).value)
+        End If
+    Next r
+
+End Sub
+
+' Supprime de TblVentilations toutes les lignes dùjù enregistrùes pour cet
+' ID_Transaction. Appelùe par VenTerminer juste avant de rùùcrire la liste actuelle,
+' pour que "modifier une ventilation" ne fasse jamais de doublons. Boucle ù
+' l'ENVERS (de la derniùre ligne vers la premiùre) : une rùgle de base en VBA quand
+' on supprime des lignes d'un tableau au fil d'une boucle, sinon les numùros de ligne
+' restants se dùcalent sous nos pieds et on saute des lignes sans s'en rendre compte.
+Private Sub SupprimerLignesExistantes(ByVal idTransaction As String)
+
+    Dim wsData As Worksheet
+    Dim tbl As ListObject
+    Dim colID As Long
+    Dim r As Long
+    Dim idLigne As String
+
+    Set wsData = FeuilleSansErreur(VEN_NOM_FEUILLE_DONNEES)
+    If wsData Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    Set tbl = wsData.ListObjects(VEN_NOM_TABLE)
+    On Error GoTo 0
+    If tbl Is Nothing Then Exit Sub
+    If tbl.ListRows.count = 0 Then Exit Sub
+
+    colID = tbl.ListColumns("ID_Transaction").index
+
+    For r = tbl.ListRows.count To 1 Step -1
+        idLigne = mod_DataStructure.CellText(tbl.DataBodyRange.Cells(r, colID).value)
+        If idLigne = idTransaction Then
+            tbl.ListRows(r).Delete
+        End If
+    Next r
 
 End Sub
 

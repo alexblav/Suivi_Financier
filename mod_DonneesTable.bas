@@ -1,19 +1,19 @@
 Option Explicit
-' Ce module regroupe tout ce qui concerne l'ACCES BRUT Ã  la table Excel
-' "TblOperations" (feuille DonnÃ©es) : la retrouver, lire une colonne
-' par son nom, et vÃ©rifier si une ligne correspond Ã  une pÃ©riode ou un filtre.
+' Ce module regroupe tout ce qui concerne l'ACCES BRUT à la table Excel
+' "TblOperations" (feuille Données) : la retrouver, lire une colonne
+' par son nom, et vérifier si une ligne correspond à une période ou un filtre.
 '
-' Aucune macro de ce module n'Ã©crit quoi que ce soit Ã  l'Ã©cran : il ne fait
-' que LIRE des informations et rÃ©pondre par Vrai/Faux ou par une valeur.
+' Aucune macro de ce module n'écrit quoi que ce soit à l'écran : il ne fait
+' que LIRE des informations et répondre par Vrai/Faux ou par une valeur.
 
 ' ----------------------------------------------------------------------
-' GetOperationsTable : retrouve le tableau structurÃ© Excel qui contient
-' l'historique des opÃ©rations bancaires.
+' GetOperationsTable : retrouve le tableau structuré Excel qui contient
+' l'historique des opérations bancaires.
 ' ----------------------------------------------------------------------
-' On utilise "On Error Resume Next" pour Ã©viter un plantage si la feuille
-' "DonnÃ©es" ou le tableau "OperationsImport2__2" a Ã©tÃ© renommÃ© ou supprimÃ©.
+' On utilise "On Error Resume Next" pour éviter un plantage si la feuille
+' "Données" ou le tableau "OperationsImport2__2" a été renommé ou supprimé.
 ' Dans ce cas, la fonction retourne Nothing, et affiche un message clair
-' plutÃ´t que de laisser Excel afficher une erreur technique incomprÃ©hensible.
+' plutôt que de laisser Excel afficher une erreur technique incompréhensible.
 Public Function GetOperationsTable() As ListObject
     On Error Resume Next
     Set GetOperationsTable = ThisWorkbook.Worksheets("Import_data").ListObjects("TblOperations")
@@ -27,40 +27,40 @@ Public Function GetOperationsValue(nomFeuille As String, nomPlage As String) As 
     If GetOperationsValue Is Nothing Then MsgBox "Table " & nomPlage & " introuvable.", vbExclamation
 End Function
 ' ----------------------------------------------------------------------
-' RowMatchesPeriod : vÃ©rifie si une ligne du tableau correspond Ã  l'annÃ©e
-' et au mois sÃ©lectionnÃ©s par l'utilisateur (cellules B1 et B2 de Synthese).
+' RowMatchesPeriod : vérifie si une ligne du tableau correspond à l'année
+' et au mois sélectionnés par l'utilisateur (cellules B1 et B2 de Synthese).
 ' ----------------------------------------------------------------------
-' Astuce : si critAnnee ou critMois est une chaÃ®ne VIDE (""), le filtre
-' correspondant est simplement ignorÃ© ("toutes les annÃ©es" ou "tous les mois").
+' Astuce : si critAnnee ou critMois est une chaîne VIDE (""), le filtre
+' correspondant est simplement ignoré ("toutes les années" ou "tous les mois").
 Public Function RowMatchesPeriod(ByVal Mois As Long, ByVal Annee As Long) As Boolean
     RowMatchesPeriod = (Annee = CLng(critAnnee) And Mois = CLng(critMois))
 End Function
 
 ' ----------------------------------------------------------------------
-' RowMatchesFilter : vÃ©rifie si une ligne correspond Ã  la pÃ©riode DEMANDEE
-' (voir RowMatchesPeriod ci-dessus) ET, si demandÃ©, Ã  un montant minimum.
+' RowMatchesFilter : vérifie si une ligne correspond à la période DEMANDEE
+' (voir RowMatchesPeriod ci-dessus) ET, si demandé, à un montant minimum.
 ' ----------------------------------------------------------------------
-' ParamÃ¨tre useMinimum : si False, on ne teste QUE la pÃ©riode (le seuil de
-' montant est ignorÃ©). Si True, on applique en plus le filtre de montant.
+' Paramètre useMinimum : si False, on ne teste QUE la période (le seuil de
+' montant est ignoré). Si True, on applique en plus le filtre de montant.
 '
-' Point important : pour une dÃ©pense (montant nÃ©gatif, ex : -300), on compare
-' la VALEUR ABSOLUE du montant au seuil. En effet, -300 reprÃ©sente une
-' dÃ©pense de 300 â‚¬ : comparer "-300 >= seuil" donnerait un rÃ©sultat faux
-' pour n'importe quel seuil positif, ce qui ne correspond pas Ã  l'intention
-' de l'utilisateur ("n'afficher que les dÃ©penses de plus de X euros").
+' Point important : pour une dépense (montant négatif, ex : -300), on compare
+' la VALEUR ABSOLUE du montant au seuil. En effet, -300 représente une
+' dépense de 300 € : comparer "-300 >= seuil" donnerait un résultat faux
+' pour n'importe quel seuil positif, ce qui ne correspond pas à l'intention
+' de l'utilisateur ("n'afficher que les dépenses de plus de X euros").
 Public Function RowMatchesFilter(ByVal nbLigne As Long, ByVal Mois As Long, ByVal Annee As Long, ByVal Montant As Double, ByVal useMinimum As Boolean) As Boolean
     Dim montantCompare As Double
     Dim typeOperation As String
 
-    ' Ã‰tape 1 : le filtre de pÃ©riode est toujours appliquÃ© en premier.
+    ' Étape 1 : le filtre de période est toujours appliqué en premier.
     RowMatchesFilter = RowMatchesPeriod(Mois, Annee)
-    If Not RowMatchesFilter Then Exit Function   ' Pas la peine de continuer si la pÃ©riode ne correspond pas.
-    If Not useMinimum Then Exit Function          ' Si on ne teste pas le montant, on s'arrÃªte ici avec True.
+    If Not RowMatchesFilter Then Exit Function   ' Pas la peine de continuer si la période ne correspond pas.
+    If Not useMinimum Then Exit Function          ' Si on ne teste pas le montant, on s'arrête ici avec True.
 
-    ' Ã‰tape 2 : uniquement si demandÃ©, on applique le filtre de montant minimum.
+    ' Étape 2 : uniquement si demandé, on applique le filtre de montant minimum.
     Montant = tblData(nbLigne, colMontant)
     If Montant < 0 Then
-        ' DÃ©pense : on compare la valeur absolue (voir explication ci-dessus).
+        ' Dépense : on compare la valeur absolue (voir explication ci-dessus).
         montantCompare = Abs(Montant)
     Else
         montantCompare = Montant
@@ -69,13 +69,13 @@ Public Function RowMatchesFilter(ByVal nbLigne As Long, ByVal Mois As Long, ByVa
 End Function
 
 '' ----------------------------------------------------------------------
-'' TableValue : lit la valeur d'UNE colonne (identifiÃ©e par son NOM, pas son
-'' numÃ©ro) pour UNE ligne donnÃ©e du tableau structurÃ©.
+'' TableValue : lit la valeur d'UNE colonne (identifiée par son NOM, pas son
+'' numéro) pour UNE ligne donnée du tableau structuré.
 '' ----------------------------------------------------------------------
-'' Pourquoi chercher par nom de colonne plutÃ´t que par numÃ©ro fixe (ex: colonne 4) ?
-'' Si un jour une colonne est ajoutÃ©e ou dÃ©placÃ©e dans le tableau "DonnÃ©es",
+'' Pourquoi chercher par nom de colonne plutôt que par numéro fixe (ex: colonne 4) ?
+'' Si un jour une colonne est ajoutée ou déplacée dans le tableau "Données",
 '' ce code continuera de fonctionner correctement, car il retrouve toujours
-'' "Montant" ou "Date" par leur intitulÃ©, oÃ¹ qu'ils se trouvent dÃ©sormais.
+'' "Montant" ou "Date" par leur intitulé, où qu'ils se trouvent désormais.
 'Public Function TableValue(ByVal ligne As ListRow, ByVal tbl As ListObject, ByVal columnName As String) As Variant
 '    TableValue = ligne.Range.Columns(tbl.ListColumns(columnName).index).Value2
 'End Function

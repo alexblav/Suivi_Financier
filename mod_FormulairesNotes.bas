@@ -3,36 +3,36 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_FormulairesNotes
 '
-' ROLE (PHASE 4b du chantier "Suivi SantÃ©") :
-'   Logique complÃ¨te des 2 feuilles construites en Phase 4a
+' ROLE (PHASE 4b du chantier "Suivi Santé") :
+'   Logique complète des 2 feuilles construites en Phase 4a
 '   (mod_InstallFormulairesNotes) : frm_RapprochementNotes et frm_GenerationCle.
 '
 '   Point d'entree unique : VerifierNotesSante(). Appelee automatiquement par
-'   mod_ImportOFX juste avant CalculerSuiviSante, mais peut aussi Ãªtre
+'   mod_ImportOFX juste avant CalculerSuiviSante, mais peut aussi être
 '   relancee manuellement (Ctrl+G) : VerifierNotesSante
 '
 '   DEROULE :
-'     1. On parcourt TOUTE TblOperations (lignes "Frais, remb santÃ©").
+'     1. On parcourt TOUTE TblOperations (lignes "Frais, remb santé").
 '     2. Pour chaque ligne dont Date_consult vaut encore la "sentinelle"
 '        (02/01/1900, voir mod_ImportOFX), on ouvre frm_RapprochementNotes :
-'        l'opÃ©rateur filtre en cascade (Date -> Specialite -> BÃ©nÃ©ficiaire ->
-'        Montant) parmi les clÃ©s Notes dÃ©jÃ  valides ailleurs, et valide.
+'        l'opérateur filtre en cascade (Date -> Specialite -> Bénéficiaire ->
+'        Montant) parmi les clés Notes déjà valides ailleurs, et valide.
 '     3. Si aucune correspondance : bouton "Pas de correspondance" ->
-'        frm_GenerationCle, ou l'opÃ©rateur crÃ©Ã© une nouvelle clÃ©.
-'     4. Dans les 2 cas, la clÃ© est ecrite dans Notes pour cette ligne, et
-'        Date_consult/Spe_Consult/BÃ©nÃ©ficiaire sont recalcules immediatement
-'        (mÃªmes formules que mod_ImportOFX, Ã©tape 7).
+'        frm_GenerationCle, ou l'opérateur créé une nouvelle clé.
+'     4. Dans les 2 cas, la clé est ecrite dans Notes pour cette ligne, et
+'        Date_consult/Spe_Consult/Bénéficiaire sont recalcules immediatement
+'        (mêmes formules que mod_ImportOFX, étape 7).
 '
-'   MÃªme verrou modal que les autres formulaires du classeur : la variable
-'   Public g_SaisieEnCours (dÃ©jÃ  declaree dans mod_ResolutionCategories) est
+'   Même verrou modal que les autres formulaires du classeur : la variable
+'   Public g_SaisieEnCours (déjà declaree dans mod_ResolutionCategories) est
 '   REUTILISEE telle quelle.
 '
-'   PARTICULARITE : comme ce classeur evite les UserForm (bug DPI dÃ©jÃ 
-'   rencontre) et que le code-behind de feuille (Worksheet_Change) demandÃ© de
+'   PARTICULARITE : comme ce classeur evite les UserForm (bug DPI déjà
+'   rencontre) et que le code-behind de feuille (Worksheet_Change) demandé de
 '   connaitre le "nom de code" VBA de la feuille (non garanti a l'avance ici),
 '   la cascade de filtres est geree par SONDAGE : la boucle d'attente modale
-'   (Do While g_SaisieEnCours : DoEvents : Loop) vÃ©rifie a chaque passage si
-'   Date/Specialite/BÃ©nÃ©ficiaire ont change depuis le dernier passage, et
+'   (Do While g_SaisieEnCours : DoEvents : Loop) vérifie a chaque passage si
+'   Date/Specialite/Bénéficiaire ont change depuis le dernier passage, et
 '   met a jour les listes suivantes le cas echeant. C'est fiable et ne
 '   necessite aucun code-behind.
 '
@@ -45,14 +45,14 @@ Option Explicit
 ' =====================================================================================
 
 
-' --- Une clÃ© "Notes" valide, decodee, utilisÃ©e pour construire les listes de
+' --- Une clé "Notes" valide, decodee, utilisée pour construire les listes de
 '     filtres en cascade de frm_RapprochementNotes. ---
 Private Type TCandidatCle
     DateTexte As String     ' au format jj/mm/aaaa, pour affichage/filtre
-    specialite As String    ' segment 1 de la clÃ©
-    beneficiaire As String  ' segment 2 de la clÃ©
-    Montant As String       ' segment 3 de la clÃ©, tel quel (texte)
-    CleBrute As String      ' la valeur complÃ¨te du champ Notes
+    specialite As String    ' segment 1 de la clé
+    beneficiaire As String  ' segment 2 de la clé
+    Montant As String       ' segment 3 de la clé, tel quel (texte)
+    CleBrute As String      ' la valeur complète du champ Notes
 End Type
 
 ' Memorise quel bouton a ete clique ("Valider" ou "PasDeCorrespondance" pour
@@ -80,26 +80,26 @@ Private derniereAction As String
 ' MACRO PRINCIPALE - point d'entree de la Phase 4b
 ' =====================================================================================
 ' =====================================================================================
-' RetraiterSuiviSante : enchaine les 3 Ã©tapes du suivi santÃ© SANS reimporter
-' de fichier (utile aprÃ¨s une correction manuelle dans Import_data, par
-' exemple si tu changes une CatÃ©gorie a la main parce que la source a change
+' RetraiterSuiviSante : enchaine les 3 étapes du suivi santé SANS reimporter
+' de fichier (utile après une correction manuelle dans Import_data, par
+' exemple si tu changes une Catégorie a la main parce que la source a change
 ' et que le rapprochement par FITID ne l'aurait pas detecte).
 ' Ctrl+G : RetraiterSuiviSante
 ' =====================================================================================
 Public Sub RetraiterSuiviSante()
     VerifierNotesSante
-    ' mod_SuiviSante.CalculerSuiviSante est lancé par la macro suivante
+    ' mod_SuiviSante.CalculerSuiviSante est lanc� par la macro suivante
     mod_SuiviSanteFormulaire.TraiterCasSuiviSante
 End Sub
 
 
 Public Sub VerifierNotesSante()
 
-    ' PHASE 6 : on traitÃ© maintenant DEUX sources de lignes "santÃ©" en
-    ' attente de clÃ© : les lignes de TblOperations (SousCategorie) ET les
-    ' lignes de TblVentilations (SousCategorie Ã©galement, colonne ajoutee en
-    ' Phase 4). Chaque liste est traitÃ©e separement (numerotation continue
-    ' dans le compteur affiche a l'opÃ©rateur), mais le mecanisme est
+    ' PHASE 6 : on traité maintenant DEUX sources de lignes "santé" en
+    ' attente de clé : les lignes de TblOperations (SousCategorie) ET les
+    ' lignes de TblVentilations (SousCategorie également, colonne ajoutee en
+    ' Phase 4). Chaque liste est traitée separement (numerotation continue
+    ' dans le compteur affiche a l'opérateur), mais le mecanisme est
     ' rigoureusement identique dans les 2 cas.
     Dim donneesInitiales As Variant
     Dim nbLignesTable As Long
@@ -125,8 +125,8 @@ Public Sub VerifierNotesSante()
     mod_Display.RecupIndexCol
 
     If colSousCategorie = 0 Then
-        ' Phase 1 (catÃ©gories a 2 niveaux) pas encore installee : on ne peut
-        ' pas savoir quelles lignes sont "Frais, remb santÃ©". On sort sans
+        ' Phase 1 (catégories a 2 niveaux) pas encore installee : on ne peut
+        ' pas savoir quelles lignes sont "Frais, remb santé". On sort sans
         ' bloquer (VerifierNotesSante est appelee automatiquement a chaque
         ' import : elle ne doit jamais faire planter l'import).
         Exit Sub
@@ -135,7 +135,7 @@ Public Sub VerifierNotesSante()
     donneesInitiales = tbl.DataBodyRange.value
     nbLignesTable = UBound(donneesInitiales, 1)
 
-    ' --- ETAPE 1a : lignes de TblOperations en attente de clÃ© ---------------
+    ' --- ETAPE 1a : lignes de TblOperations en attente de clé ---------------
     nbPendingOp = 0
     For nbLigne = 1 To nbLignesTable
         If mod_DataStructure.CellText(donneesInitiales(nbLigne, colSousCategorie)) = "Frais, remb sant" & ChrW(233) Then
@@ -147,7 +147,7 @@ Public Sub VerifierNotesSante()
         End If
     Next nbLigne
 
-    ' --- ETAPE 1b : lignes de TblVentilations en attente de clÃ© (PHASE 6) ---
+    ' --- ETAPE 1b : lignes de TblVentilations en attente de clé (PHASE 6) ---
     ' TblVentilations est FACULTATIVE : si la Phase 4 n'a pas ete installee,
     ' ou si ses colonnes SousCategorie/Date_consult n'existent pas encore, on
     ' ignore simplement cette partie (aucune erreur).
@@ -179,8 +179,8 @@ Public Sub VerifierNotesSante()
     If totalATraiter = 0 Then Exit Sub
 
     ' --- ETAPE 2 : on propose chaque ligne, TblOperations d'abord puis
-    '     TblVentilations (ordre choisi arbitrairement, sans consÃ©quence :
-    '     seul le nombre total affiche a l'opÃ©rateur compte) ------------------
+    '     TblVentilations (ordre choisi arbitrairement, sans conséquence :
+    '     seul le nombre total affiche a l'opérateur compte) ------------------
     numeroEnCours = 0
     For nbLigne = 1 To nbPendingOp
         numeroEnCours = numeroEnCours + 1
@@ -197,7 +197,7 @@ Public Sub VerifierNotesSante()
 End Sub
 
 ' Vrai si la valeur de Date_consult est encore la "sentinelle" (02/01/1900)
-' posee par mod_ImportOFX quand le decoupage de Notes Ã©choue, ou si le champ
+' posee par mod_ImportOFX quand le decoupage de Notes échoue, ou si le champ
 ' est carrement vide/non renseigne.
 Private Function EstLigneSentinelle(ByVal dateConsultVal As Variant) As Boolean
     EstLigneSentinelle = True
@@ -207,8 +207,8 @@ Private Function EstLigneSentinelle(ByVal dateConsultVal As Variant) As Boolean
 End Function
 
 ' =====================================================================================
-' HELPERS PHASE 6 : accÃ¨s a TblVentilations, dupliques ICI en local (comme dans
-' mod_SuiviSante) pour que ce module continue a compiler mÃªme si
+' HELPERS PHASE 6 : accès a TblVentilations, dupliques ICI en local (comme dans
+' mod_SuiviSante) pour que ce module continue a compiler même si
 ' mod_InstallVentilation n'a pas encore ete importe.
 ' =====================================================================================
 Private Function ObtenirTableVentilationsFN() As ListObject
@@ -231,10 +231,10 @@ Private Function IndexColSiExisteFN(ByVal t As ListObject, ByVal nomColonne As S
 End Function
 
 ' Retrouve, pour une ligne de TblVentilations, la ligne PARENTE correspondante
-' dans TblOperations (via ID_Transaction), pour rÃ©cupÃ©rer a l'affichage des
-' informations que TblVentilations ne stocke pas elle-mÃªme (Date, Tiers,
-' Num_Cheque : une ligne de ventilation ne reprÃ©sente qu'une PARTIE d'une
-' opÃ©ration bancaire, elle n'a pas sa propre date ni son propre tiers).
+' dans TblOperations (via ID_Transaction), pour récupérer a l'affichage des
+' informations que TblVentilations ne stocke pas elle-même (Date, Tiers,
+' Num_Cheque : une ligne de ventilation ne représente qu'une PARTIE d'une
+' opération bancaire, elle n'a pas sa propre date ni son propre tiers).
 ' Renvoie False si la ligne parente n'a pas ete retrouvee (ne devrait
 ' normalement jamais arriver, mais on reste defensif).
 Private Function TrouverContexteParentVentilation(ByVal ligneVen As Long, ByRef tblVen As ListObject, _
@@ -279,8 +279,8 @@ End Function
 
 ' =====================================================================================
 ' AfficherRapprochementPourLigne : ouvre frm_RapprochementNotes pour UNE ligne
-' (position dans DataBodyRange), attend la decision de l'opÃ©rateur, puis
-' applique le rÃ©sultat.
+' (position dans DataBodyRange), attend la decision de l'opérateur, puis
+' applique le résultat.
 ' =====================================================================================
 Private Sub AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVal Source As String, ByVal numero As Long, ByVal total As Long)
 
@@ -290,10 +290,10 @@ Private Sub AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVal Sou
     Dim dernierDate As String, dernierSpecialite As String, dernierBeneficiaire As String
     Dim montantChoisi As String
 
-    ' --- PHASE 6 : donnÃ©es de contexte de l'opÃ©ration, lues dans la bonne
+    ' --- PHASE 6 : données de contexte de l'opération, lues dans la bonne
     '     source (O = TblOperations, V = TblVentilations). Pour une ligne de
     '     ventilation, Date/Tiers/NumCheque n'existent pas dans TblVentilations
-    '     elle-mÃªme : on va les chercher sur la ligne PARENTE de
+    '     elle-même : on va les chercher sur la ligne PARENTE de
     '     TblOperations via ID_Transaction (voir TrouverContexteParentVentilation). ---
     Dim dateCtx As Variant, tiersCtx As String, chequeCtx As Variant, notesCtx As String, montantCtx As Double
     Dim tblVen As ListObject
@@ -328,18 +328,18 @@ Private Sub AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVal Sou
     ws.Visible = xlSheetVisible
     ws.Activate
 
-    ' Reconstruit la liste des clÃ©s valides A CHAQUE APPEL (pas une seule
-    ' fois pour tout VerifierNotesSante) : ainsi, une clÃ© gÃ©nÃ©rÃ©e via
+    ' Reconstruit la liste des clés valides A CHAQUE APPEL (pas une seule
+    ' fois pour tout VerifierNotesSante) : ainsi, une clé générée via
     ' frm_GenerationCle pour une ligne devient immediatement disponible comme
-    ' candidat pour les lignes suivantes de la mÃªme session -- y compris
-    ' d'une source a l'autre (une clÃ© validee sur une ligne de TblOperations
+    ' candidat pour les lignes suivantes de la même session -- y compris
+    ' d'une source a l'autre (une clé validee sur une ligne de TblOperations
     ' devient un candidat pour une ligne de TblVentilations, et vice versa).
     ConstruireListeCandidats candidats, nbCandidats
 
-    ' --- Contexte de l'opÃ©ration (lecture seule), affiche que la ligne vienne
+    ' --- Contexte de l'opération (lecture seule), affiche que la ligne vienne
     '     de TblOperations ou de TblVentilations (PHASE 6 : tiersCtx precise
-    '     "(ventilation)" pour que l'opÃ©rateur sache tout de suite d'ou vient
-    '     la ligne qu'il traitÃ©) ---
+    '     "(ventilation)" pour que l'opérateur sache tout de suite d'ou vient
+    '     la ligne qu'il traité) ---
     ws.Range("rnDateOp").value = dateCtx
     ws.Range("rnNumCheque").value = chequeCtx
     If Source = "V" Then
@@ -354,7 +354,7 @@ Private Sub AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVal Sou
 
     ' --- Remise a zero des filtres ---
     ' Format Texte force ici aussi (pas seulement sur la colonne technique) :
-    ' sans ca, la valeur selectionnee dans la liste dÃ©roulante pourrait Ãªtre
+    ' sans ca, la valeur selectionnee dans la liste déroulante pourrait être
     ' reconvertie en date au moment ou elle atterrit dans la cellule.
     ws.Range("rnDate").NumberFormat = "@"
     ws.Range("rnSpecialite").NumberFormat = "@"
@@ -496,7 +496,7 @@ Private Sub AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal Source
 
     Dim ws As Worksheet
 
-    ' --- PHASE 6 : mÃªmes lectures gÃ©nÃ©ralisÃ©es O/V que dans
+    ' --- PHASE 6 : mêmes lectures généralisées O/V que dans
     '     AfficherRapprochementPourLigne (voir ses commentaires) ---
     Dim dateCtx As Variant, tiersCtx As String, chequeCtx As Variant, notesCtx As String, montantCtx As Double
     Dim tblVen As ListObject
@@ -619,8 +619,8 @@ End Sub
 
 
 ' =====================================================================================
-' BOUTONS "+" de frm_GenerationCle (Specialite / BÃ©nÃ©ficiaire)
-' MÃªme principe que AjouterBeneficiaire/AjouterTiersPraticien dans
+' BOUTONS "+" de frm_GenerationCle (Specialite / Bénéficiaire)
+' Même principe que AjouterBeneficiaire/AjouterTiersPraticien dans
 ' mod_SuiviSanteFormulaire, duplique ici (avec le nom de feuille en
 ' parametre) pour rester autonome de ce module a l'autre.
 ' =====================================================================================
@@ -680,9 +680,9 @@ End Sub
 
 
 ' =====================================================================================
-' AppliquerNouvelleCle : ecrit la clÃ© dans Notes pour une ligne, puis
-' recalcule Date_consult / Spe_Consult / BÃ©nÃ©ficiaire pour CETTE ligne
-' uniquement (mÃªme logique que mod_ImportOFX, Ã©tape 7).
+' AppliquerNouvelleCle : ecrit la clé dans Notes pour une ligne, puis
+' recalcule Date_consult / Spe_Consult / Bénéficiaire pour CETTE ligne
+' uniquement (même logique que mod_ImportOFX, étape 7).
 ' =====================================================================================
 Private Sub AppliquerNouvelleCle(ByVal ligneDepense As Long, ByVal Source As String, ByVal cle As String)
 
@@ -715,9 +715,9 @@ Private Sub AppliquerNouvelleCle(ByVal ligneDepense As Long, ByVal Source As Str
             tbl.ListColumns("Beneficiaire").DataBodyRange.rows(ligneDepense).value = seg2
         End If
     Else
-        ' --- PHASE 6 : ecriture dans TblVentilations. MÃªmes colonnes, mÃªmes
-        '     rÃ¨gles, mais sur l'AUTRE tableau : une ligne de ventilation
-        '     "Frais, remb santÃ©" possÃ¨de exactement les mÃªmes colonnes de
+        ' --- PHASE 6 : ecriture dans TblVentilations. Mêmes colonnes, mêmes
+        '     règles, mais sur l'AUTRE tableau : une ligne de ventilation
+        '     "Frais, remb santé" possède exactement les mêmes colonnes de
         '     suivi que TblOperations (voir mod_InstallVentilation.
         '     PreparerTableVentilations), c'est ce qui rend cette duplication
         '     de logique possible sans rien inventer de nouveau. ---
@@ -746,8 +746,8 @@ End Sub
 
 
 ' =====================================================================================
-' ConstruireListeCandidats : construit la liste de toutes les clÃ©s Notes
-' DEJA VALIDES (une seule fois par clÃ© distincte) parmi les lignes santÃ© de
+' ConstruireListeCandidats : construit la liste de toutes les clés Notes
+' DEJA VALIDES (une seule fois par clé distincte) parmi les lignes santé de
 ' TblOperations.
 ' =====================================================================================
 Private Sub ConstruireListeCandidats(ByRef candidats() As TCandidatCle, ByRef nbCandidats As Long)
@@ -770,7 +770,7 @@ Private Sub ConstruireListeCandidats(ByRef candidats() As TCandidatCle, ByRef nb
     Set vues = CreateObject("Scripting.Dictionary")
 
     ' PHASE 6 : la colonne testee est desormais SousCategorie (et non plus
-    ' CatÃ©gorie, qui contient maintenant la catÃ©gorie PARENTE).
+    ' Catégorie, qui contient maintenant la catégorie PARENTE).
     If colSousCategorie <> 0 Then
         For i = 1 To n
             If mod_DataStructure.CellText(tblData(i, colSousCategorie)) = "Frais, remb sant" & ChrW(233) Then
@@ -780,8 +780,8 @@ Private Sub ConstruireListeCandidats(ByRef candidats() As TCandidatCle, ByRef nb
         Next i
     End If
 
-    ' --- PHASE 6 : on ajoute aussi les clÃ©s DEJA VALIDES presentes dans
-    '     TblVentilations, pour qu'une clÃ© gÃ©nÃ©rÃ©e sur une ligne de
+    ' --- PHASE 6 : on ajoute aussi les clés DEJA VALIDES presentes dans
+    '     TblVentilations, pour qu'une clé générée sur une ligne de
     '     ventilation devienne selectionnable pour une ligne de
     '     TblOperations (et inversement) -----------------------------------
     Dim tblVen As ListObject
@@ -811,7 +811,7 @@ End Sub
 
 ' Petit utilitaire commun aux 2 boucles ci-dessus (TblOperations et
 ' TblVentilations) : decoupe une valeur de Notes, et l'ajoute a candidats()
-' si elle a un segment 0 (date) valide et n'a pas dÃ©jÃ  ete vue.
+' si elle a un segment 0 (date) valide et n'a pas déjà ete vue.
 Private Sub AjouterCandidatSiValide(ByVal notesTexte As String, ByRef vues As Object, _
                                     ByRef candidats() As TCandidatCle, ByRef nbCandidats As Long)
     Dim seg0 As String, seg1 As String, seg2 As String, seg3 As String
@@ -911,7 +911,7 @@ Private Function ListeBeneficiairesPour(ByRef candidats() As TCandidatCle, ByVal
     ListeBeneficiairesPour = resultat
 End Function
 
-' Ecrit en une fois les 2 listes paralleles Montant/ClÃ© (mÃªme ligne = mÃªme candidat)
+' Ecrit en une fois les 2 listes paralleles Montant/Clé (même ligne = même candidat)
 Private Sub EcrireListeMontantsEtCles(ws As Worksheet, ByRef candidats() As TCandidatCle, ByVal nbCandidats As Long, _
                                        ByVal dateFiltre As String, ByVal specialiteFiltre As String, ByVal beneficiaireFiltre As String)
     Dim montants() As String
@@ -936,7 +936,7 @@ Private Sub EcrireListeMontantsEtCles(ws As Worksheet, ByRef candidats() As TCan
     EcrireListeEtRedefinirNom ws, "rnListeCles", mod_InstallFormulairesNotes.RN_COL_LISTE_CLES, cles
 End Sub
 
-' Percours la totalité du tableau "candidats()" à la recherche de la clé saisie
+' Percours la totalit� du tableau "candidats()" � la recherche de la cl� saisie
 Private Function TrouverCle(ByRef candidats() As TCandidatCle, ByVal nbCandidats As Long, _
                              ByVal dateFiltre As String, ByVal specialiteFiltre As String, _
                              ByVal beneficiaireFiltre As String, ByVal montantFiltre As String) As String
@@ -951,7 +951,7 @@ Private Function TrouverCle(ByRef candidats() As TCandidatCle, ByVal nbCandidats
     TrouverCle = ""
 End Function
 
-' Petit utilitaire : la valeur est-elle dÃ©jÃ  dans le tableau rÃ©sultat(1 To nb) ?
+' Petit utilitaire : la valeur est-elle déjà dans le tableau résultat(1 To nb) ?
 Private Function ValeurDejaDansListe(ByRef resultat() As String, ByVal nb As Long, ByVal valeur As String) As Boolean
     Dim j As Long
     For j = 1 To nb
@@ -963,7 +963,7 @@ Private Function ValeurDejaDansListe(ByRef resultat() As String, ByVal nb As Lon
     ValeurDejaDansListe = False
 End Function
 
-' Tableau de chaines vide (0 Ã©lÃ©ment), pour reinitialiser une liste
+' Tableau de chaines vide (0 élément), pour reinitialiser une liste
 Private Function VideListe() As String()
     Dim vide() As String
     VideListe = vide
@@ -973,7 +973,7 @@ End Function
 ' =====================================================================================
 ' EcrireListeEtRedefinirNom : ecrit un tableau de valeurs a partir de la ligne
 ' 2 d'une colonne technique, puis redefinit le nom pour qu'il pointe
-' exactement sur les cellules utilisÃ©es (mÃªme principe que la croissance des
+' exactement sur les cellules utilisées (même principe que la croissance des
 ' plages Beneficiaires/Praticiens dans mod_SuiviSanteFormulaire).
 ' =====================================================================================
 Private Sub EcrireListeEtRedefinirNom(ws As Worksheet, ByVal nomListe As String, ByVal colonne As String, ByRef valeurs() As String)
@@ -990,9 +990,9 @@ Private Sub EcrireListeEtRedefinirNom(ws As Worksheet, ByVal nomListe As String,
     ' est automatiquement convertie par Excel en vraie date des qu'on
     ' l'assigne a une cellule, exactement comme si on la tapait a la main.
     ' Cette conversion casse ensuite silencieusement les comparaisons de texte
-    ' strict utilisÃ©es partout dans ce module (ListeSpecialitesPour, etc.),
+    ' strict utilisées partout dans ce module (ListeSpecialitesPour, etc.),
     ' puisque CStr() d'une date convertie ne redonne pas forcement exactement
-    ' le mÃªme texte que celui d'origine.
+    ' le même texte que celui d'origine.
     ws.Range(colonne & "2:" & colonne & "1000").NumberFormat = "@"
     ws.Range(colonne & "2:" & colonne & "1000").ClearContents
 
@@ -1009,7 +1009,7 @@ Private Sub EcrireListeEtRedefinirNom(ws As Worksheet, ByVal nomListe As String,
 
 End Sub
 
-' Applique une liste dÃ©roulante de validation pointant sur un nom defini
+' Applique une liste déroulante de validation pointant sur un nom defini
 Private Sub AppliquerListeFN(ByVal rng As Range, ByVal nomPlage As String)
     On Error Resume Next
     rng.Validation.Delete

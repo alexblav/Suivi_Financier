@@ -106,12 +106,12 @@ Public Sub AfficherDernierImportSurSynthese()
     Dim idxRes As Long
     Dim nbLigne As Long
 
-    ' 1. RÃ©cupÃ©ration des pointeurs vers la feuille et le tableau
+    ' 1. Récupération des pointeurs vers la feuille et le tableau
     Set wsSynthese = mod_Criteres.GetFeuille(NOM_FEUILLE_SYNTHESE)
     Set wsResultat = mod_Criteres.GetFeuille(NOM_FEUILLE_RESULTAT)
     Set tbl = mod_DonneesTable.GetOperationsValue(NOM_FEUILLE_DONNEES, "TblOperations")
     If tbl Is Nothing Then
-        MsgBox "Le tableau ne contient aucune ligne de donnÃ©es.", vbExclamation
+        MsgBox "Le tableau ne contient aucune ligne de données.", vbExclamation
         Exit Sub
     End If
     If tbl.DataBodyRange Is Nothing Then
@@ -161,60 +161,60 @@ Public Sub AfficherDernierImportSurSynthese()
         Exit Sub
     End If
     
-    ' Les 3 premiÃ¨res lignes de wsTech contiennent:
+    ' Les 3 premières lignes de wsTech contiennent:
     'DateImport
     'NbOperations
     'ID_Transaction
-    ' Elle ne doivent pas Ãªtre prise en compte
+    ' Elle ne doivent pas être prise en compte
     Set listeID = CreateObject("Scripting.Dictionary")
     For nbLigne = 1 To nb
         listeID(CStr(wsTech.Cells(LIGNE_DEBUT_LISTE_ID - 1 + nbLigne, 1).value)) = True
     Next nbLigne
     
-    ' On masque la feuille Synthese. Cette option est prise pour Ã©viter Ã  l'opÃ©rateur de se dÃ©placer en dehors de la feuille crÃ©e
+    ' On masque la feuille Synthese. Cette option est prise pour éviter à l'opérateur de se déplacer en dehors de la feuille crée
     wsSynthese.Visible = xlSheetVeryHidden
     
-    ' 2. Charge TOUT le tableau de donnÃ©es (en-tÃªtes incluses en ligne 1)
+    ' 2. Charge TOUT le tableau de données (en-têtes incluses en ligne 1)
     tblData = tbl.Range.value
     tblDataLineTotal = UBound(tblData, 1)
     
-    ' 3. RÃ©cupÃ©ration des index de colonne dans la base de donnÃ©es
+    ' 3. Récupération des index de colonne dans la base de données
     mod_Display.RecupIndexCol
     
     ' 4. Autorise ou non le double click
     AllowDetailDoubleClick = False
-    ' ParamÃ¨tre de navigation
+    ' Paramètre de navigation
     RecherOperations = False
-    ' DÃ©sactive les Ã©vÃ©nements
+    ' Désactive les événements
     Application.EnableEvents = False
     
     ' 5. Construction de la zone des boutons
-    ' On dÃ©termine la position du bouton
+    ' On détermine la position du bouton
     Set zoneBouton = wsResultat.Range(cellSortieDep).Offset(0, 0)
     
-    'On dÃ©finit son titre
+    'On définit son titre
     texteBouton = "Sortir"
     nomMacroBouton = "Sortir"
     Call mod_Display.ConstruireBoutons(wsResultat, zoneBouton, texteBouton, nomMacroBouton)
 
     ' 6. Construction de la zone des instructions
-    ' On fournit le message Ã  afficher en remplaÃ§ant les carractÃ¨res accentuÃ© par les balise de la fonction FR
-    Message = "Derni{e1}re donnÃ©es importÃ©es" & Chr(10) & _
+    ' On fournit le message à afficher en remplaçant les carractères accentué par les balise de la fonction FR
+    Message = "Derni{e1}re données importées" & Chr(10) & _
                 "Liste les op{e2}rations ajout{e2}es au dernier import" & Chr(10) & _
                  "{A2} la fin sortez avec le bouton ""Sortir"""
                  
-    ' On fournit le titre, la position de la cellule dans laquelle on veut Ã©crire de titre
+    ' On fournit le titre, la position de la cellule dans laquelle on veut écrire de titre
     Titre = "Instructions"
     Set PositionTitre = wsResultat.Range(cellSortieDep).Offset(2, 0)
     
-    ' On dÃ©termine la plage de dÃ©but et de fin de la zone
+    ' On détermine la plage de début et de fin de la zone
     Set debutZone = wsResultat.Range(cellSortieDep).Offset(3, 0)
     Set finZone = wsResultat.Range(cellSortieDep).Offset(5, 5)
     
     Call mod_Display.ConstruireZoneTexte(wsResultat, Titre, Message, PositionTitre, debutZone, finZone)
 
-    ' 7. Affiche les entÃªtes du tableau de sortie
-    ' DÃ©finit le dÃ©but de la page de travail
+    ' 7. Affiche les entêtes du tableau de sortie
+    ' Définit le début de la page de travail
     Set debPlageTravail = wsResultat.Range(cellSortieDep).Offset(7, 0)
     
     MonArray = Array("Date", "Tiers", "Montant", "Cat" & ChrW(233) & "gorie", "Notes", "StatutSante", "SoldeSante")
@@ -222,13 +222,13 @@ Public Sub AfficherDernierImportSurSynthese()
     
     nbColonne = UBound(MonArray) - LBound(MonArray) + 1
     
-    ' RÃ©cupÃ©re la position du champs dans l'ARRAY (Application.Match est naturellement insensible Ã  la casse)
+    ' Récupére la position du champs dans l'ARRAY (Application.Match est naturellement insensible à la casse)
     mod_Display.RecupPosArray
     
-    ' RÃ©cupÃ©ration des index de colonne dans la feuille de sortie
+    ' Récupération des index de colonne dans la feuille de sortie
     Call mod_Display.RecupPosSortieIndex(wsResultat, debPlageTravail)
     
-    ' Taille maximale du tableau de rÃ©sultat = nombre total de lignes source
+    ' Taille maximale du tableau de résultat = nombre total de lignes source
     ReDim tabResultat(1 To tblDataLineTotal, 1 To nbColonne)
 
     idxRes = 0
@@ -252,32 +252,32 @@ Public Sub AfficherDernierImportSurSynthese()
     ElseIf idxRes > 0 Then
         Application.ScreenUpdating = False
         
-        ' Injection directe du tableau mÃ©moire dans la plage d'affichage
+        ' Injection directe du tableau mémoire dans la plage d'affichage
         ' On redimentionne la taille de la plage pour pas voir s'afficher des erreur type #N/A dans les cellules en trop
         plageSortieEcriture.Resize(idxRes, nbColonne).value = tabResultat
         
         ' Mise en couleur conditionnel
         ligneAffichage = 2
         For nbLigne = 1 To idxRes
-            ' Une entrÃ©e (montant positif) est affichÃ©e en vert.
+            ' Une entrée (montant positif) est affichée en vert.
             If tabResultat(nbLigne, posMontant) > 0 Then
                 plageSortieEcriture.Cells(nbLigne, posMontant).Font.Color = RGB(0, 128, 0)
             End If
-            ' Une dÃ©pense (montant nÃ©gatif) est mÃ©morisÃ©e comme candidate au surlignage.
+            ' Une dépense (montant négatif) est mémorisée comme candidate au surlignage.
 '            If tabResultat(nbLigne, posMontant) < 0 Then
 '                mod_Rapports.AddExpenseForHighlight lignesDepenses, valeursDepenses, nombreDepenses, ligneAffichage, Abs(tabResultat(nbLigne, posMontant))
 '            End If
             ligneAffichage = ligneAffichage + 1
         Next nbLigne
     
-'        ' DÃ©terminer combien de dÃ©penses surligner, puis les surligner.
+'        ' Déterminer combien de dépenses surligner, puis les surligner.
 '        nombreSurligne = mod_Rapports.GetTopCount(critNbOperations, nombreDepenses)
 '        mod_Rapports.HighlightTopRows lignesDepenses, valeursDepenses, nombreDepenses, nombreSurligne
         
         ' Mise en forme rapide des colonnes
         mod_Display.MiseEnPage wsResultat, idxRes
         
-         ' RÃ©active les Ã©vÃ©nements
+         ' Réactive les événements
         Application.EnableEvents = True
         Application.ScreenUpdating = True
     End If

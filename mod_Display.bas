@@ -1,28 +1,28 @@
 Option Explicit
-' Ce module regroupe les macros qui pr√©parent une ZONE D'AFFICHAGE sur une
-' feuille (nettoyage, mise en place des en-t√™tes) AVANT que d'autres modules
-' n'y √©crivent des donn√©es. Il ne contient volontairement AUCUNE logique de
+' Ce module regroupe les macros qui prùparent une ZONE D'AFFICHAGE sur une
+' feuille (nettoyage, mise en place des en-tùtes) AVANT que d'autres modules
+' n'y ùcrivent des donnùes. Il ne contient volontairement AUCUNE logique de
 ' calcul ou de filtrage : uniquement de la mise en forme / nettoyage visuel.
 
 ' Les macros de ce module ne sont pas visibles dans la liste "Macros" d'Excel
 Option Private Module
 
 ' ----------------------------------------------------------------------
-' PrepareOutputArea : vide une zone de r√©sultats et y place de nouveaux en-t√™tes
+' PrepareOutputArea : vide une zone de rùsultats et y place de nouveaux en-tùtes
 ' ----------------------------------------------------------------------
-' Param√®tres :
+' Paramùtres :
 '   ws            -> la feuille sur laquelle travailler (ex : Synthese)
-'   headerAddress -> l'adresse o√π √©crire les en-t√™tes (ex : "E1:J1")
-'   headers       -> un tableau de textes, ex : Array("Date", "Libell√©", ...)
+'   headerAddress -> l'adresse où ùcrire les en-tùtes (ex : "E1:J1")
+'   headers       -> un tableau de textes, ex : Array("Date", "Libellù", ...)
 '
-' Pourquoi limiter le nettoyage √† "E1:R10000" ? Parce que les colonnes A et B
+' Pourquoi limiter le nettoyage ù "E1:R10000" ? Parce que les colonnes A et B
 ' de la feuille Synthese contiennent les PARAMETRES saisis par l'utilisateur
-' (ann√©e, mois, seuils...). On ne doit surtout pas les effacer par erreur
-' √† chaque nouvel affichage : la zone nettoy√©e commence donc √† la colonne E.
+' (annùe, mois, seuils...). On ne doit surtout pas les effacer par erreur
+' ù chaque nouvel affichage : la zone nettoyùe commence donc ù la colonne E.
 Public Sub PrepareOutputArea(ByVal ws As Worksheet, Optional ByVal headers As Variant, Optional ByVal debPlageTravail As Range)
     Dim nbCols As Long
 
-    ' 1. On supprime les donn√©es d'ent√™te sur une longuenr de 20 colonnes en partant de cellSortieDep
+    ' 1. On supprime les donnùes d'entùte sur une longuenr de 20 colonnes en partant de cellSortieDep
     If Not debPlageTravail Is Nothing Then
         debPlageTravail.Resize(10000, 20).ClearContents
         debPlageTravail.Resize(10000, 20).FormatConditions.Delete
@@ -37,34 +37,34 @@ Public Sub PrepareOutputArea(ByVal ws As Worksheet, Optional ByVal headers As Va
         ws.Range(cellSortieDep).Resize(10000, 20).Font.Bold = False
     End If
     
-    ' 2. On d√©sactive les filtre au besoin
+    ' 2. On dùsactive les filtre au besoin
     If ws.AutoFilterMode Then ws.AutoFilterMode = False
     
-    ' 3. On traite le cas ou les ent√™tes sont fournit
+    ' 3. On traite le cas ou les entùtes sont fournit
     If Not IsMissing(headers) And Not debPlageTravail Is Nothing Then
         nbCols = UBound(headers) - LBound(headers) + 1
-        ' 1. On d√©finit la plage dynamique d'en-t√™tes √† partir de la cellule de d√©part
+        ' 1. On dùfinit la plage dynamique d'en-tùtes ù partir de la cellule de dùpart
         Set plageSortieEnTetes = debPlageTravail.Resize(1, nbCols)
         
-        ' 2. D√©finit la plage de travail
-        ' la m√©thode offset par de cellSortieDep d√©cale la ligne de 1 et 0 colonne
-        ' Range √©tire la plage √† partir de la nouvelle valeur Offset, de 10000 lignes et nbCols
+        ' 2. Dùfinit la plage de travail
+        ' la mùthode offset par de cellSortieDep dùcale la ligne de 1 et 0 colonne
+        ' Range ùtire la plage ù partir de la nouvelle valeur Offset, de 10000 lignes et nbCols
         Set plageSortieEcriture = debPlageTravail.Offset(1, 0).Resize(10000, nbCols)
         
-        ' 3. Enfin, on √©crit les nouveaux en-t√™tes de colonnes √† l'endroit demand√©.
+        ' 3. Enfin, on ùcrit les nouveaux en-tùtes de colonnes ù l'endroit demandù.
         plageSortieEnTetes.value = headers
     End If
     
 End Sub
 
-' R√©cup√©ration de la position absolu d'une valeur dans un ARRAY
-' R√©cup√©re la position du champs Entete dans l'ARRAY headers (Application.Match est naturellement insensible √† la casse)
+' Rùcupùration de la position absolu d'une valeur dans un ARRAY
+' Rùcupùre la position du champs Entete dans l'ARRAY headers (Application.Match est naturellement insensible ù la casse)
 Public Sub RecupPosSortieIndex(ByVal ws As Worksheet, Optional ByVal posZone As Range)
     If posZone Is Nothing Then
         posSortieDate = mod_Display.PosSortieIndex(ws, MonArray, "Date")
         posSortieTiers = mod_Display.PosSortieIndex(ws, MonArray, "Tiers")
         posSortieType = mod_Display.PosSortieIndex(ws, MonArray, "Type_operation")
-        posSortieCategorie = mod_Display.PosSortieIndex(ws, MonArray, "Cat√©gorie")
+        posSortieCategorie = mod_Display.PosSortieIndex(ws, MonArray, "Catùgorie")
         posSortieMontant = mod_Display.PosSortieIndex(ws, MonArray, "Montant")
         posSortieCheque = mod_Display.PosSortieIndex(ws, MonArray, "Num_Cheque")
         posSortieNotes = mod_Display.PosSortieIndex(ws, MonArray, "Notes")
@@ -80,7 +80,7 @@ Public Sub RecupPosSortieIndex(ByVal ws As Worksheet, Optional ByVal posZone As 
         posSortieDate = mod_Display.PosSortieIndex(ws, MonArray, "Date", posZone)
         posSortieTiers = mod_Display.PosSortieIndex(ws, MonArray, "Tiers", posZone)
         posSortieType = mod_Display.PosSortieIndex(ws, MonArray, "Type_operation", posZone)
-        posSortieCategorie = mod_Display.PosSortieIndex(ws, MonArray, "Cat√©gorie", posZone)
+        posSortieCategorie = mod_Display.PosSortieIndex(ws, MonArray, "Catùgorie", posZone)
         posSortieMontant = mod_Display.PosSortieIndex(ws, MonArray, "Montant", posZone)
         posSortieCheque = mod_Display.PosSortieIndex(ws, MonArray, "Num_Cheque", posZone)
         posSortieNotes = mod_Display.PosSortieIndex(ws, MonArray, "Notes", posZone)
@@ -95,20 +95,20 @@ Public Sub RecupPosSortieIndex(ByVal ws As Worksheet, Optional ByVal posZone As 
     End If
 End Sub
 
-' Fiabilise la r√©cup√©ration de la position absolu d'une colonne dans une feuille en fonction de la valeur de l'ent√™te
+' Fiabilise la rùcupùration de la position absolu d'une colonne dans une feuille en fonction de la valeur de l'entùte
 Public Function PosSortieIndex(ByVal ws As Worksheet, ByVal headers As Variant, Entete As String, Optional ByVal posZone As Range)
     Dim posEntete As Long
     Dim colStart As Long
     
-    ' Par d√©faut, la fonction renvoie 0 (valeur inutilisable car les colonnes commencent √† 1)
+    ' Par dùfaut, la fonction renvoie 0 (valeur inutilisable car les colonnes commencent ù 1)
     PosSortieIndex = 0
     
-    ' 1. V√©rification des param√®tres d'entr√©e
+    ' 1. Vùrification des paramùtres d'entrùe
     If ws Is Nothing Then Exit Function
     If Not IsArray(headers) Then Exit Function
     If Trim(Entete) = "" Then Exit Function
     
-    ' 2. V√©rification de la cellule de d√©part
+    ' 2. Vùrification de la cellule de dùpart
     If posZone Is Nothing Then
         On Error Resume Next
         colStart = ws.Range(cellSortieDep).Column
@@ -127,24 +127,24 @@ Public Function PosSortieIndex(ByVal ws As Worksheet, ByVal headers As Variant, 
         On Error GoTo 0
     End If
     
-    ' 3. Recherche (Application.Match est naturellement insensible √† la casse)
+    ' 3. Recherche (Application.Match est naturellement insensible ù la casse)
     posEntete = GetPosArray(Entete, headers)
     
-    ' 4. Si l'en-t√™te n'est pas trouv√©, posEntete contient une erreur
+    ' 4. Si l'en-tùte n'est pas trouvù, posEntete contient une erreur
     If IsError(posEntete) Then Exit Function
     
-    ' 5. Calcul et retour du num√©ro de colonne
+    ' 5. Calcul et retour du numùro de colonne
     PosSortieIndex = colStart + CLng(posEntete) - 1
     
 End Function
 
-' R√©cup√©ration de la position absolu d'une valeur dans un ARRAY
-' R√©cup√©re la position du champs Entete dans l'ARRAY headers (Application.Match est naturellement insensible √† la casse)
+' Rùcupùration de la position absolu d'une valeur dans un ARRAY
+' Rùcupùre la position du champs Entete dans l'ARRAY headers (Application.Match est naturellement insensible ù la casse)
 Public Sub RecupPosArray()
     posDate = GetPosArray("Date", MonArray)
     posTiers = GetPosArray("Tiers", MonArray)
     posType = GetPosArray("Type_operation", MonArray)
-    posCategorie = GetPosArray("Cat√©gorie", MonArray)
+    posCategorie = GetPosArray("Catùgorie", MonArray)
     posMontant = GetPosArray("Montant", MonArray)
     posCheque = GetPosArray("Num_Cheque", MonArray)
     posNotes = GetPosArray("Notes", MonArray)
@@ -159,7 +159,7 @@ Public Sub RecupPosArray()
     posValider = GetPosArray("Valider", MonArray)
 End Sub
 
-' G√©re de potentiel erreur dans le nom de la colonne √† rechercher dans l'ARRAY
+' Gùre de potentiel erreur dans le nom de la colonne ù rechercher dans l'ARRAY
 Public Function GetPosArray(ByVal colName As String, ByVal headers As Variant) As Long
     On Error Resume Next
     GetPosArray = Application.Match(colName, headers, 0)
@@ -167,8 +167,8 @@ Public Function GetPosArray(ByVal colName As String, ByVal headers As Variant) A
     ' Renvoie 0 si la colonne n'existe pas
 End Function
 
-' R√©cup√©re le num√©ro d'index d'une colonne dans un tableau par son nom d'ent√™te
-' On utlise ListObject car on recherhe dans le tableau nomm√© "TblOperations"
+' Rùcupùre le numùro d'index d'une colonne dans un tableau par son nom d'entùte
+' On utlise ListObject car on recherhe dans le tableau nommù "TblOperations"
 Public Sub RecupIndexCol()
     
     colID = GetColumnIndex(tbl, "ID_Transaction")
@@ -176,6 +176,13 @@ Public Sub RecupIndexCol()
     colTiers = GetColumnIndex(tbl, "Tiers")
     colType = GetColumnIndex(tbl, "Type_operation")
     colCategorie = GetColumnIndex(tbl, "Categorie")
+    ' Ajout : cette ligne manquait ici. Sans elle, colSousCategorie restait
+    ' toujours ù 0 (sa valeur par dùfaut), et tous les "If colSousCategorie <> 0"
+    ' du chantier Phase 5/6 (mod_RechercheOperations, mod_SuiviSante,
+    ' mod_SuiviSanteFormulaire, mod_FormulairesNotes) tombaient silencieusement
+    ' dans leur branche "colonne absente" ù sans plantage, donc sans se faire
+    ' remarquer. Repùrù en prùparant l'ajout du bouton "Revoir la ventilation".
+    colSousCategorie = GetColumnIndex(tbl, "SousCategorie")
     colMontant = GetColumnIndex(tbl, "Montant")
     colCheque = GetColumnIndex(tbl, "Num_Cheque")
     colNotes = GetColumnIndex(tbl, "Notes")
@@ -193,7 +200,7 @@ Public Sub RecupIndexCol()
     colBeneficiaire = GetColumnIndex(tbl, "Beneficiaire")
 End Sub
 
-' G√©re de potentiel erreur dans le nom de la colonne √† rechercher
+' Gùre de potentiel erreur dans le nom de la colonne ù rechercher
 Public Function GetColumnIndex(ByVal tbl As ListObject, ByVal colName As String) As Long
     On Error Resume Next
     GetColumnIndex = tbl.ListColumns(colName).index
@@ -243,14 +250,14 @@ Public Sub MiseEnPage(ws As Worksheet, totalLignes As Long, Optional Filter As B
     
     'Mise en forme du tableau
 
-    ' 1. Formatage de la ligne d'en-t√™te
+    ' 1. Formatage de la ligne d'en-tùte
     With plageSortieEnTetes
         .Interior.Color = coulEntete
         .Font.Color = RGB(255, 255, 255) ' Texte blanc
         .Font.Bold = True
     End With
     
-    ' 2. Alternance sur les lignes de la plage de donn√©es
+    ' 2. Alternance sur les lignes de la plage de donnùes
     For i = 1 To totalLignes
         If i Mod 2 <> 0 Then
             plageSortieEcriture.rows(i).Interior.Color = coulClair1
@@ -269,30 +276,30 @@ End Sub
 
 
 ' =====================================================================================
-' Garantie la bonne transcription des carract√®re accentu√© dans les affichages
-' remplace les balise de la chaine par le carract√®re Unicode li√© √† son code
+' Garantie la bonne transcription des carractùre accentuù dans les affichages
+' remplace les balise de la chaine par le carractùre Unicode liù ù son code
 ' =====================================================================================
 Public Function FR(ByVal texte As String) As String
     Dim r As String
     r = texte
-    r = Replace(r, "{e2}", ChrW(233)) ' remplace dans r la chaine "{e2}" par "√©"
-    r = Replace(r, "{e1}", ChrW(232)) ' √®
-    r = Replace(r, "{ea}", ChrW(234)) ' √™
-    r = Replace(r, "{a2}", ChrW(224)) ' √†
-    r = Replace(r, "{c2}", ChrW(231)) ' √ß
-    r = Replace(r, "{o2}", ChrW(244)) ' √¥
-    r = Replace(r, "{i2}", ChrW(238)) ' √Æ
-    r = Replace(r, "{E2}", ChrW(201)) ' √â
-    r = Replace(r, "{E1}", ChrW(200)) ' √à
-    r = Replace(r, "{E3}", ChrW(202)) ' √ä
-    r = Replace(r, "{A2}", ChrW(192)) ' √Ä
+    r = Replace(r, "{e2}", ChrW(233)) ' remplace dans r la chaine "{e2}" par "ù"
+    r = Replace(r, "{e1}", ChrW(232)) ' ù
+    r = Replace(r, "{ea}", ChrW(234)) ' ù
+    r = Replace(r, "{a2}", ChrW(224)) ' ù
+    r = Replace(r, "{c2}", ChrW(231)) ' ù
+    r = Replace(r, "{o2}", ChrW(244)) ' ù
+    r = Replace(r, "{i2}", ChrW(238)) ' ù
+    r = Replace(r, "{E2}", ChrW(201)) ' ù
+    r = Replace(r, "{E1}", ChrW(200)) ' ù
+    r = Replace(r, "{E3}", ChrW(202)) ' ù
+    r = Replace(r, "{A2}", ChrW(192)) ' ù
     FR = r
 End Function
 
-'Suppression de tous les caract√®res accentu√©s d'une chaine
+'Suppression de tous les caractùres accentuùs d'une chaine
 ' Suppression de tous les espaces
-' Positionnement de la premi√®re lettre en majuscule
-' Utilis√© pour le nommage des objet en fonction de leur titre
+' Positionnement de la premiùre lettre en majuscule
+' Utilisù pour le nommage des objet en fonction de leur titre
 
 Public Function FormaterChaine(ByVal texte As String) As String
     Dim i As Long
@@ -302,27 +309,27 @@ Public Function FormaterChaine(ByVal texte As String) As String
     
     res = texte
     
-    ' 1. Liste des caract√®res accentu√©s et leurs √©quivalents
-    accents = "√†√°√¢√£√§√•√®√©√™√´√¨√≠√Æ√Ø√≤√≥√¥√µ√∂√π√∫√ª√º√ß√±√Ω√ø√Ä√Å√Ç√É√Ñ√Ö√à√â√ä√ã√å√ç√é√è√í√ì√î√ï√ñ√ô√ö√õ√ú√á√ë√ù"
+    ' 1. Liste des caractùres accentuùs et leurs ùquivalents
+    accents = "ùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùùù"
     sansAccents = "aaaaaaeeeeiiiiooooouuuucnyyAAAAAAEEEEIIIIOOOOOUUUUCNY"
     
-    ' Remplacement des ligatures sp√©cifiques
-    res = Replace(res, "≈ì", "oe")
-    res = Replace(res, "≈í", "OE")
-    res = Replace(res, "√¶", "ae")
-    res = Replace(res, "√Ü", "AE")
+    ' Remplacement des ligatures spùcifiques
+    res = Replace(res, "ù", "oe")
+    res = Replace(res, "ù", "OE")
+    res = Replace(res, "ù", "ae")
+    res = Replace(res, "ù", "AE")
     
-    ' Remplacement caract√®re par caract√®re
+    ' Remplacement caractùre par caractùre
     For i = 1 To Len(accents)
         res = Replace(res, Mid(accents, i, 1), Mid(sansAccents, i, 1))
     Next i
     
     ' 2. Suppression de tous les types d'espaces (espace standard, insecable, tabulation)
     res = Replace(res, " ", "")
-    res = Replace(res, Chr(160), "") ' Espace insecable (fr√©quent dans les exports web/Excel)
+    res = Replace(res, Chr(160), "") ' Espace insecable (frùquent dans les exports web/Excel)
     res = Replace(res, vbTab, "")
     
-    ' 3. Premi√®re lettre en majuscule
+    ' 3. Premiùre lettre en majuscule
     If Len(res) > 0 Then
         res = UCase(Left(res, 1)) & Mid(res, 2)
     End If
@@ -370,7 +377,7 @@ Public Sub ConstruireBoutons(ws As Worksheet, zoneBouton As Range, texteBouton A
         zoneBouton.Left, zoneBouton.Top, _
         zoneBouton.Width, zoneBouton.Height)
     With bouton
-        ' IMPORTANT : le texte affich√© est d√©j√† son intitul√© FINAL,
+        ' IMPORTANT : le texte affichù est dùjù son intitulù FINAL,
         ' a savoir sa fonction de reinitialisation (et non plus "Valider ce cas").
         .Caption = FR(texteBouton)
         ' On affecte le nom de la macro
@@ -407,7 +414,7 @@ Public Sub ConstruireZoneTexte(ws As Worksheet, Titre As String, Message As Stri
         .HorizontalAlignment = xlLeft
         .Font.Size = 9
         .Font.Color = RGB(80, 80, 80)
-        .Interior.Color = RGB(245, 245, 242) ' fond gris tr√®s clair, type "encadre note"
+        .Interior.Color = RGB(245, 245, 242) ' fond gris trùs clair, type "encadre note"
         .Borders.LineStyle = xlContinuous
         .Borders.Color = RGB(210, 210, 205)
         .Locked = True                       ' cellule non modifiable par l'utilisateur final
