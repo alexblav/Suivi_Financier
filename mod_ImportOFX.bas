@@ -1,17 +1,16 @@
-Attribute VB_Name = "mod_ImportOFX"
 Option Explicit
 
 ' ============================================================================
 '  MODULE : mod_ImportOFX
-'  ROLE   : Importer les opérations bancaires depuis un fichier OFX ET un
-'           fichier CSV complementaire (mêmes opérations, exportes ensemble),
-'           les recouper pour récupérer la Catégorie, calculer les colonnes
+'  ROLE   : Importer les opÃ©rations bancaires depuis un fichier OFX ET un
+'           fichier CSV complementaire (mÃªmes opÃ©rations, exportes ensemble),
+'           les recouper pour rÃ©cupÃ©rer la CatÃ©gorie, calculer les colonnes
 '           budgetaires, puis ecrire le tout dans la feuille "data_import"
 '           sous forme de Tableau Excel trie et filtrable.
 '
-'  En cas de catégorie ambigue (plusieurs valeurs possibles pour une même
-'  opération), le formulaire frmResolutionCategories s'ouvre pour laisser
-'  l'opérateur choisir -- sans qu'il ait besoin d'acceder au tableau.
+'  En cas de catÃ©gorie ambigue (plusieurs valeurs possibles pour une mÃªme
+'  opÃ©ration), le formulaire frmResolutionCategories s'ouvre pour laisser
+'  l'opÃ©rateur choisir -- sans qu'il ait besoin d'acceder au tableau.
 '
 '  A appeler depuis le bouton de la feuille "Accueil".
 ' ============================================================================
@@ -37,11 +36,11 @@ Private Const NB_COLONNES As Integer = 20
 Private Const NOM_TABLE As String = "TblOperations"
 
 ' --- Variables PUBLIQUES partagees avec le formulaire frmResolutionCategories ---
-' (rempli par ce module avant l'ouverture du formulaire, relu après sa fermeture)
+' (rempli par ce module avant l'ouverture du formulaire, relu aprÃ¨s sa fermeture)
 Public g_NbCasAmbigus As Long
 Public g_CasTexte() As String       ' texte affiche dans la liste (Date | Montant | Tiers)
-Public g_CasCandidats() As String   ' catégories candidates, separees par ";"
-Public g_CasChoix() As String       ' rempli par le formulaire : catégorie choisie (ou "" si non traité)
+Public g_CasCandidats() As String   ' catÃ©gories candidates, separees par ";"
+Public g_CasChoix() As String       ' rempli par le formulaire : catÃ©gorie choisie (ou "" si non traitÃ©)
 
 
 ' ----------------------------------------------------------------------------
@@ -83,13 +82,13 @@ Public Sub ImporterOperationsOFX()
         Exit Sub
     End If
 
-    ' --- ETAPE 3 : Chargement du CSV -> dictionnaire des catégories par clé ---
-    ' Clé = Date + Montant + Tiers. Une même clé peut avoir plusieurs catégories
-    ' candidates (cas de plusieurs opérations identiques le même jour).
+    ' --- ETAPE 3 : Chargement du CSV -> dictionnaire des catÃ©gories par clÃ© ---
+    ' ClÃ© = Date + Montant + Tiers. Une mÃªme clÃ© peut avoir plusieurs catÃ©gories
+    ' candidates (cas de plusieurs opÃ©rations identiques le mÃªme jour).
     Set dictCategoriesCSV = ChargerCategoriesCSV(cheminCSV)
-    If dictCategoriesCSV Is Nothing Then Exit Sub  ' l'erreur a déjà ete affichee
+    If dictCategoriesCSV Is Nothing Then Exit Sub  ' l'erreur a dÃ©jÃ  ete affichee
 
-    ' --- ETAPE 4 : Preparer la feuille data_import et les FITID déjà connus ---
+    ' --- ETAPE 4 : Preparer la feuille data_import et les FITID dÃ©jÃ  connus ---
     Set wsDonnees = ThisWorkbook.Worksheets("Import_data")
     Set dictFITID = CreateObject("Scripting.Dictionary")
 
@@ -106,9 +105,9 @@ Public Sub ImporterOperationsOFX()
     End If
 
     ' --- ETAPE 5 : Parcourir les transactions OFX -----------------------------
-    ' A ce stade, on ne remplit QUE les colonnes 1 a 9 (ID .. Catégorie).
+    ' A ce stade, on ne remplit QUE les colonnes 1 a 9 (ID .. CatÃ©gorie).
     ' Les colonnes calculees 10 a 14 (Budget, MoisBudget, ...) dependent de la
-    ' Catégorie : elles sont calculees plus loin, une fois les cas ambigus resolus.
+    ' CatÃ©gorie : elles sont calculees plus loin, une fois les cas ambigus resolus.
     ReDim resultats(1 To nbLues, 1 To NB_COLONNES)
     ReDim lignesAmbigues(1 To nbLues)
     ReDim texteAmbigus(1 To nbLues)
@@ -132,7 +131,7 @@ Public Sub ImporterOperationsOFX()
             Montant = ConvertirMontantOFX(LireValeurNoeud(noeud, "TRNAMT"))
             numCheque = NettoyerNumCheque(LireValeurNoeud(noeud, "CHECKNUM"))
 
-            ' --- rapprochement avec le CSV pour récupérer la Catégorie ---
+            ' --- rapprochement avec le CSV pour rÃ©cupÃ©rer la CatÃ©gorie ---
             categorie = ""
             estAmbigu = False
             texteCandidats = ""
@@ -169,7 +168,7 @@ Public Sub ImporterOperationsOFX()
         End If
     Next i
 
-    ' --- ETAPE 6 : Resolution des catégories ambigues via le formulaire -------
+    ' --- ETAPE 6 : Resolution des catÃ©gories ambigues via le formulaire -------
     If nbAmbigus > 0 Then
         g_NbCasAmbigus = nbAmbigus
         ReDim g_CasTexte(1 To nbAmbigus)
@@ -184,7 +183,7 @@ Public Sub ImporterOperationsOFX()
         'frmResolutionCategories.Show vbModal   ' bloque l'execution jusqu'a fermeture
         AfficherFeuilleResolutionEtAttendre    ' bloque l'execution jusqu'a fermeture (feuille dediee)
         
-        ' On applique les choix faits par l'opérateur dans résultats()
+        ' On applique les choix faits par l'opÃ©rateur dans rÃ©sultats()
         For i = 1 To nbAmbigus
             If g_CasChoix(i) <> "" Then
                 resultats(lignesAmbigues(i), COL_CATEGORIE) = g_CasChoix(i)
@@ -192,25 +191,25 @@ Public Sub ImporterOperationsOFX()
         Next i
     End If
 
-    ' --- ETAPE 6bis (PHASE 5) : controle opérateur des catégories/sous-catégories ---
-    ' Objectif demandé par l'opérateur : avant de finaliser l'import, lui
-    ' demander si les opérations ont ete correctement categorisees par le
-    ' rapprochement CSV (étapes precedentes). S'il repond "non" (ou si le
-    ' formulaire est simplement lance), on lui présente les opérations
+    ' --- ETAPE 6bis (PHASE 5) : controle opÃ©rateur des catÃ©gories/sous-catÃ©gories ---
+    ' Objectif demandÃ© par l'opÃ©rateur : avant de finaliser l'import, lui
+    ' demander si les opÃ©rations ont ete correctement categorisees par le
+    ' rapprochement CSV (Ã©tapes precedentes). S'il repond "non" (ou si le
+    ' formulaire est simplement lance), on lui prÃ©sente les opÃ©rations
     ' NOUVELLEMENT importees une par une, avec desormais un choix a 2 niveaux
-    ' (Catégorie / SousCategorie) au lieu du seul champ Catégorie d'origine.
+    ' (CatÃ©gorie / SousCategorie) au lieu du seul champ CatÃ©gorie d'origine.
     '
-    ' mod_ControleCategories.ControlerCategories gere lui-même la question
+    ' mod_ControleCategories.ControlerCategories gere lui-mÃªme la question
     ' "tout est-il correct ?" et, le cas echeant, l'affichage feuille par
-    ' feuille : ce module n'a qu'a lui fournir les opérations candidates et
-    ' récupérer les résultats.
+    ' feuille : ce module n'a qu'a lui fournir les opÃ©rations candidates et
+    ' rÃ©cupÃ©rer les rÃ©sultats.
     '
-    ' IMPORTANT SUR L'ANNULATION : si l'opérateur annule le controle (bouton
+    ' IMPORTANT SUR L'ANNULATION : si l'opÃ©rateur annule le controle (bouton
     ' "Annuler" du formulaire), ControlerCategories renvoie False. A CE STADE,
     ' RIEN N'A ENCORE ETE ECRIT dans la feuille Import_data (l'ecriture ne se
     ' fait qu'a l'ETAPE 8, plus loin) : on peut donc interrompre tout l'import
     ' proprement avec un simple Exit Sub, sans laisser le classeur dans un
-    ' état intermediaire incoherent.
+    ' Ã©tat intermediaire incoherent.
     If nbAjoutees > 0 Then
         Dim opsControle() As Variant
         Dim catFinaleCtrl() As String, sousFinaleCtrl() As String
@@ -231,22 +230,23 @@ Public Sub ImporterOperationsOFX()
             Exit Sub
         End If
 
-        ' On applique les choix opérateur : résultats(i, COL_CATEGORIE) recoit
-        ' desormais la CATEGORIE PARENTE (ex: "Santé, prevoyance"), la
-        ' sous-catégorie (ex: "Frais, remb santé") est memorisee a part dans
-        ' sousFinaleCtrl() pour être ecrite plus loin (ETAPE 8bis), une fois
+        ' On applique les choix opÃ©rateur : rÃ©sultats(i, COL_CATEGORIE) recoit
+        ' desormais la CATEGORIE PARENTE (ex: "SantÃ©, prevoyance"), la
+        ' sous-catÃ©gorie (ex: "Frais, remb santÃ©") est memorisee a part dans
+        ' sousFinaleCtrl() pour Ãªtre ecrite plus loin (ETAPE 8bis), une fois
         ' que la colonne SousCategorie de TblOperations est atteignable par
-        ' son NOM (elle n'existe pas dans le tableau fixe résultats()/arrFinal()).
+        ' son NOM (elle n'existe pas dans le tableau fixe rÃ©sultats()/arrFinal()).
         For kCtrl = 1 To nbAjoutees
             resultats(kCtrl, COL_CATEGORIE) = catFinaleCtrl(kCtrl)
         Next kCtrl
     End If
 
     ' --- ETAPE 7 : Calcul des colonnes derivees (Budget, MoisBudget, ...) -----
-    ' Fait maintenant, une fois toutes les Catégorie definitives connues.
+    ' Fait maintenant, une fois toutes les CatÃ©gorie definitives connues.
     Dim budget As Date, dateConsult As Variant, speConsult As Variant
     Dim categorieFinale As String, tiersFinal As String, libelleFinal As String
     Dim segment0 As String
+    Dim specialiteValide As Boolean
 
     For i = 1 To nbAjoutees
         categorieFinale = CStr(resultats(i, COL_CATEGORIE))
@@ -259,12 +259,12 @@ Public Sub ImporterOperationsOFX()
         resultats(i, COL_ANNEE_BUDGET) = Year(budget)
 
         ' PHASE 5 : ce test portait auparavant sur "categorieFinale" (l'ancienne
-        ' colonne Catégorie faisait alors office de plus fine granularite).
-        ' Catégorie contient maintenant la catégorie PARENTE (ex: "Santé,
-        ' prevoyance", commune a plusieurs sous-catégories) : le test doit
-        ' donc porter sur la SOUS-catégorie choisie par l'opérateur a l'étape
+        ' colonne CatÃ©gorie faisait alors office de plus fine granularite).
+        ' CatÃ©gorie contient maintenant la catÃ©gorie PARENTE (ex: "SantÃ©,
+        ' prevoyance", commune a plusieurs sous-catÃ©gories) : le test doit
+        ' donc porter sur la SOUS-catÃ©gorie choisie par l'opÃ©rateur a l'Ã©tape
         ' 6bis ci-dessus.
-        If sousFinaleCtrl(i) = "Frais, remb sant" & Chr(233) Then   ' "Frais, remb santé"
+        If sousFinaleCtrl(i) = "Frais, remb sant" & Chr(233) Then   ' "Frais, remb santÃ©"
             segment0 = SegmentTexte(libelleFinal, ";", 0)
             If EstDateValide(segment0) Then
                 dateConsult = DateSerial(CInt(Left(segment0, 4)), CInt(Mid(segment0, 5, 2)), CInt(Right(segment0, 2)))
@@ -290,7 +290,7 @@ Public Sub ImporterOperationsOFX()
 
     ' --- ETAPE 8 : Ecriture des nouvelles lignes dans la feuille --------------
     Dim premiereLigneEcriture As Long
-    Dim listeIDsImportes() As String   ' memorise les ID_Transaction ajoutes par CET import, AVANT le tri de l'étape 9 (qui va melanger leur position)
+    Dim listeIDsImportes() As String   ' memorise les ID_Transaction ajoutes par CET import, AVANT le tri de l'Ã©tape 9 (qui va melanger leur position)
     If nbAjoutees > 0 Then
 
         ReDim arrFinal(1 To nbAjoutees, 1 To NB_COLONNES)
@@ -329,15 +329,15 @@ Public Sub ImporterOperationsOFX()
 
     ' --- ETAPE 8bis (PHASE 5) : ecriture de la SousCategorie pour les lignes --
     ' juste importees. La colonne "SousCategorie" n'existe PAS dans le
-    ' tableau fixe résultats()/arrFinal() (NB_COLONNES=20, defini avant que
+    ' tableau fixe rÃ©sultats()/arrFinal() (NB_COLONNES=20, defini avant que
     ' cette colonne n'existe) : on la retrouve donc par son NOM directement
-    ' sur la feuille, comme on le fait déjà partout ailleurs dans ce chantier
-    ' pour ne jamais dependre d'un numéro de colonne fige.
+    ' sur la feuille, comme on le fait dÃ©jÃ  partout ailleurs dans ce chantier
+    ' pour ne jamais dependre d'un numÃ©ro de colonne fige.
     '
-    ' IMPORTANT SUR L'ORDRE : cette étape doit imperativement s'executer ICI,
+    ' IMPORTANT SUR L'ORDRE : cette Ã©tape doit imperativement s'executer ICI,
     ' AVANT l'ETAPE 9 (tri de TblOperations) : premiereLigneEcriture designe
     ' pour l'instant des lignes ENCORE CONTIGUES et dans l'ordre d'arrivee.
-    ' Après le tri de l'ETAPE 9, cette correspondance n'existerait plus.
+    ' AprÃ¨s le tri de l'ETAPE 9, cette correspondance n'existerait plus.
     If nbAjoutees > 0 Then
         Dim colSousCategorieFeuille As Long
         On Error Resume Next
@@ -348,7 +348,7 @@ Public Sub ImporterOperationsOFX()
         If colSousCategorieFeuille = 0 Then
             ' TblOperations n'existe pas encore en tant que Tableau Excel a ce
             ' stade precis (cas du tout premier import, avant que l'ETAPE 9 ne
-            ' le créé) : on cherche alors directement dans la ligne d'entetes.
+            ' le crÃ©Ã©) : on cherche alors directement dans la ligne d'entetes.
             Dim colBalayage As Long
             Dim derniereColEntete As Long
             derniereColEntete = wsDonnees.Cells(1, wsDonnees.Columns.count).End(xlToLeft).Column
@@ -362,10 +362,10 @@ Public Sub ImporterOperationsOFX()
 
         If colSousCategorieFeuille = 0 Then
             ' Phase 1 (mod_Categories.PreparerPhase1Categories) pas encore
-            ' installee chez l'opérateur : on previent, mais on NE BLOQUE PAS
-            ' l'import pour autant (les opérations sont déjà ecrites a l'étape
+            ' installee chez l'opÃ©rateur : on previent, mais on NE BLOQUE PAS
+            ' l'import pour autant (les opÃ©rations sont dÃ©jÃ  ecrites a l'Ã©tape
             ' precedente ; les bloquer maintenant laisserait le classeur dans
-            ' un état incoherent). La sous-catégorie pourra être completee
+            ' un Ã©tat incoherent). La sous-catÃ©gorie pourra Ãªtre completee
             ' plus tard, une fois la colonne ajoutee, via RechercherOperations.
             MsgBox "La colonne 'SousCategorie' est introuvable dans TblOperations." & vbCrLf & _
                    "L'import continue, mais la sous-categorie n'a pas ete enregistree pour " & _
@@ -387,12 +387,12 @@ Public Sub ImporterOperationsOFX()
     ' IMPORTANT : on NE PEUT PAS utiliser NB_COLONNES (fige a 14, le nombre de
     ' colonnes fournies par l'import OFX/CSV) pour dimensionner le tableau ici.
     ' TblOperations compte maintenant plus de colonnes (StatutSante, Franchise,
-    ' SoldeSante, DepassementHoraires, CommentaireSante, Bénéficiaire, ajoutees
-    ' manuellement pour le suivi santé). Si on redimensionnait la table a
+    ' SoldeSante, DepassementHoraires, CommentaireSante, BÃ©nÃ©ficiaire, ajoutees
+    ' manuellement pour le suivi santÃ©). Si on redimensionnait la table a
     ' NB_COLONNES=14, ces colonnes supplementaires seraient retirees de la
     ' definition du tableau structure (tbl.ListColumns("StatutSante") cesserait
-    ' de fonctionner), même si les valeurs restaient physiquement dans la
-    ' feuille. On calcule donc ici la largeur REELLE utilisée en ligne 1.
+    ' de fonctionner), mÃªme si les valeurs restaient physiquement dans la
+    ' feuille. On calcule donc ici la largeur REELLE utilisÃ©e en ligne 1.
     wsDerniereColonneFinale = wsDonnees.Cells(1, wsDonnees.Columns.count).End(xlToLeft).Column
     If wsDerniereColonneFinale < NB_COLONNES Then wsDerniereColonneFinale = NB_COLONNES
 
@@ -420,23 +420,23 @@ Public Sub ImporterOperationsOFX()
         End With
     End If
 
-    ' --- ETAPE 9bis-0 : Vérification/reparation du decoupage du champ Notes --
+    ' --- ETAPE 9bis-0 : VÃ©rification/reparation du decoupage du champ Notes --
     ' Sur TOUTE la table (pas seulement les lignes de cet import), pour
     ' detecter aussi les cas ou une valeur a change a la source depuis un
     ' import precedent (le rapprochement par FITID ne les detecterait pas).
     mod_FormulairesNotes.VerifierNotesSante
 
-    ' --- ETAPE 9bis : Suivi santé (calcul automatique + formulaire opérateur) --
+    ' --- ETAPE 9bis : Suivi santÃ© (calcul automatique + formulaire opÃ©rateur) --
     ' On recalcule d'abord StatutSante/SoldeSante sur TOUTE la table (pas
     ' seulement les lignes de cet import : ca permet aussi de retraiter les
     ' anciens cas "KO" en attente, par exemple si un remboursement tarde a
     ' arriver). Puis on propose le formulaire pour tous les cas qui ont
-    ' besoin d'une action de l'opérateur (Bénéficiaire, Tiers, Franchise,
+    ' besoin d'une action de l'opÃ©rateur (BÃ©nÃ©ficiaire, Tiers, Franchise,
     ' Depassement d'honoraires).
     mod_SuiviSante.CalculerSuiviSante AfficherResume:=False
     mod_SuiviSanteFormulaire.TraiterCasSuiviSante
 
-    ' --- ETAPE 9ter : Memoriser et afficher les opérations nouvellement importees --
+    ' --- ETAPE 9ter : Memoriser et afficher les opÃ©rations nouvellement importees --
     If nbAjoutees > 0 Then
         mod_DernierImport.MemoriserDernierImport listeIDsImportes, nbAjoutees
         mod_DernierImport.AfficherDernierImportSurSynthese
@@ -490,8 +490,8 @@ Private Function ConvertirDateOFX(chaineDate As String) As Date
         CInt(Mid(chaineDate, 1, 4)), CInt(Mid(chaineDate, 5, 2)), CInt(Mid(chaineDate, 7, 2)))
 End Function
 
-' Même conversion mais renvoie Empty (cellule vide) si la date est absente
-' (utilisée pour Date_Operation, souvent non renseignee).
+' MÃªme conversion mais renvoie Empty (cellule vide) si la date est absente
+' (utilisÃ©e pour Date_Operation, souvent non renseignee).
 Private Function ConvertirDateOFXVariant(chaineDate As String) As Variant
     If Len(chaineDate) < 8 Then
         ConvertirDateOFXVariant = Empty
@@ -521,7 +521,7 @@ Private Function ConvertirDateCSV(chaineDate As String) As Date
     End If
 End Function
 
-' Numéro de cheque : on ne garde que les valeurs numeriques, le reste devient vide.
+' NumÃ©ro de cheque : on ne garde que les valeurs numeriques, le reste devient vide.
 Private Function NettoyerNumCheque(brut As String) As Variant
     If brut = "" Or Not IsNumeric(brut) Then
         NettoyerNumCheque = Empty
@@ -530,13 +530,13 @@ Private Function NettoyerNumCheque(brut As String) As Variant
     End If
 End Function
 
-' Construit la clé de rapprochement OFX <-> CSV : Date + Montant + Tiers.
+' Construit la clÃ© de rapprochement OFX <-> CSV : Date + Montant + Tiers.
 Private Function CleComposite(dateOp As Date, montantOp As Double, tiersOp As String) As String
     CleComposite = Format(dateOp, "yyyymmdd") & "|" & Format(montantOp, "0.00") & "|" & UCase(Trim(tiersOp))
 End Function
 
 ' Extrait un segment d'un texte separe par un caractere donne (index base 0).
-' Renvoie "" si le segment demandé n'existe pas.
+' Renvoie "" si le segment demandÃ© n'existe pas.
 Public Function SegmentTexte(texte As String, separateur As String, index As Integer) As String
     Dim parties() As String
     parties = Split(texte, separateur)
@@ -547,11 +547,11 @@ Public Function SegmentTexte(texte As String, separateur As String, index As Int
     End If
 End Function
 
-' Teste si un texte représente une date valide et non absurde.
+' Teste si un texte reprÃ©sente une date valide et non absurde.
 Public Function EstDateValide(texte As String) As Boolean
     If Trim(texte) = "" Then
         EstDateValide = False
-    ElseIf Len(texte) = 8 And IsNumeric(texte) Then ' 1. Vérification : la chaine doit faire 8 caracteres et être numerique
+    ElseIf Len(texte) = 8 And IsNumeric(texte) Then ' 1. VÃ©rification : la chaine doit faire 8 caracteres et Ãªtre numerique
         
         Dim Annee As Integer
         Dim Mois As Integer
@@ -562,7 +562,7 @@ Public Function EstDateValide(texte As String) As Boolean
         Mois = CInt(Mid(texte, 5, 2))
         jour = CInt(Right(texte, 2))
         
-        ' 2. Vérification subsidiaire : les mois et jours sont-ils coherents ?
+        ' 2. VÃ©rification subsidiaire : les mois et jours sont-ils coherents ?
         If Mois >= 1 And Mois <= 12 And jour >= 1 And jour <= 31 And Annee >= 1900 Then
             EstDateValide = True
         Else
@@ -576,11 +576,11 @@ Public Function EstDateValide(texte As String) As Boolean
 End Function
 
 
-' Calcule la colonne Budget selon la règle metier :
-' - Si Tiers = "DRFIP OCCITANIE ET HTE" ET Catégorie = "Salaire/Revenus d'activite"
+' Calcule la colonne Budget selon la rÃ¨gle metier :
+' - Si Tiers = "DRFIP OCCITANIE ET HTE" ET CatÃ©gorie = "Salaire/Revenus d'activite"
 '   -> mois suivant celui de Date_Comptable
 ' - Sinon -> mois de Date_Comptable
-' DateSerial() gere seul le changement d'année (mois 13 -> janvier année+1).
+' DateSerial() gere seul le changement d'annÃ©e (mois 13 -> janvier annÃ©e+1).
 Private Function CalculerBudget(dateComptable As Date, tiers As String, categorie As String) As Date
     If Trim(UCase(tiers)) = "DRFIP OCCITANIE ET HTE" And categorie = "Salaire/Revenus d'activit" & Chr(233) Then
         CalculerBudget = DateSerial(Year(dateComptable), Month(dateComptable) + 1, 1)
@@ -602,9 +602,9 @@ Private Function TrouverColonne(entetes() As String, nom As String) As Integer
 End Function
 
 ' Lit le fichier CSV (UTF-16, tabulations) et construit un dictionnaire :
-'   clé "Date|Montant|Tiers" -> Collection des catégories trouvees pour cette clé.
-' Une clé peut avoir plusieurs catégories si plusieurs opérations identiques
-' existent le même jour (voir CategorieCommuneOuVide pour la resolution).
+'   clÃ© "Date|Montant|Tiers" -> Collection des catÃ©gories trouvees pour cette clÃ©.
+' Une clÃ© peut avoir plusieurs catÃ©gories si plusieurs opÃ©rations identiques
+' existent le mÃªme jour (voir CategorieCommuneOuVide pour la resolution).
 Private Function ChargerCategoriesCSV(chemin As String) As Object
     Dim flux As Object, contenuBrut As String
     Dim lignes() As String, entetes() As String, champs() As String
@@ -624,7 +624,7 @@ Private Function ChargerCategoriesCSV(chemin As String) As Object
     contenuBrut = flux.ReadText
     flux.Close
 
-    ' Retire un éventuel caractere BOM invisible en tout debut de fichier
+    ' Retire un Ã©ventuel caractere BOM invisible en tout debut de fichier
     If Len(contenuBrut) > 0 Then
         If AscW(Left(contenuBrut, 1)) = 65279 Then contenuBrut = Mid(contenuBrut, 2)
     End If
@@ -634,7 +634,7 @@ Private Function ChargerCategoriesCSV(chemin As String) As Object
 
     colDate = TrouverColonne(entetes, "Date")
     colLibelle = TrouverColonne(entetes, "Libell" & Chr(233))       ' "Libelle"
-    colCategorie = TrouverColonne(entetes, "Cat" & Chr(233) & "gorie")  ' "Catégorie"
+    colCategorie = TrouverColonne(entetes, "Cat" & Chr(233) & "gorie")  ' "CatÃ©gorie"
     colMontant = TrouverColonne(entetes, "Montant")
 
     If colDate = -1 Or colLibelle = -1 Or colCategorie = -1 Or colMontant = -1 Then
@@ -666,9 +666,9 @@ Private Function ChargerCategoriesCSV(chemin As String) As Object
     Set ChargerCategoriesCSV = dict
 End Function
 
-' A partir d'une Collection de catégories candidates pour une même clé :
+' A partir d'une Collection de catÃ©gories candidates pour une mÃªme clÃ© :
 ' - si toutes identiques -> renvoie cette valeur, estAmbigu = False
-' - si différentes -> renvoie "", estAmbigu = True, et la liste des valeurs
+' - si diffÃ©rentes -> renvoie "", estAmbigu = True, et la liste des valeurs
 '   distinctes (separees par ";") dans texteCandidats, prete pour le formulaire
 '   de resolution.
 Private Function CategorieCommuneOuVide(candidats As Collection, ByRef estAmbigu As Boolean, ByRef texteCandidats As String) As String
