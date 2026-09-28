@@ -11,35 +11,35 @@ Option Explicit
 '                            avec les fleches natives Excel dans l'entete du
 '                            tableau).
 '   AppliquerLignesMarquees : pour chaque ligne du tableau de recherche ou
-'                            "Valider" = "Oui", ecrit Cat√©gorie/SousCategorie et
+'                            "Valider" = "Oui", ecrit CatÈgorie/SousCategorie et
 '                            Notes dans la table SOURCE de la ligne (TblOperations
 '                            ou TblVentilations -- voir colonne technique
 '                            SourceLigne), puis efface la marque.
 '
 '   Verrouillage "souple" de Notes : il n'y a pas de vraie protection de
-'   feuille (d√©j√† abandonnee ailleurs dans ce chantier a cause d'une erreur
-'   1004). La cellule Notes d'une ligne dont la cl√© est d√©j√† valide est
+'   feuille (dÈj‡ abandonnee ailleurs dans ce chantier a cause d'une erreur
+'   1004). La cellule Notes d'une ligne dont la clÈ est dÈj‡ valide est
 '   simplement grisee (indication visuelle), et AppliquerLignesMarquees
 '   IGNORE tout changement sur cette colonne pour cette ligne, quel que soit
 '   ce qui y est ecrit a l'ecran.
 '
 ' PHASE 5 -- CE QUI CHANGE PAR RAPPORT A LA VERSION D'ORIGINE :
-'   (a) BUG CORRIGE : la liste d√©roulante de la colonne Cat√©gorie utilisait
+'   (a) BUG CORRIGE : la liste dÈroulante de la colonne CatÈgorie utilisait
 '       Formula1:=Join(listeCategories, ",") -- cela casse des que : (1) une
-'       cat√©gorie contient elle-m√™me une virgule (ex: "Alimentation,
+'       catÈgorie contient elle-mÍme une virgule (ex: "Alimentation,
 '       supermarche"), Excel la scinde alors en plusieurs "fausses"
-'       cat√©gories dans la liste ; (2) le texte assemble depasse 255
-'       caracteres, ce qui arrive vite avec ~80 cat√©gories (limite d'Excel
-'       pour un Formula1 en dur). La correction reutilise la m√™me technique
+'       catÈgories dans la liste ; (2) le texte assemble depasse 255
+'       caracteres, ce qui arrive vite avec ~80 catÈgories (limite d'Excel
+'       pour un Formula1 en dur). La correction reutilise la mÍme technique
 '       que le reste du chantier (mod_Categories, mod_ControleCategories...) :
 '       une PLAGE NOMMEE dynamique (OFFSET/COUNTA) pointant sur une colonne
 '       technique de VRAIES cellules, jamais une liste text-jointe.
-'   (b) NOUVELLE colonne SousCategorie (m√™me traitement que Cat√©gorie).
-'   (c) NOUVELLE colonne Ventile (tag informatif) + int√©gration des lignes de
-'       TblVentilations : une op√©ration ventilee reste desormais accessible
-'       ICI de 2 facons, comme demand√© par l'op√©rateur : via sa ligne
-'       PARENTE (Cat√©gorie = "Ventile"), ou directement via chacune de ses
-'       parts (une ligne par sous-cat√©gorie de la ventilation, marquee
+'   (b) NOUVELLE colonne SousCategorie (mÍme traitement que CatÈgorie).
+'   (c) NOUVELLE colonne Ventile (tag informatif) + intÈgration des lignes de
+'       TblVentilations : une opÈration ventilee reste desormais accessible
+'       ICI de 2 facons, comme demandÈ par l'opÈrateur : via sa ligne
+'       PARENTE (CatÈgorie = "Ventile"), ou directement via chacune de ses
+'       parts (une ligne par sous-catÈgorie de la ventilation, marquee
 '       Ventile = "Oui").
 '
 ' A PROPOS DES ACCENTS : fichier 100% ASCII, textes accentues via FR().
@@ -49,19 +49,19 @@ Option Explicit
 
 ' --- Noms techniques utilises par ce module, DUPLIQUES ICI EN DUR (comme dans
 '     les autres modules de ce chantier) pour que ce module continue a
-'     compiler m√™me si mod_InstallVentilation n'a pas encore ete importe. ---
+'     compiler mÍme si mod_InstallVentilation n'a pas encore ete importe. ---
 Private Const VEN_FEUILLE As String = "Ventilations"
 Private Const VEN_TABLE As String = "TblVentilations"
 Private Const CATEGORIE_VENTILE As String = "Ventil" ' + e accentue, voir CategorieVentileRO()
 
-' Nom de la sous-cat√©gorie "sant√©" -- reprise ici uniquement pour r√©f√©rence
+' Nom de la sous-catÈgorie "santÈ" -- reprise ici uniquement pour rÈfÈrence
 ' dans les commentaires, ce module ne teste jamais directement cette valeur.
 
 Private Function CategorieVentileRO() As String
     CategorieVentileRO = CATEGORIE_VENTILE & ChrW(233)   ' "Ventile"
 End Function
 
-' Petite fonction miroir de FR(), gardee car d√©j√† utilis√©e dans ce module a
+' Petite fonction miroir de FR(), gardee car dÈj‡ utilisÈe dans ce module a
 ' l'origine (voir commentaire d'origine sur les accents en tete de fichier) :
 'Private Function FR(ByVal texte As String) As String
 '    Dim r As String
@@ -79,7 +79,7 @@ End Function
 
 
 ' =====================================================================================
-' HELPERS PHASE 5 : acc√®s a TblVentilations, dupliques comme dans les autres
+' HELPERS PHASE 5 : accËs a TblVentilations, dupliques comme dans les autres
 ' modules de ce chantier (mod_SuiviSante, mod_FormulairesNotes, ...).
 ' =====================================================================================
 Private Function ObtenirTableVentilationsRO() As ListObject
@@ -120,7 +120,7 @@ Public Sub RechercherOperations()
     Dim listeValeurs() As String
     Dim nbValeurs As Long
 
-    ' --- PHASE 5 : acc√®s a TblVentilations (facultatif) ---
+    ' --- PHASE 5 : accËs a TblVentilations (facultatif) ---
     Dim tblVen As ListObject
     Dim tblDataVen As Variant
     Dim nbLignesVen As Long
@@ -237,9 +237,9 @@ Public Sub RechercherOperations()
 
     ' =====================================================================
     ' 2) PHASE 5 : lignes de TblVentilations (une ligne par part ventilee).
-    '    Le Tiers est repris de l'op√©ration PARENTE (TblVentilations n'a pas
-    '    sa propre colonne Tiers -- une part ventilee n'est pas une op√©ration
-    '    bancaire ind√©pendante).
+    '    Le Tiers est repris de l'opÈration PARENTE (TblVentilations n'a pas
+    '    sa propre colonne Tiers -- une part ventilee n'est pas une opÈration
+    '    bancaire indÈpendante).
     ' =====================================================================
     If venDisponible Then
         ' Index ID_Transaction -> ligne TblOperations, pour retrouver le Tiers
@@ -295,7 +295,7 @@ Public Sub RechercherOperations()
     tblRecherche.ListColumns("Date").DataBodyRange.NumberFormat = "dd/mm/yyyy"
     tblRecherche.ListColumns("Montant").DataBodyRange.NumberFormat = "#,##0.00"
 
-    ' --- PHASE 5 (correction du bug) : liste d√©roulante Cat√©gorie/SousCategorie
+    ' --- PHASE 5 (correction du bug) : liste dÈroulante CatÈgorie/SousCategorie
     '     via une VRAIE plage nommee (technique OFFSET/COUNTA), jamais via un
     '     texte joint par des virgules -- voir l'explication en tete de fichier.
     EcrireListeTechniqueRO ws, listeValeurs, nbValeurs
@@ -313,7 +313,7 @@ Public Sub RechercherOperations()
         End If
     End With
 
-    ' --- Griser les cellules Notes d√©j√† verrouill√©es (cl√© sant√© valide) ---
+    ' --- Griser les cellules Notes dÈj‡ verrouillÈes (clÈ santÈ valide) ---
     For i = 1 To nbTotal
         If cleVerrouillee(i) Then
             tblRecherche.ListColumns("Notes").DataBodyRange.Cells(i).Interior.Color = RGB(240, 240, 240)
@@ -329,8 +329,8 @@ Public Sub RechercherOperations()
 End Sub
 
 ' Petit utilitaire : ajoute "valeur" a listeValeurs()/nbValeurs si non vide et
-' pas d√©j√† pr√©sente (compare sans tenir compte de la casse : voir .CompareMode
-' pose par l'appelant sur le Dictionary utilis√© comme "d√©j√† vu").
+' pas dÈj‡ prÈsente (compare sans tenir compte de la casse : voir .CompareMode
+' pose par l'appelant sur le Dictionary utilisÈ comme "dÈj‡ vu").
 Private Sub AjouterValeurUnique(ByVal valeur As String, ByRef vues As Object, ByRef listeValeurs() As String, ByRef nbValeurs As Long)
     If valeur = "" Then Exit Sub
     If vues.Exists(valeur) Then Exit Sub
@@ -340,15 +340,15 @@ Private Sub AjouterValeurUnique(ByVal valeur As String, ByRef vues As Object, By
     listeValeurs(nbValeurs) = valeur
 End Sub
 
-' Ecrit la liste unique (Cat√©gorie + SousCategorie confondues) dans une
-' colonne technique HORS du tableau structure (au-dela de sa derni√®re
+' Ecrit la liste unique (CatÈgorie + SousCategorie confondues) dans une
+' colonne technique HORS du tableau structure (au-dela de sa derniËre
 ' colonne, ligne par ligne, format Texte force), puis (re)definit une plage
-' nommee DYNAMIQUE (OFFSET/COUNTA) pointant dessus. M√™me principe que
+' nommee DYNAMIQUE (OFFSET/COUNTA) pointant dessus. MÍme principe que
 ' mod_Categories.RafraichirListesCategories, applique ici localement pour ne
 ' pas dependre de l'existence de mod_Categories.
 Private Sub EcrireListeTechniqueRO(ByVal ws As Worksheet, ByRef listeValeurs() As String, ByVal nbValeurs As Long)
 
-    Const COL_TECHNIQUE As String = "N"   ' au-dela de la colonne K (derni√®re colonne du tableau)
+    Const COL_TECHNIQUE As String = "N"   ' au-dela de la colonne K (derniËre colonne du tableau)
     Dim i As Long
 
     ws.Range(COL_TECHNIQUE & "1:" & COL_TECHNIQUE & "1000").ClearContents
@@ -375,7 +375,7 @@ End Sub
 
 
 ' =====================================================================================
-' AppliquerLignesMarquees : applique Cat√©gorie/SousCategorie/Notes des lignes
+' AppliquerLignesMarquees : applique CatÈgorie/SousCategorie/Notes des lignes
 ' marquees "Oui", en ecrivant dans la table SOURCE de chaque ligne (colonne
 ' technique SourceLigne : "O" = TblOperations, "V" = TblVentilations).
 ' =====================================================================================
@@ -494,6 +494,114 @@ Public Sub AppliquerLignesMarquees()
     End If
 
     MsgBox nbAppliquees & FR(" ligne(s) appliqu{e2}e(s)."), vbInformation
+
+End Sub
+
+' =====================================================================================
+' RevoirVentilationRO (ajout suite ù un test opùrateur)
+' =====================================================================================
+' Rouvre le formulaire de ventilation pour la ligne actuellement sùlectionnùe dans
+' le tableau de recherche (mùme principe que ReinitialiserLigneSelectionnee dans
+' mod_ResolutionCategories : on lit ActiveCell.Row, pas de bouton par ligne).
+'
+' La ligne sùlectionnùe peut ùtre :
+'   - l'opùration PARENTE elle-mùme (Categorie = "Ventilù"), ou
+'   - l'une de ses PARTS (colonne Ventile = "Oui", Source = "V").
+' Dans les deux cas, RO_COL_ID contient dùjù l'ID_Transaction de l'opùration
+' bancaire PARENTE (voir RechercherOperations, qui l'ùcrit ainsi pour les deux
+' types de lignes) : c'est cet identifiant qu'attend mod_Ventilation.OuvrirVentilation.
+'
+' LIMITE CONNUE : TblVentilations ne conserve pas le libellù brut de l'opùration
+' bancaire (il n'existait que le temps de l'import, dans un tableau en mùmoire -
+' voir mod_ControleCategories.ControleVentiler). En rouvrant depuis cet ùcran,
+' bien aprùs l'import, ce libellù n'est donc plus disponible : le formulaire
+' l'affichera vide plutùt que d'inventer une valeur. Rien d'autre n'est affectù :
+' date, tiers, montant et catùgorie/sous-catùgorie actuelles restent exacts,
+' relus directement dans TblOperations.
+Public Sub RevoirVentilationRO()
+
+    Dim ws As Worksheet
+    Dim tblRecherche As ListObject
+    Dim ligneSelection As Long, ligneRelative As Long
+    Dim categorieValeur As String, ventileValeur As String
+    Dim idTransaction As String
+    Dim ok As Boolean
+
+    Set ws = ThisWorkbook.Worksheets(mod_InstallRechercheOperations.NOM_FEUILLE_RECHERCHE)
+    Set tblRecherche = ws.ListObjects(mod_InstallRechercheOperations.NOM_TABLE_RECHERCHE)
+
+    If tblRecherche.DataBodyRange Is Nothing Then
+        MsgBox FR("Aucune ligne {a2} traiter. Utilise d'abord 'Rechercher'."), vbInformation
+        Exit Sub
+    End If
+
+    ligneSelection = ActiveCell.Row
+    ligneRelative = ligneSelection - tblRecherche.DataBodyRange.Row + 1
+
+    If ligneRelative < 1 Or ligneRelative > tblRecherche.DataBodyRange.rows.count Then
+        MsgBox FR("S{e2}lectionne d'abord une ligne d'op{e2}ration dans le tableau, puis clique sur ce bouton."), vbExclamation
+        Exit Sub
+    End If
+
+    categorieValeur = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_CATEGORIE).value))
+    ventileValeur = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_VENTILE).value))
+
+    If LCase(ventileValeur) <> "oui" And categorieValeur <> CategorieVentileRO() Then
+        MsgBox FR("Cette ligne n'est pas une op{e2}ration ventil{e2}e : rien {a2} revoir."), vbInformation
+        Exit Sub
+    End If
+
+    idTransaction = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_ID).value))
+    If idTransaction = "" Then
+        MsgBox FR("Impossible de retrouver l'ID_Transaction de cette ligne."), vbExclamation
+        Exit Sub
+    End If
+
+    ' --- On relit l'entùte (date/tiers/montant/catùgorie actuelle) directement sur
+    ' l'opùration PARENTE dans TblOperations : TblVentilations n'a pas ces colonnes,
+    ' et OuvrirVentilation en a besoin pour l'affichage en lecture seule. ---
+    Dim tblOp As ListObject
+    Dim donneesOp As Variant
+    Dim i As Long, ligneParent As Long
+    Dim dateOp As Variant, tiersOp As String
+    Dim montantOp As Double, catActuelleOp As String, sousActuelleOp As String
+
+    Set tblOp = mod_DonneesTable.GetOperationsTable()
+    If tblOp Is Nothing Or tblOp.DataBodyRange Is Nothing Then
+        MsgBox FR("Le tableau TblOperations est introuvable."), vbExclamation
+        Exit Sub
+    End If
+
+    mod_Display.RecupIndexCol
+    donneesOp = tblOp.DataBodyRange.value
+
+    ligneParent = 0
+    For i = 1 To UBound(donneesOp, 1)
+        If mod_DataStructure.CellText(donneesOp(i, colID)) = idTransaction Then
+            ligneParent = i
+            Exit For
+        End If
+    Next i
+
+    If ligneParent = 0 Then
+        MsgBox FR("Op{e2}ration parente introuvable dans TblOperations (ID '") & idTransaction & "').", vbExclamation
+        Exit Sub
+    End If
+
+    dateOp = donneesOp(ligneParent, colDate)
+    tiersOp = mod_DataStructure.CellText(donneesOp(ligneParent, colTiers))
+    montantOp = mod_DataStructure.ToDouble(donneesOp(ligneParent, colMontant))
+    catActuelleOp = mod_DataStructure.CellText(donneesOp(ligneParent, colCategorie))
+    sousActuelleOp = ""
+    If colSousCategorie <> 0 Then sousActuelleOp = mod_DataStructure.CellText(donneesOp(ligneParent, colSousCategorie))
+
+    ok = mod_Ventilation.OuvrirVentilation(idTransaction, dateOp, tiersOp, "", montantOp, catActuelleOp, sousActuelleOp)
+
+    ws.Activate
+
+    If ok Then
+        RechercherOperations   ' on recharge l'ecran pour refleter d'eventuels changements
+    End If
 
 End Sub
 
