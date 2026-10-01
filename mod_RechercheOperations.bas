@@ -160,37 +160,38 @@ End Function
 Private Sub RestaurerFiltresRO(ByVal tbl As ListObject, ByVal filtresSauvegardes As Variant)
     Dim f As Long
     Dim critere1 As Variant
+    Dim operateur As Long
 
     If IsEmpty(filtresSauvegardes) Then Exit Sub
 
     On Error Resume Next
     For f = 1 To UBound(filtresSauvegardes, 2)
         critere1 = filtresSauvegardes(3, f)
+        operateur = filtresSauvegardes(2, f)
 
-        ' Cas particulier Excel : un filtre "liste de valeurs" (xlFilterValues) avec
-        ' UNE SEULE valeur cochee renvoie Criteria1 comme un simple texte, et non un
-        ' tableau -- mais Excel EXIGE un tableau pour reappliquer ce type de filtre,
-        ' meme a une seule valeur. Sans ce rhabillage, la reapplication echoue sans
-        ' erreur visible (silencieusement avalee par le On Error Resume Next
-        ' ci-dessus, necessaire par ailleurs pour Criteria2).
-        If filtresSauvegardes(2, f) = xlFilterValues Then
+        If operateur = xlFilterValues Then
             If Not IsArray(critere1) Then critere1 = Array(critere1)
         End If
 
-        If IsEmpty(filtresSauvegardes(4, f)) Then
+        If operateur = 0 Then
+            ' Filtre "simple" (ex : "non vide", critere1 = "<>") : Excel ne renvoie
+            ' alors aucun Operator exploitable (0 n'est pas une valeur valide de
+            ' XlAutoFilterOperator) -- on l'omet simplement a la reapplication,
+            ' sinon Excel refuse silencieusement le filtre (constat du 01/10/2026).
+            tbl.Range.AutoFilter Field:=filtresSauvegardes(1, f), Criteria1:=critere1
+        ElseIf IsEmpty(filtresSauvegardes(4, f)) Then
             tbl.Range.AutoFilter Field:=filtresSauvegardes(1, f), _
                                   Criteria1:=critere1, _
-                                  Operator:=filtresSauvegardes(2, f)
+                                  Operator:=operateur
         Else
             tbl.Range.AutoFilter Field:=filtresSauvegardes(1, f), _
                                   Criteria1:=critere1, _
-                                  Operator:=filtresSauvegardes(2, f), _
+                                  Operator:=operateur, _
                                   Criteria2:=filtresSauvegardes(4, f)
         End If
     Next f
     On Error GoTo 0
 End Sub
-
 
 ' =====================================================================================
 ' RechercherOperations : recharge le tableau de recherche depuis TblOperations
