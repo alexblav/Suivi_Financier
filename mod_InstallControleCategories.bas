@@ -205,7 +205,7 @@ Private Sub ConstruireTitreEtInformations(ByVal ws As Worksheet)
         .Font.Bold = True
         .Font.Color = RGB(60, 60, 60)
     End With
-    ws.Range(CTRL_ADR_TITRE).value = mod_Display.FR("Contr{o1}le des cat{e2}gories des op{e2}rations import{e2}es")
+    ws.Range(CTRL_ADR_TITRE).value = mod_Display.FR("Contr{o2}le des cat{e2}gories des op{e2}rations import{e2}es")
 
     ' --- Compteur "Operation X / N" (rempli par le programme) ---
     With ws.Range("B5:E5")
@@ -318,7 +318,7 @@ Private Sub ConstruireInstructions(ByVal ws As Worksheet)
         .value = mod_Display.FR("1. V{e2}rifiez les informations de l'op{e2}ration (en haut).") & Chr(10) & _
                  mod_Display.FR("2. Modifiez si besoin la Cat{e2}gorie, puis la Sous-cat{e2}gorie (listes d{e2}roulantes).") & Chr(10) & _
                  mod_Display.FR("3. Passez {a2} l'op{e2}ration suivante avec 'Suivant' (ou revenez avec 'Pr{e2}c{e2}dent').") & Chr(10) & _
-                 mod_Display.FR("4. Quand tout est contr{o1}l{e2}, cliquez sur 'Terminer et continuer'.") & Chr(10) & _
+                 mod_Display.FR("4. Quand tout est contr{o2}l{e2}, cliquez sur 'Terminer et continuer'.") & Chr(10) & _
                  mod_Display.FR("Vos choix ne sont pris en compte qu'apr{e1}s 'Terminer et continuer'.")
         .WrapText = True
         .VerticalAlignment = xlTop

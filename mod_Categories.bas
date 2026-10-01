@@ -287,7 +287,7 @@ Public Sub InitialiserTableCategories()
     MsgBox nbNouvelles & " categorie(s) source ajoutee(s) au tableau " & NOM_TABLE_CATEGORIES & "." & _
            vbCrLf & vbCrLf & _
            "Lignes restant a verifier (colonne Verifie <> Oui) : " & nbAVerifier & vbCrLf & vbCrLf & _
-           AccentsFR("Pour chaque ligne : contr{o1}lez Cat{e2}gorie et Sous-cat{e2}gorie, puis tapez Oui dans Verifie."), _
+           mod_Display.FR("Pour chaque ligne : contr{o2}lez Cat{e2}gorie et Sous-cat{e2}gorie, puis tapez Oui dans Verifie."), _
            vbInformation, "Phase 1"
 
 End Sub
@@ -938,16 +938,3 @@ Private Function CategorieSanteNouvelle() As String
     CategorieSanteNouvelle = "Sant" & ChrW(233) & ", pr" & ChrW(233) & "voyance"
 End Function
 
-' Traduit des codes en lettres accentuees (meme principe que la fonction FR du projet).
-'   {e2} = e accent aigu   {e1} = e accent grave   {ea} = e accent circonflexe
-'   {a2} = a accent grave  {o1} = o accent circonflexe
-Private Function AccentsFR(ByVal texte As String) As String
-    Dim r As String
-    r = texte
-    r = Replace(r, "{e2}", ChrW(233))
-    r = Replace(r, "{e1}", ChrW(232))
-    r = Replace(r, "{ea}", ChrW(234))
-    r = Replace(r, "{a2}", ChrW(224))
-    r = Replace(r, "{o1}", ChrW(244))
-    AccentsFR = r
-End Function

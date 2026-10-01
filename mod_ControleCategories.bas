@@ -173,7 +173,7 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
                      mod_Display.FR("OUI : la correspondance est appliqu{e2}e automatiquement.") & vbCrLf & _
                      mod_Display.FR("NON : les op{e2}rations vous sont pr{e2}sent{e2}es une par une pour les v{e2}rifier.") & vbCrLf & _
                      mod_Display.FR("ANNULER : abandon, rien n'est appliqu{e2}."), _
-                     vbYesNoCancel + vbQuestion, mod_Display.FR("Contr{o1}le des cat{e2}gories"))
+                     vbYesNoCancel + vbQuestion, mod_Display.FR("Contr{o2}le des cat{e2}gories"))
 
     If reponse = vbCancel Then Exit Function      ' False : abandon
 
@@ -192,7 +192,7 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
         If CTRL_FORCER_NON_RANGEES And nbARanger > 0 Then
             MsgBox nbARanger & mod_Display.FR(" op{e2}ration(s) ont une cat{e2}gorie source vide ou absente du tableau de correspondance.") & _
                    vbCrLf & mod_Display.FR("Elles vont vous {e2}tre pr{e2}sent{e2}es pour {e2}tre rang{e2}es."), _
-                   vbInformation, mod_Display.FR("Contr{o1}le des cat{e2}gories")
+                   vbInformation, mod_Display.FR("Contr{o2}le des cat{e2}gories")
             For i = 1 To nbOps
                 If g_CtrlARanger(i) Then
                     g_CtrlNbAffiches = g_CtrlNbAffiches + 1
@@ -225,7 +225,7 @@ Erreur:
     ' Erreur imprevue : on remet Excel en etat normal avant d'informer l'operateur.
     Application.EnableEvents = True
     g_CtrlEnCours = False
-    MsgBox mod_Display.FR("Erreur inattendue dans le contr{o1}le des cat{e2}gories :") & vbCrLf & _
+    MsgBox mod_Display.FR("Erreur inattendue dans le contr{o2}le des cat{e2}gories :") & vbCrLf & _
            Err.Number & " - " & Err.Description, vbCritical
     On Error Resume Next
     FermerFormulaire ws
@@ -599,7 +599,7 @@ Public Sub ControleAnnuler()
     If Not g_CtrlEnCours Then Exit Sub
     On Error GoTo Erreur
 
-    reponse = MsgBox(mod_Display.FR("Annuler le contr{o1}le ? Aucune de vos modifications ne sera appliqu{e2}e."), _
+    reponse = MsgBox(mod_Display.FR("Annuler le contr{o2}le ? Aucune de vos modifications ne sera appliqu{e2}e."), _
                      vbYesNo + vbExclamation, mod_Display.FR("Confirmation"))
     If reponse = vbNo Then Exit Sub
 
@@ -930,7 +930,7 @@ Public Sub TesterControleCategories()
 
     ' --- Appel du controle : c'est EXACTEMENT ce que fera l'import en Phase 5 ---
     If Not ControlerCategories(ops, nbTrouves, catF, sousF) Then
-        MsgBox mod_Display.FR("Test termin{e2} : contr{o1}le annul{e2} ou impossible. Rien n'a {e2}t{e2} modifi{e2}."), vbInformation
+        MsgBox mod_Display.FR("Test termin{e2} : contr{o2}le annul{e2} ou impossible. Rien n'a {e2}t{e2} modifi{e2}."), vbInformation
         Exit Sub
     End If
 
