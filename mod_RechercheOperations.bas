@@ -225,6 +225,13 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
     ws.Visible = xlSheetVisible
     ws.Activate
 
+    ' Fige l'affichage sous la ligne d'en-tete du tableau (RO_LIGNE_ENTETES),
+    ' pour que les intitules de colonnes restent visibles en faisant defiler
+    ' une longue liste de resultats -- demande operateur du 01/10/2026.
+    ActiveWindow.FreezePanes = False
+    ws.Range("A" & (mod_InstallRechercheOperations.RO_LIGNE_ENTETES + 1)).Select
+    ActiveWindow.FreezePanes = True
+
     ' --- On vide le tableau de recherche (ne garde que l'entete) ---
     If Not tblRecherche.DataBodyRange Is Nothing Then
         tblRecherche.DataBodyRange.Delete
@@ -417,7 +424,7 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
         If cleVerrouillee(i) Then
             tblRecherche.ListColumns("Notes").DataBodyRange.Cells(i).Interior.Color = RGB(240, 240, 240)
         Else
-            tblRecherche.ListColumns("Notes").DataBodyRange.Cells(i).Interior.Color = RGB(255, 255, 255)
+            tblRecherche.ListColumns("Notes").DataBodyRange.Cells(i).Interior.ColorIndex = xlColorIndexNone
         End If
 
         tblRecherche.ListColumns("Montant").DataBodyRange.Cells(i).Font.Color = RGB(0, 0, 0)

@@ -92,6 +92,20 @@ Option Explicit
 '      ne suffit pas, comme déjà repéré plus tôt sur ce chantier)
 '   3. Pour revoir la feuille : AfficherFeuilleRecherchePourEdition
 '      Pour la remasquer : MasquerFeuilleRechercheApresEdition
+'
+' MISE A JOUR 01/10/2026 (ergonomie, retours operateur) :
+'   - 4e bouton "Sortir" ajoute (appelle mod_RechercheOperations.
+'     SortirRechercheOperations, qui existait deja mais n'etait relie a rien).
+'   - Bouton "Rechercher" renomme "Recherche globale" (plus explicite : il
+'     relance une recherche SANS filtre, par opposition aux recherches
+'     filtrees lancees depuis d'autres ecrans).
+'   - La zone de commentaire explicatif, qui etait ecrite par erreur sur la
+'     MEME ligne que les boutons (donc invisible, cachee dessous), a sa
+'     propre ligne maintenant (RO_LIGNE_ENTETES passe de 4 a 5).
+'   - Un double-clic sur "Oui" dans la colonne Ventile ouvre desormais
+'     directement le detail de la ventilation (voir ThisWorkbook.bas,
+'     Workbook_SheetBeforeDoubleClick), en plus du bouton "Revoir la
+'     ventilation" qui reste disponible.
 ' =====================================================================================
 
 
@@ -99,7 +113,12 @@ Public Const NOM_FEUILLE_RECHERCHE As String = "frm_RechercheOperations"
 Public Const NOM_TABLE_RECHERCHE As String = "TblRechercheOperations"
 
 Public Const RO_LIGNE_BOUTONS As Long = 2
-Public Const RO_LIGNE_ENTETES As Long = 4
+' RO_LIGNE_ENTETES = 5 (et non 4) : la ligne 3, laissee libre entre les
+' boutons (ligne 2) et l'entete du tableau, accueille desormais la zone de
+' commentaire explicatif ci-dessous. Avant ce changement, ce commentaire
+' etait ecrit sur la MEME ligne que les boutons (RO_LIGNE_ENTETES - 2 = 2) :
+' invisible, cache sous les boutons eux-memes (constat operateur du 01/10/2026).
+Public Const RO_LIGNE_ENTETES As Long = 5
 
 ' Position des colonnes DANS LE TABLEAU (1 = première colonne du tableau, A)
 Public Const RO_COL_VALIDER As Long = 1
@@ -200,7 +219,7 @@ Sub CreerFeuilleRechercheOperations()
     zoneBtn1.RowHeight = 22
     Set btn = ws.Buttons.Add(zoneBtn1.Left, zoneBtn1.Top, zoneBtn1.Width, zoneBtn1.Height)
     With btn
-        .Caption = FR("Rechercher")
+        .Caption = FR("Recherche globale")
         .OnAction = "RechercherOperations"
         .Name = "btnRechercherOperations"
     End With
@@ -225,12 +244,25 @@ Sub CreerFeuilleRechercheOperations()
         .Name = "btnRevoirVentilationRO"
     End With
 
+    ' Ajout 01/10/2026 : un double-clic direct sur "Oui" dans la colonne
+    ' Ventile fait desormais la meme chose (voir ThisWorkbook.bas), mais ce
+    ' bouton reste utile si la ligne est deja selectionnee autrement.
+    Dim zoneBtn4 As Range
+    Set zoneBtn4 = ws.Range("H" & RO_LIGNE_BOUTONS & ":I" & RO_LIGNE_BOUTONS)
+    Set btn = ws.Buttons.Add(zoneBtn4.Left, zoneBtn4.Top, zoneBtn4.Width, zoneBtn4.Height)
+    With btn
+        .Caption = FR("Sortir")
+        .OnAction = "SortirRechercheOperations"
+        .Name = "btnSortirRechercheOperations"
+    End With
+
     ' --- Petit rappel du fonctionnement, au-dessus du tableau ---
     With ws.Range("A" & (RO_LIGNE_ENTETES - 2) & ":G" & (RO_LIGNE_ENTETES - 2))
         .Merge
         .value = FR("Utilise les fl{e2}ches de filtre dans l'en-t{ea}te (comme un filtre Excel classique) pour restreindre la liste. " & _
                     "Corrige Cat{e2}gorie/Notes directement dans les cellules, inscris 'Oui' dans Valider, puis clique sur 'Appliquer les lignes marqu{e2}es'. " & _
-                    "Pour revoir le d{e2}tail d'une op{e2}ration ventil{e2}e (colonne Ventil{e2} = Oui) : s{e2}lectionne sa ligne puis clique sur 'Revoir la ventilation'.")
+                    "Pour revoir le d{e2}tail d'une op{e2}ration ventil{e2}e (colonne Ventil{e2} = Oui) : double-clique dessus, ou s{e2}lectionne sa ligne puis clique sur 'Revoir la ventilation'. " & _
+                    "'Recherche globale' recharge toutes les op{e2}rations sans filtre. 'Sortir' referme cet {e2}cran.")
         .Font.Size = 9
         .Font.Color = RGB(80, 80, 80)
         .WrapText = True

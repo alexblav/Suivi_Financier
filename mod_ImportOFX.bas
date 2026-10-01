@@ -95,20 +95,25 @@ Public Sub ImporterOperationsOFX()
     Dim derniereLigne As Long
     derniereLigne = wsDonnees.Cells(wsDonnees.rows.count, "A").End(xlUp).Row
 
-    If derniereLigne = 2 Then
-        ' Cas particulier : une seule ligne de donnees. Value2 renvoie alors
-        ' directement la valeur (pas un tableau 2D), UBound planterait dessus.
-        If Not dictFITID.Exists(CStr(plageFITID)) Then
-            dictFITID.Add CStr(plageFITID), True
-        End If
-    Else
-        For i = 1 To UBound(plageFITID, 1)
-            If Not dictFITID.Exists(CStr(plageFITID(i, 1))) Then
-                dictFITID.Add CStr(plageFITID(i, 1)), True
-            End If
-        Next i
-    End If
+    If derniereLigne >= 2 Then
+        Dim plageFITID As Variant
+        plageFITID = wsDonnees.Range("A2:A" & derniereLigne).Value2
 
+        If derniereLigne = 2 Then
+            ' Cas particulier : une seule ligne de donnees. Value2 renvoie alors
+            ' directement la valeur (pas un tableau 2D), UBound planterait dessus.
+            If Not dictFITID.Exists(CStr(plageFITID)) Then
+                dictFITID.Add CStr(plageFITID), True
+            End If
+        Else
+            For i = 1 To UBound(plageFITID, 1)
+                If Not dictFITID.Exists(CStr(plageFITID(i, 1))) Then
+                    dictFITID.Add CStr(plageFITID(i, 1)), True
+                End If
+            Next i
+        End If
+    End If
+    
     ' --- ETAPE 5 : Parcourir les transactions OFX -----------------------------
     ' A ce stade, on ne remplit QUE les colonnes 1 a 9 (ID .. Catégorie).
     ' Les colonnes calculees 10 a 14 (Budget, MoisBudget, ...) dependent de la
