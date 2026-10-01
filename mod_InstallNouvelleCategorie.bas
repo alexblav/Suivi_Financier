@@ -59,11 +59,11 @@ Public Sub CreerFeuilleNouvelleCategorie()
     Set ws = FeuilleSansErreur(NC_NOM_FEUILLE)
 
     If Not ws Is Nothing Then
-        reponse = MsgBox(TF("La feuille '") & NC_NOM_FEUILLE & TF("' existe d{e2}j{a2}.") & vbCrLf & _
-                         TF("Voulez-vous la reconstruire enti{e1}rement (sa mise en forme sera perdue) ?"), _
-                         vbYesNo + vbQuestion, TF("Confirmation de reconstruction"))
+        reponse = MsgBox(mod_Display.FR("La feuille '") & NC_NOM_FEUILLE & mod_Display.FR("' existe d{e2}j{a2}.") & vbCrLf & _
+                         mod_Display.FR("Voulez-vous la reconstruire enti{e1}rement (sa mise en forme sera perdue) ?"), _
+                         vbYesNo + vbQuestion, mod_Display.FR("Confirmation de reconstruction"))
         If reponse = vbNo Then
-            MsgBox TF("Installation annul{e2}e, rien n'a {e2}t{e2} modifi{e2}."), vbInformation
+            MsgBox mod_Display.FR("Installation annul{e2}e, rien n'a {e2}t{e2} modifi{e2}."), vbInformation
             Exit Sub
         End If
 
@@ -91,11 +91,11 @@ Public Sub CreerFeuilleNouvelleCategorie()
     On Error GoTo 0
     Application.ScreenUpdating = True
 
-    MsgBox TF("La feuille '") & NC_NOM_FEUILLE & TF("' a {e2}t{e2} cr{e2}{e2}e puis masqu{e2}e.") & vbCrLf & vbCrLf & _
-           TF("PROCHAINE {E2}TAPE (indispensable) : coller le code des {e2}v{e2}nements dans la feuille.") & vbCrLf & _
+    MsgBox mod_Display.FR("La feuille '") & NC_NOM_FEUILLE & mod_Display.FR("' a {e2}t{e2} cr{e2}{e2}e puis masqu{e2}e.") & vbCrLf & vbCrLf & _
+           mod_Display.FR("PROCHAINE {E2}TAPE (indispensable) : coller le code des {e2}v{e2}nements dans la feuille.") & vbCrLf & _
            "Nom interne (CodeName) de cette feuille : " & ws.CodeName & vbCrLf & vbCrLf & _
-           TF("Voir le fichier CodeBehind_frm_NouvelleCategorie.txt."), _
-           vbInformation, TF("Installation termin{e2}e")
+           mod_Display.FR("Voir le fichier CodeBehind_frm_NouvelleCategorie.txt."), _
+           vbInformation, mod_Display.FR("Installation termin{e2}e")
 
 End Sub
 
@@ -164,11 +164,11 @@ Private Sub ConstruireChamps(ByVal ws As Worksheet)
         .Font.Bold = True
         .Font.Color = RGB(60, 60, 60)
     End With
-    ws.Range(NC_ADR_TITRE).value = TF("Nouvelle cat{e2}gorie / sous-cat{e2}gorie")
+    ws.Range(NC_ADR_TITRE).value = mod_Display.FR("Nouvelle cat{e2}gorie / sous-cat{e2}gorie")
 
     ' --- Categorie ---
     With ws.Range("B6")
-        .value = TF("Cat{e2}gorie")
+        .value = mod_Display.FR("Cat{e2}gorie")
         .Font.Bold = True
         .Font.Color = RGB(31, 78, 121)
         .VerticalAlignment = xlCenter
@@ -186,7 +186,7 @@ Private Sub ConstruireChamps(ByVal ws As Worksheet)
 
     With ws.Range("B7:E7")
         .Merge
-        .value = TF("Choisissez une cat{e2}gorie existante dans la liste, ou tapez-en une nouvelle.")
+        .value = mod_Display.FR("Choisissez une cat{e2}gorie existante dans la liste, ou tapez-en une nouvelle.")
         .Font.Size = 8.5
         .Font.Italic = True
         .Font.Color = RGB(120, 120, 120)
@@ -194,7 +194,7 @@ Private Sub ConstruireChamps(ByVal ws As Worksheet)
 
     ' --- Sous-categorie ---
     With ws.Range("B9")
-        .value = TF("Sous-cat{e2}gorie")
+        .value = mod_Display.FR("Sous-cat{e2}gorie")
         .Font.Bold = True
         .Font.Color = RGB(31, 78, 121)
         .VerticalAlignment = xlCenter
@@ -212,8 +212,8 @@ Private Sub ConstruireChamps(ByVal ws As Worksheet)
 
     With ws.Range("B10:E10")
         .Merge
-        .value = TF("Sous-cat{e2}gories d{e2}j{a2} connues de la cat{e2}gorie ci-dessus, ou tapez-en une nouvelle.") & vbCrLf & _
-                 TF("Vous pouvez aussi laisser ce champ vide.")
+        .value = mod_Display.FR("Sous-cat{e2}gories d{e2}j{a2} connues de la cat{e2}gorie ci-dessus, ou tapez-en une nouvelle.") & vbCrLf & _
+                 mod_Display.FR("Vous pouvez aussi laisser ce champ vide.")
         .Font.Size = 8.5
         .Font.Italic = True
         .Font.Color = RGB(120, 120, 120)
@@ -241,12 +241,12 @@ Public Sub AfficherFeuilleNouvelleCategoriePourEdition()
     Dim ws As Worksheet
     Set ws = FeuilleSansErreur(NC_NOM_FEUILLE)
     If ws Is Nothing Then
-        MsgBox TF("La feuille n'existe pas encore. Ex{e2}cutez CreerFeuilleNouvelleCategorie."), vbExclamation
+        MsgBox mod_Display.FR("La feuille n'existe pas encore. Ex{e2}cutez CreerFeuilleNouvelleCategorie."), vbExclamation
         Exit Sub
     End If
     ws.Visible = xlSheetVisible
     ws.Activate
-    MsgBox TF("Feuille visible. Remasquez-la avec : MasquerFeuilleNouvelleCategorieApresEdition"), vbInformation
+    MsgBox mod_Display.FR("Feuille visible. Remasquez-la avec : MasquerFeuilleNouvelleCategorieApresEdition"), vbInformation
 End Sub
 
 Public Sub MasquerFeuilleNouvelleCategorieApresEdition()
@@ -254,7 +254,7 @@ Public Sub MasquerFeuilleNouvelleCategorieApresEdition()
     Set ws = FeuilleSansErreur(NC_NOM_FEUILLE)
     If ws Is Nothing Then Exit Sub
     ws.Visible = xlSheetVeryHidden
-    MsgBox TF("Feuille de nouveau masqu{e2}e."), vbInformation
+    MsgBox mod_Display.FR("Feuille de nouveau masqu{e2}e."), vbInformation
 End Sub
 
 
@@ -276,14 +276,3 @@ Private Sub SupprimerFormes(ByVal ws As Worksheet)
         ws.Shapes(i).Delete
     Next i
 End Sub
-
-' Traduit des codes en lettres accentuees (le fichier reste 100% ASCII).
-Private Function TF(ByVal texte As String) As String
-    Dim r As String
-    r = texte
-    r = Replace(r, "{e2}", ChrW(233))
-    r = Replace(r, "{e1}", ChrW(232))
-    r = Replace(r, "{a2}", ChrW(224))
-    r = Replace(r, "{E2}", ChrW(201))
-    TF = r
-End Function

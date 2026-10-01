@@ -74,11 +74,11 @@ Public Sub CreerFeuilleControleCategories()
 
     If Not ws Is Nothing Then
         ' La feuille existe deja : on demande confirmation avant de tout reconstruire.
-        reponse = MsgBox(TF("La feuille '") & CTRL_NOM_FEUILLE & TF("' existe d{e2}j{a2}.") & vbCrLf & _
-                         TF("Voulez-vous la reconstruire enti{e1}rement (sa mise en forme sera perdue) ?"), _
-                         vbYesNo + vbQuestion, TF("Confirmation de reconstruction"))
+        reponse = MsgBox(mod_Display.FR("La feuille '") & CTRL_NOM_FEUILLE & mod_Display.FR("' existe d{e2}j{a2}.") & vbCrLf & _
+                         mod_Display.FR("Voulez-vous la reconstruire enti{e1}rement (sa mise en forme sera perdue) ?"), _
+                         vbYesNo + vbQuestion, mod_Display.FR("Confirmation de reconstruction"))
         If reponse = vbNo Then
-            MsgBox TF("Installation annul{e2}e, rien n'a {e2}t{e2} modifi{e2}."), vbInformation
+            MsgBox mod_Display.FR("Installation annul{e2}e, rien n'a {e2}t{e2} modifi{e2}."), vbInformation
             Exit Sub
         End If
 
@@ -112,11 +112,11 @@ Public Sub CreerFeuilleControleCategories()
     On Error GoTo 0
     Application.ScreenUpdating = True
 
-    MsgBox TF("La feuille '") & CTRL_NOM_FEUILLE & TF("' a {e2}t{e2} cr{e2}{e2}e puis masqu{e2}e.") & vbCrLf & vbCrLf & _
-           TF("PROCHAINE {E2}TAPE (indispensable) : coller le code des {e2}v{e2}nements dans la feuille.") & vbCrLf & _
+    MsgBox mod_Display.FR("La feuille '") & CTRL_NOM_FEUILLE & mod_Display.FR("' a {e2}t{e2} cr{e2}{e2}e puis masqu{e2}e.") & vbCrLf & vbCrLf & _
+           mod_Display.FR("PROCHAINE {E2}TAPE (indispensable) : coller le code des {e2}v{e2}nements dans la feuille.") & vbCrLf & _
            "Nom interne (CodeName) de cette feuille : " & ws.CodeName & vbCrLf & vbCrLf & _
-           TF("Voir le fichier CodeBehind_frm_ControleCategories.txt."), _
-           vbInformation, TF("Installation termin{e2}e")
+           mod_Display.FR("Voir le fichier CodeBehind_frm_ControleCategories.txt."), _
+           vbInformation, mod_Display.FR("Installation termin{e2}e")
 
 End Sub
 
@@ -162,7 +162,7 @@ Private Sub ConstruireBoutons(ByVal ws As Worksheet)
     ' --- Bouton "Precedent" (cellule B2) ---
     Set zone = ws.Cells(CTRL_LIGNE_BOUTONS, 2)
     AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, _
-                  "< " & TF("Pr{e2}c{e2}dent"), "ControleOperationPrecedente", "btnCtrlPrecedent"
+                  "< " & mod_Display.FR("Pr{e2}c{e2}dent"), "ControleOperationPrecedente", "btnCtrlPrecedent"
 
     ' --- Bouton "Suivant" (moitie gauche de la cellule C2) ---
     Set zone = ws.Cells(CTRL_LIGNE_BOUTONS, 3)
@@ -205,7 +205,7 @@ Private Sub ConstruireTitreEtInformations(ByVal ws As Worksheet)
         .Font.Bold = True
         .Font.Color = RGB(60, 60, 60)
     End With
-    ws.Range(CTRL_ADR_TITRE).value = TF("Contr{o1}le des cat{e2}gories des op{e2}rations import{e2}es")
+    ws.Range(CTRL_ADR_TITRE).value = mod_Display.FR("Contr{o1}le des cat{e2}gories des op{e2}rations import{e2}es")
 
     ' --- Compteur "Operation X / N" (rempli par le programme) ---
     With ws.Range("B5:E5")
@@ -218,9 +218,9 @@ Private Sub ConstruireTitreEtInformations(ByVal ws As Worksheet)
     ' --- Etiquettes (colonne B) ---
     EcrireEtiquette ws, "B7", "Date"
     EcrireEtiquette ws, "B8", "Tiers"
-    EcrireEtiquette ws, "B9", TF("Libell{e2} / Notes")
+    EcrireEtiquette ws, "B9", mod_Display.FR("Libell{e2} / Notes")
     EcrireEtiquette ws, "B10", "Montant"
-    EcrireEtiquette ws, "B11", TF("Cat{e2}gorie source (banque)")
+    EcrireEtiquette ws, "B11", mod_Display.FR("Cat{e2}gorie source (banque)")
 
     ' --- Valeurs (colonne C) : format TEXTE pour que rien ne soit reinterprete ---
     With ws.Range("C7:C11")
@@ -244,7 +244,7 @@ Private Sub ConstruireTitreEtInformations(ByVal ws As Worksheet)
     Dim zoneBoutonVentiler As Range
     Set zoneBoutonVentiler = ws.Range("D10:E10")
     AjouterBouton ws, zoneBoutonVentiler.Left, zoneBoutonVentiler.Top, zoneBoutonVentiler.Width, zoneBoutonVentiler.Height, _
-                  TF("Ventiler..."), "ControleVentiler", "btnCtrlVentiler"
+                  mod_Display.FR("Ventiler..."), "ControleVentiler", "btnCtrlVentiler"
 
 End Sub
 
@@ -267,8 +267,8 @@ End Sub
 ' chaque ouverture du formulaire (voir mod_ControleCategories).
 Private Sub ConstruireZoneSaisie(ByVal ws As Worksheet)
 
-    EcrireEtiquette ws, "B13", TF("Cat{e2}gorie")
-    EcrireEtiquette ws, "B14", TF("Sous-cat{e2}gorie")
+    EcrireEtiquette ws, "B13", mod_Display.FR("Cat{e2}gorie")
+    EcrireEtiquette ws, "B14", mod_Display.FR("Sous-cat{e2}gorie")
     ws.Range("B13:B14").Font.Color = RGB(31, 78, 121)
 
     With ws.Range("C13:C14")
@@ -288,7 +288,7 @@ Private Sub ConstruireZoneSaisie(ByVal ws As Worksheet)
     Dim zoneBoutonNouvelle As Range
     Set zoneBoutonNouvelle = ws.Range("D13:E13")
     AjouterBouton ws, zoneBoutonNouvelle.Left, zoneBoutonNouvelle.Top, zoneBoutonNouvelle.Width, zoneBoutonNouvelle.Height, _
-                  "+ " & TF("Nouvelle cat{e2}gorie"), "ControleNouvelleCategorie", "btnCtrlNouvelleCategorie"
+                  "+ " & mod_Display.FR("Nouvelle cat{e2}gorie"), "ControleNouvelleCategorie", "btnCtrlNouvelleCategorie"
 
     ' --- Message d'aide (change selon l'operation affichee) ---
     With ws.Range("B16:E16")
@@ -315,11 +315,11 @@ Private Sub ConstruireInstructions(ByVal ws As Worksheet)
 
     With ws.Range("B19:E23")
         .Merge
-        .value = TF("1. V{e2}rifiez les informations de l'op{e2}ration (en haut).") & Chr(10) & _
-                 TF("2. Modifiez si besoin la Cat{e2}gorie, puis la Sous-cat{e2}gorie (listes d{e2}roulantes).") & Chr(10) & _
-                 TF("3. Passez {a2} l'op{e2}ration suivante avec 'Suivant' (ou revenez avec 'Pr{e2}c{e2}dent').") & Chr(10) & _
-                 TF("4. Quand tout est contr{o1}l{e2}, cliquez sur 'Terminer et continuer'.") & Chr(10) & _
-                 TF("Vos choix ne sont pris en compte qu'apr{e1}s 'Terminer et continuer'.")
+        .value = mod_Display.FR("1. V{e2}rifiez les informations de l'op{e2}ration (en haut).") & Chr(10) & _
+                 mod_Display.FR("2. Modifiez si besoin la Cat{e2}gorie, puis la Sous-cat{e2}gorie (listes d{e2}roulantes).") & Chr(10) & _
+                 mod_Display.FR("3. Passez {a2} l'op{e2}ration suivante avec 'Suivant' (ou revenez avec 'Pr{e2}c{e2}dent').") & Chr(10) & _
+                 mod_Display.FR("4. Quand tout est contr{o1}l{e2}, cliquez sur 'Terminer et continuer'.") & Chr(10) & _
+                 mod_Display.FR("Vos choix ne sont pris en compte qu'apr{e1}s 'Terminer et continuer'.")
         .WrapText = True
         .VerticalAlignment = xlTop
         .HorizontalAlignment = xlLeft
@@ -341,12 +341,12 @@ Public Sub AfficherFeuilleControlePourEdition()
     Dim ws As Worksheet
     Set ws = FeuilleSansErreur(CTRL_NOM_FEUILLE)
     If ws Is Nothing Then
-        MsgBox TF("La feuille n'existe pas encore. Ex{e2}cutez CreerFeuilleControleCategories."), vbExclamation
+        MsgBox mod_Display.FR("La feuille n'existe pas encore. Ex{e2}cutez CreerFeuilleControleCategories."), vbExclamation
         Exit Sub
     End If
     ws.Visible = xlSheetVisible
     ws.Activate
-    MsgBox TF("Feuille visible. Remasquez-la ensuite avec : MasquerFeuilleControleApresEdition"), vbInformation
+    MsgBox mod_Display.FR("Feuille visible. Remasquez-la ensuite avec : MasquerFeuilleControleApresEdition"), vbInformation
 End Sub
 
 Public Sub MasquerFeuilleControleApresEdition()
@@ -354,7 +354,7 @@ Public Sub MasquerFeuilleControleApresEdition()
     Set ws = FeuilleSansErreur(CTRL_NOM_FEUILLE)
     If ws Is Nothing Then Exit Sub
     ws.Visible = xlSheetVeryHidden
-    MsgBox TF("Feuille de nouveau masqu{e2}e."), vbInformation
+    MsgBox mod_Display.FR("Feuille de nouveau masqu{e2}e."), vbInformation
 End Sub
 
 
@@ -380,21 +380,3 @@ Private Sub SupprimerFormes(ByVal ws As Worksheet)
     Next i
 End Sub
 
-' Traduit des codes en lettres accentuees (le fichier reste 100% ASCII).
-'   {e2} = e accent aigu    {e1} = e accent grave    {ea} = e accent circonflexe
-'   {a2} = a accent grave   {o1} = o accent circonflexe   {E2} = E accent aigu majuscule
-'   {c2} = c cedille        {u2} = u accent grave    {i1} = i accent circonflexe
-Private Function TF(ByVal texte As String) As String
-    Dim r As String
-    r = texte
-    r = Replace(r, "{e2}", ChrW(233))
-    r = Replace(r, "{e1}", ChrW(232))
-    r = Replace(r, "{ea}", ChrW(234))
-    r = Replace(r, "{a2}", ChrW(224))
-    r = Replace(r, "{o1}", ChrW(244))
-    r = Replace(r, "{c2}", ChrW(231))
-    r = Replace(r, "{E2}", ChrW(201))
-    r = Replace(r, "{u2}", ChrW(249))
-    r = Replace(r, "{i1}", ChrW(238))
-    TF = r
-End Function

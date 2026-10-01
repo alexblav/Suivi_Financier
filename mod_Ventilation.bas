@@ -30,29 +30,29 @@ Option Explicit
 '   supprimee. C'est le seul moyen de supprimer une ligne pour l'instant : simple, et
 '   explicitement signale a l'operateur par un message a chaque fois que cela se produit.
 '
-'   RùOUVERTURE D'UNE VENTILATION DùJù VALIDùE (ajout suite ù un test opùrateur) :
-'   OuvrirVentilation() commence dùsormais par regarder si TblVentilations contient
-'   dùjù des lignes pour l'ID_Transaction demandù (fonction ChargerLignesExistantes
-'   plus bas). Si oui, elles sont chargùes dans g_VenLigneCat/Sous/Montant AVANT
-'   l'affichage : l'opùrateur retrouve donc ses donnùes au lieu d'un formulaire vide,
-'   que ce soit en revenant en arriùre PENDANT le mùme import (bouton "Prùcùdent" de
+'   R?OUVERTURE D'UNE VENTILATION D?J? VALID?E (ajout suite ? un test op?rateur) :
+'   OuvrirVentilation() commence d?sormais par regarder si TblVentilations contient
+'   d?j? des lignes pour l'ID_Transaction demand? (fonction ChargerLignesExistantes
+'   plus bas). Si oui, elles sont charg?es dans g_VenLigneCat/Sous/Montant AVANT
+'   l'affichage : l'op?rateur retrouve donc ses donn?es au lieu d'un formulaire vide,
+'   que ce soit en revenant en arri?re PENDANT le m?me import (bouton "Pr?c?dent" de
 '   frm_ControleCategories) ou en rouvrant plus tard depuis frm_RechercheOperations.
-'   En consùquence, VenTerminer() ne se contente plus d'AJOUTER des lignes ù la fin :
+'   En cons?quence, VenTerminer() ne se contente plus d'AJOUTER des lignes ? la fin :
 '   il supprime d'abord les anciennes lignes de cet ID_Transaction (SupprimerLignesExistantes)
-'   avant de rùùcrire la liste actuelle, pour ùviter les doublons dans TblVentilations.
-'   ATTENTION - LIMITE CONNUE : la suppression/rùùcriture rùinitialise TOUJOURS les
-'   colonnes de suivi santù (StatutSante, Notes, etc.) d'une ligne "Frais, remb santù" ù
-'   leur ùtat initial (KO/sentinelle), mùme si l'opùrateur avait dùjù traitù cette ligne
-'   dans le suivi santù. Modifier une ventilation dùjù rapprochùe cùtù santù fera donc
-'   perdre ce rapprochement, qu'il faudra refaire. Signalù ù l'opùrateur, pas encore
-'   traitù plus finement (ù discuter si ùa devient gùnant en pratique).
+'   avant de r??crire la liste actuelle, pour ?viter les doublons dans TblVentilations.
+'   ATTENTION - LIMITE CONNUE : la suppression/r??criture r?initialise TOUJOURS les
+'   colonnes de suivi sant? (StatutSante, Notes, etc.) d'une ligne "Frais, remb sant?" ?
+'   leur ?tat initial (KO/sentinelle), m?me si l'op?rateur avait d?j? trait? cette ligne
+'   dans le suivi sant?. Modifier une ventilation d?j? rapproch?e c?t? sant? fera donc
+'   perdre ce rapprochement, qu'il faudra refaire. Signal? ? l'op?rateur, pas encore
+'   trait? plus finement (? discuter si ?a devient g?nant en pratique).
 '
-' ù PROPOS DES ACCENTS : tout ce qui s'affiche dans Excel (messages, valeurs de
-' cellules) continue ù passer par la fonction TF() pour rester 100% sùr ù l'import
-' VBA. Les commentaires que j'ajoute ù partir de maintenant utilisent de vrais
-' caractùres accentuùs pour rester lisibles (convention validùe avec l'opùrateur) ;
+' ? PROPOS DES ACCENTS : tout ce qui s'affiche dans Excel (messages, valeurs de
+' cellules) continue ? passer par la fonction mod_Display.FR() pour rester 100% s?r ? l'import
+' VBA. Les commentaires que j'ajoute ? partir de maintenant utilisent de vrais
+' caract?res accentu?s pour rester lisibles (convention valid?e avec l'op?rateur) ;
 ' les anciens commentaires du fichier restent tels quels pour l'instant (le grand
-' nettoyage gùnùral est volontairement reportù ù aprùs la mise en production).
+' nettoyage g?n?ral est volontairement report? ? apr?s la mise en production).
 ' =====================================================================================
 
 ' --- Etat du formulaire ------------------------------------------------------------------
@@ -103,8 +103,8 @@ Public Function OuvrirVentilation(ByVal idTransaction As String, ByVal dateOp As
 
     Set ws = FeuilleSansErreur(VEN_NOM_FEUILLE)
     If ws Is Nothing Then
-        MsgBox TF("La feuille '") & VEN_NOM_FEUILLE & TF("' est introuvable.") & vbCrLf & _
-               TF("Ex{e2}cutez d'abord la macro PreparerPhase4Ventilation."), vbExclamation
+        MsgBox mod_Display.FR("La feuille '") & VEN_NOM_FEUILLE & mod_Display.FR("' est introuvable.") & vbCrLf & _
+               mod_Display.FR("Ex{e2}cutez d'abord la macro PreparerPhase4Ventilation."), vbExclamation
         Exit Function
     End If
 
@@ -115,10 +115,10 @@ Public Function OuvrirVentilation(ByVal idTransaction As String, ByVal dateOp As
     g_VenNbLignes = 0
     g_VenIndexEdition = 0
 
-    ' Si cette opùration a dùjù ùtù ventilùe auparavant (TblVentilations contient
-    ' dùjù des lignes pour cet ID_Transaction), on les recharge ici AVANT d'afficher
-    ' la feuille, pour que l'opùrateur retrouve son dùtail au lieu d'un formulaire
-    ' vide. Voir l'explication complùte en tùte de module.
+    ' Si cette op?ration a d?j? ?t? ventil?e auparavant (TblVentilations contient
+    ' d?j? des lignes pour cet ID_Transaction), on les recharge ici AVANT d'afficher
+    ' la feuille, pour que l'op?rateur retrouve son d?tail au lieu d'un formulaire
+    ' vide. Voir l'explication compl?te en t?te de module.
     ChargerLignesExistantes idTransaction
 
     RemplirEntete ws, dateOp, tiers, libelle, montantOp, categorieActuelle, sousCategorieActuelle
@@ -168,7 +168,7 @@ Erreur:
     Application.EnableEvents = True
     g_VenEnCours = False
     g_VenVerrouActif = False
-    MsgBox TF("Erreur inattendue dans la ventilation :") & vbCrLf & _
+    MsgBox mod_Display.FR("Erreur inattendue dans la ventilation :") & vbCrLf & _
            Err.Number & " - " & Err.Description, vbCritical
     OuvrirVentilation = False
 
@@ -197,7 +197,7 @@ Private Sub RemplirEntete(ByVal ws As Worksheet, ByVal dateOp As Variant, ByVal 
 
     catAffichee = categorieActuelle
     If sousCategorieActuelle <> "" Then catAffichee = catAffichee & " / " & sousCategorieActuelle
-    If catAffichee = "" Then catAffichee = "(" & TF("aucune") & ")"
+    If catAffichee = "" Then catAffichee = "(" & mod_Display.FR("aucune") & ")"
     ws.Range(VEN_ADR_CATACTUELLE).value = catAffichee
 
     ws.Range(VEN_ADR_MONTANT_A_VENTILER).value = Abs(montantOp)
@@ -278,9 +278,9 @@ Private Sub PoserValidationSaisieCategorie(ByVal ws As Worksheet)
         .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:="=ListeCategories"
         .IgnoreBlank = True
         .InCellDropdown = True
-        .ErrorTitle = TF("Cat{e2}gorie inconnue")
-        .ErrorMessage = TF("Choisissez une cat{e2}gorie dans la liste, ou laissez le champ vide.") & vbCrLf & _
-                        TF("Pour cr{e2}er une nouvelle cat{e2}gorie, utilisez le bouton '+ Nouvelle cat{e2}gorie'.")
+        .ErrorTitle = mod_Display.FR("Cat{e2}gorie inconnue")
+        .ErrorMessage = mod_Display.FR("Choisissez une cat{e2}gorie dans la liste, ou laissez le champ vide.") & vbCrLf & _
+                        mod_Display.FR("Pour cr{e2}er une nouvelle cat{e2}gorie, utilisez le bouton '+ Nouvelle cat{e2}gorie'.")
     End With
 End Sub
 
@@ -318,10 +318,10 @@ Private Sub RemplirListeSousCatSaisie(ByVal ws As Worksheet, ByVal categorie As 
         .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:="=ListeSousCatVentSaisie"
         .IgnoreBlank = True
         .InCellDropdown = True
-        .ErrorTitle = TF("Sous-cat{e2}gorie inconnue")
-        .ErrorMessage = TF("Cette sous-cat{e2}gorie n'existe pas pour la cat{e2}gorie choisie.") & vbCrLf & _
-                        TF("Choisissez-en une dans la liste, laissez le champ vide, ou utilisez le bouton") & _
-                        " '+ " & TF("Nouvelle cat{e2}gorie") & "' " & TF("pour en cr{e2}er une nouvelle.")
+        .ErrorTitle = mod_Display.FR("Sous-cat{e2}gorie inconnue")
+        .ErrorMessage = mod_Display.FR("Cette sous-cat{e2}gorie n'existe pas pour la cat{e2}gorie choisie.") & vbCrLf & _
+                        mod_Display.FR("Choisissez-en une dans la liste, laissez le champ vide, ou utilisez le bouton") & _
+                        " '+ " & mod_Display.FR("Nouvelle cat{e2}gorie") & "' " & mod_Display.FR("pour en cr{e2}er une nouvelle.")
     End With
 
 End Sub
@@ -350,7 +350,7 @@ Public Sub VenTraiterChangement(ByVal ws As Worksheet, ByVal Target As Range)
 Sortie:
     numErr = Err.Number
     Application.EnableEvents = True
-    If numErr <> 0 Then MsgBox TF("Erreur lors du changement de cat{e2}gorie : ") & Err.Description, vbExclamation
+    If numErr <> 0 Then MsgBox mod_Display.FR("Erreur lors du changement de cat{e2}gorie : ") & Err.Description, vbExclamation
 
 End Sub
 
@@ -399,7 +399,7 @@ Public Sub VenNouvelleCategorie()
 Erreur:
     g_VenVerrouActif = True
     Application.EnableEvents = True
-    MsgBox TF("Erreur dans VenNouvelleCategorie : ") & Err.Number & " - " & Err.Description, vbCritical
+    MsgBox mod_Display.FR("Erreur dans VenNouvelleCategorie : ") & Err.Number & " - " & Err.Description, vbCritical
 
 End Sub
 
@@ -421,17 +421,17 @@ Public Sub VenAjouterLigne()
     Montant = ws.Range(VEN_ADR_SAISIE_MONTANT).Value2
 
     If cat = "" Then
-        ws.Range(VEN_ADR_SAISIE_MESSAGE).value = TF("La cat{e2}gorie est obligatoire.")
+        ws.Range(VEN_ADR_SAISIE_MESSAGE).value = mod_Display.FR("La cat{e2}gorie est obligatoire.")
         Exit Sub
     End If
     If Not IsNumeric(Montant) Or CDbl(Montant) <= 0 Then
-        ws.Range(VEN_ADR_SAISIE_MESSAGE).value = TF("Le montant doit {ea}tre un nombre positif.")
+        ws.Range(VEN_ADR_SAISIE_MESSAGE).value = mod_Display.FR("Le montant doit {ea}tre un nombre positif.")
         Exit Sub
     End If
 
     listeCat = mod_Categories.ObtenirCategories()
     If Not TrouverExact(cat, listeCat) Then
-        ws.Range(VEN_ADR_SAISIE_MESSAGE).value = TF("La cat{e2}gorie '") & cat & TF("' n'existe pas.")
+        ws.Range(VEN_ADR_SAISIE_MESSAGE).value = mod_Display.FR("La cat{e2}gorie '") & cat & mod_Display.FR("' n'existe pas.")
         Exit Sub
     End If
     cat = mod_Categories.FormeCanonique(cat, listeCat)
@@ -439,8 +439,8 @@ Public Sub VenAjouterLigne()
     If sous <> "" Then
         listeSous = mod_Categories.ObtenirSousCategories(cat)
         If Not TrouverExact(sous, listeSous) Then
-            ws.Range(VEN_ADR_SAISIE_MESSAGE).value = TF("La sous-cat{e2}gorie '") & sous & _
-                                                      TF("' n'existe pas pour '") & cat & "'."
+            ws.Range(VEN_ADR_SAISIE_MESSAGE).value = mod_Display.FR("La sous-cat{e2}gorie '") & sous & _
+                                                      mod_Display.FR("' n'existe pas pour '") & cat & "'."
             Exit Sub
         End If
         sous = mod_Categories.FormeCanonique(sous, listeSous)
@@ -449,7 +449,7 @@ Public Sub VenAjouterLigne()
     If g_VenIndexEdition = 0 Then
         ' Mode AJOUT : une ligne de plus.
         If g_VenNbLignes >= VEN_NB_LIGNES Then
-            ws.Range(VEN_ADR_SAISIE_MESSAGE).value = TF("Limite de ") & VEN_NB_LIGNES & TF(" lignes atteinte.")
+            ws.Range(VEN_ADR_SAISIE_MESSAGE).value = mod_Display.FR("Limite de ") & VEN_NB_LIGNES & mod_Display.FR(" lignes atteinte.")
             Exit Sub
         End If
         g_VenNbLignes = g_VenNbLignes + 1
@@ -473,7 +473,7 @@ Public Sub VenAjouterLigne()
 
 Erreur:
     Application.EnableEvents = True
-    MsgBox TF("Erreur dans VenAjouterLigne : ") & Err.Number & " - " & Err.Description, vbCritical
+    MsgBox mod_Display.FR("Erreur dans VenAjouterLigne : ") & Err.Number & " - " & Err.Description, vbCritical
 
 End Sub
 
@@ -488,7 +488,7 @@ Public Sub VenEffacerSaisie()
     Exit Sub
 Erreur:
     Application.EnableEvents = True
-    MsgBox TF("Erreur dans VenEffacerSaisie : ") & Err.Number & " - " & Err.Description, vbCritical
+    MsgBox mod_Display.FR("Erreur dans VenEffacerSaisie : ") & Err.Number & " - " & Err.Description, vbCritical
 End Sub
 
 Private Sub ViderChampsSaisie(ByVal ws As Worksheet)
@@ -525,14 +525,14 @@ Public Sub VenEditerLigne()
     Set ws = ThisWorkbook.Worksheets(VEN_NOM_FEUILLE)
 
     If indice > g_VenNbLignes Then
-        MsgBox TF("Aucune ligne {a2} cette position."), vbInformation
+        MsgBox mod_Display.FR("Aucune ligne {a2} cette position."), vbInformation
         Exit Sub
     End If
 
     ' Si une autre ligne etait deja en cours de modification (retiree, jamais
     ' re-ajoutee), le signaler clairement : elle reste perdue.
     If g_VenIndexEdition <> 0 Then
-        MsgBox TF("La ligne pr{e2}c{e2}demment retir{e2}e pour modification n'a pas {e2}t{e2} valid{e2}e : elle reste supprim{e2}e."), vbInformation
+        MsgBox mod_Display.FR("La ligne pr{e2}c{e2}demment retir{e2}e pour modification n'a pas {e2}t{e2} valid{e2}e : elle reste supprim{e2}e."), vbInformation
     End If
 
     ' On charge la ligne dans le formulaire de saisie...
@@ -543,8 +543,8 @@ Public Sub VenEditerLigne()
     RemplirListeSousCatSaisie ws, g_VenLigneCat(indice)
     ws.Range(VEN_ADR_SAISIE_SOUS).value = g_VenLigneSous(indice)
     ws.Range(VEN_ADR_SAISIE_MONTANT).value = g_VenLigneMontant(indice)
-    ws.Range(VEN_ADR_SAISIE_MESSAGE).value = TF("Ligne retir{e2}e du tableau pour modification.") & _
-        TF(" Cliquez sur 'Ajouter la ligne' pour la remettre (avec vos changements), sinon elle restera supprim{e2}e.")
+    ws.Range(VEN_ADR_SAISIE_MESSAGE).value = mod_Display.FR("Ligne retir{e2}e du tableau pour modification.") & _
+        mod_Display.FR(" Cliquez sur 'Ajouter la ligne' pour la remettre (avec vos changements), sinon elle restera supprim{e2}e.")
     Application.EnableEvents = evAvant
 
     ' ...et on la retire IMMEDIATEMENT de la liste (voir l'explication en tete de module).
@@ -563,7 +563,7 @@ Public Sub VenEditerLigne()
 
 Erreur:
     Application.EnableEvents = True
-    MsgBox TF("Erreur dans VenEditerLigne : ") & Err.Number & " - " & Err.Description, vbCritical
+    MsgBox mod_Display.FR("Erreur dans VenEditerLigne : ") & Err.Number & " - " & Err.Description, vbCritical
 
 End Sub
 
@@ -580,12 +580,12 @@ Public Sub VenTerminer()
 
     If g_VenIndexEdition <> 0 Then
         ws.Range(VEN_ADR_SAISIE_MESSAGE).value = _
-            TF("Une ligne est en cours de modification : cliquez sur 'Ajouter la ligne' pour la valider, ou sur 'Effacer la saisie' pour l'abandonner, avant de terminer.")
+            mod_Display.FR("Une ligne est en cours de modification : cliquez sur 'Ajouter la ligne' pour la valider, ou sur 'Effacer la saisie' pour l'abandonner, avant de terminer.")
         Exit Sub
     End If
 
     If g_VenNbLignes = 0 Then
-        ws.Range(VEN_ADR_SAISIE_MESSAGE).value = TF("Aucune ligne ajout{e2}e. Renseignez au moins une cat{e2}gorie et un montant.")
+        ws.Range(VEN_ADR_SAISIE_MESSAGE).value = mod_Display.FR("Aucune ligne ajout{e2}e. Renseignez au moins une cat{e2}gorie et un montant.")
         Exit Sub
     End If
 
@@ -596,16 +596,16 @@ Public Sub VenTerminer()
 
     If Abs(Round(sommeSaisie, 2) - Round(aVentiler, 2)) >= 0.005 Then
         ws.Range(VEN_ADR_SAISIE_MESSAGE).value = _
-            TF("Le total saisi (") & Format(sommeSaisie, "#,##0.00") & TF(" {e2}uros) ne correspond pas au montant de l'op{e2}ration (") & _
-            Format(aVentiler, "#,##0.00") & TF(" {e2}uros).") & vbCrLf & _
-            TF("La somme des lignes doit {ea}tre EXACTEMENT {e2}gale. Corrigez avant de terminer.")
+            mod_Display.FR("Le total saisi (") & Format(sommeSaisie, "#,##0.00") & mod_Display.FR(" {e2}uros) ne correspond pas au montant de l'op{e2}ration (") & _
+            Format(aVentiler, "#,##0.00") & mod_Display.FR(" {e2}uros).") & vbCrLf & _
+            mod_Display.FR("La somme des lignes doit {ea}tre EXACTEMENT {e2}gale. Corrigez avant de terminer.")
         Exit Sub
     End If
 
     ' On repart d'une TblVentilations "propre" pour cet ID_Transaction avant de
-    ' rùùcrire la liste actuelle : sans ùa, rouvrir une ventilation dùjù existante
-    ' pour la corriger empilerait des lignes en double (voir l'explication complùte
-    ' en tùte de module, y compris sa limite connue cùtù suivi santù).
+    ' r??crire la liste actuelle : sans ?a, rouvrir une ventilation d?j? existante
+    ' pour la corriger empilerait des lignes en double (voir l'explication compl?te
+    ' en t?te de module, y compris sa limite connue c?t? suivi sant?).
     SupprimerLignesExistantes g_VenIdTransaction
 
     For i = 1 To g_VenNbLignes
@@ -618,7 +618,7 @@ Public Sub VenTerminer()
 
 Erreur:
     Application.EnableEvents = True
-    MsgBox TF("Erreur dans VenTerminer : ") & Err.Number & " - " & Err.Description, vbCritical
+    MsgBox mod_Display.FR("Erreur dans VenTerminer : ") & Err.Number & " - " & Err.Description, vbCritical
 
 End Sub
 
@@ -631,7 +631,7 @@ Public Sub VenAnnuler()
     If Not g_VenEnCours Then Exit Sub
     On Error GoTo Erreur
 
-    reponse = MsgBox(TF("Annuler toute la ventilation ? Rien ne sera enregistr{e2}."), vbYesNo + vbQuestion, TF("Confirmation"))
+    reponse = MsgBox(mod_Display.FR("Annuler toute la ventilation ? Rien ne sera enregistr{e2}."), vbYesNo + vbQuestion, mod_Display.FR("Confirmation"))
     If reponse = vbNo Then Exit Sub
 
     Set ws = ThisWorkbook.Worksheets(VEN_NOM_FEUILLE)
@@ -641,7 +641,7 @@ Public Sub VenAnnuler()
 
 Erreur:
     Application.EnableEvents = True
-    MsgBox TF("Erreur dans VenAnnuler : ") & Err.Number & " - " & Err.Description, vbCritical
+    MsgBox mod_Display.FR("Erreur dans VenAnnuler : ") & Err.Number & " - " & Err.Description, vbCritical
 
 End Sub
 
@@ -711,12 +711,12 @@ Private Sub AjouterLigneVentilation(ByVal idTransaction As String, ByVal categor
 End Sub
 
 ' =====================================================================================
-' RùOUVERTURE D'UNE VENTILATION EXISTANTE (ajout suite ù un test opùrateur)
+' R?OUVERTURE D'UNE VENTILATION EXISTANTE (ajout suite ? un test op?rateur)
 ' =====================================================================================
 ' Relit TblVentilations et charge dans g_VenLigneCat/Sous/Montant toutes les lignes
-' dùjù enregistrùes pour cet ID_Transaction, dans l'ordre où elles apparaissent dans
-' le tableau. Ne fait rien (g_VenNbLignes reste ù 0) si aucune ligne n'est trouvùe :
-' c'est le cas normal d'une PREMIùRE ventilation, qui doit bien dùmarrer ù vide.
+' d?j? enregistr?es pour cet ID_Transaction, dans l'ordre o? elles apparaissent dans
+' le tableau. Ne fait rien (g_VenNbLignes reste ? 0) si aucune ligne n'est trouv?e :
+' c'est le cas normal d'une PREMI?RE ventilation, qui doit bien d?marrer ? vide.
 Private Sub ChargerLignesExistantes(ByVal idTransaction As String)
 
     Dim wsData As Worksheet
@@ -726,7 +726,7 @@ Private Sub ChargerLignesExistantes(ByVal idTransaction As String)
     Dim idLigne As String
 
     Set wsData = FeuilleSansErreur(VEN_NOM_FEUILLE_DONNEES)
-    If wsData Is Nothing Then Exit Sub          ' Phase 4 pas encore installùe : rien ù charger
+    If wsData Is Nothing Then Exit Sub          ' Phase 4 pas encore install?e : rien ? charger
 
     On Error Resume Next
     Set tbl = wsData.ListObjects(VEN_NOM_TABLE)
@@ -752,12 +752,12 @@ Private Sub ChargerLignesExistantes(ByVal idTransaction As String)
 
 End Sub
 
-' Supprime de TblVentilations toutes les lignes dùjù enregistrùes pour cet
-' ID_Transaction. Appelùe par VenTerminer juste avant de rùùcrire la liste actuelle,
-' pour que "modifier une ventilation" ne fasse jamais de doublons. Boucle ù
-' l'ENVERS (de la derniùre ligne vers la premiùre) : une rùgle de base en VBA quand
-' on supprime des lignes d'un tableau au fil d'une boucle, sinon les numùros de ligne
-' restants se dùcalent sous nos pieds et on saute des lignes sans s'en rendre compte.
+' Supprime de TblVentilations toutes les lignes d?j? enregistr?es pour cet
+' ID_Transaction. Appel?e par VenTerminer juste avant de r??crire la liste actuelle,
+' pour que "modifier une ventilation" ne fasse jamais de doublons. Boucle ?
+' l'ENVERS (de la derni?re ligne vers la premi?re) : une r?gle de base en VBA quand
+' on supprime des lignes d'un tableau au fil d'une boucle, sinon les num?ros de ligne
+' restants se d?calent sous nos pieds et on saute des lignes sans s'en rendre compte.
 Private Sub SupprimerLignesExistantes(ByVal idTransaction As String)
 
     Dim wsData As Worksheet
@@ -847,15 +847,15 @@ Public Sub TesterVentilation()
 
     idTest = "TEST-" & Format(Now, "yyyymmddhhnnss")
 
-    ok = OuvrirVentilation(idTest, Date, TF("Tiers de test"), TF("Op{e2}ration fictive pour tester le formulaire"), _
-                           -100, TF("Sant{e2}, pr{e2}voyance"), "")
+    ok = OuvrirVentilation(idTest, Date, mod_Display.FR("Tiers de test"), mod_Display.FR("Op{e2}ration fictive pour tester le formulaire"), _
+                           -100, mod_Display.FR("Sant{e2}, pr{e2}voyance"), "")
 
     If ok Then
-        MsgBox TF("Ventilation enregistr{e2}e dans TblVentilations sous l'identifiant '") & idTest & "'." & vbCrLf & _
-               TF("Vous pouvez la retrouver (et la supprimer) sur la feuille '") & VEN_NOM_FEUILLE_DONNEES & "'.", _
+        MsgBox mod_Display.FR("Ventilation enregistr{e2}e dans TblVentilations sous l'identifiant '") & idTest & "'." & vbCrLf & _
+               mod_Display.FR("Vous pouvez la retrouver (et la supprimer) sur la feuille '") & VEN_NOM_FEUILLE_DONNEES & "'.", _
                vbInformation, "Test"
     Else
-        MsgBox TF("Test annul{e2}. Rien n'a {e2}t{e2} enregistr{e2}."), vbInformation, "Test"
+        MsgBox mod_Display.FR("Test annul{e2}. Rien n'a {e2}t{e2} enregistr{e2}."), vbInformation, "Test"
     End If
 
 End Sub
@@ -917,13 +917,5 @@ Private Function CategorieVentilePublique() As String
     CategorieVentilePublique = "Ventil" & ChrW(233)
 End Function
 
-' Traduit des codes en lettres accentuees (le fichier reste 100% ASCII).
-Private Function TF(ByVal texte As String) As String
-    Dim r As String
-    r = texte
-    r = Replace(r, "{e2}", ChrW(233))
-    r = Replace(r, "{e1}", ChrW(232))
-    r = Replace(r, "{ea}", ChrW(234))
-    r = Replace(r, "{a2}", ChrW(224))
-    TF = r
-End Function
+
+

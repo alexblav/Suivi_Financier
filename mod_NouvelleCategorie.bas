@@ -22,7 +22,7 @@ Option Explicit
 '   Le formulaire peut aussi etre teste seul (voir TesterNouvelleCategorie), sans passer
 '   par le formulaire de controle.
 '
-' A PROPOS DES ACCENTS : fichier 100% ASCII, accents fabriques par la fonction TF().
+' A PROPOS DES ACCENTS : fichier 100% ASCII, accents fabriques par la fonction mod_Display.FR().
 ' =====================================================================================
 
 ' --- Etat du formulaire ------------------------------------------------------------------
@@ -53,8 +53,8 @@ Public Function OuvrirNouvelleCategorie(ByVal catInitiale As String, ByVal sousI
 
     Set ws = FeuilleSansErreur(NC_NOM_FEUILLE)
     If ws Is Nothing Then
-        MsgBox TF("La feuille '") & NC_NOM_FEUILLE & TF("' est introuvable.") & vbCrLf & _
-               TF("Ex{e2}cutez d'abord la macro CreerFeuilleNouvelleCategorie."), vbExclamation
+        MsgBox mod_Display.FR("La feuille '") & NC_NOM_FEUILLE & mod_Display.FR("' est introuvable.") & vbCrLf & _
+               mod_Display.FR("Ex{e2}cutez d'abord la macro CreerFeuilleNouvelleCategorie."), vbExclamation
         Exit Function
     End If
 
@@ -94,7 +94,7 @@ Erreur:
     Application.EnableEvents = True
     g_NcEnCours = False
     g_NcVerrouActif = False
-    MsgBox TF("Erreur inattendue dans la cr{e2}ation de cat{e2}gorie :") & vbCrLf & _
+    MsgBox mod_Display.FR("Erreur inattendue dans la cr{e2}ation de cat{e2}gorie :") & vbCrLf & _
            Err.Number & " - " & Err.Description, vbCritical
     OuvrirNouvelleCategorie = False
 
@@ -223,7 +223,7 @@ Public Sub NcTraiterChangement(ByVal ws As Worksheet, ByVal Target As Range)
 Sortie:
     numErr = Err.Number
     Application.EnableEvents = True
-    If numErr <> 0 Then MsgBox TF("Erreur lors du changement de cat{e2}gorie : ") & Err.Description, vbExclamation
+    If numErr <> 0 Then MsgBox mod_Display.FR("Erreur lors du changement de cat{e2}gorie : ") & Err.Description, vbExclamation
 
 End Sub
 
@@ -255,7 +255,7 @@ Public Sub NcValider()
     sous = mod_DataStructure.CellText(ws.Range(NC_ADR_SOUS).value)
 
     If cat = "" Then
-        ws.Range(NC_ADR_MESSAGE).value = TF("La cat{e2}gorie est obligatoire.")
+        ws.Range(NC_ADR_MESSAGE).value = mod_Display.FR("La cat{e2}gorie est obligatoire.")
         Exit Sub
     End If
 
@@ -266,11 +266,11 @@ Public Sub NcValider()
     ' categorie existante la plus proche avant de creer un doublon.
     listeCat = mod_Categories.ObtenirCategories()
     If mod_Categories.TrouverCorrespondanceProche(cat, listeCat, 2, 4, procheCat) Then
-        reponse = MsgBox(TF("Vous avez saisi '") & cat & "'." & vbCrLf & _
-                         TF("Une cat{e2}gorie tr{e1}s proche existe d{e2}j{a2} : '") & procheCat & "'." & vbCrLf & vbCrLf & _
-                         TF("OUI : utiliser '") & procheCat & TF("' (recommand{e2}).") & vbCrLf & _
-                         TF("NON : cr{e2}er quand m{ea}me '") & cat & TF("' comme nouvelle cat{e2}gorie."), _
-                         vbYesNo + vbQuestion, TF("Cat{e2}gorie proche existante"))
+        reponse = MsgBox(mod_Display.FR("Vous avez saisi '") & cat & "'." & vbCrLf & _
+                         mod_Display.FR("Une cat{e2}gorie tr{e1}s proche existe d{e2}j{a2} : '") & procheCat & "'." & vbCrLf & vbCrLf & _
+                         mod_Display.FR("OUI : utiliser '") & procheCat & mod_Display.FR("' (recommand{e2}).") & vbCrLf & _
+                         mod_Display.FR("NON : cr{e2}er quand m{ea}me '") & cat & mod_Display.FR("' comme nouvelle cat{e2}gorie."), _
+                         vbYesNo + vbQuestion, mod_Display.FR("Cat{e2}gorie proche existante"))
         If reponse = vbYes Then cat = procheCat
     End If
 
@@ -281,11 +281,11 @@ Public Sub NcValider()
     If sous <> "" Then
         listeSous = mod_Categories.ObtenirSousCategories(cat)
         If mod_Categories.TrouverCorrespondanceProche(sous, listeSous, 2, 4, procheSous) Then
-            reponse = MsgBox(TF("Vous avez saisi '") & sous & "'." & vbCrLf & _
-                             TF("Une sous-cat{e2}gorie tr{e1}s proche existe d{e2}j{a2} dans '") & cat & TF("' : '") & procheSous & "'." & vbCrLf & vbCrLf & _
-                             TF("OUI : utiliser '") & procheSous & TF("' (recommand{e2}).") & vbCrLf & _
-                             TF("NON : cr{e2}er quand m{ea}me '") & sous & TF("' comme nouvelle sous-cat{e2}gorie."), _
-                             vbYesNo + vbQuestion, TF("Sous-cat{e2}gorie proche existante"))
+            reponse = MsgBox(mod_Display.FR("Vous avez saisi '") & sous & "'." & vbCrLf & _
+                             mod_Display.FR("Une sous-cat{e2}gorie tr{e1}s proche existe d{e2}j{a2} dans '") & cat & mod_Display.FR("' : '") & procheSous & "'." & vbCrLf & vbCrLf & _
+                             mod_Display.FR("OUI : utiliser '") & procheSous & mod_Display.FR("' (recommand{e2}).") & vbCrLf & _
+                             mod_Display.FR("NON : cr{e2}er quand m{ea}me '") & sous & mod_Display.FR("' comme nouvelle sous-cat{e2}gorie."), _
+                             vbYesNo + vbQuestion, mod_Display.FR("Sous-cat{e2}gorie proche existante"))
             If reponse = vbYes Then sous = procheSous
         End If
     End If
@@ -294,8 +294,8 @@ Public Sub NcValider()
     ' est pas deja) et renvoie, par ByRef, la forme EXACTE a utiliser ensuite (par
     ' exemple si "sante" existait deja sous la forme "Sante").
     If Not mod_Categories.AjouterCategoriePersonnalisee(cat, sous) Then
-        ws.Range(NC_ADR_MESSAGE).value = TF("Le tableau de correspondance (feuille Param) est introuvable.") & _
-                                          " " & TF("Ex{e2}cutez d'abord PreparerPhase1Categories.")
+        ws.Range(NC_ADR_MESSAGE).value = mod_Display.FR("Le tableau de correspondance (feuille Param) est introuvable.") & _
+                                          " " & mod_Display.FR("Ex{e2}cutez d'abord PreparerPhase1Categories.")
         Exit Sub
     End If
 
@@ -307,7 +307,7 @@ Public Sub NcValider()
 
 Erreur:
     Application.EnableEvents = True
-    MsgBox TF("Erreur dans NcValider : ") & Err.Number & " - " & Err.Description, vbCritical
+    MsgBox mod_Display.FR("Erreur dans NcValider : ") & Err.Number & " - " & Err.Description, vbCritical
 
 End Sub
 
@@ -320,7 +320,7 @@ Public Sub NcAnnuler()
     If Not g_NcEnCours Then Exit Sub
     On Error GoTo Erreur
 
-    reponse = MsgBox(TF("Annuler la cr{e2}ation ? Rien ne sera enregistr{e2}."), vbYesNo + vbQuestion, TF("Confirmation"))
+    reponse = MsgBox(mod_Display.FR("Annuler la cr{e2}ation ? Rien ne sera enregistr{e2}."), vbYesNo + vbQuestion, mod_Display.FR("Confirmation"))
     If reponse = vbNo Then Exit Sub
 
     Set ws = ThisWorkbook.Worksheets(NC_NOM_FEUILLE)
@@ -330,7 +330,7 @@ Public Sub NcAnnuler()
 
 Erreur:
     Application.EnableEvents = True
-    MsgBox TF("Erreur dans NcAnnuler : ") & Err.Number & " - " & Err.Description, vbCritical
+    MsgBox mod_Display.FR("Erreur dans NcAnnuler : ") & Err.Number & " - " & Err.Description, vbCritical
 
 End Sub
 
@@ -361,12 +361,12 @@ Public Sub TesterNouvelleCategorie()
     Dim catRes As String, sousRes As String
 
     If mod_NouvelleCategorie.OuvrirNouvelleCategorie("", "", catRes, sousRes) Then
-        MsgBox TF("Cat{e2}gorie enregistr{e2}e dans TblCategories :") & vbCrLf & vbCrLf & _
-               TF("Cat{e2}gorie : ") & catRes & vbCrLf & _
-               TF("Sous-cat{e2}gorie : ") & IIf(sousRes = "", "(" & TF("aucune") & ")", sousRes), _
+        MsgBox mod_Display.FR("Cat{e2}gorie enregistr{e2}e dans TblCategories :") & vbCrLf & vbCrLf & _
+               mod_Display.FR("Cat{e2}gorie : ") & catRes & vbCrLf & _
+               mod_Display.FR("Sous-cat{e2}gorie : ") & IIf(sousRes = "", "(" & mod_Display.FR("aucune") & ")", sousRes), _
                vbInformation, "Test"
     Else
-        MsgBox TF("Test annul{e2}. Rien n'a {e2}t{e2} enregistr{e2}."), vbInformation, "Test"
+        MsgBox mod_Display.FR("Test annul{e2}. Rien n'a {e2}t{e2} enregistr{e2}."), vbInformation, "Test"
     End If
 
 End Sub
@@ -395,10 +395,3 @@ Private Function EstTableauAlloue(ByRef arr As Variant) As Boolean
     On Error GoTo 0
 End Function
 
-' Traduit des codes en lettres accentuees (le fichier reste 100% ASCII).
-Private Function TF(ByVal texte As String) As String
-    Dim r As String
-    r = texte
-    r = Replace(r, "{e2}", ChrW(233))
-    TF = r
-End Function

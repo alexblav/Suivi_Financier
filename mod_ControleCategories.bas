@@ -33,7 +33,7 @@ Option Explicit
 '   l'appelant (plus tard : l'import, Phase 5) qui decidera de les ecrire.
 '   Pour le tester sans risque, utilisez la macro TesterControleCategories.
 '
-' A PROPOS DES ACCENTS : fichier 100% ASCII, accents fabriques par la fonction TF().
+' A PROPOS DES ACCENTS : fichier 100% ASCII, accents fabriques par la fonction mod_Display.FR().
 ' =====================================================================================
 
 ' --- Positions des colonnes du tableau "ops" que l'appelant doit fournir ---------------
@@ -130,15 +130,15 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
     ' --- Pre-requis 1 : la feuille-formulaire doit exister -------------------------------
     Set ws = FeuilleSansErreur(CTRL_NOM_FEUILLE)
     If ws Is Nothing Then
-        MsgBox TF("La feuille '") & CTRL_NOM_FEUILLE & TF("' est introuvable.") & vbCrLf & _
-               TF("Ex{e2}cutez d'abord la macro CreerFeuilleControleCategories."), vbExclamation
+        MsgBox mod_Display.FR("La feuille '") & CTRL_NOM_FEUILLE & mod_Display.FR("' est introuvable.") & vbCrLf & _
+               mod_Display.FR("Ex{e2}cutez d'abord la macro CreerFeuilleControleCategories."), vbExclamation
         Exit Function
     End If
 
     ' --- Pre-requis 2 : le tableau de correspondance doit exister et contenir des lignes ---
     If Not ChargerReferentiel() Then
-        MsgBox TF("Le tableau de correspondance TblCategories est introuvable ou vide.") & vbCrLf & _
-               TF("Ex{e2}cutez d'abord la macro PreparerPhase1Categories."), vbExclamation
+        MsgBox mod_Display.FR("Le tableau de correspondance TblCategories est introuvable ou vide.") & vbCrLf & _
+               mod_Display.FR("Ex{e2}cutez d'abord la macro PreparerPhase1Categories."), vbExclamation
         Exit Function
     End If
 
@@ -167,13 +167,13 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
     Next i
 
     ' --- ETAPE 2 : la question a l'operateur ------------------------------------------------
-    reponse = MsgBox(nbOps & TF(" op{e2}ration(s) import{e2}e(s).") & vbCrLf & vbCrLf & _
-                     TF("Les cat{e2}gories de ces op{e2}rations ont-elles {e2}t{e2} correctement renseign{e2}es dans la source (la banque) ?") & _
+    reponse = MsgBox(nbOps & mod_Display.FR(" op{e2}ration(s) import{e2}e(s).") & vbCrLf & vbCrLf & _
+                     mod_Display.FR("Les cat{e2}gories de ces op{e2}rations ont-elles {e2}t{e2} correctement renseign{e2}es dans la source (la banque) ?") & _
                      vbCrLf & vbCrLf & _
-                     TF("OUI : la correspondance est appliqu{e2}e automatiquement.") & vbCrLf & _
-                     TF("NON : les op{e2}rations vous sont pr{e2}sent{e2}es une par une pour les v{e2}rifier.") & vbCrLf & _
-                     TF("ANNULER : abandon, rien n'est appliqu{e2}."), _
-                     vbYesNoCancel + vbQuestion, TF("Contr{o1}le des cat{e2}gories"))
+                     mod_Display.FR("OUI : la correspondance est appliqu{e2}e automatiquement.") & vbCrLf & _
+                     mod_Display.FR("NON : les op{e2}rations vous sont pr{e2}sent{e2}es une par une pour les v{e2}rifier.") & vbCrLf & _
+                     mod_Display.FR("ANNULER : abandon, rien n'est appliqu{e2}."), _
+                     vbYesNoCancel + vbQuestion, mod_Display.FR("Contr{o1}le des cat{e2}gories"))
 
     If reponse = vbCancel Then Exit Function      ' False : abandon
 
@@ -190,9 +190,9 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
     Else
         ' "OUI" : on n'affiche que les operations impossibles a ranger automatiquement.
         If CTRL_FORCER_NON_RANGEES And nbARanger > 0 Then
-            MsgBox nbARanger & TF(" op{e2}ration(s) ont une cat{e2}gorie source vide ou absente du tableau de correspondance.") & _
-                   vbCrLf & TF("Elles vont vous {e2}tre pr{e2}sent{e2}es pour {e2}tre rang{e2}es."), _
-                   vbInformation, TF("Contr{o1}le des cat{e2}gories")
+            MsgBox nbARanger & mod_Display.FR(" op{e2}ration(s) ont une cat{e2}gorie source vide ou absente du tableau de correspondance.") & _
+                   vbCrLf & mod_Display.FR("Elles vont vous {e2}tre pr{e2}sent{e2}es pour {e2}tre rang{e2}es."), _
+                   vbInformation, mod_Display.FR("Contr{o1}le des cat{e2}gories")
             For i = 1 To nbOps
                 If g_CtrlARanger(i) Then
                     g_CtrlNbAffiches = g_CtrlNbAffiches + 1
@@ -225,7 +225,7 @@ Erreur:
     ' Erreur imprevue : on remet Excel en etat normal avant d'informer l'operateur.
     Application.EnableEvents = True
     g_CtrlEnCours = False
-    MsgBox TF("Erreur inattendue dans le contr{o1}le des cat{e2}gories :") & vbCrLf & _
+    MsgBox mod_Display.FR("Erreur inattendue dans le contr{o1}le des cat{e2}gories :") & vbCrLf & _
            Err.Number & " - " & Err.Description, vbCritical
     On Error Resume Next
     FermerFormulaire ws
@@ -293,7 +293,7 @@ Private Sub AfficherOperation(ByVal ws As Worksheet)
     On Error GoTo Sortie
 
     ' --- Compteur et informations (lecture seule) ---
-    ws.Range(CTRL_ADR_COMPTEUR).value = TF("Op{e2}ration ") & g_CtrlPos & " / " & g_CtrlNbAffiches
+    ws.Range(CTRL_ADR_COMPTEUR).value = mod_Display.FR("Op{e2}ration ") & g_CtrlPos & " / " & g_CtrlNbAffiches
     ws.Range(CTRL_ADR_DATE).value = FormaterDate(g_CtrlOps(i, CTRL_OP_DATE))
     ws.Range(CTRL_ADR_TIERS).value = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_TIERS))
     ws.Range(CTRL_ADR_LIBELLE).value = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_LIBELLE))
@@ -310,12 +310,12 @@ Private Sub AfficherOperation(ByVal ws As Worksheet)
 
     ' --- Message d'aide adapte ---
     If g_CtrlARanger(i) Then
-        ws.Range(CTRL_ADR_MESSAGE).value = TF("Cat{e2}gorie source '") & Source & _
-            TF("' absente du tableau de correspondance (ou vide) : choisissez la cat{e2}gorie {a2} affecter.")
+        ws.Range(CTRL_ADR_MESSAGE).value = mod_Display.FR("Cat{e2}gorie source '") & Source & _
+            mod_Display.FR("' absente du tableau de correspondance (ou vide) : choisissez la cat{e2}gorie {a2} affecter.")
         ws.Range(CTRL_ADR_MESSAGE).Font.Color = RGB(192, 80, 0)
     Else
-        ws.Range(CTRL_ADR_MESSAGE).value = TF("Cat{e2}gorie propos{e2}e par la correspondance (source : '") & Source & _
-            TF("'). Vous pouvez la modifier.")
+        ws.Range(CTRL_ADR_MESSAGE).value = mod_Display.FR("Cat{e2}gorie propos{e2}e par la correspondance (source : '") & Source & _
+            mod_Display.FR("'). Vous pouvez la modifier.")
         ws.Range(CTRL_ADR_MESSAGE).Font.Color = RGB(90, 90, 90)
     End If
 
@@ -388,10 +388,10 @@ Private Sub RemplirListeSousCategories(ByVal ws As Worksheet, ByVal categorie As
         .IgnoreBlank = True
         .InCellDropdown = True
         .ShowError = True
-        .ErrorTitle = TF("Sous-cat{e2}gorie inconnue")
-        .ErrorMessage = TF("Cette sous-cat{e2}gorie n'existe pas pour la cat{e2}gorie choisie.") & vbCrLf & _
-                        TF("Choisissez-en une dans la liste, laissez le champ vide, ou utilisez le bouton") & _
-                        " '+ " & TF("Nouvelle cat{e2}gorie") & "' " & TF("pour en cr{e2}er une nouvelle.")
+        .ErrorTitle = mod_Display.FR("Sous-cat{e2}gorie inconnue")
+        .ErrorMessage = mod_Display.FR("Cette sous-cat{e2}gorie n'existe pas pour la cat{e2}gorie choisie.") & vbCrLf & _
+                        mod_Display.FR("Choisissez-en une dans la liste, laissez le champ vide, ou utilisez le bouton") & _
+                        " '+ " & mod_Display.FR("Nouvelle cat{e2}gorie") & "' " & mod_Display.FR("pour en cr{e2}er une nouvelle.")
     End With
 
 End Sub
@@ -410,9 +410,9 @@ Private Sub PoserValidationCategorie(ByVal cellule As Range)
         .IgnoreBlank = True
         .InCellDropdown = True
         .ShowError = True
-        .ErrorTitle = TF("Cat{e2}gorie inconnue")
-        .ErrorMessage = TF("Choisissez une cat{e2}gorie dans la liste, ou laissez le champ vide.") & vbCrLf & _
-                        TF("Pour cr{e2}er une nouvelle cat{e2}gorie, utilisez le bouton '+ Nouvelle cat{e2}gorie'.")
+        .ErrorTitle = mod_Display.FR("Cat{e2}gorie inconnue")
+        .ErrorMessage = mod_Display.FR("Choisissez une cat{e2}gorie dans la liste, ou laissez le champ vide.") & vbCrLf & _
+                        mod_Display.FR("Pour cr{e2}er une nouvelle cat{e2}gorie, utilisez le bouton '+ Nouvelle cat{e2}gorie'.")
     End With
 End Sub
 
@@ -443,7 +443,7 @@ Public Sub CtrlTraiterChangement(ByVal ws As Worksheet, ByVal Target As Range)
 Sortie:
     numErr = Err.Number
     Application.EnableEvents = True
-    If numErr <> 0 Then MsgBox TF("Erreur lors du changement de cat{e2}gorie : ") & Err.Description, vbExclamation
+    If numErr <> 0 Then MsgBox mod_Display.FR("Erreur lors du changement de cat{e2}gorie : ") & Err.Description, vbExclamation
 
 End Sub
 
@@ -471,21 +471,21 @@ Private Function EnregistrerOperationAffichee(ByVal ws As Worksheet) As Boolean
 
     ' Une sous-categorie sans categorie n'a pas de sens.
     If cat = "" And sous <> "" Then
-        MsgBox TF("Une sous-cat{e2}gorie ne peut pas {e2}tre saisie sans cat{e2}gorie."), vbExclamation
+        MsgBox mod_Display.FR("Une sous-cat{e2}gorie ne peut pas {e2}tre saisie sans cat{e2}gorie."), vbExclamation
         Exit Function
     End If
 
     If cat <> "" Then
         ' La categorie doit exister dans le referentiel (un collage peut contourner le menu).
         If Not g_CtrlCats.Exists(cat) Then
-            MsgBox TF("La cat{e2}gorie '") & cat & TF("' n'existe pas dans le tableau de correspondance."), vbExclamation
+            MsgBox mod_Display.FR("La cat{e2}gorie '") & cat & mod_Display.FR("' n'existe pas dans le tableau de correspondance."), vbExclamation
             Exit Function
         End If
         cat = CStr(g_CtrlCats(cat))         ' forme canonique (bonnes majuscules)
 
         If sous <> "" Then
             If Not g_CtrlPaires.Exists(cat & vbTab & sous) Then
-                MsgBox TF("La sous-cat{e2}gorie '") & sous & TF("' n'existe pas dans la cat{e2}gorie '") & cat & "'.", vbExclamation
+                MsgBox mod_Display.FR("La sous-cat{e2}gorie '") & sous & mod_Display.FR("' n'existe pas dans la cat{e2}gorie '") & cat & "'.", vbExclamation
                 Exit Function
             End If
             sous = CStr(g_CtrlPaires(cat & vbTab & sous))
@@ -531,7 +531,7 @@ Public Sub ControleOperationSuivante()
         g_CtrlPos = g_CtrlPos + 1
         AfficherOperation ws
     Else
-        MsgBox TF("C'est la derni{e1}re op{e2}ration. Cliquez sur 'Terminer et continuer' pour valider."), vbInformation
+        MsgBox mod_Display.FR("C'est la derni{e1}re op{e2}ration. Cliquez sur 'Terminer et continuer' pour valider."), vbInformation
     End If
     Exit Sub
 Erreur:
@@ -566,8 +566,8 @@ Public Sub ControleTerminer()
 
     ' 3. Aucune operation ne peut rester sans categorie : on renvoie l'operateur dessus.
     If nbSans > 0 Then
-        MsgBox nbSans & TF(" op{e2}ration(s) n'ont pas de cat{e2}gorie.") & vbCrLf & _
-               TF("Choisissez une cat{e2}gorie pour chacune avant de terminer."), vbExclamation
+        MsgBox nbSans & mod_Display.FR(" op{e2}ration(s) n'ont pas de cat{e2}gorie.") & vbCrLf & _
+               mod_Display.FR("Choisissez une cat{e2}gorie pour chacune avant de terminer."), vbExclamation
         g_CtrlPos = premiere
         AfficherOperation ws
         Exit Sub
@@ -575,9 +575,9 @@ Public Sub ControleTerminer()
 
     ' 4. Operations jamais affichees : elles gardent la categorie proposee. On demande confirmation.
     If nbNonVues > 0 Then
-        reponse = MsgBox(nbNonVues & TF(" op{e2}ration(s) n'ont pas {e2}t{e2} affich{e2}es.") & vbCrLf & _
-                         TF("Elles garderont la cat{e2}gorie propos{e2}e par la correspondance.") & vbCrLf & vbCrLf & _
-                         "Terminer maintenant ?", vbYesNo + vbQuestion, TF("Confirmation"))
+        reponse = MsgBox(nbNonVues & mod_Display.FR(" op{e2}ration(s) n'ont pas {e2}t{e2} affich{e2}es.") & vbCrLf & _
+                         mod_Display.FR("Elles garderont la cat{e2}gorie propos{e2}e par la correspondance.") & vbCrLf & vbCrLf & _
+                         "Terminer maintenant ?", vbYesNo + vbQuestion, mod_Display.FR("Confirmation"))
         If reponse = vbNo Then Exit Sub
     End If
 
@@ -599,8 +599,8 @@ Public Sub ControleAnnuler()
     If Not g_CtrlEnCours Then Exit Sub
     On Error GoTo Erreur
 
-    reponse = MsgBox(TF("Annuler le contr{o1}le ? Aucune de vos modifications ne sera appliqu{e2}e."), _
-                     vbYesNo + vbExclamation, TF("Confirmation"))
+    reponse = MsgBox(mod_Display.FR("Annuler le contr{o1}le ? Aucune de vos modifications ne sera appliqu{e2}e."), _
+                     vbYesNo + vbExclamation, mod_Display.FR("Confirmation"))
     If reponse = vbNo Then Exit Sub
 
     Set ws = ThisWorkbook.Worksheets(CTRL_NOM_FEUILLE)
@@ -696,7 +696,7 @@ Public Sub ControleVentiler()
     idTransaction = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_ID))
 
     If idTransaction = "" Then
-        MsgBox TF("Cette op{e2}ration n'a pas d'identifiant (ID_Transaction) : impossible de la ventiler."), vbExclamation
+        MsgBox mod_Display.FR("Cette op{e2}ration n'a pas d'identifiant (ID_Transaction) : impossible de la ventiler."), vbExclamation
         Exit Sub
     End If
 
@@ -727,8 +727,8 @@ Public Sub ControleVentiler()
         ws.Range(CTRL_ADR_CAT).value = CategorieVentile
         ws.Range(CTRL_ADR_SOUS).value = ""
         RemplirListeSousCategories ws, CategorieVentile
-        ws.Range(CTRL_ADR_MESSAGE).value = TF("Op{e2}ration ventil{e2}e : la cat{e2}gorie '") & CategorieVentile & _
-                                            TF("' a {e2}t{e2} affect{e2}e. Le d{e2}tail est enregistr{e2} dans TblVentilations.")
+        ws.Range(CTRL_ADR_MESSAGE).value = mod_Display.FR("Op{e2}ration ventil{e2}e : la cat{e2}gorie '") & CategorieVentile & _
+                                            mod_Display.FR("' a {e2}t{e2} affect{e2}e. Le d{e2}tail est enregistr{e2} dans TblVentilations.")
         ws.Range(CTRL_ADR_MESSAGE).Font.Color = RGB(31, 120, 60)
         Application.EnableEvents = True
     End If
@@ -772,7 +772,7 @@ End Sub
 ' Message d'erreur commun aux boutons (le formulaire reste ouvert).
 Private Sub SignalerErreur(ByVal nomProcedure As String)
     Application.EnableEvents = True
-    MsgBox TF("Erreur dans ") & nomProcedure & " : " & Err.Number & " - " & Err.Description, vbCritical
+    MsgBox mod_Display.FR("Erreur dans ") & nomProcedure & " : " & Err.Number & " - " & Err.Description, vbCritical
 End Sub
 
 
@@ -863,10 +863,10 @@ Public Sub TesterControleCategories()
     If tblOps Is Nothing Then Exit Sub
     If tblOps.DataBodyRange Is Nothing Then Exit Sub
 
-    saisie = InputBox(TF("Combien d'op{e2}rations voulez-vous tester (1 {a2} 30) ?"), "Test du formulaire", "8")
+    saisie = InputBox(mod_Display.FR("Combien d'op{e2}rations voulez-vous tester (1 {a2} 30) ?"), "Test du formulaire", "8")
     If saisie = "" Then Exit Sub
     If Not IsNumeric(saisie) Then
-        MsgBox TF("Veuillez saisir un nombre."), vbExclamation
+        MsgBox mod_Display.FR("Veuillez saisir un nombre."), vbExclamation
         Exit Sub
     End If
     nbDemande = CLng(saisie)
@@ -903,7 +903,7 @@ Public Sub TesterControleCategories()
         End If
     Next i
     If nbTrouves = 0 Then
-        MsgBox TF("Aucune op{e2}ration avec cat{e2}gorie trouv{e2}e parmi les premi{e1}res lignes."), vbInformation
+        MsgBox mod_Display.FR("Aucune op{e2}ration avec cat{e2}gorie trouv{e2}e parmi les premi{e1}res lignes."), vbInformation
         Exit Sub
     End If
 
@@ -924,13 +924,13 @@ Public Sub TesterControleCategories()
     Next k
 
     ' Option pour tester le cas "categorie source inconnue".
-    reponse = MsgBox(TF("Simuler une cat{e2}gorie source INCONNUE sur la 1{e1}re op{e2}ration (pour tester ce cas) ?"), _
+    reponse = MsgBox(mod_Display.FR("Simuler une cat{e2}gorie source INCONNUE sur la 1{e1}re op{e2}ration (pour tester ce cas) ?"), _
                      vbYesNo + vbQuestion, "Test du formulaire")
-    If reponse = vbYes Then ops(1, CTRL_OP_CATSOURCE) = TF("Cat{e2}gorie source inconnue (test)")
+    If reponse = vbYes Then ops(1, CTRL_OP_CATSOURCE) = mod_Display.FR("Cat{e2}gorie source inconnue (test)")
 
     ' --- Appel du controle : c'est EXACTEMENT ce que fera l'import en Phase 5 ---
     If Not ControlerCategories(ops, nbTrouves, catF, sousF) Then
-        MsgBox TF("Test termin{e2} : contr{o1}le annul{e2} ou impossible. Rien n'a {e2}t{e2} modifi{e2}."), vbInformation
+        MsgBox mod_Display.FR("Test termin{e2} : contr{o1}le annul{e2} ou impossible. Rien n'a {e2}t{e2} modifi{e2}."), vbInformation
         Exit Sub
     End If
 
@@ -945,7 +945,7 @@ Public Sub TesterControleCategories()
     Next k
     If nbTrouves > 12 Then recap = recap & "..." & vbCrLf
 
-    MsgBox TF("R{e2}sultat du test (RIEN n'a {e2}t{e2} modifi{e2} dans vos donn{e2}es) :") & vbCrLf & vbCrLf & recap, _
+    MsgBox mod_Display.FR("R{e2}sultat du test (RIEN n'a {e2}t{e2} modifi{e2} dans vos donn{e2}es) :") & vbCrLf & vbCrLf & recap, _
            vbInformation, "Test du formulaire"
 
 End Sub
@@ -978,7 +978,7 @@ Private Function plageColonne(ByVal t As ListObject, ByVal nom As String, ByVal 
     Set lc = t.ListColumns(nom)
     On Error GoTo 0
     If lc Is Nothing Then
-        MsgBox TF("Colonne introuvable dans TblOperations : ") & nom, vbExclamation
+        MsgBox mod_Display.FR("Colonne introuvable dans TblOperations : ") & nom, vbExclamation
     Else
         Set plageColonne = lc.DataBodyRange.Resize(nb, 1)
     End If
@@ -1028,21 +1028,3 @@ Private Function FormaterDate(ByVal v As Variant) As String
     End If
 End Function
 
-' Traduit des codes en lettres accentuees (le fichier reste 100% ASCII).
-'   {e2} = e accent aigu    {e1} = e accent grave    {ea} = e accent circonflexe
-'   {a2} = a accent grave   {o1} = o accent circonflexe   {E2} = E accent aigu majuscule
-'   {c2} = c cedille        {u2} = u accent grave    {i1} = i accent circonflexe
-Private Function TF(ByVal texte As String) As String
-    Dim r As String
-    r = texte
-    r = Replace(r, "{e2}", ChrW(233))
-    r = Replace(r, "{e1}", ChrW(232))
-    r = Replace(r, "{ea}", ChrW(234))
-    r = Replace(r, "{a2}", ChrW(224))
-    r = Replace(r, "{o1}", ChrW(244))
-    r = Replace(r, "{c2}", ChrW(231))
-    r = Replace(r, "{E2}", ChrW(201))
-    r = Replace(r, "{u2}", ChrW(249))
-    r = Replace(r, "{i1}", ChrW(238))
-    TF = r
-End Function

@@ -178,11 +178,11 @@ Public Sub CreerFeuilleVentilation()
     Set ws = FeuilleSansErreur(VEN_NOM_FEUILLE)
 
     If Not ws Is Nothing Then
-        reponse = MsgBox(TF("La feuille '") & VEN_NOM_FEUILLE & TF("' existe d{e2}j{a2}.") & vbCrLf & _
-                         TF("Voulez-vous la reconstruire enti{e1}rement (sa mise en forme sera perdue) ?"), _
-                         vbYesNo + vbQuestion, TF("Confirmation de reconstruction"))
+        reponse = MsgBox(mod_Display.FR("La feuille '") & VEN_NOM_FEUILLE & mod_Display.FR("' existe d{e2}j{a2}.") & vbCrLf & _
+                         mod_Display.FR("Voulez-vous la reconstruire enti{e1}rement (sa mise en forme sera perdue) ?"), _
+                         vbYesNo + vbQuestion, mod_Display.FR("Confirmation de reconstruction"))
         If reponse = vbNo Then
-            MsgBox TF("Installation annul{e2}e, rien n'a {e2}t{e2} modifi{e2}."), vbInformation
+            MsgBox mod_Display.FR("Installation annul{e2}e, rien n'a {e2}t{e2} modifi{e2}."), vbInformation
             Exit Sub
         End If
         ws.Visible = xlSheetVisible
@@ -211,10 +211,10 @@ Public Sub CreerFeuilleVentilation()
     On Error GoTo 0
     Application.ScreenUpdating = True
 
-    MsgBox TF("La feuille '") & VEN_NOM_FEUILLE & TF("' a {e2}t{e2} cr{e2}{e2}e puis masqu{e2}e.") & vbCrLf & vbCrLf & _
-           TF("Si ce n'est pas deja fait : collez le code des {e2}v{e2}nements dans la feuille") & vbCrLf & _
-           "(CodeName : " & ws.CodeName & TF(") -- voir CodeBehind_frm_Ventilation.txt."), _
-           vbInformation, TF("Installation termin{e2}e")
+    MsgBox mod_Display.FR("La feuille '") & VEN_NOM_FEUILLE & mod_Display.FR("' a {e2}t{e2} cr{e2}{e2}e puis masqu{e2}e.") & vbCrLf & vbCrLf & _
+           mod_Display.FR("Si ce n'est pas deja fait : collez le code des {e2}v{e2}nements dans la feuille") & vbCrLf & _
+           "(CodeName : " & ws.CodeName & mod_Display.FR(") -- voir CodeBehind_frm_Ventilation.txt."), _
+           vbInformation, mod_Display.FR("Installation termin{e2}e")
 
 End Sub
 
@@ -254,7 +254,7 @@ Private Sub ConstruireBoutonsGlobaux(ByVal ws As Worksheet)
 
     Set zone = ws.Cells(VEN_LIGNE_BOUTONS, 2)
     AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, _
-                  TF("Terminer la ventilation"), "VenTerminer", "btnVenTerminer"
+                  mod_Display.FR("Terminer la ventilation"), "VenTerminer", "btnVenTerminer"
 
     Set zone = ws.Cells(VEN_LIGNE_BOUTONS, 3)
     AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, "Annuler", "VenAnnuler", "btnVenAnnuler"
@@ -283,13 +283,13 @@ Private Sub ConstruireEntete(ByVal ws As Worksheet)
         .Font.Bold = True
         .Font.Color = RGB(60, 60, 60)
     End With
-    ws.Range(VEN_ADR_TITRE).value = TF("Ventilation de l'op{e2}ration")
+    ws.Range(VEN_ADR_TITRE).value = mod_Display.FR("Ventilation de l'op{e2}ration")
 
     EcrireEtiquette ws, "B6", "Date"
     EcrireEtiquette ws, "B7", "Tiers"
-    EcrireEtiquette ws, "B8", TF("Libell{e2} / Notes")
+    EcrireEtiquette ws, "B8", mod_Display.FR("Libell{e2} / Notes")
     EcrireEtiquette ws, "B9", "Montant"
-    EcrireEtiquette ws, "B10", TF("Cat{e2}gorie actuelle")
+    EcrireEtiquette ws, "B10", mod_Display.FR("Cat{e2}gorie actuelle")
 
     With ws.Range("C6:C10")
         .NumberFormat = "@"
@@ -320,9 +320,9 @@ End Sub
 ' =====================================================================================
 Private Sub ConstruireTotaux(ByVal ws As Worksheet)
 
-    EcrireEtiquette ws, "B12", TF("Montant {a2} ventiler")
+    EcrireEtiquette ws, "B12", mod_Display.FR("Montant {a2} ventiler")
     EcrireEtiquette ws, "B13", "Total saisi"
-    EcrireEtiquette ws, "B14", TF("Reste {a2} ventiler")
+    EcrireEtiquette ws, "B14", mod_Display.FR("Reste {a2} ventiler")
 
     With ws.Range("C12:C14")
         ' Format numerique avec le symbole Euro en suffixe (voir mod_Ventilation pour
@@ -348,10 +348,10 @@ Private Sub ConstruireGrilleAffichage(ByVal ws As Worksheet)
     Dim ligne As Long
 
     With ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_CAT)
-        .value = TF("Cat{e2}gorie")
+        .value = mod_Display.FR("Cat{e2}gorie")
     End With
     With ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_SOUS)
-        .value = TF("Sous-cat{e2}gorie")
+        .value = mod_Display.FR("Sous-cat{e2}gorie")
     End With
     With ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_MONTANT)
         .value = "Montant"
@@ -388,7 +388,7 @@ Private Sub AjouterBoutonEditer(ByVal ws As Worksheet, ByVal ligne As Long)
     indice = ligne - VEN_LIGNE_GRILLE_DEBUT + 1
     Set zone = ws.Cells(ligne, VEN_COL_EDITER)
     AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, _
-                  TF("{E2}diter"), "VenEditerLigne", "btnVenEditerLigne" & indice
+                  mod_Display.FR("{E2}diter"), "VenEditerLigne", "btnVenEditerLigne" & indice
 End Sub
 
 
@@ -400,7 +400,7 @@ Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
     ' --- Titre de la zone ---
     With ws.Range("B" & VEN_LIGNE_SAISIE_TITRE & ":E" & VEN_LIGNE_SAISIE_TITRE)
         .Merge
-        .value = TF("Ajouter ou modifier une ligne")
+        .value = mod_Display.FR("Ajouter ou modifier une ligne")
         .Font.Bold = True
         .Font.Size = 11
         .Font.Color = RGB(60, 60, 60)
@@ -408,7 +408,7 @@ Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
     ws.rows(VEN_LIGNE_SAISIE_TITRE).RowHeight = 20
 
     ' --- Categorie + bouton "+" (meme principe que le formulaire de controle) ---
-    EcrireEtiquette ws, "B29", TF("Cat{e2}gorie")
+    EcrireEtiquette ws, "B29", mod_Display.FR("Cat{e2}gorie")
     ws.Range("B29").Font.Color = RGB(31, 78, 121)
     With ws.Range(VEN_ADR_SAISIE_CAT)
         .NumberFormat = "@"
@@ -423,10 +423,10 @@ Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
     Dim zoneBoutonNouvelle As Range
     Set zoneBoutonNouvelle = ws.Range("D29:E29")
     AjouterBouton ws, zoneBoutonNouvelle.Left, zoneBoutonNouvelle.Top, zoneBoutonNouvelle.Width, zoneBoutonNouvelle.Height, _
-                  "+ " & TF("Nouvelle cat{e2}gorie"), "VenNouvelleCategorie", "btnVenNouvelleCategorie"
+                  "+ " & mod_Display.FR("Nouvelle cat{e2}gorie"), "VenNouvelleCategorie", "btnVenNouvelleCategorie"
 
     ' --- Sous-categorie (liste dependante de la Categorie ci-dessus) ---
-    EcrireEtiquette ws, "B30", TF("Sous-cat{e2}gorie")
+    EcrireEtiquette ws, "B30", mod_Display.FR("Sous-cat{e2}gorie")
     ws.Range("B30").Font.Color = RGB(31, 78, 121)
     With ws.Range(VEN_ADR_SAISIE_SOUS)
         .NumberFormat = "@"
@@ -468,10 +468,10 @@ Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
     Dim zoneAjouter As Range, zoneEffacer As Range
     Set zoneAjouter = ws.Range("B" & VEN_LIGNE_BOUTON_AJOUTER)
     AjouterBouton ws, zoneAjouter.Left, zoneAjouter.Top, 150, zoneAjouter.Height, _
-                  TF("Ajouter la ligne"), "VenAjouterLigne", "btnVenAjouterLigne"
+                  mod_Display.FR("Ajouter la ligne"), "VenAjouterLigne", "btnVenAjouterLigne"
     Set zoneEffacer = ws.Range("D" & VEN_LIGNE_BOUTON_AJOUTER)
     AjouterBouton ws, zoneEffacer.Left, zoneEffacer.Top, 150, zoneEffacer.Height, _
-                  TF("Effacer la saisie"), "VenEffacerSaisie", "btnVenEffacerSaisie"
+                  mod_Display.FR("Effacer la saisie"), "VenEffacerSaisie", "btnVenEffacerSaisie"
 
 End Sub
 
@@ -483,14 +483,14 @@ Public Sub AfficherFeuilleVentilationPourEdition()
     Dim ws As Worksheet
     Set ws = FeuilleSansErreur(VEN_NOM_FEUILLE)
     If ws Is Nothing Then
-        MsgBox TF("La feuille n'existe pas encore. Ex{e2}cutez PreparerPhase4Ventilation."), vbExclamation
+        MsgBox mod_Display.FR("La feuille n'existe pas encore. Ex{e2}cutez PreparerPhase4Ventilation."), vbExclamation
         Exit Sub
     End If
     ws.Visible = xlSheetVisible
     ws.Activate
-    MsgBox TF("Feuille visible. Remasquez-la avec : MasquerFeuilleVentilationApresEdition") & vbCrLf & vbCrLf & _
-           TF("Rappel : les listes d{e2}roulantes ne sont pos{e2}es qu'{a2} l'ouverture normale du formulaire") & _
-           TF(" (bouton Ventiler..., ou TesterVentilation) -- elles n'apparaissent pas si vous affichez juste la feuille ainsi."), _
+    MsgBox mod_Display.FR("Feuille visible. Remasquez-la avec : MasquerFeuilleVentilationApresEdition") & vbCrLf & vbCrLf & _
+           mod_Display.FR("Rappel : les listes d{e2}roulantes ne sont pos{e2}es qu'{a2} l'ouverture normale du formulaire") & _
+           mod_Display.FR(" (bouton Ventiler..., ou TesterVentilation) -- elles n'apparaissent pas si vous affichez juste la feuille ainsi."), _
            vbInformation
 End Sub
 
@@ -499,7 +499,7 @@ Public Sub MasquerFeuilleVentilationApresEdition()
     Set ws = FeuilleSansErreur(VEN_NOM_FEUILLE)
     If ws Is Nothing Then Exit Sub
     ws.Visible = xlSheetVeryHidden
-    MsgBox TF("Feuille de nouveau masqu{e2}e."), vbInformation
+    MsgBox mod_Display.FR("Feuille de nouveau masqu{e2}e."), vbInformation
 End Sub
 
 
@@ -521,13 +521,3 @@ Private Sub SupprimerFormes(ByVal ws As Worksheet)
         ws.Shapes(i).Delete
     Next i
 End Sub
-
-Private Function TF(ByVal texte As String) As String
-    Dim r As String
-    r = texte
-    r = Replace(r, "{e2}", ChrW(233))
-    r = Replace(r, "{e1}", ChrW(232))
-    r = Replace(r, "{a2}", ChrW(224))
-    r = Replace(r, "{E2}", ChrW(201))
-    TF = r
-End Function

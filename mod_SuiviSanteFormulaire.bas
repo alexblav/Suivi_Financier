@@ -3,54 +3,54 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_SuiviSanteFormulaire
 '
-' ROLE (PHASE 2b du chantier "Suivi Santé") :
-'   Contient toute la LOGIQUE du formulaire opérateur construit en Phase 2a
+' ROLE (PHASE 2b du chantier "Suivi SantÃ©") :
+'   Contient toute la LOGIQUE du formulaire opÃ©rateur construit en Phase 2a
 '   (feuille frm_SuiviSante, module mod_InstallSuiviSanteSheet) :
-'     - repérer les depenses de santé qui ont besoin d'une action de l'opérateur
-'     - les présenter une par une dans le formulaire
-'     - ecrire les reponses de l'opérateur dans TblOperations
-'     - relancer le calcul automatique (mod_SuiviSante) après chaque cas valide
+'     - repÃ©rer les depenses de santÃ© qui ont besoin d'une action de l'opÃ©rateur
+'     - les prÃ©senter une par une dans le formulaire
+'     - ecrire les reponses de l'opÃ©rateur dans TblOperations
+'     - relancer le calcul automatique (mod_SuiviSante) aprÃ¨s chaque cas valide
 '
-'   Ce module reprend le même "verrou modal" que la resolution des catégories
-'   ambigues : la variable Public g_SaisieEnCours (déjà declaree dans le module
+'   Ce module reprend le mÃªme "verrou modal" que la resolution des catÃ©gories
+'   ambigues : la variable Public g_SaisieEnCours (dÃ©jÃ  declaree dans le module
 '   mod_ResolutionCategories) est REUTILISEE telle quelle, pas redeclaree ici.
 '
 ' QUEL CAS EST PROPOSE A L'OPERATEUR ?
-'   Une depense de santé est proposee si, après le dernier calcul automatique :
-'     - une ligne de depense existe pour ce groupe (même "Notes")
+'   Une depense de santÃ© est proposee si, aprÃ¨s le dernier calcul automatique :
+'     - une ligne de depense existe pour ce groupe (mÃªme "Notes")
 '     - StatutSante = "KO"
 '     - DepassementHoraires = FAUX
 '   (Exactement les groupes que mod_SuiviSante.CalculerSuiviSante retraiterait de
 '   toute facon au prochain import : on ne fait qu'anticiper cette liste pour
-'   pouvoir la proposer a l'opérateur MAINTENANT plutot que d'attendre.)
+'   pouvoir la proposer a l'opÃ©rateur MAINTENANT plutot que d'attendre.)
 '
-' COMMENT TESTER (avant l'intégration finale a l'import, qui sera la Phase 3) :
+' COMMENT TESTER (avant l'intÃ©gration finale a l'import, qui sera la Phase 3) :
 '   Dans la fenetre Execution immediate (Ctrl+G), taper :
 '        TraiterCasSuiviSante
 '   puis Entree. La feuille s'affiche avec le premier cas a traiter (s'il y en a).
 '
-' A PROPOS DES ACCENTS : voir la note dans mod_InstallSuiviSanteSheet. Même
+' A PROPOS DES ACCENTS : voir la note dans mod_InstallSuiviSanteSheet. MÃªme
 ' principe ici : fichier 100% ASCII, textes accentues construits via la
-' fonction FR() (recopiee ici a l'identique pour que ce module reste autonome).
+' fonction mod_Display.FR() (recopiee ici a l'identique pour que ce module reste autonome).
 '
 ' IMPORTANT SUR L'ORDRE DES DECLARATIONS DANS CE FICHIER :
 '   En VBA, toutes les declarations de niveau module (Type, variables Private/
-'   Public en dehors d'une Sub/Function) DOIVENT se trouver AVANT la première
+'   Public en dehors d'une Sub/Function) DOIVENT se trouver AVANT la premiÃ¨re
 '   Sub ou Function du module. C'est pour ca que le Type TCasSuiviSante et les
 '   variables tabCas/nbCas/indexCasCourant sont regroupes tout en haut, avant
-'   même la fonction FR (erreur déjà rencontree une fois sur le module
+'   mÃªme la fonction FR (erreur dÃ©jÃ  rencontree une fois sur le module
 '   precedent : ne pas la reproduire ici).
 ' =====================================================================================
 
 
-' --- Une "fiche" complète pour un cas a traiter : tout ce dont le formulaire a
+' --- Une "fiche" complÃ¨te pour un cas a traiter : tout ce dont le formulaire a
 '     besoin pour afficher une depense et ses remboursements lies. ---
 Private Type TCasSuiviSante
     ligneDepense As Long        ' position de la ligne de depense DANS SA TABLE SOURCE (DataBodyRange, 1 = 1ere ligne)
     Source As String            ' PHASE 6 : "O" (TblOperations) ou "V" (TblVentilations)
-    parentLigneOp As Long       ' PHASE 6 : si Source="V", ligne DANS TblOperations de l'opération parente
+    parentLigneOp As Long       ' PHASE 6 : si Source="V", ligne DANS TblOperations de l'opÃ©ration parente
                                  ' (via ID_Transaction), 0 si introuvable. Sert a corriger le Tiers, qui
-                                 ' n'existe que sur l'opération bancaire, jamais sur une ligne de ventilation.
+                                 ' n'existe que sur l'opÃ©ration bancaire, jamais sur une ligne de ventilation.
     dateDepense As Variant
     tiersDepense As String
     montantDepense As Double    ' toujours en valeur absolue (positive)
@@ -63,41 +63,22 @@ Private Type TCasSuiviSante
     franchiseActuelle As Double
     commentaireActuel As String
     ' --- Champs de contexte supplementaires (lecture seule dans le formulaire),
-    '     ajoutes pour aider l'opérateur a mieux identifier l'opération ---
+    '     ajoutes pour aider l'opÃ©rateur a mieux identifier l'opÃ©ration ---
     numChequeCtx As String
     dateConsultCtx As Variant
     speConsultCtx As String
     notesCtx As String
 End Type
 
-' état de la session en cours, conserve en memoire pendant tout le passage en
+' Ã©tat de la session en cours, conserve en memoire pendant tout le passage en
 ' revue des cas (rempli par ChargerListeCasSuiviSante, consomme par
 ' AfficherCasCourant / CasSuivantSuiviSante / ValiderCasSuiviSante).
 Private tabCas() As TCasSuiviSante
 Private nbCas As Long
 Private indexCasCourant As Long
 
-
-' =====================================================================================
-' FR : petit traducteur de marqueurs ASCII vers caracteres accentues (voir note
-' dans mod_InstallSuiviSanteSheet pour le détail des marqueurs disponibles).
-' =====================================================================================
-'Private Function FR(ByVal texte As String) As String
-'    Dim r As String
-'    r = texte
-'    r = Replace(r, "{e2}", ChrW(233))
-'    r = Replace(r, "{e1}", ChrW(232))
-'    r = Replace(r, "{ea}", ChrW(234))
-'    r = Replace(r, "{a2}", ChrW(224))
-'    r = Replace(r, "{c2}", ChrW(231))
-'    r = Replace(r, "{o2}", ChrW(244))
-'    r = Replace(r, "{i2}", ChrW(238))
-'    r = Replace(r, "{E2}", ChrW(201))
-'    FR = r
-'End Function
-
-' Même precaution que dans mod_SuiviSante : on compare toujours a "Frais, remb
-' santé" construit via ChrW(233), jamais a un caractere accentue tape en dur.
+' MÃªme precaution que dans mod_SuiviSante : on compare toujours a "Frais, remb
+' santÃ©" construit via ChrW(233), jamais a un caractere accentue tape en dur.
 Private Function CategorieSanteFormulaire() As String
     CategorieSanteFormulaire = "Frais, remb sant" & ChrW(233)
 End Function
@@ -110,8 +91,8 @@ Public Sub TraiterCasSuiviSante()
 
     Dim ws As Worksheet
 
-    ' On recalcule d'abord StatutSante/SoldeSante sur les données actuelles
-    ' (Phase 1), pour ne jamais dependre du fait que l'opérateur ait pensé a
+    ' On recalcule d'abord StatutSante/SoldeSante sur les donnÃ©es actuelles
+    ' (Phase 1), pour ne jamais dependre du fait que l'opÃ©rateur ait pensÃ© a
     ' lancer CalculerSuiviSante avant d'ouvrir le formulaire. Resume masque
     ' (AfficherResume:=False) pour ne pas polluer l'ouverture du formulaire
     ' d'un MsgBox intermediaire.
@@ -120,15 +101,15 @@ Public Sub TraiterCasSuiviSante()
     Call ChargerListeCasSuiviSante
 
     If nbCas = 0 Then
-        MsgBox FR("Aucune depense de sant{e2} n'a besoin d'{ea}tre trait{e2}e pour le moment."), _
-               vbInformation, FR("Suivi sant{e2}")
+        MsgBox mod_Display.FR("Aucune depense de sant{e2} n'a besoin d'{ea}tre trait{e2}e pour le moment."), _
+               vbInformation, mod_Display.FR("Suivi sant{e2}")
         Exit Sub
     End If
 
     Set ws = ThisWorkbook.Worksheets(mod_InstallSuiviSanteSheet.NOM_FEUILLE_SUIVI_SANTE)
 
     ' Le solde est une formule Excel toute simple qui se recalcule seule des que
-    ' l'opérateur change la Franchise : pas besoin de VBA pour ca.
+    ' l'opÃ©rateur change la Franchise : pas besoin de VBA pour ca.
     ws.Range("ssSolde").Formula = "=ssMontant-ssRemb1Montant-ssRemb2Montant-ssFranchise"
 
     ' NB : on ne protege plus la feuille (la protection provoquait une erreur
@@ -143,8 +124,8 @@ Public Sub TraiterCasSuiviSante()
     indexCasCourant = 1
     Call AfficherCasCourant(ws)
 
-    ' Même verrou que pour la resolution des catégories : on bloque ici tant que
-    ' l'opérateur n'a pas termine (utile dès la Phase 3, quand cette macro sera
+    ' MÃªme verrou que pour la resolution des catÃ©gories : on bloque ici tant que
+    ' l'opÃ©rateur n'a pas termine (utile dÃ¨s la Phase 3, quand cette macro sera
     ' appelee depuis ImporterOperationsOFX et devra suspendre l'import).
     g_SaisieEnCours = True
     Do While g_SaisieEnCours
@@ -155,18 +136,18 @@ End Sub
 
 
 ' =====================================================================================
-' ChargerListeCasSuiviSante : repère toutes les depenses de santé qui doivent
-' être proposees a l'opérateur, et remplit tabCas / nbCas.
+' ChargerListeCasSuiviSante : repÃ¨re toutes les depenses de santÃ© qui doivent
+' Ãªtre proposees a l'opÃ©rateur, et remplit tabCas / nbCas.
 ' =====================================================================================
 Private Sub ChargerListeCasSuiviSante()
 
     ' IMPORTANT : "tbl" et "tblData" ne sont PAS redeclares ici avec Dim.
-    ' Ce sont les variables PUBLIQUES declarees dans mod_Synthese, déjà
-    ' utilisées par mod_Display.RecupIndexCol pour calculer les colXxx.
+    ' Ce sont les variables PUBLIQUES declarees dans mod_Synthese, dÃ©jÃ 
+    ' utilisÃ©es par mod_Display.RecupIndexCol pour calculer les colXxx.
     Dim nbLignesTable As Long
     Dim nbLigne As Long, j As Long
 
-    Dim notesVues As Object   ' Scripting.Dictionary : evite de retraiter 2 fois le même groupe
+    Dim notesVues As Object   ' Scripting.Dictionary : evite de retraiter 2 fois le mÃªme groupe
     Dim cleNotes As String
 
     ' --- PHASE 6 : jeu de tableaux memoire pour TblVentilations, facultatif ---
@@ -191,7 +172,7 @@ Private Sub ChargerListeCasSuiviSante()
     tblData = tbl.DataBodyRange.value
     nbLignesTable = UBound(tblData, 1)
 
-    ' --- PHASE 6 : chargement de TblVentilations, si disponible et complète ---
+    ' --- PHASE 6 : chargement de TblVentilations, si disponible et complÃ¨te ---
     venDisponible = False
     Set tblVen = ObtenirTableVentilationsSSF()
     If Not tblVen Is Nothing Then
@@ -219,9 +200,9 @@ Private Sub ChargerListeCasSuiviSante()
     Set notesVues = CreateObject("Scripting.Dictionary")
 
     ' =====================================================================
-    ' Boucle externe : un tour par ligne "Frais, remb santé" de TblOperations
+    ' Boucle externe : un tour par ligne "Frais, remb santÃ©" de TblOperations
     ' rencontree, PLUS un tour par ligne de TblVentilations si elle n'a pas
-    ' déjà ete vue via une ligne de TblOperations du même groupe (Notes).
+    ' dÃ©jÃ  ete vue via une ligne de TblOperations du mÃªme groupe (Notes).
     ' =====================================================================
     For nbLigne = 1 To nbLignesTable
         If mod_DataStructure.CellText(tblData(nbLigne, colSousCategorie)) = CategorieSanteFormulaire() Then
@@ -259,7 +240,7 @@ End Sub
 ' remboursements) qui partage la valeur "cleNotes", en parcourant TblOperations
 ' PUIS TblVentilations, et ajoute une fiche a tabCas() si le groupe est bien
 ' KO/Honoraire=Faux. Extrait de ChargerListeCasSuiviSante (Phase 6) pour
-' pouvoir être appele depuis les 2 boucles externes (TblOperations et
+' pouvoir Ãªtre appele depuis les 2 boucles externes (TblOperations et
 ' TblVentilations) sans dupliquer cette logique.
 ' =====================================================================================
 Private Sub TraiterGroupeSiKO(ByVal cleNotes As String, ByRef tblDataLocal As Variant, ByVal nbLignesTable As Long, _
@@ -316,8 +297,8 @@ Private Sub TraiterGroupeSiKO(ByVal cleNotes As String, ByRef tblDataLocal As Va
                             End If
                         Else
                             ' Une ligne de ventilation positive (remboursement ventile)
-                            ' n'a pas de date propre : on ne l'utilisé pas pour
-                            ' l'affichage Remb1/Remb2 (cas non prevu par la règle
+                            ' n'a pas de date propre : on ne l'utilisÃ© pas pour
+                            ' l'affichage Remb1/Remb2 (cas non prevu par la rÃ¨gle
                             ' metier actuelle -- un remboursement mutuelle n'est
                             ' jamais ventile), mais on ne plante pas pour autant.
                         End If
@@ -375,7 +356,7 @@ Private Sub TraiterGroupeSiKO(ByVal cleNotes As String, ByRef tblDataLocal As Va
         notesCtx = mod_DataStructure.CellText(donneesVen(ligneDep, colVenNotes))
         numChequeCtx = ""
         ' Date et Tiers n'existent pas dans TblVentilations : on va les
-        ' chercher sur l'opération PARENTE (TblOperations), via ID_Transaction.
+        ' chercher sur l'opÃ©ration PARENTE (TblOperations), via ID_Transaction.
         If Not TrouverParentVentilationSSF(tblVen, donneesVen, ligneDep, parentLigneOp, dateDepense, tiersDepense) Then
             dateDepense = ""
             tiersDepense = "(operation parente introuvable)"
@@ -409,9 +390,9 @@ End Sub
 
 
 ' =====================================================================================
-' HELPERS PHASE 6 : accès a TblVentilations, dupliques ICI en local (comme dans
+' HELPERS PHASE 6 : accÃ¨s a TblVentilations, dupliques ICI en local (comme dans
 ' mod_SuiviSante et mod_FormulairesNotes) pour que ce module continue a
-' compiler même si mod_InstallVentilation n'a pas encore ete importe.
+' compiler mÃªme si mod_InstallVentilation n'a pas encore ete importe.
 ' =====================================================================================
 Private Function ObtenirTableVentilationsSSF() As ListObject
     Dim ws As Worksheet
@@ -433,7 +414,7 @@ Private Function IndexColVentilationSSF(ByVal t As ListObject, ByVal nomColonne 
 End Function
 
 ' Retrouve, pour une ligne de TblVentilations, la ligne PARENTE dans
-' TblOperations (via ID_Transaction) : renvoie son numéro de ligne (pour
+' TblOperations (via ID_Transaction) : renvoie son numÃ©ro de ligne (pour
 ' pouvoir y corriger le Tiers plus tard) ainsi que sa Date et son Tiers pour
 ' l'affichage. Renvoie False si introuvable.
 Private Function TrouverParentVentilationSSF(ByRef tblVen As ListObject, ByRef donneesVen As Variant, _
@@ -472,7 +453,7 @@ End Function
 
 
 ' =====================================================================================
-' AfficherCasCourant : remplit le formulaire avec le cas numéro indexCasCourant
+' AfficherCasCourant : remplit le formulaire avec le cas numÃ©ro indexCasCourant
 ' =====================================================================================
 Private Sub AfficherCasCourant(ws As Worksheet)
 
@@ -491,7 +472,7 @@ Private Sub AfficherCasCourant(ws As Worksheet)
         ws.Range("ssRemb2Montant").value = cas.Remb2Montant
     Else
         ws.Range("ssRemb2Date").value = ""
-        ws.Range("ssRemb2Montant").value = 0   ' 0 et non vide : nécessaire pour que la formule du solde reste juste
+        ws.Range("ssRemb2Montant").value = 0   ' 0 et non vide : nÃ©cessaire pour que la formule du solde reste juste
     End If
 
     ws.Range("ssBeneficiaire").value = cas.beneficiaireActuel
@@ -504,7 +485,7 @@ Private Sub AfficherCasCourant(ws As Worksheet)
     ws.Range("ssDepassement").value = ""
     ws.Range("ssCommentaire").value = cas.commentaireActuel
 
-    ws.Range("ssLigneEnCours").value = cas.ligneDepense   ' aide au diagnostic si besoin, non utilisée par le code
+    ws.Range("ssLigneEnCours").value = cas.ligneDepense   ' aide au diagnostic si besoin, non utilisÃ©e par le code
 
     ws.Range("ssNumCheque").value = cas.numChequeCtx
     ws.Range("ssDateConsult").value = cas.dateConsultCtx
@@ -526,9 +507,9 @@ Private Sub AppliquerEtatChampsConditionnels(ws As Worksheet, cas As TCasSuiviSa
 
     ' On ne joue plus que sur la couleur de fond (grise = non pertinent, jaune
     ' = saisie attendue). Pas de changement de Locked ni de protection de la
-    ' feuille : ces champs restent techniquement modifiables même quand ils
+    ' feuille : ces champs restent techniquement modifiables mÃªme quand ils
     ' sont grises, mais ValiderCasSuiviSante ignore leur contenu quand ils ne
-    ' sont pas pertinents pour le cas en cours, donc ca ne pose pas de problème.
+    ' sont pas pertinents pour le cas en cours, donc ca ne pose pas de problÃ¨me.
 
     With ws.Range("ssTiersCorrige")
         If EstTiersValide(cas.tiersDepense) Then
@@ -541,12 +522,12 @@ End Sub
 
 
 ' =====================================================================================
-' EstTiersValide : le Tiers de la depense est-il déjà une valeur de la plage
+' EstTiersValide : le Tiers de la depense est-il dÃ©jÃ  une valeur de la plage
 ' nommee "Praticiens" ?
 ' =====================================================================================
-' On compte le nombre d'occurrences d'une valeur spécifique tiers au sein de la plage de données nommée "Praticiens".
-' 1. Application.WorksheetFunction: Cette instruction permet d'appeler et d'utiliser directement dans votre code VBA les fonctions natives d'Excel (les fonctions qu'on utilisé habituellement dans les formules de feuille de calcul).
-' 2. .CountIf(...): C'est le nom anglophone de la fonction Excel NB.SI. Elle prend deux arguments principaux : CountIf(Plage,Critère)
+' On compte le nombre d'occurrences d'une valeur spÃ©cifique tiers au sein de la plage de donnÃ©es nommÃ©e "Praticiens".
+' 1. Application.WorksheetFunction: Cette instruction permet d'appeler et d'utiliser directement dans votre code VBA les fonctions natives d'Excel (les fonctions qu'on utilisÃ© habituellement dans les formules de feuille de calcul).
+' 2. .CountIf(...): C'est le nom anglophone de la fonction Excel NB.SI. Elle prend deux arguments principaux : CountIf(Plage,CritÃ¨re)
 
 Private Function EstTiersValide(ByVal tiers As String) As Boolean
     On Error Resume Next
@@ -575,7 +556,7 @@ End Sub
 ' Hypothese : la plage nommee est une simple liste verticale sur une seule
 ' colonne (comme Tri_champs), pas un tableau dynamique en "eclaboussure"
 ' (ANCHORARRAY) comme Mois/Annees. Si ce n'est pas le cas, dis-le : le
-' fonctionnement devra être adapte.
+' fonctionnement devra Ãªtre adapte.
 Private Sub AjouterValeurDansListe(ByVal nomPlage As String, ByVal nomCelluleCible As String)
 
     Dim nouvelleValeur As String
@@ -584,8 +565,8 @@ Private Sub AjouterValeurDansListe(ByVal nomPlage As String, ByVal nomCelluleCib
     Dim c As Range
     Dim ws As Worksheet
 
-    nouvelleValeur = Trim(InputBox(FR("Nouvelle valeur {a2} ajouter {a2} la liste '") & nomPlage & "' :", _
-                                    FR("Ajouter une valeur")))
+    nouvelleValeur = Trim(InputBox(mod_Display.FR("Nouvelle valeur {a2} ajouter {a2} la liste '") & nomPlage & "' :", _
+                                    mod_Display.FR("Ajouter une valeur")))
     If nouvelleValeur = "" Then Exit Sub   ' annule (Echap, ou rien saisi) : on ne fait rien
 
     On Error Resume Next
@@ -593,13 +574,13 @@ Private Sub AjouterValeurDansListe(ByVal nomPlage As String, ByVal nomCelluleCib
     On Error GoTo 0
 
     If rngListe Is Nothing Then
-        MsgBox FR("La plage nomm{e2}e '") & nomPlage & FR("' est introuvable. V{e2}rifie qu'elle existe bien dans Param."), _
+        MsgBox mod_Display.FR("La plage nomm{e2}e '") & nomPlage & mod_Display.FR("' est introuvable. V{e2}rifie qu'elle existe bien dans Param."), _
                vbCritical
         Exit Sub
     End If
 
     If Application.WorksheetFunction.CountIf(rngListe, nouvelleValeur) > 0 Then
-        MsgBox FR("Cette valeur existe d{e2}j{a2} dans la liste."), vbInformation
+        MsgBox mod_Display.FR("Cette valeur existe d{e2}j{a2} dans la liste."), vbInformation
     Else
         ' On cherche d'abord une cellule VIDE dans la plage actuelle...
         Set celluleVide = Nothing
@@ -613,7 +594,7 @@ Private Sub AjouterValeurDansListe(ByVal nomPlage As String, ByVal nomCelluleCib
         If Not celluleVide Is Nothing Then
             celluleVide.value = nouvelleValeur
         Else
-            ' ...sinon la plage est déjà pleine : on l'agrandit d'une ligne
+            ' ...sinon la plage est dÃ©jÃ  pleine : on l'agrandit d'une ligne
             ' vers le bas, puis on redefinit le nom pour qu'il couvre cette
             ' nouvelle ligne (les listes deroulantes qui utilisent ce nom,
             ' par exemple "=Beneficiaires", suivront automatiquement).
@@ -626,7 +607,7 @@ Private Sub AjouterValeurDansListe(ByVal nomPlage As String, ByVal nomCelluleCib
     End If
 
     ' On selectionne directement la valeur ajoutee dans le champ du
-    ' formulaire : l'opérateur n'a pas besoin de rouvrir la liste déroulante.
+    ' formulaire : l'opÃ©rateur n'a pas besoin de rouvrir la liste dÃ©roulante.
     Set ws = ThisWorkbook.Worksheets(mod_InstallSuiviSanteSheet.NOM_FEUILLE_SUIVI_SANTE)
     ws.Range(nomCelluleCible).value = nouvelleValeur
 
@@ -639,7 +620,7 @@ End Sub
 Private Sub MettreAJourCompteur(ws As Worksheet)
     Dim casRestants As Long
     casRestants = nbCas - indexCasCourant + 1
-    ws.Range("CompteurCasSante").value = casRestants & FR(" restant(s) sur ") & nbCas
+    ws.Range("CompteurCasSante").value = casRestants & mod_Display.FR(" restant(s) sur ") & nbCas
 End Sub
 
 
@@ -652,7 +633,7 @@ Public Sub CasSuivantSuiviSante()
     Set ws = ThisWorkbook.Worksheets(mod_InstallSuiviSanteSheet.NOM_FEUILLE_SUIVI_SANTE)
 
     If indexCasCourant >= nbCas Then
-        Call TerminerSessionSuiviSante(ws, FR("Tous les cas ont {e2}t{e2} parcourus."))
+        Call TerminerSessionSuiviSante(ws, mod_Display.FR("Tous les cas ont {e2}t{e2} parcourus."))
         Exit Sub
     End If
 
@@ -664,11 +645,11 @@ End Sub
 Public Sub SortirSuiviSante()
     Dim ws As Worksheet
     Set ws = ThisWorkbook.Worksheets(mod_InstallSuiviSanteSheet.NOM_FEUILLE_SUIVI_SANTE)
-    ' On se repositionne sur la feuille Synthèse
+    ' On se repositionne sur la feuille SynthÃ¨se
     Sheets("Synthese").Activate
     ' On masque la feuille en cours
     ws.Visible = xlSheetVeryHidden
-    ' Arrêt complet du programme
+    ' ArrÃªt complet du programme
     End
 End Sub
 
@@ -698,14 +679,14 @@ Public Sub ValiderCasSuiviSante()
 
     beneficiaire = Trim(CStr(ws.Range("ssBeneficiaire").value))
     If beneficiaire = "" Then
-        MsgBox FR("Merci de choisir un B{e2}n{e2}ficiaire avant de valider ce cas."), vbExclamation
+        MsgBox mod_Display.FR("Merci de choisir un B{e2}n{e2}ficiaire avant de valider ce cas."), vbExclamation
         Exit Sub
     End If
 
     tiersValideActuellement = EstTiersValide(cas.tiersDepense)
     tiersCorrige = Trim(CStr(ws.Range("ssTiersCorrige").value))
     If Not tiersValideActuellement And tiersCorrige = "" Then
-        MsgBox FR("Le Tiers import{e2} n'est pas reconnu : merci de choisir une valeur dans 'Tiers corrig{e2}'."), vbExclamation
+        MsgBox mod_Display.FR("Le Tiers import{e2} n'est pas reconnu : merci de choisir une valeur dans 'Tiers corrig{e2}'."), vbExclamation
         Exit Sub
     End If
 
@@ -715,25 +696,25 @@ Public Sub ValiderCasSuiviSante()
     ElseIf IsNumeric(franchiseTexte) Then
         franchise = mod_DataStructure.ToDouble(ws.Range("ssFranchise").value)
     Else
-        MsgBox FR("La Franchise doit {ea}tre un nombre (0 si aucune)."), vbExclamation
+        MsgBox mod_Display.FR("La Franchise doit {ea}tre un nombre (0 si aucune)."), vbExclamation
         Exit Sub
     End If
 
 '    depassementRequis = (cas.NbRemb >= 2)
 
 '    If depassementRequis And depassementTexte = "" Then
-'        MsgBox FR("Merci d'indiquer s'il s'agit d'un d{e2}passement d'honoraires."), vbExclamation
+'        MsgBox mod_Display.FR("Merci d'indiquer s'il s'agit d'un d{e2}passement d'honoraires."), vbExclamation
 '        Exit Sub
 '    End If
 
     commentaire = CStr(ws.Range("ssCommentaire").value)
 
     ' --- Ecriture : uniquement la ligne de cette depense, uniquement les
-    '     colonnes concernées (même principe qu'en Phase 1 : jamais de
-    '     réécriture globale du tableau ni de la mise en forme). PHASE 6 :
+    '     colonnes concernÃ©es (mÃªme principe qu'en Phase 1 : jamais de
+    '     rÃ©Ã©criture globale du tableau ni de la mise en forme). PHASE 6 :
     '     la table cible depend de cas.Source -- TblOperations (comportement
     '     d'origine) ou TblVentilations (nouveau). Le Tiers, lui, n'existe
-    '     QUE sur l'opération bancaire : une correction de Tiers pour une
+    '     QUE sur l'opÃ©ration bancaire : une correction de Tiers pour une
     '     ligne de ventilation s'ecrit donc toujours sur sa ligne PARENTE de
     '     TblOperations (cas.ParentLigneOp), jamais sur TblVentilations. ---
     Dim tblVen As ListObject
@@ -785,7 +766,7 @@ Public Sub ValiderCasSuiviSante()
 
     ' --- Cas suivant ---
     If indexCasCourant >= nbCas Then
-        Call TerminerSessionSuiviSante(ws, FR("Tous les cas ont {e2}t{e2} trait{e2}s."))
+        Call TerminerSessionSuiviSante(ws, mod_Display.FR("Tous les cas ont {e2}t{e2} trait{e2}s."))
     Else
         indexCasCourant = indexCasCourant + 1
         Call AfficherCasCourant(ws)
@@ -796,27 +777,27 @@ End Sub
 
 ' =====================================================================================
 ' TerminerSessionSuiviSante : referme proprement la session (feuille remasquee,
-' verrou libère pour que TraiterCasSuiviSante puisse rendre la main)
+' verrou libÃ¨re pour que TraiterCasSuiviSante puisse rendre la main)
 ' =====================================================================================
 Private Sub TerminerSessionSuiviSante(ws As Worksheet, ByVal Message As String)
     ws.Visible = xlSheetVeryHidden
     g_SaisieEnCours = False
-    MsgBox Message, vbInformation, FR("Suivi sant{e2}")
+    MsgBox Message, vbInformation, mod_Display.FR("Suivi sant{e2}")
 End Sub
 
 
 ' =====================================================================================
-' OUTIL DE DIAGNOSTIC TEMPORAIRE (a supprimer une fois le suivi santé stabilise)
+' OUTIL DE DIAGNOSTIC TEMPORAIRE (a supprimer une fois le suivi santÃ© stabilise)
 ' =====================================================================================
 ' Affiche, dans la fenetre Execution immediate (Ctrl+G), les index de colonnes
-' calcules par RecupIndexCol, puis le détail de chaque ligne "Frais, remb
-' santé" (Notes, Montant, StatutSante, Honoraire). Si le problème reapparait
-' après la correction ci-dessus, ce rapport permettra de voir immediatement
-' si un index de colonne est incorrect ou si les données elles-mêmes sont en
+' calcules par RecupIndexCol, puis le dÃ©tail de chaque ligne "Frais, remb
+' santÃ©" (Notes, Montant, StatutSante, Honoraire). Si le problÃ¨me reapparait
+' aprÃ¨s la correction ci-dessus, ce rapport permettra de voir immediatement
+' si un index de colonne est incorrect ou si les donnÃ©es elles-mÃªmes sont en
 ' cause, sans avoir a deviner.
 '
 ' A UTILISER : Ctrl+G, taper DiagnostiquerSuiviSante, Entree. Le rapport
-' s'affiche dans la même fenetre (Execution immediate).
+' s'affiche dans la mÃªme fenetre (Execution immediate).
 Public Sub DiagnostiquerSuiviSante()
 
     Dim tblData As Variant
@@ -868,7 +849,7 @@ Public Sub DiagnostiquerSuiviSante()
     Next nbLigne
     Debug.Print "--- Fin (" & n & " ligne(s) trouvee(s)) ---"
 
-    ' --- PHASE 6 : même rapport, cote TblVentilations, si disponible ---
+    ' --- PHASE 6 : mÃªme rapport, cote TblVentilations, si disponible ---
     Dim tblVen As ListObject
     Dim donneesVen As Variant
     Dim colVenSousCat As Long, colVenNotes As Long, colVenMontant As Long, colVenStatut As Long, colVenHonoraire As Long

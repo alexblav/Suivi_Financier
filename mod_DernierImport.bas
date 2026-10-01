@@ -27,27 +27,11 @@ Option Explicit
 '
 ' A PROPOS DES ACCENTS : meme convention que les autres modules du chantier
 ' Suivi Sante : fichier 100% ASCII, textes accentues affiches a l'operateur
-' construits via la fonction FR().
+' construits via la fonction mod_Display.FR().
 ' =====================================================================================
 
 'Private Const NOM_FEUILLE_TECH As String = "TechDernierImport"
 Private Const LIGNE_DEBUT_LISTE_ID As Long = 4
-
-
-'Private Function FR(ByVal texte As String) As String
-'    Dim r As String
-'    r = texte
-'    r = Replace(r, "{e2}", ChrW(233))
-'    r = Replace(r, "{e1}", ChrW(232))
-'    r = Replace(r, "{ea}", ChrW(234))
-'    r = Replace(r, "{a2}", ChrW(224))
-'    r = Replace(r, "{c2}", ChrW(231))
-'    r = Replace(r, "{o2}", ChrW(244))
-'    r = Replace(r, "{i2}", ChrW(238))
-'    r = Replace(r, "{E2}", ChrW(201))
-'    FR = r
-'End Function
-
 
 ' =====================================================================================
 ' MemoriserDernierImport : enregistre la liste des ID_Transaction du dernier

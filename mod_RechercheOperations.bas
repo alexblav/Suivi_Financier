@@ -11,81 +11,65 @@ Option Explicit
 '                            avec les fleches natives Excel dans l'entete du
 '                            tableau).
 '   AppliquerLignesMarquees : pour chaque ligne du tableau de recherche ou
-'                            "Valider" = "Oui", ecrit Catégorie/SousCategorie et
+'                            "Valider" = "Oui", ecrit CatÃ©gorie/SousCategorie et
 '                            Notes dans la table SOURCE de la ligne (TblOperations
 '                            ou TblVentilations -- voir colonne technique
 '                            SourceLigne), puis efface la marque.
 '
 '   Verrouillage "souple" de Notes : il n'y a pas de vraie protection de
-'   feuille (déjà abandonnee ailleurs dans ce chantier a cause d'une erreur
-'   1004). La cellule Notes d'une ligne dont la clé est déjà valide est
+'   feuille (dÃ©jÃ  abandonnee ailleurs dans ce chantier a cause d'une erreur
+'   1004). La cellule Notes d'une ligne dont la clÃ© est dÃ©jÃ  valide est
 '   simplement grisee (indication visuelle), et AppliquerLignesMarquees
 '   IGNORE tout changement sur cette colonne pour cette ligne, quel que soit
 '   ce qui y est ecrit a l'ecran.
 '
 ' PHASE 5 -- CE QUI CHANGE PAR RAPPORT A LA VERSION D'ORIGINE :
-'   (a) BUG CORRIGE : la liste déroulante de la colonne Catégorie utilisait
+'   (a) BUG CORRIGE : la liste dÃ©roulante de la colonne CatÃ©gorie utilisait
 '       Formula1:=Join(listeCategories, ",") -- cela casse des que : (1) une
-'       catégorie contient elle-même une virgule (ex: "Alimentation,
+'       catÃ©gorie contient elle-mÃªme une virgule (ex: "Alimentation,
 '       supermarche"), Excel la scinde alors en plusieurs "fausses"
-'       catégories dans la liste ; (2) le texte assemble depasse 255
-'       caracteres, ce qui arrive vite avec ~80 catégories (limite d'Excel
-'       pour un Formula1 en dur). La correction reutilise la même technique
+'       catÃ©gories dans la liste ; (2) le texte assemble depasse 255
+'       caracteres, ce qui arrive vite avec ~80 catÃ©gories (limite d'Excel
+'       pour un Formula1 en dur). La correction reutilise la mÃªme technique
 '       que le reste du chantier (mod_Categories, mod_ControleCategories...) :
 '       une PLAGE NOMMEE dynamique (OFFSET/COUNTA) pointant sur une colonne
 '       technique de VRAIES cellules, jamais une liste text-jointe.
-'   (b) NOUVELLE colonne SousCategorie (même traitement que Catégorie).
-'   (c) NOUVELLE colonne Ventile (tag informatif) + intégration des lignes de
-'       TblVentilations : une opération ventilee reste desormais accessible
-'       ICI de 2 facons, comme demandé par l'opérateur : via sa ligne
-'       PARENTE (Catégorie = "Ventile"), ou directement via chacune de ses
-'       parts (une ligne par sous-catégorie de la ventilation, marquee
+'   (b) NOUVELLE colonne SousCategorie (mÃªme traitement que CatÃ©gorie).
+'   (c) NOUVELLE colonne Ventile (tag informatif) + intÃ©gration des lignes de
+'       TblVentilations : une opÃ©ration ventilee reste desormais accessible
+'       ICI de 2 facons, comme demandÃ© par l'opÃ©rateur : via sa ligne
+'       PARENTE (CatÃ©gorie = "Ventile"), ou directement via chacune de ses
+'       parts (une ligne par sous-catÃ©gorie de la ventilation, marquee
 '       Ventile = "Oui").
 '
-' A PROPOS DES ACCENTS : fichier 100% ASCII, textes accentues via FR().
+' A PROPOS DES ACCENTS : fichier 100% ASCII, textes accentues via mod_Display.FR().
 '
 ' COMMENT TESTER : Ctrl+G, taper RechercherOperations, Entree.
 ' =====================================================================================
 
 ' --- Noms techniques utilises par ce module, DUPLIQUES ICI EN DUR (comme dans
 '     les autres modules de ce chantier) pour que ce module continue a
-'     compiler même si mod_InstallVentilation n'a pas encore ete importe. ---
+'     compiler mÃªme si mod_InstallVentilation n'a pas encore ete importe. ---
 Private Const VEN_FEUILLE As String = "Ventilations"
 Private Const VEN_TABLE As String = "TblVentilations"
 Private Const CATEGORIE_VENTILE As String = "Ventil" ' + e accentue, voir CategorieVentileRO()
 
-' Mémoire du prefiltre/param actuellement affichés : sert uniquement à ce que
-' RevoirVentilationRO (plus bas) puisse recharger l'écran dans le MÊME contexte
-' après une modification, plutôt que de retomber en recherche libre.
+' MÃ©moire du prefiltre/param actuellement affichÃ©s : sert uniquement Ã  ce que
+' RevoirVentilationRO (plus bas) puisse recharger l'Ã©cran dans le MÃŠME contexte
+' aprÃ¨s une modification, plutÃ´t que de retomber en recherche libre.
 Private g_ROPrefiltreActif As String
 Private g_ROParamActif As Variant
 
-' Nom de la sous-catégorie "santé" -- reprise ici uniquement pour référence
+' Nom de la sous-catÃ©gorie "santÃ©" -- reprise ici uniquement pour rÃ©fÃ©rence
 ' dans les commentaires, ce module ne teste jamais directement cette valeur.
 
 Private Function CategorieVentileRO() As String
     CategorieVentileRO = CATEGORIE_VENTILE & ChrW(233)   ' "Ventile"
 End Function
 
-' Petite fonction miroir de FR(), gardee car déjà utilisée dans ce module a
-' l'origine (voir commentaire d'origine sur les accents en tete de fichier) :
-'Private Function FR(ByVal texte As String) As String
-'    Dim r As String
-'    r = texte
-'    r = Replace(r, "{e2}", ChrW(233)) ' remplace dans r la chaine "{e2}" par "e" accentue
-'    r = Replace(r, "{e1}", ChrW(232))
-'    r = Replace(r, "{ea}", ChrW(234))
-'    r = Replace(r, "{a2}", ChrW(224))
-'    r = Replace(r, "{c2}", ChrW(231))
-'    r = Replace(r, "{o2}", ChrW(244))
-'    r = Replace(r, "{i2}", ChrW(238))
-'    r = Replace(r, "{E2}", ChrW(201))
-'    FR = r
-'End Function
-
 
 ' =====================================================================================
-' HELPERS PHASE 5 : accès a TblVentilations, dupliques comme dans les autres
+' HELPERS PHASE 5 : accÃ¨s a TblVentilations, dupliques comme dans les autres
 ' modules de ce chantier (mod_SuiviSante, mod_FormulairesNotes, ...).
 ' =====================================================================================
 Private Function ObtenirTableVentilationsRO() As ListObject
@@ -229,7 +213,7 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
     Dim listeValeurs() As String
     Dim nbValeurs As Long
 
-    ' --- PHASE 5 : accès a TblVentilations (facultatif) ---
+    ' --- PHASE 5 : accÃ¨s a TblVentilations (facultatif) ---
     Dim tblVen As ListObject
     Dim tblDataVen As Variant
     Dim nbLignesVen As Long
@@ -244,8 +228,8 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
     Dim indicesVen() As Long, nbIndicesVen As Long
     Dim nbTotal As Long
 
-    ' Mémorise le prefiltre actif : reutilise par RevoirVentilationRO pour
-    ' recharger l'ecran dans le MÊME contexte apres une modification.
+    ' MÃ©morise le prefiltre actif : reutilise par RevoirVentilationRO pour
+    ' recharger l'ecran dans le MÃŠME contexte apres une modification.
     g_ROPrefiltreActif = prefiltre
     g_ROParamActif = param
 
@@ -254,11 +238,11 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
 
     Set tbl = mod_DonneesTable.GetOperationsTable()
     If tbl Is Nothing Then
-        MsgBox FR("Le tableau TblOperations est introuvable."), vbExclamation
+        MsgBox mod_Display.FR("Le tableau TblOperations est introuvable."), vbExclamation
         Exit Sub
     End If
     If tbl.DataBodyRange Is Nothing Then
-        MsgBox FR("TblOperations ne contient aucune ligne."), vbInformation
+        MsgBox mod_Display.FR("TblOperations ne contient aucune ligne."), vbInformation
         Exit Sub
     End If
 
@@ -272,7 +256,7 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
         Case "DernierImport"
             Set listeDernierImport = ChargerListeDernierImportRO()
             If listeDernierImport Is Nothing Then
-                MsgBox FR("Aucun import n'a encore {e2}t{e2} enregistr{e2}."), vbInformation
+                MsgBox mod_Display.FR("Aucun import n'a encore {e2}t{e2} enregistr{e2}."), vbInformation
                 Exit Sub
             End If
         Case "OperationsDuMois"
@@ -377,7 +361,7 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
     nbTotal = nbIndicesOp + nbIndicesVen
 
     If nbTotal = 0 Then
-        MsgBox FR("Aucune op{e2}ration {a2} afficher pour ce filtre."), vbInformation
+        MsgBox mod_Display.FR("Aucune op{e2}ration {a2} afficher pour ce filtre."), vbInformation
         mod_InstallRechercheOperations.DefinirColonnesVisibles ws, prefiltre
         Exit Sub
     End If
@@ -464,7 +448,7 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
 
             resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_VALIDER) = ""
             resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_DATE) = Empty   ' pas de date propre a une part ventilee
-            resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_TIERS) = tiersParentVen & FR(" [ventilation]")
+            resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_TIERS) = tiersParentVen & mod_Display.FR(" [ventilation]")
             resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_MONTANT) = tblDataVen(i, colVenMontant)
 
             catTexte = mod_DataStructure.CellText(tblDataVen(i, colVenCat))
@@ -497,7 +481,7 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
     tblRecherche.ListColumns("Budget").DataBodyRange.NumberFormat = "dd/mm/yyyy"
     tblRecherche.ListColumns("Date_consult").DataBodyRange.NumberFormat = "dd/mm/yyyy"
 
-    ' --- PHASE 5 (correction du bug) : liste déroulante Catégorie/SousCategorie
+    ' --- PHASE 5 (correction du bug) : liste dÃ©roulante CatÃ©gorie/SousCategorie
     '     via une VRAIE plage nommee (technique OFFSET/COUNTA), jamais via un
     '     texte joint par des virgules -- voir l'explication en tete de fichier.
     EcrireListeTechniqueRO ws, listeValeurs, nbValeurs
@@ -515,8 +499,8 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
         End If
     End With
 
-    ' --- Griser les cellules Notes déjà verrouillées (clé santé valide), et
-    ' colorer en vert les montants positifs (PHASE 6 : demande généralisée a
+    ' --- Griser les cellules Notes dÃ©jÃ  verrouillÃ©es (clÃ© santÃ© valide), et
+    ' colorer en vert les montants positifs (PHASE 6 : demande gÃ©nÃ©ralisÃ©e a
     ' TOUS les prefiltres, plus seulement l'ancien ecran "Budget mensuel") ---
     For i = 1 To nbTotal
         If cleVerrouillee(i) Then
@@ -531,19 +515,19 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
         End If
     Next i
 
-    ' --- PHASE 6 : surlignage des N plus grosses dépenses, UNIQUEMENT pour le
+    ' --- PHASE 6 : surlignage des N plus grosses dÃ©penses, UNIQUEMENT pour le
     ' prefiltre "OperationsDuMois" (comportement de l'ancien mod_SyntheseBugetMensuel,
-    ' l'opérateur a choisi de ne PAS le généraliser aux autres écrans). Repris ici
-    ' avec une numérotation propre au tableau de recherche plutôt qu'en réutilisant
-    ' mod_Rapports.HighlightTopRows telle quelle : cette dernière suppose une
-    ' plage avec une ligne d'en-tête (convention des anciens écrans "Synthese_*"),
-    ' ce qui ne correspond pas à tblRecherche.DataBodyRange (pas d'en-tête dedans).
+    ' l'opÃ©rateur a choisi de ne PAS le gÃ©nÃ©raliser aux autres Ã©crans). Repris ici
+    ' avec une numÃ©rotation propre au tableau de recherche plutÃ´t qu'en rÃ©utilisant
+    ' mod_Rapports.HighlightTopRows telle quelle : cette derniÃ¨re suppose une
+    ' plage avec une ligne d'en-tÃªte (convention des anciens Ã©crans "Synthese_*"),
+    ' ce qui ne correspond pas Ã  tblRecherche.DataBodyRange (pas d'en-tÃªte dedans).
     If prefiltre = "OperationsDuMois" Then
         SurlignerTopDepensesRO tblRecherche, nbTotal
     End If
 
-    MsgBox nbTotal & FR(" op{e2}ration(s)/part(s) charg{e2}e(s) (dont ") & nbIndicesVen & _
-           FR(" ligne(s) de ventilation). Utilise les fl{e2}ches de filtre dans l'en-t{ea}te pour restreindre la liste."), _
+    MsgBox nbTotal & mod_Display.FR(" op{e2}ration(s)/part(s) charg{e2}e(s) (dont ") & nbIndicesVen & _
+           mod_Display.FR(" ligne(s) de ventilation). Utilise les fl{e2}ches de filtre dans l'en-t{ea}te pour restreindre la liste."), _
            vbInformation
 
     mod_InstallRechercheOperations.DefinirColonnesVisibles ws, prefiltre
@@ -555,10 +539,10 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
 
 End Sub
 
-' Indique si la ligne "i" de TblOperations (repère DataBodyRange, 1 = 1re
-' ligne) doit être incluse pour le prefiltre demandé. Toute la logique de
-' filtrage par prefiltre est centralisée ici, pour ne pas la répéter à chaque
-' fois qu'un nouveau prefiltre sera ajouté plus tard.
+' Indique si la ligne "i" de TblOperations (repÃ¨re DataBodyRange, 1 = 1re
+' ligne) doit Ãªtre incluse pour le prefiltre demandÃ©. Toute la logique de
+' filtrage par prefiltre est centralisÃ©e ici, pour ne pas la rÃ©pÃ©ter Ã  chaque
+' fois qu'un nouveau prefiltre sera ajoutÃ© plus tard.
 Private Function LigneOpRetenuePourPrefiltre(ByVal i As Long, ByVal prefiltre As String, _
                                               ByVal showTypeDetail As String, ByRef listeDernierImport As Object) As Boolean
 
@@ -597,15 +581,15 @@ Private Function LigneOpRetenuePourPrefiltre(ByVal i As Long, ByVal prefiltre As
 
 End Function
 
-' Reproduit le test de l'ancien écran "Erreurs santé" : une consultation est en
-' erreur quand sa date vaut le 02/01/1900 (numéro de série Excel = 2), la
-' valeur-sentinelle écrite par mod_ImportOFX quand le segment de Notes n'a pas
-' pu être transformé en date exploitable (voir DateSerial(1900,1,2) dans
+' Reproduit le test de l'ancien Ã©cran "Erreurs santÃ©" : une consultation est en
+' erreur quand sa date vaut le 02/01/1900 (numÃ©ro de sÃ©rie Excel = 2), la
+' valeur-sentinelle Ã©crite par mod_ImportOFX quand le segment de Notes n'a pas
+' pu Ãªtre transformÃ© en date exploitable (voir DateSerial(1900,1,2) dans
 ' mod_ImportOFX.ImporterOperationsOFX).
-' AMÉLIORATION PAR RAPPORT A L'ANCIEN ÉCRAN (à signaler à l'opérateur) :
-' l'ancien code comparait un TEXTE ("02/01/1900") à la valeur de la cellule,
-' ce qui ne fonctionne de manière fiable qu'avec certains réglages régionaux.
-' Ici on compare le NUMÉRO DE SÉRIE (une date Excel n'est jamais qu'un nombre),
+' AMÃ‰LIORATION PAR RAPPORT A L'ANCIEN Ã‰CRAN (Ã  signaler Ã  l'opÃ©rateur) :
+' l'ancien code comparait un TEXTE ("02/01/1900") Ã  la valeur de la cellule,
+' ce qui ne fonctionne de maniÃ¨re fiable qu'avec certains rÃ©glages rÃ©gionaux.
+' Ici on compare le NUMÃ‰RO DE SÃ‰RIE (une date Excel n'est jamais qu'un nombre),
 ' fiable quels que soient le format d'affichage ou la langue du poste.
 Private Function DateConsultInvalideRO(ByVal valeurCellule As Variant) As Boolean
     If IsEmpty(valeurCellule) Then Exit Function
@@ -615,9 +599,9 @@ Private Function DateConsultInvalideRO(ByVal valeurCellule As Variant) As Boolea
 End Function
 
 ' Charge la liste des ID_Transaction du dernier import (feuille technique
-' TechDernierImport, alimentée par mod_DernierImport.MemoriserDernierImport,
-' appelée automatiquement en fin d'import -- voir mod_ImportOFX). Renvoie
-' Nothing si aucun import n'a encore été enregistré.
+' TechDernierImport, alimentÃ©e par mod_DernierImport.MemoriserDernierImport,
+' appelÃ©e automatiquement en fin d'import -- voir mod_ImportOFX). Renvoie
+' Nothing si aucun import n'a encore Ã©tÃ© enregistrÃ©.
 Private Function ChargerListeDernierImportRO() As Object
     Dim wsTech As Worksheet
     Dim nb As Long, i As Long
@@ -636,7 +620,7 @@ Private Function ChargerListeDernierImportRO() As Object
 
     Set d = CreateObject("Scripting.Dictionary")
     d.CompareMode = 1
-    ' La liste commence en ligne 4 (lignes 1-3 = DateImport/NbOperations/en-tête
+    ' La liste commence en ligne 4 (lignes 1-3 = DateImport/NbOperations/en-tÃªte
     ' "ID_Transaction") -- voir mod_DernierImport.MemoriserDernierImport.
     For i = 1 To nb
         d(mod_DataStructure.CellText(wsTech.Cells(3 + i, 1).value)) = True
@@ -645,11 +629,11 @@ Private Function ChargerListeDernierImportRO() As Object
     Set ChargerListeDernierImportRO = d
 End Function
 
-' Surligne en rouge les "critNbOperations" plus grosses dépenses parmi les
-' lignes actuellement chargées (même idée que l'ancien mod_Rapports.HighlightTopRows,
-' mais recodée ici pour travailler directement sur tblRecherche.DataBodyRange,
-' qui n'a pas de ligne d'en-tête contrairement à la convention des anciens
-' écrans "Synthese_*").
+' Surligne en rouge les "critNbOperations" plus grosses dÃ©penses parmi les
+' lignes actuellement chargÃ©es (mÃªme idÃ©e que l'ancien mod_Rapports.HighlightTopRows,
+' mais recodÃ©e ici pour travailler directement sur tblRecherche.DataBodyRange,
+' qui n'a pas de ligne d'en-tÃªte contrairement Ã  la convention des anciens
+' Ã©crans "Synthese_*").
 Private Sub SurlignerTopDepensesRO(ByVal tblRecherche As ListObject, ByVal nbLignes As Long)
 
     Dim indicesDepenses() As Long, montantsDepenses() As Double, nombreDepenses As Long
@@ -674,7 +658,7 @@ Private Sub SurlignerTopDepensesRO(ByVal tblRecherche As ListObject, ByVal nbLig
 
     nombreSurligne = mod_Rapports.GetTopCount(critNbOperations, nombreDepenses)
 
-    ' Tri par sélection, montants décroissants (même principe que
+    ' Tri par sÃ©lection, montants dÃ©croissants (mÃªme principe que
     ' mod_Rapports.HighlightTopRows).
     For jj = 1 To nombreDepenses - 1
         maxIdx = jj
@@ -694,8 +678,8 @@ Private Sub SurlignerTopDepensesRO(ByVal tblRecherche As ListObject, ByVal nbLig
 End Sub
 
 ' Petit utilitaire : ajoute "valeur" a listeValeurs()/nbValeurs si non vide et
-' pas déjà présente (compare sans tenir compte de la casse : voir .CompareMode
-' pose par l'appelant sur le Dictionary utilisé comme "déjà vu").
+' pas dÃ©jÃ  prÃ©sente (compare sans tenir compte de la casse : voir .CompareMode
+' pose par l'appelant sur le Dictionary utilisÃ© comme "dÃ©jÃ  vu").
 Private Sub AjouterValeurUnique(ByVal valeur As String, ByRef vues As Object, ByRef listeValeurs() As String, ByRef nbValeurs As Long)
     If valeur = "" Then Exit Sub
     If vues.Exists(valeur) Then Exit Sub
@@ -705,10 +689,10 @@ Private Sub AjouterValeurUnique(ByVal valeur As String, ByRef vues As Object, By
     listeValeurs(nbValeurs) = valeur
 End Sub
 
-' Ecrit la liste unique (Catégorie + SousCategorie confondues) dans une
-' colonne technique HORS du tableau structure (au-dela de sa dernière
+' Ecrit la liste unique (CatÃ©gorie + SousCategorie confondues) dans une
+' colonne technique HORS du tableau structure (au-dela de sa derniÃ¨re
 ' colonne, ligne par ligne, format Texte force), puis (re)definit une plage
-' nommee DYNAMIQUE (OFFSET/COUNTA) pointant dessus. Même principe que
+' nommee DYNAMIQUE (OFFSET/COUNTA) pointant dessus. MÃªme principe que
 ' mod_Categories.RafraichirListesCategories, applique ici localement pour ne
 ' pas dependre de l'existence de mod_Categories.
 Private Sub EcrireListeTechniqueRO(ByVal ws As Worksheet, ByRef listeValeurs() As String, ByVal nbValeurs As Long)
@@ -723,7 +707,7 @@ Private Sub EcrireListeTechniqueRO(ByVal ws As Worksheet, ByRef listeValeurs() A
     ws.Range(COL_TECHNIQUE & "1:" & COL_TECHNIQUE & "1000").NumberFormat = "@"
     ws.Columns(COL_TECHNIQUE).Hidden = True
 
-    ws.Range(COL_TECHNIQUE & "1").value = FR("Liste technique (Cat{e2}gorie+SousCat{e2}gorie) - ne pas modifier")
+    ws.Range(COL_TECHNIQUE & "1").value = mod_Display.FR("Liste technique (Cat{e2}gorie+SousCat{e2}gorie) - ne pas modifier")
 
     If nbValeurs = 0 Then Exit Sub
 
@@ -743,7 +727,7 @@ End Sub
 
 
 ' =====================================================================================
-' AppliquerLignesMarquees : applique Catégorie/SousCategorie/Notes des lignes
+' AppliquerLignesMarquees : applique CatÃ©gorie/SousCategorie/Notes des lignes
 ' marquees "Oui", en ecrivant dans la table SOURCE de chaque ligne (colonne
 ' technique SourceLigne : "O" = TblOperations, "V" = TblVentilations).
 ' =====================================================================================
@@ -763,7 +747,7 @@ Public Sub AppliquerLignesMarquees()
     Set tblRecherche = ws.ListObjects(mod_InstallRechercheOperations.NOM_TABLE_RECHERCHE)
 
     If tblRecherche.DataBodyRange Is Nothing Then
-        MsgBox FR("Aucune ligne {a2} traiter. Utilise d'abord 'Rechercher'."), vbInformation
+        MsgBox mod_Display.FR("Aucune ligne {a2} traiter. Utilise d'abord 'Rechercher'."), vbInformation
         Exit Sub
     End If
 
@@ -861,30 +845,30 @@ Public Sub AppliquerLignesMarquees()
         mod_SuiviSante.CalculerSuiviSante AfficherResume:=False
     End If
 
-    MsgBox nbAppliquees & FR(" ligne(s) appliqu{e2}e(s)."), vbInformation
+    MsgBox nbAppliquees & mod_Display.FR(" ligne(s) appliqu{e2}e(s)."), vbInformation
 
 End Sub
 
 ' =====================================================================================
-' RevoirVentilationRO (ajout suite à un test opérateur)
+' RevoirVentilationRO (ajout suite Ã  un test opÃ©rateur)
 ' =====================================================================================
-' Rouvre le formulaire de ventilation pour la ligne actuellement sélectionnée dans
-' le tableau de recherche (même principe que ReinitialiserLigneSelectionnee dans
+' Rouvre le formulaire de ventilation pour la ligne actuellement sÃ©lectionnÃ©e dans
+' le tableau de recherche (mÃªme principe que ReinitialiserLigneSelectionnee dans
 ' mod_ResolutionCategories : on lit ActiveCell.Row, pas de bouton par ligne).
 '
-' La ligne sélectionnée peut être :
-'   - l'opération PARENTE elle-même (Categorie = "Ventilé"), ou
+' La ligne sÃ©lectionnÃ©e peut Ãªtre :
+'   - l'opÃ©ration PARENTE elle-mÃªme (Categorie = "VentilÃ©"), ou
 '   - l'une de ses PARTS (colonne Ventile = "Oui", Source = "V").
-' Dans les deux cas, RO_COL_ID contient déjà l'ID_Transaction de l'opération
-' bancaire PARENTE (voir RechercherOperations, qui l'écrit ainsi pour les deux
+' Dans les deux cas, RO_COL_ID contient dÃ©jÃ  l'ID_Transaction de l'opÃ©ration
+' bancaire PARENTE (voir RechercherOperations, qui l'Ã©crit ainsi pour les deux
 ' types de lignes) : c'est cet identifiant qu'attend mod_Ventilation.OuvrirVentilation.
 '
-' LIMITE CONNUE : TblVentilations ne conserve pas le libellé brut de l'opération
-' bancaire (il n'existait que le temps de l'import, dans un tableau en mémoire -
-' voir mod_ControleCategories.ControleVentiler). En rouvrant depuis cet écran,
-' bien après l'import, ce libellé n'est donc plus disponible : le formulaire
-' l'affichera vide plutôt que d'inventer une valeur. Rien d'autre n'est affecté :
-' date, tiers, montant et catégorie/sous-catégorie actuelles restent exacts,
+' LIMITE CONNUE : TblVentilations ne conserve pas le libellÃ© brut de l'opÃ©ration
+' bancaire (il n'existait que le temps de l'import, dans un tableau en mÃ©moire -
+' voir mod_ControleCategories.ControleVentiler). En rouvrant depuis cet Ã©cran,
+' bien aprÃ¨s l'import, ce libellÃ© n'est donc plus disponible : le formulaire
+' l'affichera vide plutÃ´t que d'inventer une valeur. Rien d'autre n'est affectÃ© :
+' date, tiers, montant et catÃ©gorie/sous-catÃ©gorie actuelles restent exacts,
 ' relus directement dans TblOperations.
 Public Sub RevoirVentilationRO()
 
@@ -899,7 +883,7 @@ Public Sub RevoirVentilationRO()
     Set tblRecherche = ws.ListObjects(mod_InstallRechercheOperations.NOM_TABLE_RECHERCHE)
 
     If tblRecherche.DataBodyRange Is Nothing Then
-        MsgBox FR("Aucune ligne {a2} traiter. Utilise d'abord 'Rechercher'."), vbInformation
+        MsgBox mod_Display.FR("Aucune ligne {a2} traiter. Utilise d'abord 'Rechercher'."), vbInformation
         Exit Sub
     End If
 
@@ -907,7 +891,7 @@ Public Sub RevoirVentilationRO()
     ligneRelative = ligneSelection - tblRecherche.DataBodyRange.Row + 1
 
     If ligneRelative < 1 Or ligneRelative > tblRecherche.DataBodyRange.rows.count Then
-        MsgBox FR("S{e2}lectionne d'abord une ligne d'op{e2}ration dans le tableau, puis clique sur ce bouton."), vbExclamation
+        MsgBox mod_Display.FR("S{e2}lectionne d'abord une ligne d'op{e2}ration dans le tableau, puis clique sur ce bouton."), vbExclamation
         Exit Sub
     End If
 
@@ -915,18 +899,18 @@ Public Sub RevoirVentilationRO()
     ventileValeur = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_VENTILE).value))
 
     If LCase(ventileValeur) <> "oui" And categorieValeur <> CategorieVentileRO() Then
-        MsgBox FR("Cette ligne n'est pas une op{e2}ration ventil{e2}e : rien {a2} revoir."), vbInformation
+        MsgBox mod_Display.FR("Cette ligne n'est pas une op{e2}ration ventil{e2}e : rien {a2} revoir."), vbInformation
         Exit Sub
     End If
 
     idTransaction = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_ID).value))
     If idTransaction = "" Then
-        MsgBox FR("Impossible de retrouver l'ID_Transaction de cette ligne."), vbExclamation
+        MsgBox mod_Display.FR("Impossible de retrouver l'ID_Transaction de cette ligne."), vbExclamation
         Exit Sub
     End If
 
-    ' --- On relit l'entête (date/tiers/montant/catégorie actuelle) directement sur
-    ' l'opération PARENTE dans TblOperations : TblVentilations n'a pas ces colonnes,
+    ' --- On relit l'entÃªte (date/tiers/montant/catÃ©gorie actuelle) directement sur
+    ' l'opÃ©ration PARENTE dans TblOperations : TblVentilations n'a pas ces colonnes,
     ' et OuvrirVentilation en a besoin pour l'affichage en lecture seule. ---
     Dim tblOp As ListObject
     Dim donneesOp As Variant
@@ -936,7 +920,7 @@ Public Sub RevoirVentilationRO()
 
     Set tblOp = mod_DonneesTable.GetOperationsTable()
     If tblOp Is Nothing Or tblOp.DataBodyRange Is Nothing Then
-        MsgBox FR("Le tableau TblOperations est introuvable."), vbExclamation
+        MsgBox mod_Display.FR("Le tableau TblOperations est introuvable."), vbExclamation
         Exit Sub
     End If
 
@@ -952,7 +936,7 @@ Public Sub RevoirVentilationRO()
     Next i
 
     If ligneParent = 0 Then
-        MsgBox FR("Op{e2}ration parente introuvable dans TblOperations (ID '") & idTransaction & "').", vbExclamation
+        MsgBox mod_Display.FR("Op{e2}ration parente introuvable dans TblOperations (ID '") & idTransaction & "').", vbExclamation
         Exit Sub
     End If
 
@@ -968,15 +952,15 @@ Public Sub RevoirVentilationRO()
     ws.Activate
 
     If ok Then
-        ' PHASE 6 : on recharge l'ecran dans le MÊME contexte qu'avant (même
-        ' prefiltre/param), plutôt que de retomber en recherche libre.
+        ' PHASE 6 : on recharge l'ecran dans le MÃŠME contexte qu'avant (mÃªme
+        ' prefiltre/param), plutÃ´t que de retomber en recherche libre.
         RechercherOperations g_ROPrefiltreActif, g_ROParamActif
     End If
 
 End Sub
 
-' PHASE 6 : retourne sur la feuille "Resultat" (bilan mensuel) si l'écran a été
-' ouvert depuis le détail d'un total, sinon sur Synthèse comme avant.
+' PHASE 6 : retourne sur la feuille "Resultat" (bilan mensuel) si l'Ã©cran a Ã©tÃ©
+' ouvert depuis le dÃ©tail d'un total, sinon sur SynthÃ¨se comme avant.
 Public Sub SortirRechercheOperations()
     Dim ws As Worksheet
     Set ws = ThisWorkbook.Worksheets(mod_InstallRechercheOperations.NOM_FEUILLE_RECHERCHE)
