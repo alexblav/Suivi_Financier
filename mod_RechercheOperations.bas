@@ -107,6 +107,77 @@ Private Function IndexColRO(ByVal t As ListObject, ByVal nomColonne As String) A
     On Error GoTo 0
 End Function
 
+' =====================================================================================
+' Memorise les filtres de colonne actifs (fleches natives Excel) sur tblRecherche,
+' pour pouvoir les restaurer apres avoir vide et reecrit le tableau -- sinon
+' l'operateur perd son filtre a chaque recherche/rafraichissement (constat du
+' 01/10/2026 : apres "Revoir la ventilation", la colonne "Ventile" filtree sur "Oui"
+' semblait se vider, car Excel garde le souvenir des anciennes POSITIONS de lignes
+' visibles, qui ne correspondent plus a rien une fois le tableau reecrit).
+' =====================================================================================
+Private Function MemoriserFiltresRO(ByVal tbl As ListObject) As Variant
+    ' Renvoie un tableau a 2 dimensions (4 lignes : Field/Operator/Criteria1/Criteria2,
+    ' une colonne par filtre actif trouve), ou Empty si aucun filtre n'est actif.
+    Dim nbFiltres As Long
+    Dim resultatFiltres() As Variant
+    Dim f As Long
+    Dim filtreCol As Filter
+
+    nbFiltres = 0
+    If tbl.ShowAutoFilter Then
+        For f = 1 To tbl.ListColumns.count
+            On Error Resume Next
+            Set filtreCol = tbl.AutoFilter.Filters(f)
+            On Error GoTo 0
+            If Not filtreCol Is Nothing Then
+                If filtreCol.On Then
+                    nbFiltres = nbFiltres + 1
+                    ReDim Preserve resultatFiltres(1 To 4, 1 To nbFiltres)
+                    resultatFiltres(1, nbFiltres) = f
+                    resultatFiltres(2, nbFiltres) = filtreCol.Operator
+                    resultatFiltres(3, nbFiltres) = filtreCol.Criteria1
+                    ' Criteria2 ne s'applique qu'a certains types de filtres (ex :
+                    ' "entre telle et telle date") -- absent sinon, d'ou le On Error.
+                    resultatFiltres(4, nbFiltres) = Empty
+                    On Error Resume Next
+                    resultatFiltres(4, nbFiltres) = filtreCol.Criteria2
+                    On Error GoTo 0
+                End If
+            End If
+            Set filtreCol = Nothing
+        Next f
+    End If
+
+    If nbFiltres = 0 Then
+        MemoriserFiltresRO = Empty
+    Else
+        MemoriserFiltresRO = resultatFiltres
+    End If
+End Function
+
+' Reapplique les filtres precedemment memorises par MemoriserFiltresRO, une fois le
+' tableau reconstruit avec les nouvelles donnees.
+Private Sub RestaurerFiltresRO(ByVal tbl As ListObject, ByVal filtresSauvegardes As Variant)
+    Dim f As Long
+
+    If IsEmpty(filtresSauvegardes) Then Exit Sub
+
+    On Error Resume Next
+    For f = 1 To UBound(filtresSauvegardes, 2)
+        If IsEmpty(filtresSauvegardes(4, f)) Then
+            tbl.Range.AutoFilter Field:=filtresSauvegardes(1, f), _
+                                  Criteria1:=filtresSauvegardes(3, f), _
+                                  Operator:=filtresSauvegardes(2, f)
+        Else
+            tbl.Range.AutoFilter Field:=filtresSauvegardes(1, f), _
+                                  Criteria1:=filtresSauvegardes(3, f), _
+                                  Operator:=filtresSauvegardes(2, f), _
+                                  Criteria2:=filtresSauvegardes(4, f)
+        End If
+    Next f
+    On Error GoTo 0
+End Sub
+
 
 ' =====================================================================================
 ' RechercherOperations : recharge le tableau de recherche depuis TblOperations
@@ -231,6 +302,19 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
     ActiveWindow.FreezePanes = False
     ws.Range("A" & (mod_InstallRechercheOperations.RO_LIGNE_ENTETES + 1)).Select
     ActiveWindow.FreezePanes = True
+
+    ' Avant de vider/reconstruire le tableau : on memorise d'abord le(s) filtre(s)
+    ' de colonne actif(s) (fleches natives Excel), pour pouvoir les remettre a
+    ' l'identique une fois les nouvelles donnees ecrites (voir MemoriserFiltresRO /
+    ' RestaurerFiltresRO plus haut).
+    Dim filtresSauvegardes As Variant
+    filtresSauvegardes = MemoriserFiltresRO(tblRecherche)
+
+    On Error Resume Next
+    If tblRecherche.ShowAutoFilter Then
+        tblRecherche.AutoFilter.ShowAllData
+    End If
+    On Error GoTo 0
 
     ' --- On vide le tableau de recherche (ne garde que l'entete) ---
     If Not tblRecherche.DataBodyRange Is Nothing Then
@@ -449,6 +533,11 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
            vbInformation
 
     mod_InstallRechercheOperations.DefinirColonnesVisibles ws, prefiltre
+
+    ' On remet en place le(s) filtre(s) que l'operateur avait poses avant cette
+    ' recherche (voir RestaurerFiltresRO plus haut) -- sans ca, un filtre de colonne
+    ' actif avant un "Revoir la ventilation" semblait disparaitre apres coup.
+    RestaurerFiltresRO tblRecherche, filtresSauvegardes
 
 End Sub
 
