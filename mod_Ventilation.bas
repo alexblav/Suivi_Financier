@@ -777,12 +777,29 @@ Private Sub SupprimerLignesExistantes(ByVal idTransaction As String)
 
     colID = tbl.ListColumns("ID_Transaction").index
 
+    ' Ajout 01/10/2026 (bug operateur) : si l'operation revisitee est la SEULE
+    ' ventilation presente dans TblVentilations, la boucle ci-dessous vide
+    ' temporairement tout le tableau. Excel declenche alors une alerte native
+    ' ("Voulez-vous supprimer la ligne entiere ?") qui met la macro EN PAUSE en
+    ' plein milieu de la suppression -- et c'est cette pause qui corrompait les
+    ' donnees au redemarrage (ID_Transaction/SourceLigne vides, #N/A affiche
+    ' dans LigneVentilation en relancant la recherche). On desactive ces alertes
+    ' le temps de la suppression, exactement comme deja fait ailleurs dans ce
+    ' classeur pour la meme raison (voir mod_Actions.bas, ActionSortir, qui
+    ' supprime une feuille). On restaure ensuite l'etat d'origine plutot que de
+    ' forcer True, au cas ou l'appelant les avait deja lui-meme desactivees.
+    Dim alertesAvant As Boolean
+    alertesAvant = Application.DisplayAlerts
+    Application.DisplayAlerts = False
+
     For r = tbl.ListRows.count To 1 Step -1
         idLigne = mod_DataStructure.CellText(tbl.DataBodyRange.Cells(r, colID).value)
         If idLigne = idTransaction Then
             tbl.ListRows(r).Delete
         End If
     Next r
+
+    Application.DisplayAlerts = alertesAvant
 
 End Sub
 
