@@ -159,18 +159,31 @@ End Function
 ' tableau reconstruit avec les nouvelles donnees.
 Private Sub RestaurerFiltresRO(ByVal tbl As ListObject, ByVal filtresSauvegardes As Variant)
     Dim f As Long
+    Dim critere1 As Variant
 
     If IsEmpty(filtresSauvegardes) Then Exit Sub
 
     On Error Resume Next
     For f = 1 To UBound(filtresSauvegardes, 2)
+        critere1 = filtresSauvegardes(3, f)
+
+        ' Cas particulier Excel : un filtre "liste de valeurs" (xlFilterValues) avec
+        ' UNE SEULE valeur cochee renvoie Criteria1 comme un simple texte, et non un
+        ' tableau -- mais Excel EXIGE un tableau pour reappliquer ce type de filtre,
+        ' meme a une seule valeur. Sans ce rhabillage, la reapplication echoue sans
+        ' erreur visible (silencieusement avalee par le On Error Resume Next
+        ' ci-dessus, necessaire par ailleurs pour Criteria2).
+        If filtresSauvegardes(2, f) = xlFilterValues Then
+            If Not IsArray(critere1) Then critere1 = Array(critere1)
+        End If
+
         If IsEmpty(filtresSauvegardes(4, f)) Then
             tbl.Range.AutoFilter Field:=filtresSauvegardes(1, f), _
-                                  Criteria1:=filtresSauvegardes(3, f), _
+                                  Criteria1:=critere1, _
                                   Operator:=filtresSauvegardes(2, f)
         Else
             tbl.Range.AutoFilter Field:=filtresSauvegardes(1, f), _
-                                  Criteria1:=filtresSauvegardes(3, f), _
+                                  Criteria1:=critere1, _
                                   Operator:=filtresSauvegardes(2, f), _
                                   Criteria2:=filtresSauvegardes(4, f)
         End If
