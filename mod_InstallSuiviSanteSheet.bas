@@ -1,4 +1,3 @@
-Attribute VB_Name = "mod_InstallSuiviSanteSheet"
 Option Explicit
 
 ' =====================================================================================
@@ -102,27 +101,6 @@ Public Const SS_COL_TECHNIQUE As String = "J"
 ' en forme de la feuille).
 ' =====================================================================================
 
-
-' -------------------------------------------------------------------------------------
-' CONSTANTES DE MISE EN PAGE
-' -------------------------------------------------------------------------------------
-' Comme pour frm_ResolutionCategories, on regroupe ici toutes les positions de
-' cellules : si tu veux deplacer une zone plus tard, on change une seule ligne ici.
-' Ces constantes seront reutilisees telles quelles en Phase 2b.
-
-Private Function FR(ByVal texte As String) As String
-    Dim r As String
-    r = texte
-    r = Replace(r, "{e2}", ChrW(233))
-    r = Replace(r, "{e1}", ChrW(232))
-    r = Replace(r, "{ea}", ChrW(234))
-    r = Replace(r, "{a2}", ChrW(224))
-    r = Replace(r, "{c2}", ChrW(231))
-    r = Replace(r, "{o2}", ChrW(244))
-    r = Replace(r, "{i2}", ChrW(238))
-    r = Replace(r, "{E2}", ChrW(201))
-    FR = r
-End Function
 Sub CreerFeuilleSuiviSante()
 
     Dim ws As Worksheet
@@ -223,7 +201,7 @@ Private Sub SS_ConstruireZoneBoutons(ws As Worksheet)
     Set boutonSuivant = ws.Buttons.Add( _
         zoneBoutonSuivant.Left, zoneBoutonSuivant.Top, zoneBoutonSuivant.Width, zoneBoutonSuivant.Height)
     With boutonSuivant
-        .Caption = FR("Cas suivant")
+        .Caption = mod_Display.FR("Cas suivant")
         .OnAction = "CasSuivantSuiviSante"
         .Name = "btnCasSuivantSuiviSante"
     End With
@@ -231,7 +209,7 @@ Private Sub SS_ConstruireZoneBoutons(ws As Worksheet)
     Set boutonValider = ws.Buttons.Add( _
         zoneBoutonValider.Left, zoneBoutonValider.Top, zoneBoutonValider.Width, zoneBoutonValider.Height)
     With boutonValider
-        .Caption = FR("Valider ce cas")
+        .Caption = mod_Display.FR("Valider ce cas")
         .OnAction = "ValiderCasSuiviSante"
         .Name = "btnValiderCasSuiviSante"
     End With
@@ -258,7 +236,7 @@ End Sub
 Private Sub SS_ConstruireZoneInstructions(ws As Worksheet)
 
     With ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_TITRE_INSTRUCTIONS)
-        .value = FR("Instructions")
+        .value = mod_Display.FR("Instructions")
         .Font.Bold = True
         .Font.Size = 11
     End With
@@ -270,13 +248,13 @@ Private Sub SS_ConstruireZoneInstructions(ws As Worksheet)
 
     With zoneTexte
         .Merge
-        .value = FR("Cette d{e2}pense de sant{e2} n'est pas encore soldee ({e2}quilibre non atteint).") & Chr(10) & _
-                 FR("V{e2}rifie les informations ci-dessous puis renseigne les champs demand{e2}s :") & Chr(10) & _
-                 FR("1. Choisis le B{e2}n{e2}ficiaire dans la liste") & Chr(10) & _
-                 FR("2. Si le Tiers importe n'est pas correct, choisis la bonne valeur dans 'Tiers corrig{e2}'") & Chr(10) & _
-                 FR("3. Indique le montant de Franchise retenu par l'assurance (0 si aucun)") & Chr(10) & _
-                 FR("4. Si les 2 remboursements sont arriv{e2}s, indique s'il s'agit d'un d{e2}passement d'honoraires") & Chr(10) & _
-                 FR("5. Ajoute un commentaire si besoin, puis clique sur 'Valider ce cas'")
+        .value = mod_Display.FR("Cette d{e2}pense de sant{e2} n'est pas encore soldee ({e2}quilibre non atteint).") & Chr(10) & _
+                 mod_Display.FR("V{e2}rifie les informations ci-dessous puis renseigne les champs demand{e2}s :") & Chr(10) & _
+                 mod_Display.FR("1. Choisis le B{e2}n{e2}ficiaire dans la liste") & Chr(10) & _
+                 mod_Display.FR("2. Si le Tiers importe n'est pas correct, choisis la bonne valeur dans 'Tiers corrig{e2}'") & Chr(10) & _
+                 mod_Display.FR("3. Indique le montant de Franchise retenu par l'assurance (0 si aucun)") & Chr(10) & _
+                 mod_Display.FR("4. Si les 2 remboursements sont arriv{e2}s, indique s'il s'agit d'un d{e2}passement d'honoraires") & Chr(10) & _
+                 mod_Display.FR("5. Ajoute un commentaire si besoin, puis clique sur 'Valider ce cas'")
         .WrapText = True
         .VerticalAlignment = xlTop
         .HorizontalAlignment = xlLeft
@@ -300,15 +278,15 @@ Private Sub SS_ConstruireBlocDepense(ws As Worksheet)
 
     With ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_TITRE_DEPENSE & ":" & SS_COL_VALEUR_3 & SS_LIGNE_TITRE_DEPENSE)
         .Merge
-        .value = FR("D{e2}pense {a2} traiter")
+        .value = mod_Display.FR("D{e2}pense {a2} traiter")
         .Font.Bold = True
         .Font.Size = 10.5
         .Interior.Color = RGB(250, 250, 248)
     End With
 
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_DEPENSE).value = FR("Date :")
-    ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_DEPENSE).value = FR("Tiers importe :")
-    ws.Range(SS_COL_LIBELLE_3 & SS_LIGNE_DEPENSE).value = FR("Montant :")
+    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_DEPENSE).value = mod_Display.FR("Date :")
+    ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_DEPENSE).value = mod_Display.FR("Tiers importe :")
+    ws.Range(SS_COL_LIBELLE_3 & SS_LIGNE_DEPENSE).value = mod_Display.FR("Montant :")
 
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_DEPENSE)
 
@@ -331,17 +309,17 @@ Private Sub SS_ConstruireBlocRemboursements(ws As Worksheet)
 
     With ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_TITRE_REMBOURSEMENTS & ":" & SS_COL_VALEUR_3 & SS_LIGNE_TITRE_REMBOURSEMENTS)
         .Merge
-        .value = FR("Remboursements li{e2}s (jusqu'{a2} 2)")
+        .value = mod_Display.FR("Remboursements li{e2}s (jusqu'{a2} 2)")
         .Font.Bold = True
         .Font.Size = 10.5
         .Interior.Color = RGB(250, 250, 248)
     End With
 
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_REMBOURSEMENT_1).value = FR("Remb. 1 - Date :")
-    ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_REMBOURSEMENT_1).value = FR("Montant :")
+    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_REMBOURSEMENT_1).value = mod_Display.FR("Remb. 1 - Date :")
+    ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_REMBOURSEMENT_1).value = mod_Display.FR("Montant :")
 
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_REMBOURSEMENT_2).value = FR("Remb. 2 - Date :")
-    ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_REMBOURSEMENT_2).value = FR("Montant :")
+    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_REMBOURSEMENT_2).value = mod_Display.FR("Remb. 2 - Date :")
+    ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_REMBOURSEMENT_2).value = mod_Display.FR("Montant :")
 
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_REMBOURSEMENT_1)
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_REMBOURSEMENT_2)
@@ -374,7 +352,7 @@ End Sub
 ' cellule qui recevra cette formule.
 Private Sub SS_ConstruireBlocSolde(ws As Worksheet)
 
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_SOLDE).value = FR("Solde actuel :")
+    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_SOLDE).value = mod_Display.FR("Solde actuel :")
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_SOLDE)
 
     With ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_SOLDE & ":" & SS_COL_VALEUR_2 & SS_LIGNE_SOLDE)
@@ -403,7 +381,7 @@ Private Sub SS_ConstruireBlocSaisie(ws As Worksheet)
 
     ' --- Beneficiaire (toujours demande : la colonne demarre vide sur toutes les
     '     lignes existantes, elle n'est jamais renseignee par l'import OFX) ---
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_BENEFICIAIRE).value = FR("B{e2}n{e2}ficiaire :")
+    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_BENEFICIAIRE).value = mod_Display.FR("B{e2}n{e2}ficiaire :")
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_BENEFICIAIRE)
     Set rngBeneficiaire = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_BENEFICIAIRE & ":" & SS_COL_VALEUR_2 & SS_LIGNE_BENEFICIAIRE)
     rngBeneficiaire.Merge
@@ -414,7 +392,7 @@ Private Sub SS_ConstruireBlocSaisie(ws As Worksheet)
     ' --- Tiers corrige (demande seulement si le Tiers importe n'est pas deja une
     '     valeur valide de la liste Praticiens - ce controle sera fait en Phase 2b,
     '     ici on prepare seulement la cellule et sa liste deroulante) ---
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_TIERS_CORRIGE).value = FR("Tiers corrig{e2} :")
+    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_TIERS_CORRIGE).value = mod_Display.FR("Tiers corrig{e2} :")
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_TIERS_CORRIGE)
     Set rngTiersCorrige = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_TIERS_CORRIGE & ":" & SS_COL_VALEUR_2 & SS_LIGNE_TIERS_CORRIGE)
     rngTiersCorrige.Merge
@@ -423,7 +401,7 @@ Private Sub SS_ConstruireBlocSaisie(ws As Worksheet)
     Call CreerNomSiAbsentSS(ws, "ssTiersCorrige", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_TIERS_CORRIGE))
 
     ' --- Franchise (saisie numerique libre, defaut 0) ---
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_FRANCHISE).value = FR("Franchise :")
+    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_FRANCHISE).value = mod_Display.FR("Franchise :")
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_FRANCHISE)
     Set rngFranchise = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_FRANCHISE)
     Call SS_MettreEnFormeZoneSaisie(rngFranchise)
@@ -433,15 +411,15 @@ Private Sub SS_ConstruireBlocSaisie(ws As Worksheet)
     ' --- Depassement d'honoraires (liste Oui/Non, pertinent seulement quand les 2
     '     remboursements sont presents - la Phase 2b grisera/masquera ce champ le
     '     cas echeant) ---
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_DEPASSEMENT).value = FR("D{e2}passement d'honoraires ? :")
+    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_DEPASSEMENT).value = mod_Display.FR("D{e2}passement d'honoraires ? :")
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_DEPASSEMENT)
     Set rngDepassement = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_DEPASSEMENT)
     Call SS_MettreEnFormeZoneSaisie(rngDepassement)
-    Call SS_AppliquerListeDeroulanteTexte(rngDepassement, FR("Oui,Non"))
+    Call SS_AppliquerListeDeroulanteTexte(rngDepassement, mod_Display.FR("Oui,Non"))
     Call CreerNomSiAbsentSS(ws, "ssDepassement", rngDepassement)
 
     ' --- Commentaire (texte libre) ---
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_COMMENTAIRE).value = FR("Commentaire :")
+    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_COMMENTAIRE).value = mod_Display.FR("Commentaire :")
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_COMMENTAIRE)
     Set rngCommentaire = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_COMMENTAIRE & ":" & SS_COL_VALEUR_3 & SS_LIGNE_COMMENTAIRE)
     rngCommentaire.Merge
@@ -647,7 +625,7 @@ Sub AjouterChampsContexteSuiviSante()
     ' --- Titre du bloc ---
     With ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_TITRE_CONTEXTE & ":" & SS_COL_VALEUR_3 & SS_LIGNE_TITRE_CONTEXTE)
         .Merge
-        .value = FR("Informations compl{e2}mentaires")
+        .value = mod_Display.FR("Informations compl{e2}mentaires")
         .Font.Bold = True
         .Font.Size = 10.5
         .Interior.Color = RGB(250, 250, 248)
@@ -655,7 +633,7 @@ Sub AjouterChampsContexteSuiviSante()
 
     ' --- Ligne Num_Cheque + Date_consult (2 paires sur la meme ligne) ---
     ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_NUM_CHEQUE).value = "Num_Cheque :"
-    ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_NUM_CHEQUE).value = FR("Date_consult :")
+    ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_NUM_CHEQUE).value = mod_Display.FR("Date_consult :")
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_NUM_CHEQUE)
     ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_NUM_CHEQUE).NumberFormat = "dd/mm/yyyy"
     Call SS_MettreEnFormeValeursLectureSeule(ws, SS_LIGNE_NUM_CHEQUE)
@@ -663,7 +641,7 @@ Sub AjouterChampsContexteSuiviSante()
     Call CreerNomSiAbsentSS(ws, "ssDateConsult", ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_NUM_CHEQUE))
 
     ' --- Ligne Spe_Consult ---
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_SPE_CONSULT).value = FR("Sp{e2}cialit{e2} consult{e2}e :")
+    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_SPE_CONSULT).value = mod_Display.FR("Sp{e2}cialit{e2} consult{e2}e :")
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_SPE_CONSULT)
     With ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_SPE_CONSULT & ":" & SS_COL_VALEUR_2 & SS_LIGNE_SPE_CONSULT)
         .Merge

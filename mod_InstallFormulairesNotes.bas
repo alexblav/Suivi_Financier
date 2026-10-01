@@ -1,4 +1,3 @@
-Attribute VB_Name = "mod_InstallFormulairesNotes"
 Option Explicit
 
 ' =====================================================================================
@@ -96,23 +95,6 @@ Public Const GC_LIGNE_CLE_GENEREE As Long = 20
 ' MACRO D'INSTALLATION - frm_RapprochementNotes
 ' =====================================================================================
 
-
-' -------------------------------------------------------------------------------------
-' CONSTANTES DE MISE EN PAGE
-' -------------------------------------------------------------------------------------
-Private Function FR(ByVal texte As String) As String
-    Dim r As String
-    r = texte
-    r = Replace(r, "{e2}", ChrW(233))
-    r = Replace(r, "{e1}", ChrW(232))
-    r = Replace(r, "{ea}", ChrW(234))
-    r = Replace(r, "{a2}", ChrW(224))
-    r = Replace(r, "{c2}", ChrW(231))
-    r = Replace(r, "{o2}", ChrW(244))
-    r = Replace(r, "{i2}", ChrW(238))
-    r = Replace(r, "{E2}", ChrW(201))
-    FR = r
-End Function
 Sub CreerFeuilleRapprochementNotes()
 
     Dim ws As Worksheet
@@ -147,7 +129,7 @@ Sub CreerFeuilleRapprochementNotes()
     zoneBtn1.RowHeight = 22
     Set btn = ws.Buttons.Add(zoneBtn1.Left, zoneBtn1.Top, zoneBtn1.Width, zoneBtn1.Height)
     With btn
-        .Caption = FR("Pas de correspondance")
+        .Caption = mod_Display.FR("Pas de correspondance")
         .OnAction = "PasDeCorrespondanceNotes"
         .Name = "btnPasDeCorrespondance"
     End With
@@ -171,17 +153,17 @@ Sub CreerFeuilleRapprochementNotes()
 
     ' --- Instructions ---
     With ws.Range(FN_COL_LIBELLE_1 & RN_LIGNE_TITRE_INSTRUCTIONS)
-        .value = FR("Instructions")
+        .value = mod_Display.FR("Instructions")
         .Font.Bold = True
         .Font.Size = 11
     End With
     With ws.Range(FN_COL_LIBELLE_1 & RN_LIGNE_DEBUT_INSTRUCTIONS & ":" & FN_COL_VALEUR_3 & RN_LIGNE_FIN_INSTRUCTIONS)
         .Merge
-        .value = FR("Le champ Notes de cette op{e2}ration de sant{e2} n'a pas pu {ea}tre d{e2}cod{e2}.") & Chr(10) & _
-                 FR("Essaie de retrouver la bonne cl{e2} en filtrant ci-dessous (Date, puis Sp{e2}cialit{e2},") & Chr(10) & _
-                 FR("puis B{e2}n{e2}ficiaire, puis Montant si besoin), puis clique sur 'Valider'.") & Chr(10) & _
-                 FR("Si aucune correspondance ne convient, clique sur 'Pas de correspondance' pour en") & Chr(10) & _
-                 FR("cr{e2}er une nouvelle.")
+        .value = mod_Display.FR("Le champ Notes de cette op{e2}ration de sant{e2} n'a pas pu {ea}tre d{e2}cod{e2}.") & Chr(10) & _
+                 mod_Display.FR("Essaie de retrouver la bonne cl{e2} en filtrant ci-dessous (Date, puis Sp{e2}cialit{e2},") & Chr(10) & _
+                 mod_Display.FR("puis B{e2}n{e2}ficiaire, puis Montant si besoin), puis clique sur 'Valider'.") & Chr(10) & _
+                 mod_Display.FR("Si aucune correspondance ne convient, clique sur 'Pas de correspondance' pour en") & Chr(10) & _
+                 mod_Display.FR("cr{e2}er une nouvelle.")
         .WrapText = True
         .VerticalAlignment = xlTop
         .Font.Size = 9
@@ -196,7 +178,7 @@ Sub CreerFeuilleRapprochementNotes()
     ' --- Bloc "Operation concernee" (lecture seule) ---
     With ws.Range(FN_COL_LIBELLE_1 & RN_LIGNE_TITRE_OPERATION & ":" & FN_COL_VALEUR_3 & RN_LIGNE_TITRE_OPERATION)
         .Merge
-        .value = FR("Op{e2}ration concern{e2}e")
+        .value = mod_Display.FR("Op{e2}ration concern{e2}e")
         .Font.Bold = True
         .Font.Size = 10.5
         .Interior.Color = RGB(250, 250, 248)
@@ -215,7 +197,7 @@ Sub CreerFeuilleRapprochementNotes()
     ' --- Bloc "Recherche par filtres en cascade" ---
     With ws.Range(FN_COL_LIBELLE_1 & RN_LIGNE_TITRE_RECHERCHE & ":" & FN_COL_VALEUR_3 & RN_LIGNE_TITRE_RECHERCHE)
         .Merge
-        .value = FR("Recherche de la cl{e2} (filtres en cascade)")
+        .value = mod_Display.FR("Recherche de la cl{e2} (filtres en cascade)")
         .Font.Bold = True
         .Font.Size = 10.5
         .Interior.Color = RGB(250, 250, 248)
@@ -229,7 +211,7 @@ Sub CreerFeuilleRapprochementNotes()
     Call FN_MettreEnFormeZoneSaisie(rngDate)
     Call CreerNomSiAbsentFN(ws, "rnDate", ws.Range(FN_COL_VALEUR_1 & RN_LIGNE_DATE))
 
-    ws.Range(FN_COL_LIBELLE_1 & RN_LIGNE_SPECIALITE).value = FR("Sp{e2}cialit{e2} :")
+    ws.Range(FN_COL_LIBELLE_1 & RN_LIGNE_SPECIALITE).value = mod_Display.FR("Sp{e2}cialit{e2} :")
     Call FN_MettreEnFormeLibelles(ws, RN_LIGNE_SPECIALITE)
     Dim rngSpecialite As Range
     Set rngSpecialite = ws.Range(FN_COL_VALEUR_1 & RN_LIGNE_SPECIALITE & ":" & FN_COL_VALEUR_2 & RN_LIGNE_SPECIALITE)
@@ -237,7 +219,7 @@ Sub CreerFeuilleRapprochementNotes()
     Call FN_MettreEnFormeZoneSaisie(rngSpecialite)
     Call CreerNomSiAbsentFN(ws, "rnSpecialite", ws.Range(FN_COL_VALEUR_1 & RN_LIGNE_SPECIALITE))
 
-    ws.Range(FN_COL_LIBELLE_1 & RN_LIGNE_BENEFICIAIRE).value = FR("B{e2}n{e2}ficiaire :")
+    ws.Range(FN_COL_LIBELLE_1 & RN_LIGNE_BENEFICIAIRE).value = mod_Display.FR("B{e2}n{e2}ficiaire :")
     Call FN_MettreEnFormeLibelles(ws, RN_LIGNE_BENEFICIAIRE)
     Dim rngBeneficiaire As Range
     Set rngBeneficiaire = ws.Range(FN_COL_VALEUR_1 & RN_LIGNE_BENEFICIAIRE & ":" & FN_COL_VALEUR_2 & RN_LIGNE_BENEFICIAIRE)
@@ -254,7 +236,7 @@ Sub CreerFeuilleRapprochementNotes()
     Call CreerNomSiAbsentFN(ws, "rnMontant", ws.Range(FN_COL_VALEUR_1 & RN_LIGNE_MONTANT))
 
     ' --- Cle trouvee (lecture seule) ---
-    ws.Range(FN_COL_LIBELLE_1 & RN_LIGNE_CLE_TROUVEE).value = FR("Cl{e2} trouv{e2}e :")
+    ws.Range(FN_COL_LIBELLE_1 & RN_LIGNE_CLE_TROUVEE).value = mod_Display.FR("Cl{e2} trouv{e2}e :")
     Call FN_MettreEnFormeLibelles(ws, RN_LIGNE_CLE_TROUVEE)
     With ws.Range(FN_COL_VALEUR_1 & RN_LIGNE_CLE_TROUVEE & ":" & FN_COL_VALEUR_3 & RN_LIGNE_CLE_TROUVEE)
         .Merge
@@ -336,7 +318,7 @@ Sub CreerFeuilleGenerationCle()
     zoneBtn1.RowHeight = 22
     Set btn = ws.Buttons.Add(zoneBtn1.Left, zoneBtn1.Top, zoneBtn1.Width, zoneBtn1.Height)
     With btn
-        .Caption = FR("G{e2}n{e2}rer")
+        .Caption = mod_Display.FR("G{e2}n{e2}rer")
         .OnAction = "GenererCleNotes"
         .Name = "btnGenererCle"
     End With
@@ -351,15 +333,15 @@ Sub CreerFeuilleGenerationCle()
 
     ' --- Instructions ---
     With ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_TITRE_INSTRUCTIONS)
-        .value = FR("Instructions")
+        .value = mod_Display.FR("Instructions")
         .Font.Bold = True
         .Font.Size = 11
     End With
     With ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_DEBUT_INSTRUCTIONS & ":" & FN_COL_VALEUR_3 & GC_LIGNE_FIN_INSTRUCTIONS)
         .Merge
-        .value = FR("Aucune cl{e2} existante ne correspond {a2} cette op{e2}ration.") & Chr(10) & _
-                 FR("Renseigne les 4 champs ci-dessous, clique sur 'G{e2}n{e2}rer' pour construire la cl{e2}") & Chr(10) & _
-                 FR("(elle sera aussi copi{e2}e dans le presse-papier), v{e2}rifie-la, puis clique sur 'Valider'.")
+        .value = mod_Display.FR("Aucune cl{e2} existante ne correspond {a2} cette op{e2}ration.") & Chr(10) & _
+                 mod_Display.FR("Renseigne les 4 champs ci-dessous, clique sur 'G{e2}n{e2}rer' pour construire la cl{e2}") & Chr(10) & _
+                 mod_Display.FR("(elle sera aussi copi{e2}e dans le presse-papier), v{e2}rifie-la, puis clique sur 'Valider'.")
         .WrapText = True
         .VerticalAlignment = xlTop
         .Font.Size = 9
@@ -374,7 +356,7 @@ Sub CreerFeuilleGenerationCle()
     ' --- Bloc "Operation concernee" (lecture seule) ---
     With ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_TITRE_OPERATION & ":" & FN_COL_VALEUR_3 & GC_LIGNE_TITRE_OPERATION)
         .Merge
-        .value = FR("Op{e2}ration concern{e2}e")
+        .value = mod_Display.FR("Op{e2}ration concern{e2}e")
         .Font.Bold = True
         .Font.Size = 10.5
         .Interior.Color = RGB(250, 250, 248)
@@ -390,13 +372,13 @@ Sub CreerFeuilleGenerationCle()
     ' --- Bloc "Generation de la cle" ---
     With ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_TITRE_GENERATION & ":" & FN_COL_VALEUR_3 & GC_LIGNE_TITRE_GENERATION)
         .Merge
-        .value = FR("G{e2}n{e2}ration de la cl{e2}")
+        .value = mod_Display.FR("G{e2}n{e2}ration de la cl{e2}")
         .Font.Bold = True
         .Font.Size = 10.5
         .Interior.Color = RGB(250, 250, 248)
     End With
 
-    ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_DATE_CONSULT).value = FR("Date_consult (JJ/MM/AAAA) :")
+    ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_DATE_CONSULT).value = mod_Display.FR("Date_consult (JJ/MM/AAAA) :")
     Call FN_MettreEnFormeLibelles(ws, GC_LIGNE_DATE_CONSULT)
     Dim rngDateConsult As Range
     Set rngDateConsult = ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_DATE_CONSULT)
@@ -404,7 +386,7 @@ Sub CreerFeuilleGenerationCle()
     rngDateConsult.NumberFormat = "dd/mm/yyyy"
     Call CreerNomSiAbsentFN(ws, "gcDateConsult", rngDateConsult)
 
-    ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_SPECIALITE).value = FR("Sp{e2}cialit{e2} :")
+    ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_SPECIALITE).value = mod_Display.FR("Sp{e2}cialit{e2} :")
     Call FN_MettreEnFormeLibelles(ws, GC_LIGNE_SPECIALITE)
     Dim rngSpecialite As Range
     Set rngSpecialite = ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_SPECIALITE & ":" & FN_COL_VALEUR_2 & GC_LIGNE_SPECIALITE)
@@ -423,7 +405,7 @@ Sub CreerFeuilleGenerationCle()
         .Name = "btnAjouterSpecialite"
     End With
 
-    ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_BENEFICIAIRE).value = FR("B{e2}n{e2}ficiaire :")
+    ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_BENEFICIAIRE).value = mod_Display.FR("B{e2}n{e2}ficiaire :")
     Call FN_MettreEnFormeLibelles(ws, GC_LIGNE_BENEFICIAIRE)
     Dim rngBeneficiaire As Range
     Set rngBeneficiaire = ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_BENEFICIAIRE & ":" & FN_COL_VALEUR_2 & GC_LIGNE_BENEFICIAIRE)
@@ -449,7 +431,7 @@ Sub CreerFeuilleGenerationCle()
     Call CreerNomSiAbsentFN(ws, "gcMontant", ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_MONTANT))
 
     ' --- Cle generee (lecture seule) ---
-    ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_CLE_GENEREE).value = FR("Cl{e2} g{e2}n{e2}r{e2}e :")
+    ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_CLE_GENEREE).value = mod_Display.FR("Cl{e2} g{e2}n{e2}r{e2}e :")
     Call FN_MettreEnFormeLibelles(ws, GC_LIGNE_CLE_GENEREE)
     With ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_CLE_GENEREE & ":" & FN_COL_VALEUR_3 & GC_LIGNE_CLE_GENEREE)
         .Merge
@@ -645,16 +627,16 @@ Private Sub MettreAJourInstructionsRapprochement()
     ws.Visible = xlSheetVisible
 
     With ws.Range(FN_COL_LIBELLE_1 & RN_LIGNE_DEBUT_INSTRUCTIONS & ":" & FN_COL_VALEUR_3 & RN_LIGNE_FIN_INSTRUCTIONS)
-        .value = FR("Cette op{e2}ration de sant{e2} n'a pas pu {ea}tre rapproch{e2}e automatiquement.") & Chr(10) & _
-                 FR("Filtre par Date (les plus r{e2}centes en premier), puis Sp{e2}cialit{e2}, puis B{e2}n{e2}ficiaire,") & Chr(10) & _
-                 FR("puis Montant si plusieurs choix restent possibles, pour retrouver la cl{e2} parmi") & Chr(10) & _
-                 FR("celles d{e2}j{a2} connues. Cons{e2}quence de chaque bouton :") & Chr(10) & _
-                 FR("- 'Valider' : applique la cl{e2} trouv{e2}e {a2} cette op{e2}ration. Elle ne sera PLUS JAMAIS") & Chr(10) & _
-                 FR("  reproposee (rapprochement considere regle definitivement).") & Chr(10) & _
-                 FR("- 'Pas de correspondance' : ouvre un {e2}cran pour cr{e2}er une toute nouvelle cl{e2}") & Chr(10) & _
-                 FR("  (aucune cl{e2} existante ne convient).") & Chr(10) & _
-                 FR("- 'Passer' : ne modifie RIEN sur cette op{e2}ration. Elle sera automatiquement") & Chr(10) & _
-                 FR("  repropos{e2}e la prochaine fois que tu relanceras la v{e2}rification")
+        .value = mod_Display.FR("Cette op{e2}ration de sant{e2} n'a pas pu {ea}tre rapproch{e2}e automatiquement.") & Chr(10) & _
+                 mod_Display.FR("Filtre par Date (les plus r{e2}centes en premier), puis Sp{e2}cialit{e2}, puis B{e2}n{e2}ficiaire,") & Chr(10) & _
+                 mod_Display.FR("puis Montant si plusieurs choix restent possibles, pour retrouver la cl{e2} parmi") & Chr(10) & _
+                 mod_Display.FR("celles d{e2}j{a2} connues. Cons{e2}quence de chaque bouton :") & Chr(10) & _
+                 mod_Display.FR("- 'Valider' : applique la cl{e2} trouv{e2}e {a2} cette op{e2}ration. Elle ne sera PLUS JAMAIS") & Chr(10) & _
+                 mod_Display.FR("  reproposee (rapprochement considere regle definitivement).") & Chr(10) & _
+                 mod_Display.FR("- 'Pas de correspondance' : ouvre un {e2}cran pour cr{e2}er une toute nouvelle cl{e2}") & Chr(10) & _
+                 mod_Display.FR("  (aucune cl{e2} existante ne convient).") & Chr(10) & _
+                 mod_Display.FR("- 'Passer' : ne modifie RIEN sur cette op{e2}ration. Elle sera automatiquement") & Chr(10) & _
+                 mod_Display.FR("  repropos{e2}e la prochaine fois que tu relanceras la v{e2}rification")
     End With
 
     ws.rows(RN_LIGNE_DEBUT_INSTRUCTIONS & ":" & RN_LIGNE_FIN_INSTRUCTIONS).RowHeight = 30
@@ -677,14 +659,14 @@ Private Sub MettreAJourInstructionsGeneration()
     ws.Visible = xlSheetVisible
 
     With ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_DEBUT_INSTRUCTIONS & ":" & FN_COL_VALEUR_3 & GC_LIGNE_FIN_INSTRUCTIONS)
-        .value = FR("Aucune cl{e2} existante ne correspond {a2} cette op{e2}ration.") & Chr(10) & _
-                 FR("Renseigne les 4 champs, clique 'G{e2}n{e2}rer' pour construire la cl{e2} (elle est aussi") & Chr(10) & _
-                 FR("copi{e2}e dans le presse-papier), v{e2}rifie-la, puis clique 'Valider'.") & Chr(10) & _
-                 FR("ATTENTION : une fois 'Valider' cliqu{e2}, la cl{e2} est {e2}crite DEFINITIVEMENT, m{ea}me") & Chr(10) & _
-                 FR("approximative ou incorrecte : cette op{e2}ration ne sera PLUS JAMAIS repropos{e2}e pour") & Chr(10) & _
-                 FR("correction automatique (seule une modification manuelle dans Import_data pourrait") & Chr(10) & _
-                 FR("la faire r{e2}apparaitre). Si tu n'es pas certain des informations, clique plut{o2}t sur") & Chr(10) & _
-                 FR("'Passer' pour laisser cette op{e2}ration de c{o2}t{e2} et y revenir plus tard.")
+        .value = mod_Display.FR("Aucune cl{e2} existante ne correspond {a2} cette op{e2}ration.") & Chr(10) & _
+                 mod_Display.FR("Renseigne les 4 champs, clique 'G{e2}n{e2}rer' pour construire la cl{e2} (elle est aussi") & Chr(10) & _
+                 mod_Display.FR("copi{e2}e dans le presse-papier), v{e2}rifie-la, puis clique 'Valider'.") & Chr(10) & _
+                 mod_Display.FR("ATTENTION : une fois 'Valider' cliqu{e2}, la cl{e2} est {e2}crite DEFINITIVEMENT, m{ea}me") & Chr(10) & _
+                 mod_Display.FR("approximative ou incorrecte : cette op{e2}ration ne sera PLUS JAMAIS repropos{e2}e pour") & Chr(10) & _
+                 mod_Display.FR("correction automatique (seule une modification manuelle dans Import_data pourrait") & Chr(10) & _
+                 mod_Display.FR("la faire r{e2}apparaitre). Si tu n'es pas certain des informations, clique plut{o2}t sur") & Chr(10) & _
+                 mod_Display.FR("'Passer' pour laisser cette op{e2}ration de c{o2}t{e2} et y revenir plus tard.")
     End With
 
     ws.rows(GC_LIGNE_DEBUT_INSTRUCTIONS & ":" & GC_LIGNE_FIN_INSTRUCTIONS).RowHeight = 30
@@ -694,26 +676,3 @@ Private Sub MettreAJourInstructionsGeneration()
 End Sub
 
 
-Sub AfficherFeuilleNotesPourEdition(ByVal nomFeuille As String)
-    Dim ws As Worksheet
-    Set ws = ObtenirFeuilleSansErreurFN(nomFeuille)
-    If ws Is Nothing Then
-        MsgBox "La feuille '" & nomFeuille & "' n'existe pas.", vbExclamation
-        Exit Sub
-    End If
-    ws.Visible = xlSheetVisible
-    ws.Activate
-    MsgBox "La feuille est maintenant visible. Pense a la remasquer avec" & vbCrLf & _
-           "MasquerFeuilleNotesApresEdition " & Chr(34) & nomFeuille & Chr(34), vbInformation
-End Sub
-
-Sub MasquerFeuilleNotesApresEdition(ByVal nomFeuille As String)
-    Dim ws As Worksheet
-    Set ws = ObtenirFeuilleSansErreurFN(nomFeuille)
-    If ws Is Nothing Then
-        MsgBox "La feuille '" & nomFeuille & "' n'existe pas.", vbExclamation
-        Exit Sub
-    End If
-    ws.Visible = xlSheetVeryHidden
-    MsgBox "La feuille est de nouveau masquee.", vbInformation
-End Sub
