@@ -474,6 +474,7 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
 
     ' --- Redimensionner le tableau puis ecrire en bloc ---
     tblRecherche.Resize tblRecherche.HeaderRowRange.Resize(nbTotal + 1, 16)
+    tblRecherche.ListColumns("ID_Transaction").DataBodyRange.NumberFormat = "@"   ' <- ajout : AVANT l'écriture, sinon Excel convertit les longs ID en nombre
     tblRecherche.DataBodyRange.value = resultat
 
     tblRecherche.ListColumns("Date").DataBodyRange.NumberFormat = "dd/mm/yyyy"
