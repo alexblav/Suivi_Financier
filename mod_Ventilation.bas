@@ -164,10 +164,16 @@ Public Function OuvrirVentilation(ByVal idTransaction As String, ByVal dateOp As
     ' Ajout 01/10/2026 : le bouton "Supprimer cette ventilation" n'a de sens que s'il y
     ' a deja quelque chose a supprimer -- on le masque donc pour une toute nouvelle
     ' ventilation (ChargerLignesExistantes n'a alors rien trouve).
+    ' IMPORTANT (bug corrige le 02/10/2026) : "On Error GoTo 0" ci-dessous REMET A ZERO
+    ' toute gestion d'erreur active, y compris le "On Error GoTo Erreur" pose tout en
+    ' haut de cette fonction -- il ne la "restaure" PAS. Utiliser "On Error GoTo 0" ici
+    ' aurait donc desactive silencieusement le filet de securite pour tout le reste de
+    ' OuvrirVentilation (saisie des listes deroulantes, etc.), ce qui a ete reellement
+    ' constate par l'operateur. On reactive donc explicitement "Erreur" par son nom.
     g_VenEtaitDejaVentilee = (g_VenNbLignes > 0)
     On Error Resume Next
     ws.Shapes("btnVenSupprimerVentilation").Visible = g_VenEtaitDejaVentilee
-    On Error GoTo 0
+    On Error GoTo Erreur
 
     RemplirEntete ws, dateOp, tiers, libelle, montantOp, categorieActuelle, sousCategorieActuelle
     RafraichirAffichageLignes ws
@@ -272,8 +278,6 @@ Private Sub RafraichirAffichageLignes(ByVal ws As Worksheet)
 
     ' On efface TOUTES les lignes d'affichage d'abord (une ligne editee, donc retiree,
     ' ne doit pas laisser une ancienne valeur trainer en bas du tableau).
-    ' Ajout 01/10/2026 : la plage effacee va maintenant jusqu'a VEN_COL_NOTES (et non
-    ' plus VEN_COL_MONTANT) pour couvrir aussi la nouvelle colonne Notes.
     ws.Range(ws.Cells(VEN_LIGNE_GRILLE_DEBUT, VEN_COL_CAT), ws.Cells(VEN_LIGNE_GRILLE_FIN, VEN_COL_NOTES)).ClearContents
 
     For i = 1 To g_VenNbLignes
