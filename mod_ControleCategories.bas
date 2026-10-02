@@ -98,6 +98,15 @@ Private g_CtrlIndices() As Long          ' operations presentees : position -> n
 Private g_CtrlNbAffiches As Long
 Private g_CtrlPos As Long                ' position affichee actuellement (1..g_CtrlNbAffiches)
 
+' --- Ajout 02/10/2026 (edition directe depuis l'ecran de recherche) -------------------
+' Vrai uniquement quand ControlerCategories a ete appelee avec uneSeuleOperation:=True
+' (voir mod_RechercheOperations.EditerCategorieRO). Dans ce mode : on saute la question
+' "Oui/Non/Annuler" (sans objet pour une seule operation deja categorisee, pas en cours
+' d'import) et on affiche directement l'operation, avec sa categorie/sous-categorie
+' ACTUELLE preremplie (et non une proposition issue du tableau de correspondance) ; le
+' message d'aide du formulaire est adapte en consequence (voir AfficherOperation).
+Private g_CtrlModeUnique As Boolean
+
 ' --- Referentiel lu dans TblCategories (recharge a chaque appel) -----------------------
 Private g_CtrlMap As Object              ' source (minuscules) -> "categorie" & Tab & "sous-categorie"
 Private g_CtrlPaires As Object           ' "categorie" & Tab & "sous-categorie" -> sous-categorie
@@ -122,11 +131,23 @@ Private g_CtrlRefN As Long
 '                l'appelant dans les colonnes CategorieAvantVentilation /
 '                SousCategorieAvantVentilation de TblOperations, pour pouvoir restaurer
 '                la categorie d'origine si la ventilation est supprimee plus tard.
+'   uneSeuleOperation, categorieActuelleUnique, sousCategorieActuelleUnique :
+'                (ajout 02/10/2026, edition directe depuis l'ecran de recherche) --
+'                parametres optionnels, NON utilises par l'import (valeur par defaut
+'                False/"" partout : comportement existant inchange pour tout appel qui
+'                ne les precise pas). Quand uneSeuleOperation:=True (nbOps doit alors
+'                valoir 1) : saute la question "Oui/Non/Annuler", et preremplit le
+'                formulaire avec categorieActuelleUnique / sousCategorieActuelleUnique
+'                (la vraie categorie actuelle de l'operation) plutot que de chercher une
+'                correspondance dans TblCategories a partir de CTRL_OP_CATSOURCE.
 ' Renvoie True si l'operateur a valide (ou s'il n'y avait rien a controler),
 '         False s'il a annule ou si un pre-requis manque (un message est alors affiche).
 Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
                                     ByRef catFinale() As String, ByRef sousFinale() As String, _
-                                    ByRef catAvantVentilation() As String, ByRef sousAvantVentilation() As String) As Boolean
+                                    ByRef catAvantVentilation() As String, ByRef sousAvantVentilation() As String, _
+                                    Optional ByVal uneSeuleOperation As Boolean = False, _
+                                    Optional ByVal categorieActuelleUnique As String = "", _
+                                    Optional ByVal sousCategorieActuelleUnique As String = "") As Boolean
 
     Dim ws As Worksheet
     Dim i As Long, nbARanger As Long
@@ -135,6 +156,8 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
     Dim reponse As VbMsgBoxResult
 
     On Error GoTo Erreur
+
+    g_CtrlModeUnique = uneSeuleOperation
 
     ControlerCategories = False
     If nbOps <= 0 Then
@@ -183,14 +206,33 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
         End If
     Next i
 
+    ' Ajout 02/10/2026 : en mode "edition directe" (uneSeuleOperation:=True), on ignore
+    ' le resultat de l'ETAPE 1 ci-dessus (il n'y a pas de "source banque" a faire
+    ' correspondre, CTRL_OP_CATSOURCE n'est meme pas renseigne par l'appelant dans ce
+    ' mode) : on preremplit directement avec la VRAIE categorie actuelle de l'operation,
+    ' et on la marque comme "pas a ranger" (g_CtrlARanger = False) puisqu'elle a deja
+    ' une categorie valide -- voir AfficherOperation pour le message adapte.
+    If g_CtrlModeUnique Then
+        g_CtrlCat(1) = categorieActuelleUnique
+        g_CtrlSous(1) = sousCategorieActuelleUnique
+        g_CtrlARanger(1) = False
+    End If
+
     ' --- ETAPE 2 : la question a l'operateur ------------------------------------------------
-    reponse = MsgBox(nbOps & mod_Display.FR(" op{e2}ration(s) import{e2}e(s).") & vbCrLf & vbCrLf & _
-                     mod_Display.FR("Les cat{e2}gories de ces op{e2}rations ont-elles {e2}t{e2} correctement renseign{e2}es dans la source (la banque) ?") & _
-                     vbCrLf & vbCrLf & _
-                     mod_Display.FR("OUI : la correspondance est appliqu{e2}e automatiquement.") & vbCrLf & _
-                     mod_Display.FR("NON : les op{e2}rations vous sont pr{e2}sent{e2}es une par une pour les v{e2}rifier.") & vbCrLf & _
-                     mod_Display.FR("ANNULER : abandon, rien n'est appliqu{e2}."), _
-                     vbYesNoCancel + vbQuestion, mod_Display.FR("Contr{o2}le des cat{e2}gories"))
+    ' En mode "edition directe", cette question n'a pas de sens (il n'y a qu'UNE
+    ' operation, deja categorisee, pas en cours d'import) : on saute directement a
+    ' "toutes les operations sont presentees" (meme resultat qu'une reponse "NON" ici).
+    If g_CtrlModeUnique Then
+        reponse = vbNo
+    Else
+        reponse = MsgBox(nbOps & mod_Display.FR(" op{e2}ration(s) import{e2}e(s).") & vbCrLf & vbCrLf & _
+                         mod_Display.FR("Les cat{e2}gories de ces op{e2}rations ont-elles {e2}t{e2} correctement renseign{e2}es dans la source (la banque) ?") & _
+                         vbCrLf & vbCrLf & _
+                         mod_Display.FR("OUI : la correspondance est appliqu{e2}e automatiquement.") & vbCrLf & _
+                         mod_Display.FR("NON : les op{e2}rations vous sont pr{e2}sent{e2}es une par une pour les v{e2}rifier.") & vbCrLf & _
+                         mod_Display.FR("ANNULER : abandon, rien n'est appliqu{e2}."), _
+                         vbYesNoCancel + vbQuestion, mod_Display.FR("Contr{o2}le des cat{e2}gories"))
+    End If
 
     If reponse = vbCancel Then Exit Function      ' False : abandon
 
@@ -199,7 +241,7 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
     g_CtrlNbAffiches = 0
 
     If reponse = vbNo Then
-        ' Lecture 1 - "NON" : toutes les operations sont presentees.
+        ' Lecture 1 - "NON" (ou mode "edition directe") : toutes les operations sont presentees.
         For i = 1 To nbOps
             g_CtrlNbAffiches = g_CtrlNbAffiches + 1
             g_CtrlIndices(g_CtrlNbAffiches) = i
@@ -330,7 +372,13 @@ Private Sub AfficherOperation(ByVal ws As Worksheet)
     RemplirListeSousCategories ws, g_CtrlCat(i)
 
     ' --- Message d'aide adapte ---
-    If g_CtrlARanger(i) Then
+    ' Ajout 02/10/2026 : en mode "edition directe" (voir g_CtrlModeUnique), ni le message
+    ' "a ranger" ni celui de "correspondance" n'ont de sens (il n'y a pas de categorie
+    ' source banque ici) : message neutre dedie.
+    If g_CtrlModeUnique Then
+        ws.Range(CTRL_ADR_MESSAGE).value = mod_Display.FR("Cat{e2}gorie et sous-cat{e2}gorie actuelles de cette op{e2}ration. Vous pouvez les modifier ci-dessous.")
+        ws.Range(CTRL_ADR_MESSAGE).Font.Color = RGB(90, 90, 90)
+    ElseIf g_CtrlARanger(i) Then
         ws.Range(CTRL_ADR_MESSAGE).value = mod_Display.FR("Cat{e2}gorie source '") & Source & _
             mod_Display.FR("' absente du tableau de correspondance (ou vide) : choisissez la cat{e2}gorie {a2} affecter.")
         ws.Range(CTRL_ADR_MESSAGE).Font.Color = RGB(192, 80, 0)

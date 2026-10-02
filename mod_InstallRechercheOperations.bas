@@ -9,52 +9,52 @@ Option Explicit
 '   et de correction en masse pour TblOperations, base sur un TABLEAU EXCEL
 '   CLASSIQUE avec filtre automatique natif (les fleches de filtre dans
 '   l'entete font tout le travail de filtrage croise Date/Tiers/Montant/
-'   Catégorie/Notes, sans code personnalise).
+'   CatÃ©gorie/Notes, sans code personnalise).
 '
 '   Colonnes du tableau (dans cet ordre) :
-'     A - Valider       : l'opérateur y inscrit "Oui" sur les lignes finies
+'     A - Valider       : l'opÃ©rateur y inscrit "Oui" sur les lignes finies
 '     B - Date
 '     C - Tiers
 '     D - Montant
-'     E - Catégorie     : liste déroulante (avertissement, pas de blocage :
-'                         on peut taper une nouvelle catégorie qui n'existe
+'     E - CatÃ©gorie     : liste dÃ©roulante (avertissement, pas de blocage :
+'                         on peut taper une nouvelle catÃ©gorie qui n'existe
 '                         pas encore)
-'     F - SousCategorie : idem, PHASE 5 (catégories a 2 niveaux)
-'     G - Notes         : texte libre, SAUF si la valeur est déjà une clé
-'                         santé valide (grisee dans ce cas - voir Phase 5b)
+'     F - SousCategorie : idem, PHASE 5 (catÃ©gories a 2 niveaux)
+'     G - Notes         : texte libre, SAUF si la valeur est dÃ©jÃ  une clÃ©
+'                         santÃ© valide (grisee dans ce cas - voir Phase 5b)
 '     H - Ventile        : colonne INFORMATIVE (non modifiable), PHASE 5.
-'                         "Oui" si la ligne représente une PART VENTILEE
-'                         d'une opération bancaire (elle vient alors de
+'                         "Oui" si la ligne reprÃ©sente une PART VENTILEE
+'                         d'une opÃ©ration bancaire (elle vient alors de
 '                         TblVentilations, pas de TblOperations), ou si
-'                         l'opération PARENTE d'une ligne normale a ete
-'                         ventilee (Catégorie = "Ventile"). C'est le "tag"
-'                         de tracabilite demandé par l'opérateur : "on peut
-'                         prevenir un tag indiquant que cette opération fait
+'                         l'opÃ©ration PARENTE d'une ligne normale a ete
+'                         ventilee (CatÃ©gorie = "Ventile"). C'est le "tag"
+'                         de tracabilite demandÃ© par l'opÃ©rateur : "on peut
+'                         prevenir un tag indiquant que cette opÃ©ration fait
 '                         partie d'une ventilation, pour information". Une
-'                         opération ventilee reste ainsi accessible ICI de 2
-'                         facons : via sa ligne parente (Catégorie="Ventile"),
+'                         opÃ©ration ventilee reste ainsi accessible ICI de 2
+'                         facons : via sa ligne parente (CatÃ©gorie="Ventile"),
 '                         ou directement via chacune de ses parts (une ligne
-'                         par sous-catégorie de la ventilation).
-'     I - ID_Transaction : colonne technique MASQUEE (ID de l'opération, ou
-'                         de l'opération PARENTE pour une part ventilee)
+'                         par sous-catÃ©gorie de la ventilation).
+'     I - ID_Transaction : colonne technique MASQUEE (ID de l'opÃ©ration, ou
+'                         de l'opÃ©ration PARENTE pour une part ventilee)
 '     J - SourceLigne    : colonne technique MASQUEE, PHASE 5 : "O" (ligne de
 '                         TblOperations) ou "V" (part de TblVentilations),
 '                         sert a savoir OU ecrire au moment d'appliquer
 '     K - LigneVentilation : colonne technique MASQUEE, PHASE 5 : pour une
 '                         ligne "V", position de la part DANS TblVentilations
-'                         (DataBodyRange). Vide/non utilisée pour une ligne "O".
+'                         (DataBodyRange). Vide/non utilisÃ©e pour une ligne "O".
 '
 '   La Phase 5b (mod_RechercheOperations) remplira le tableau depuis
 '   TblOperations ET TblVentilations (bouton "Rechercher") et appliquera les
 '   lignes marquees (bouton "Appliquer les lignes marquees") dans la bonne
 '   table source, colonne par colonne, jamais par un tri/decoupage de texte.
 '
-'   Ajout suite à un test opérateur : un 3e bouton "Revoir la ventilation"
-'   permet, sur une ligne dont la colonne Ventilé vaut "Oui", de rouvrir le
-'   formulaire de ventilation (frm_Ventilation) avec le détail déjà enregistré
+'   Ajout suite Ã  un test opÃ©rateur : un 3e bouton "Revoir la ventilation"
+'   permet, sur une ligne dont la colonne VentilÃ© vaut "Oui", de rouvrir le
+'   formulaire de ventilation (frm_Ventilation) avec le dÃ©tail dÃ©jÃ  enregistrÃ©
 '   dans TblVentilations, au lieu d'un formulaire vide (voir
-'   mod_RechercheOperations.RevoirVentilationRO et l'explication complète en
-'   tête de mod_Ventilation).
+'   mod_RechercheOperations.RevoirVentilationRO et l'explication complÃ¨te en
+'   tÃªte de mod_Ventilation).
 '
 ' =====================================================================================
 ' REFONTE "ECRAN CENTRAL" (PHASE 6, apres discussion avec l'operateur) :
@@ -78,18 +78,18 @@ Option Explicit
 '   garder un seul ListObject a colonnes fixes plutot que de le reconstruire
 '   a chaque appel.
 '
-' À PROPOS DES ACCENTS : tout ce qui s'affiche dans Excel continue à passer par
-' la fonction FR() pour rester 100% sûr à l'import VBA. Les commentaires que
-' j'ajoute à partir de maintenant utilisent de vrais caractères accentués pour
-' rester lisibles (convention validée avec l'opérateur) ; les anciens
+' Ã€ PROPOS DES ACCENTS : tout ce qui s'affiche dans Excel continue Ã  passer par
+' la fonction FR() pour rester 100% sÃ»r Ã  l'import VBA. Les commentaires que
+' j'ajoute Ã  partir de maintenant utilisent de vrais caractÃ¨res accentuÃ©s pour
+' rester lisibles (convention validÃ©e avec l'opÃ©rateur) ; les anciens
 ' commentaires du fichier restent tels quels pour l'instant.
 '
 ' A FAIRE POUR INSTALLER CE MODULE :
 '   1. Alt+F11, Fichier > Importer un fichier..., choisir ce fichier .bas
 '   2. Ctrl+G : CreerFeuilleRechercheOperations (ATTENTION : reconstruit toute la
-'      feuille, y compris ses boutons – c'est le seul moyen de faire apparaître
-'      le nouveau bouton "Revoir la ventilation" ; réimporter le fichier seul
-'      ne suffit pas, comme déjà repéré plus tôt sur ce chantier)
+'      feuille, y compris ses boutons â€“ c'est le seul moyen de faire apparaÃ®tre
+'      le nouveau bouton "Revoir la ventilation" ; rÃ©importer le fichier seul
+'      ne suffit pas, comme dÃ©jÃ  repÃ©rÃ© plus tÃ´t sur ce chantier)
 '   3. Pour revoir la feuille : AfficherFeuilleRecherchePourEdition
 '      Pour la remasquer : MasquerFeuilleRechercheApresEdition
 '
@@ -106,6 +106,22 @@ Option Explicit
 '     directement le detail de la ventilation (voir ThisWorkbook.bas,
 '     Workbook_SheetBeforeDoubleClick), en plus du bouton "Revoir la
 '     ventilation" qui reste disponible.
+'
+' MISE A JOUR 02/10/2026 (apres discussion avec l'operateur) :
+'   - Le bouton "Revoir la ventilation" ci-dessus est SUPPRIME (devenu inutile) :
+'     double-cliquer sur une cellule de la colonne Ventile fait desormais TOUT le
+'     travail, que la ligne soit deja ventilee (revoir le detail) ou non (demarrer
+'     une nouvelle ventilation) -- voir mod_RechercheOperations.RevoirVentilationRO.
+'   - Nouveau : double-cliquer sur une cellule de la colonne Categorie (hors ligne
+'     ventilee) ouvre le MEME formulaire que le controle des categories a l'import,
+'     en mode "une seule operation" -- voir mod_RechercheOperations.EditerCategorieRO
+'     et mod_ControleCategories.ControlerCategories (parametre uneSeuleOperation).
+'   - Le bouton "Appliquer les lignes marquees" (et la colonne Valider) ne gere plus
+'     que la colonne Notes : Categorie et SousCategorie se modifient desormais par
+'     double-clic (ci-dessus), qui ecrit immediatement, sans "Valider" ni ce bouton.
+'   - Nouvelle ligne RO_LIGNE_FILTRE (voir plus bas) : phrase recalculee a chaque
+'     recherche, qui rappelle a l'operateur sur quel sous-ensemble d'operations il
+'     travaille (recherche globale, dernier import, mois precis...).
 ' =====================================================================================
 
 
@@ -120,7 +136,15 @@ Public Const RO_LIGNE_BOUTONS As Long = 2
 ' invisible, cache sous les boutons eux-memes (constat operateur du 01/10/2026).
 Public Const RO_LIGNE_ENTETES As Long = 5
 
-' Position des colonnes DANS LE TABLEAU (1 = première colonne du tableau, A)
+' RO_LIGNE_FILTRE = 4 (ajout 02/10/2026) : ligne restee vide entre le texte d'aide
+' (RO_LIGNE_ENTETES - 2 = 3) et l'entete du tableau (RO_LIGNE_ENTETES = 5). Accueille
+' desormais une phrase courte, recalculee a chaque recherche (voir
+' mod_RechercheOperations.DecrireFiltreActifRO), qui dit a l'operateur sur quel
+' sous-ensemble d'operations il travaille actuellement (recherche globale, dernier
+' import, mois precis, etc.).
+Public Const RO_LIGNE_FILTRE As Long = RO_LIGNE_ENTETES - 1
+
+' Position des colonnes DANS LE TABLEAU (1 = premiÃ¨re colonne du tableau, A)
 Public Const RO_COL_VALIDER As Long = 1
 Public Const RO_COL_DATE As Long = 2
 Public Const RO_COL_TIERS As Long = 3
@@ -140,22 +164,6 @@ Public Const RO_COL_STATUTSANTE As Long = 13
 Public Const RO_COL_SOLDESANTE As Long = 14
 Public Const RO_COL_DATECONSULT As Long = 15
 Public Const RO_COL_SPECONSULT As Long = 16
-
-
-'Private Function FR(ByVal texte As String) As String
-'    Dim r As String
-'    r = texte
-'    r = Replace(r, "{e2}", ChrW(233))
-'    r = Replace(r, "{e1}", ChrW(232))
-'    r = Replace(r, "{ea}", ChrW(234))
-'    r = Replace(r, "{a2}", ChrW(224))
-'    r = Replace(r, "{c2}", ChrW(231))
-'    r = Replace(r, "{o2}", ChrW(244))
-'    r = Replace(r, "{i2}", ChrW(238))
-'    r = Replace(r, "{E2}", ChrW(201))
-'    FR = r
-'End Function
-
 
 ' =====================================================================================
 ' MACRO D'INSTALLATION
@@ -232,23 +240,13 @@ Sub CreerFeuilleRechercheOperations()
         .Name = "btnAppliquerLignesMarquees"
     End With
 
-    ' Ajout suite à un test opérateur : bouton pour rouvrir le détail d'une
-    ' opération déjà ventilée (sélectionner une ligne du tableau dont la colonne
-    ' "Ventilé" vaut "Oui", puis cliquer ici) – voir mod_RechercheOperations.RevoirVentilationRO.
-    Dim zoneBtn3 As Range
-    Set zoneBtn3 = ws.Range("F" & RO_LIGNE_BOUTONS & ":G" & RO_LIGNE_BOUTONS)
-    Set btn = ws.Buttons.Add(zoneBtn3.Left, zoneBtn3.Top, zoneBtn3.Width, zoneBtn3.Height)
-    With btn
-        .Caption = FR("Revoir la ventilation")
-        .OnAction = "RevoirVentilationRO"
-        .Name = "btnRevoirVentilationRO"
-    End With
-
-    ' Ajout 01/10/2026 : un double-clic direct sur "Oui" dans la colonne
-    ' Ventile fait desormais la meme chose (voir ThisWorkbook.bas), mais ce
-    ' bouton reste utile si la ligne est deja selectionnee autrement.
+    ' Ajout 02/10/2026 : le bouton "Revoir la ventilation" qui etait ici est supprime,
+    ' devenu inutile -- le double-clic sur la colonne Ventile (voir ThisWorkbook.bas)
+    ' couvre desormais les 2 cas (revoir une ventilation existante, ou en demarrer une
+    ' nouvelle), voir mod_RechercheOperations.RevoirVentilationRO. Le bouton "Sortir"
+    ' reprend sa place (F:G) pour ne pas laisser un espace vide.
     Dim zoneBtn4 As Range
-    Set zoneBtn4 = ws.Range("H" & RO_LIGNE_BOUTONS & ":I" & RO_LIGNE_BOUTONS)
+    Set zoneBtn4 = ws.Range("F" & RO_LIGNE_BOUTONS & ":G" & RO_LIGNE_BOUTONS)
     Set btn = ws.Buttons.Add(zoneBtn4.Left, zoneBtn4.Top, zoneBtn4.Width, zoneBtn4.Height)
     With btn
         .Caption = FR("Sortir")
@@ -257,20 +255,48 @@ Sub CreerFeuilleRechercheOperations()
     End With
 
     ' --- Petit rappel du fonctionnement, au-dessus du tableau ---
+    ' Refonte 02/10/2026 (apres discussion avec l'operateur) : mode operatoire en
+    ' liste a puces (plus lisible qu'un paragraphe), avec les noms de colonnes mis en
+    ' evidence (gras + vert) via SurlignerMotsRO ci-dessous -- aucun precedent de ce
+    ' genre de mise en forme (Characters) dans ce classeur, a verifier visuellement a
+    ' l'import.
+    Dim texteAide As String
+    texteAide = "- " & FR("Utilise les fl{e2}ches de filtre dans l'en-t{ea}te de chaque colonne pour restreindre la liste affich{e2}e.") & Chr(10) & _
+                "- " & FR("Corrige directement la cellule Notes, inscris 'Oui' dans Valider, puis clique sur 'Appliquer les lignes marqu{e2}es' pour l'enregistrer (possible sur plusieurs lignes {a2} la fois).") & Chr(10) & _
+                "- " & FR("Double-clique sur une cellule Categorie pour l'{e2}diter, elle et sa sous-cat{e2}gorie, via le formulaire habituel de contr{o2}le des cat{e2}gories (elles ne se modifient plus via Valider/Appliquer).") & Chr(10) & _
+                "- " & FR("Double-clique sur une cellule vide de la colonne Ventile pour d{e2}marrer une nouvelle ventilation sur cette op{e2}ration, ou sur une cellule 'Oui' pour revoir ou supprimer une ventilation d{e2}j{a2} enregistr{e2}e.") & Chr(10) & _
+                "- " & FR("'Recherche globale' recharge toutes les op{e2}rations sans filtre. 'Sortir' referme cet {e2}cran.")
+
     With ws.Range("A" & (RO_LIGNE_ENTETES - 2) & ":G" & (RO_LIGNE_ENTETES - 2))
         .Merge
-        .value = FR("Utilise les fl{e2}ches de filtre dans l'en-t{ea}te (comme un filtre Excel classique) pour restreindre la liste. " & _
-                    "Corrige Cat{e2}gorie/Notes directement dans les cellules, inscris 'Oui' dans Valider, puis clique sur 'Appliquer les lignes marqu{e2}es'. " & _
-                    "Pour revoir le d{e2}tail d'une op{e2}ration ventil{e2}e (colonne Ventil{e2} = Oui) : double-clique dessus, ou s{e2}lectionne sa ligne puis clique sur 'Revoir la ventilation'. " & _
-                    "'Recherche globale' recharge toutes les op{e2}rations sans filtre. 'Sortir' referme cet {e2}cran.")
+        .value = texteAide
         .Font.Size = 9
         .Font.Color = RGB(80, 80, 80)
         .WrapText = True
         .VerticalAlignment = xlTop
     End With
-    ws.rows(RO_LIGNE_ENTETES - 2).RowHeight = 28
+    SurlignerMotsRO ws.Range("A" & (RO_LIGNE_ENTETES - 2)), texteAide, _
+                    Array("SousCategorie", "Categorie", "Notes", "Valider", "Ventile")
+    ws.rows(RO_LIGNE_ENTETES - 2).RowHeight = 56
 
-    ' --- Tableau (headers + 1 ligne vide de depart, indispensable pour créer un ListObject) ---
+    ' --- Zone "filtre actif" (ajout 02/10/2026) : phrase courte, recalculee par
+    ' mod_RechercheOperations.RechercherOperations a chaque recherche (voir
+    ' DecrireFiltreActifRO), qui rappelle sur quel sous-ensemble d'operations
+    ' l'operateur travaille actuellement. Vide au tout premier affichage de
+    ' l'ecran (avant la toute premiere recherche).
+    With ws.Range("A" & RO_LIGNE_FILTRE & ":G" & RO_LIGNE_FILTRE)
+        .Merge
+        .value = ""
+        .Font.Size = 9
+        .Font.Italic = True
+        .Font.Color = RGB(31, 78, 121)
+        .Interior.Color = RGB(237, 243, 250)
+        .WrapText = True
+        .VerticalAlignment = xlCenter
+    End With
+    ws.rows(RO_LIGNE_FILTRE).RowHeight = 16
+
+    ' --- Tableau (headers + 1 ligne vide de depart, indispensable pour crÃ©er un ListObject) ---
     ws.Range("A" & RO_LIGNE_ENTETES).value = "Valider"
     ws.Range("B" & RO_LIGNE_ENTETES).value = "Date"
     ws.Range("C" & RO_LIGNE_ENTETES).value = "Tiers"
@@ -294,7 +320,7 @@ Sub CreerFeuilleRechercheOperations()
     tbl.TableStyle = "TableStyleMedium2"
 
     ' Colonnes techniques masquees (PHASE 5 : Ventile reste VISIBLE, c'est le
-    ' tag informatif demandé par l'opérateur -- seules I/J/K, qui ne servent
+    ' tag informatif demandÃ© par l'opÃ©rateur -- seules I/J/K, qui ne servent
     ' qu'au code, sont masquees)
     ws.Columns("I").Hidden = True
     ws.Columns("J").Hidden = True
@@ -314,6 +340,55 @@ Sub CreerFeuilleRechercheOperations()
 
     MsgBox "La feuille '" & NOM_FEUILLE_RECHERCHE & "' a ete creee et masquee." & vbCrLf & _
            "Pour la revoir : AfficherFeuilleRecherchePourEdition", vbInformation, "Installation terminee"
+
+End Sub
+
+
+' =====================================================================================
+' SurlignerMotsRO (ajout 02/10/2026) : met en GRAS + VERT, DANS UNE CELLULE DEJA
+' REMPLIE, chaque occurrence exacte (respect de la casse) de chacun des mots de
+' la liste "mots". Sert a faire ressortir les noms de colonnes (Categorie,
+' SousCategorie, Notes, Valider, Ventile) dans le texte d'aide au-dessus du
+' tableau de recherche, pour que l'operateur les repere en un coup d'oeil.
+'
+' ATTENTION (technique nouvelle dans ce classeur, aucun autre module n'utilise
+' Range.Characters) : la recherche se fait avec vbBinaryCompare (respect de la
+' casse), PAS vbTextCompare, pour ne jamais accrocher un mot "generique" du
+' texte qui ressemblerait a un nom de colonne mais s'ecrirait differemment
+' (exemple : "controle des categories", en minuscules et au pluriel dans une
+' phrase normale, ne doit pas etre colore comme le nom de colonne "Categorie").
+' "texteComplet" DOIT etre exactement la chaine deja ecrite dans "cellule"
+' (apres toute substitution mod_Display.FR, {tag} compris) : Characters()
+' raisonne en position de caractere dans le texte final affiche, pas dans un
+' texte source avec des {tag}.
+'
+' Remarque sur l'ordre des mots : "SousCategorie" contient "Categorie". Si
+' "SousCategorie" est traite APRES "Categorie" dans la liste, cela ne pose
+' aucun probleme : le passage sur "SousCategorie" recolore alors l'ensemble du
+' mot (y compris la partie deja coloree par "Categorie"), le resultat final
+' est donc correct quel que soit l'ordre choisi.
+' =====================================================================================
+Private Sub SurlignerMotsRO(ByVal cellule As Range, ByVal texteComplet As String, ByVal mots As Variant)
+
+    Dim m As Variant
+    Dim motTexte As String
+    Dim position As Long
+
+    For Each m In mots
+        motTexte = CStr(m)
+        If Len(motTexte) > 0 Then
+            position = 1
+            Do
+                position = InStr(position, texteComplet, motTexte, vbBinaryCompare)
+                If position = 0 Then Exit Do
+                With cellule.Characters(position, Len(motTexte)).Font
+                    .Bold = True
+                    .Color = RGB(0, 128, 0)
+                End With
+                position = position + Len(motTexte)
+            Loop
+        End If
+    Next m
 
 End Sub
 

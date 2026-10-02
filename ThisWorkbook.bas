@@ -1,7 +1,7 @@
 Option Explicit
-' Ce module regroupe les macros qui préparent une ZONE D'AFFICHAGE sur une
-' feuille (nettoyage, mise en place des en-têtes) AVANT que d'autres modules
-' n'y écrivent des données. Il ne contient volontairement AUCUNE logique de
+' Ce module regroupe les macros qui prÃ©parent une ZONE D'AFFICHAGE sur une
+' feuille (nettoyage, mise en place des en-tÃ©tes) AVANT que d'autres modules
+' n'y Ã©crivent des donnÃ©es. Il ne contient volontairement AUCUNE logique de
 ' calcul ou de filtrage : uniquement de la mise en forme / nettoyage visuel.
 
 ' PHASE 6 : l'ancien Workbook_SheetBeforeDoubleClick (qui appelait
@@ -15,14 +15,24 @@ Option Explicit
 ' Workbook_SheetBeforeDoubleClick est recree ci-dessous, mais volontairement
 ' tres cible -- contrairement a l'ancien (generique, declenche sur toutes les
 ' feuilles), celui-ci ne fait quelque chose QUE sur la feuille
-' frm_RechercheOperations, et UNIQUEMENT dans la colonne "Ventile" : un
-' double-clic y rouvre directement le detail de la ventilation de la ligne
-' concernee (meme resultat que de selectionner la ligne puis cliquer sur le
-' bouton "Revoir la ventilation" -- mod_RechercheOperations.RevoirVentilationRO
-' fait d'ailleurs tout le travail de validation, ce handler ne fait que
-' selectionner la bonne ligne puis l'appeler). Sur toute autre feuille, ou
-' toute autre colonne de cette feuille, Excel garde son comportement normal
-' (double-clic = entrer en mode edition de la cellule).
+' frm_RechercheOperations, et UNIQUEMENT dans les colonnes "Ventile" et
+' "Categorie". Sur toute autre feuille, ou toute autre colonne de cette
+' feuille, Excel garde son comportement normal (double-clic = entrer en mode
+' edition de la cellule).
+'
+' MISE A JOUR 02/10/2026 (apres discussion avec l'operateur) :
+'   - Colonne "Ventile" : un double-clic rouvre desormais TOUJOURS
+'     mod_RechercheOperations.RevoirVentilationRO, que la ligne soit deja
+'     ventilee (Oui -- revoir/supprimer le detail) ou non (cellule vide --
+'     demarrer une nouvelle ventilation) : c'est RevoirVentilationRO qui fait
+'     la distinction et tout le travail, ce handler se contente de
+'     selectionner la bonne ligne puis de l'appeler.
+'   - Colonne "Categorie" (nouveau) : un double-clic ouvre
+'     mod_RechercheOperations.EditerCategorieRO, qui reutilise le formulaire
+'     habituel de controle des categories (mod_ControleCategories) pour
+'     corriger la Categorie/SousCategorie de cette seule operation. Si la
+'     ligne est deja ventilee, EditerCategorieRO affiche elle-meme un message
+'     d'information explicatif plutot que de ne rien faire silencieusement.
 Private Sub Workbook_SheetBeforeDoubleClick(ByVal Sh As Object, ByVal Target As Range, Cancel As Boolean)
 
     ' On ne s'interesse qu'a l'ecran central de recherche.
@@ -35,23 +45,32 @@ Private Sub Workbook_SheetBeforeDoubleClick(ByVal Sh As Object, ByVal Target As 
     If tbl Is Nothing Then Exit Sub
     If tbl.DataBodyRange Is Nothing Then Exit Sub
 
-    ' Colonne "Ventile" : on retrouve sa position par son NOM (jamais par un
-    ' numero fige), comme partout ailleurs sur ce chantier.
-    Dim colVentile As Long
-    On Error Resume Next
-    colVentile = tbl.ListColumns("Ventile").index
-    On Error GoTo 0
-    If colVentile = 0 Then Exit Sub
-
-    ' Le double-clic doit tomber dans la colonne Ventile ET dans une ligne de
-    ' donnees du tableau (jamais dans l'en-tete, ni une autre colonne).
-    If Target.Column <> tbl.Range.Columns(colVentile).Column Then Exit Sub
+    ' On ne s'interesse qu'a un double-clic dans une ligne de donnees du
+    ' tableau (jamais dans l'en-tete, ni en dehors du tableau).
     If Intersect(Target, tbl.DataBodyRange) Is Nothing Then Exit Sub
 
-    ' Cancel = True empeche Excel de passer la cellule en mode edition
-    ' (comportement par defaut d'un double-clic) : on prend la main a la place.
-    Cancel = True
-    Target.Select
-    mod_RechercheOperations.RevoirVentilationRO
+    ' Colonnes "Ventile" et "Categorie" : on retrouve leur position par leur
+    ' NOM (jamais par un numero fige), comme partout ailleurs sur ce chantier.
+    Dim colVentile As Long, colCategorie As Long
+    On Error Resume Next
+    colVentile = tbl.ListColumns("Ventile").index
+    colCategorie = tbl.ListColumns("Categorie").index
+    On Error GoTo 0
+
+    If colVentile <> 0 And Target.Column = tbl.Range.Columns(colVentile).Column Then
+        ' Cancel = True empeche Excel de passer la cellule en mode edition
+        ' (comportement par defaut d'un double-clic) : on prend la main a la place.
+        Cancel = True
+        Target.Select
+        mod_RechercheOperations.RevoirVentilationRO
+        Exit Sub
+    End If
+
+    If colCategorie <> 0 And Target.Column = tbl.Range.Columns(colCategorie).Column Then
+        Cancel = True
+        Target.Select
+        mod_RechercheOperations.EditerCategorieRO
+        Exit Sub
+    End If
 
 End Sub

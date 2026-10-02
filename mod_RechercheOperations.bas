@@ -533,12 +533,75 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
 
     mod_InstallRechercheOperations.DefinirColonnesVisibles ws, prefiltre
 
+    ' --- Ajout 02/10/2026 : phrase de rappel du filtre actif, ecrite juste
+    ' au-dessus du tableau (ligne RO_LIGNE_FILTRE) -- l'operateur sait ainsi en
+    ' permanence sur quel sous-ensemble d'operations il travaille, meme apres
+    ' avoir quitte puis rouvert cet ecran, ou apres un "Revoir la ventilation"
+    ' qui relance cette meme procedure avec le meme prefiltre (g_ROPrefiltreActif).
+    ws.Range("A" & mod_InstallRechercheOperations.RO_LIGNE_FILTRE).value = _
+        DecrireFiltreActifRO(prefiltre, param, nbTotal)
+
     ' On remet en place le(s) filtre(s) que l'operateur avait poses avant cette
     ' recherche (voir RestaurerFiltresRO plus haut) -- sans ca, un filtre de colonne
     ' actif avant un "Revoir la ventilation" semblait disparaitre apres coup.
     RestaurerFiltresRO tblRecherche, filtresSauvegardes
 
 End Sub
+
+' =====================================================================================
+' DecrireFiltreActifRO (ajout 02/10/2026) : construit la phrase affichee a la
+' ligne RO_LIGNE_FILTRE, juste au-dessus du tableau de recherche, pour que
+' l'operateur sache en permanence sur quel sous-ensemble d'operations il
+' travaille. Appelee UNIQUEMENT par RechercherOperations, juste apres que ce
+' dernier ait fini de remplir le tableau (nbTotal est donc deja connu).
+'
+' "critMois"/"critAnnee" sont des variables Public declarees dans
+' mod_VarGlobales et remplies par mod_Criteres.GetSelectCriteres (deja appelee
+' plus haut dans RechercherOperations pour les prefiltres qui en ont besoin) :
+' on les relit ici telles quelles, sans les recalculer, exactement comme le
+' fait deja mod_SyntheseBudgetBilanMensuel ailleurs dans ce classeur.
+' =====================================================================================
+Private Function DecrireFiltreActifRO(ByVal prefiltre As String, ByVal param As Variant, ByVal nbTotal As Long) As String
+
+    Dim texte As String
+
+    Select Case prefiltre
+
+        Case ""
+            texte = FR("Recherche globale (aucun filtre de mois ni de montant) -- ") & nbTotal & FR(" ligne(s) affich{e2}e(s).")
+
+        Case "DernierImport"
+            texte = FR("Op{e2}rations du dernier import -- ") & nbTotal & FR(" ligne(s) affich{e2}e(s).")
+
+        Case "OperationsDuMois"
+            texte = FR("Op{e2}rations du mois budg{e2}taire ") & Format(critMois, "00") & "/" & critAnnee & _
+                    FR(" -- ") & nbTotal & FR(" op{e2}ration(s).")
+
+        Case "ErreursSante"
+            texte = FR("Op{e2}rations avec une date de consultation invalide -- ") & nbTotal & FR(" op{e2}ration(s).")
+
+        Case "DetailTotal"
+            If CStr(param) = "Positif" Then
+                texte = FR("D{e2}tail du total POSITIF du mois budg{e2}taire ") & Format(critMois, "00") & "/" & critAnnee
+            ElseIf CStr(param) = "Negatif" Then
+                texte = FR("D{e2}tail du total N{e2}GATIF du mois budg{e2}taire ") & Format(critMois, "00") & "/" & critAnnee
+            Else
+                texte = FR("D{e2}tail du total du mois budg{e2}taire ") & Format(critMois, "00") & "/" & critAnnee
+            End If
+            texte = texte & FR(" -- ") & nbTotal & FR(" op{e2}ration(s).")
+
+        Case Else
+            ' Securite : un prefiltre pas encore prevu ici ne doit jamais faire
+            ' planter l'affichage, juste rester discret.
+            texte = nbTotal & FR(" ligne(s) affich{e2}e(s).")
+
+    End Select
+
+    ' Remarque : chaque fragment ci-dessus est deja passe par FR() au moment ou
+    ' il est concatene -- "texte" est donc deja la chaine finale, decodee.
+    DecrireFiltreActifRO = texte
+
+End Function
 
 ' Indique si la ligne "i" de TblOperations (repÃ¨re DataBodyRange, 1 = 1re
 ' ligne) doit Ãªtre incluse pour le prefiltre demandÃ©. Toute la logique de
@@ -785,9 +848,12 @@ Public Sub AppliquerLignesMarquees()
             Dim sourceLigne As String
             sourceLigne = Trim(CStr(donnees(i, mod_InstallRechercheOperations.RO_COL_SOURCE)))
 
-            Dim categorieValeur As String, sousCategorieValeur As String, notesValeur As String
-            categorieValeur = Trim(CStr(donnees(i, mod_InstallRechercheOperations.RO_COL_CATEGORIE)))
-            sousCategorieValeur = Trim(CStr(donnees(i, mod_InstallRechercheOperations.RO_COL_SOUSCATEGORIE)))
+            ' Ajout 02/10/2026 (apres discussion avec l'operateur, option 2) : Categorie
+            ' et SousCategorie ne sont plus geres par ce mecanisme -- ils se modifient
+            ' desormais par double-clic (voir EditerCategorieRO et RevoirVentilationRO),
+            ' qui ecrivent immediatement dans la table source, sans passer par "Valider"
+            ' ni par ce bouton. Seul Notes reste gere ici, en lot, comme avant.
+            Dim notesValeur As String
             notesValeur = CStr(donnees(i, mod_InstallRechercheOperations.RO_COL_NOTES))
 
             If sourceLigne = "V" Then
@@ -796,9 +862,6 @@ Public Sub AppliquerLignesMarquees()
                 If venDisponible Then
                     Dim ligneVenCible As Long
                     ligneVenCible = CLng(donnees(i, mod_InstallRechercheOperations.RO_COL_LIGNEVEN))
-
-                    tblVen.ListColumns("Categorie").DataBodyRange.rows(ligneVenCible).value = categorieValeur
-                    tblVen.ListColumns("SousCategorie").DataBodyRange.rows(ligneVenCible).value = sousCategorieValeur
 
                     Dim notesOrigineVen As String, seg0Ven As String, verrouilleeVen As Boolean
                     notesOrigineVen = mod_DataStructure.CellText(tblVen.ListColumns("Notes").DataBodyRange.rows(ligneVenCible).value)
@@ -812,18 +875,13 @@ Public Sub AppliquerLignesMarquees()
                     tblRecherche.ListColumns("Valider").DataBodyRange.Cells(i).value = ""
                 End If
             Else
-                ' --- Ligne de TblOperations (comportement d'origine, plus SousCategorie) ---
+                ' --- Ligne de TblOperations (Notes uniquement, voir commentaire ci-dessus) ---
                 Dim idCible As String
                 idCible = Trim(CStr(donnees(i, mod_InstallRechercheOperations.RO_COL_ID)))
 
                 If indexParID.Exists(idCible) Then
                     Dim ligneCible As Long
                     ligneCible = indexParID(idCible)
-
-                    tbl.ListColumns("Categorie").DataBodyRange.rows(ligneCible).value = categorieValeur
-                    If colSousCategorie <> 0 Then
-                        tbl.ListColumns("SousCategorie").DataBodyRange.rows(ligneCible).value = sousCategorieValeur
-                    End If
 
                     Dim notesOriginale As String, seg0 As String, verrouillee As Boolean
                     notesOriginale = mod_DataStructure.CellText(tblData(ligneCible, colNotes))
@@ -851,25 +909,36 @@ Public Sub AppliquerLignesMarquees()
 End Sub
 
 ' =====================================================================================
-' RevoirVentilationRO (ajout suite Ã  un test opÃ©rateur)
+' RevoirVentilationRO (ajout suite a un test operateur)
 ' =====================================================================================
-' Rouvre le formulaire de ventilation pour la ligne actuellement sÃ©lectionnÃ©e dans
-' le tableau de recherche (mÃªme principe que ReinitialiserLigneSelectionnee dans
+' Rouvre le formulaire de ventilation pour la ligne actuellement selectionnee dans
+' le tableau de recherche (meme principe que ReinitialiserLigneSelectionnee dans
 ' mod_ResolutionCategories : on lit ActiveCell.Row, pas de bouton par ligne).
 '
-' La ligne sÃ©lectionnÃ©e peut Ãªtre :
-'   - l'opÃ©ration PARENTE elle-mÃªme (Categorie = "VentilÃ©"), ou
-'   - l'une de ses PARTS (colonne Ventile = "Oui", Source = "V").
-' Dans les deux cas, RO_COL_ID contient dÃ©jÃ  l'ID_Transaction de l'opÃ©ration
-' bancaire PARENTE (voir RechercherOperations, qui l'Ã©crit ainsi pour les deux
-' types de lignes) : c'est cet identifiant qu'attend mod_Ventilation.OuvrirVentilation.
+' La ligne selectionnee peut etre :
+'   - une operation PARENTE deja ventilee (Categorie = "Ventile"), ou
+'   - l'une de ses PARTS (colonne Ventile = "Oui", Source = "V"),
+'   - ou une operation qui n'est PAS ENCORE ventilee.
+' Dans les 2 premiers cas, RO_COL_ID contient deja l'ID_Transaction de l'operation
+' bancaire PARENTE (voir RechercherOperations, qui l'ecrit ainsi pour tous les types
+' de lignes) : c'est cet identifiant qu'attend mod_Ventilation.OuvrirVentilation.
 '
-' LIMITE CONNUE : TblVentilations ne conserve pas le libellÃ© brut de l'opÃ©ration
-' bancaire (il n'existait que le temps de l'import, dans un tableau en mÃ©moire -
-' voir mod_ControleCategories.ControleVentiler). En rouvrant depuis cet Ã©cran,
-' bien aprÃ¨s l'import, ce libellÃ© n'est donc plus disponible : le formulaire
-' l'affichera vide plutÃ´t que d'inventer une valeur. Rien d'autre n'est affectÃ© :
-' date, tiers, montant et catÃ©gorie/sous-catÃ©gorie actuelles restent exacts,
+' Ajout 02/10/2026 : cette procedure gere maintenant 2 cas, selon que la ligne est
+' deja ventilee ou non (voir "etaitDejaVentilee" plus bas) :
+'   - deja ventilee  : comportement d'origine, on rouvre le detail existant ;
+'   - pas encore ventilee : on demarre une NOUVELLE ventilation (formulaire vide),
+'     et si l'operateur va jusqu'au bout, on bascule la categorie de l'operation sur
+'     "Ventile" (voir MarquerOperationVentileeRO), exactement comme le fait
+'     mod_ControleCategories.ControleVentiler au moment d'un import. Avant ce
+'     changement, double-cliquer sur une cellule Ventile vide affichait simplement
+'     "rien a revoir" sans rien proposer d'autre.
+'
+' LIMITE CONNUE : TblVentilations ne conserve pas le libelle brut de l'operation
+' bancaire (il n'existait que le temps de l'import, dans un tableau en memoire -
+' voir mod_ControleCategories.ControleVentiler). En ouvrant depuis cet ecran,
+' bien apres l'import, ce libelle n'est donc jamais disponible : le formulaire
+' l'affichera vide plutot que d'inventer une valeur. Rien d'autre n'est affecte :
+' date, tiers, montant et categorie/sous-categorie actuelles restent exacts,
 ' relus directement dans TblOperations.
 Public Sub RevoirVentilationRO()
 
@@ -879,6 +948,7 @@ Public Sub RevoirVentilationRO()
     Dim categorieValeur As String, ventileValeur As String
     Dim idTransaction As String
     Dim ok As Boolean
+    Dim etaitDejaVentilee As Boolean
 
     Set ws = ThisWorkbook.Worksheets(mod_InstallRechercheOperations.NOM_FEUILLE_RECHERCHE)
     Set tblRecherche = ws.ListObjects(mod_InstallRechercheOperations.NOM_TABLE_RECHERCHE)
@@ -898,11 +968,7 @@ Public Sub RevoirVentilationRO()
 
     categorieValeur = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_CATEGORIE).value))
     ventileValeur = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_VENTILE).value))
-
-    If LCase(ventileValeur) <> "oui" And categorieValeur <> CategorieVentileRO() Then
-        MsgBox mod_Display.FR("Cette ligne n'est pas une op{e2}ration ventil{e2}e : rien {a2} revoir."), vbInformation
-        Exit Sub
-    End If
+    etaitDejaVentilee = (LCase(ventileValeur) = "oui" Or categorieValeur = CategorieVentileRO())
 
     idTransaction = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_ID).value))
     If idTransaction = "" Then
@@ -910,8 +976,8 @@ Public Sub RevoirVentilationRO()
         Exit Sub
     End If
 
-    ' --- On relit l'entÃªte (date/tiers/montant/catÃ©gorie actuelle) directement sur
-    ' l'opÃ©ration PARENTE dans TblOperations : TblVentilations n'a pas ces colonnes,
+    ' --- On relit l'entete (date/tiers/montant/categorie actuelle) directement sur
+    ' l'operation PARENTE dans TblOperations : TblVentilations n'a pas ces colonnes,
     ' et OuvrirVentilation en a besoin pour l'affichage en lecture seule. ---
     Dim tblOp As ListObject
     Dim donneesOp As Variant
@@ -954,8 +1020,15 @@ Public Sub RevoirVentilationRO()
     ws.Activate
 
     If ok Then
-        ' PHASE 6 : on recharge l'ecran dans le MÃŠME contexte qu'avant (mÃªme
-        ' prefiltre/param), plutÃ´t que de retomber en recherche libre.
+        If Not etaitDejaVentilee Then
+            ' Ajout 02/10/2026 (demarrer une ventilation depuis la recherche) : cette
+            ' operation ne l'etait pas encore avant l'ouverture du formulaire -- on
+            ' bascule sa categorie sur "Ventile" et on memorise l'ancienne, exactement
+            ' comme le fait mod_ControleCategories.ControleVentiler a l'import.
+            MarquerOperationVentileeRO tblOp, ligneParent, catActuelleOp, sousActuelleOp
+        End If
+        ' PHASE 6 : on recharge l'ecran dans le MEME contexte qu'avant (meme
+        ' prefiltre/param), plutot que de retomber en recherche libre.
         RechercherOperations g_ROPrefiltreActif, g_ROParamActif
     ElseIf ventilationSupprimee Then
         ' Ajout 01/10/2026 (point 4 : annuler une ventilation) : l'operateur a
@@ -1008,6 +1081,156 @@ Private Sub RestaurerCategorieAvantVentilation(ByVal tblOp As ListObject, ByVal 
     ' plus de "categorie d'avant" a conserver pour elle.
     tblOp.DataBodyRange.Cells(ligneParent, colCatAvant).value = ""
     tblOp.DataBodyRange.Cells(ligneParent, colSousAvant).value = ""
+
+End Sub
+
+' Ajout 02/10/2026 (demarrer une ventilation depuis l'ecran de recherche, en plus de
+' l'ecran de controle a l'import) : bascule l'operation sur la categorie "Ventile",
+' apres avoir memorise son ancienne categorie/sous-categorie dans les colonnes
+' CategorieAvantVentilation / SousCategorieAvantVentilation de TblOperations (ajoutees
+' par mod_InstallVentilation), pour pouvoir les restaurer si cette ventilation est
+' supprimee plus tard (voir RestaurerCategorieAvantVentilation ci-dessus). Meme principe
+' que mod_ControleCategories.ControleVentiler au moment d'un import.
+' ligneParent : numero de ligne DANS LE TABLEAU (1 = premiere ligne de donnees), au sens
+' ou RevoirVentilationRO le calcule plus haut -- PAS un numero de ligne de la feuille.
+Private Sub MarquerOperationVentileeRO(ByVal tblOp As ListObject, ByVal ligneParent As Long, _
+                                       ByVal ancienneCategorie As String, ByVal ancienneSousCategorie As String)
+
+    Dim colCatAvant As Long, colSousAvant As Long
+
+    colCatAvant = 0
+    colSousAvant = 0
+    On Error Resume Next
+    colCatAvant = tblOp.ListColumns(mod_InstallVentilation.NOM_COL_CAT_AVANT_VENTILATION).index
+    colSousAvant = tblOp.ListColumns(mod_InstallVentilation.NOM_COL_SOUS_AVANT_VENTILATION).index
+    On Error GoTo 0
+
+    If colCatAvant <> 0 And colSousAvant <> 0 Then
+        tblOp.DataBodyRange.Cells(ligneParent, colCatAvant).value = ancienneCategorie
+        tblOp.DataBodyRange.Cells(ligneParent, colSousAvant).value = ancienneSousCategorie
+    Else
+        MsgBox mod_Display.FR("Les colonnes 'CategorieAvantVentilation' / 'SousCategorieAvantVentilation' sont introuvables dans TblOperations.") & vbCrLf & _
+               mod_Display.FR("La cat{e2}gorie d'origine ne pourra pas {ea}tre restaur{e2}e automatiquement si cette ventilation est supprim{e2}e plus tard."), vbExclamation
+    End If
+
+    tblOp.DataBodyRange.Cells(ligneParent, colCategorie).value = CategorieVentileRO()
+    If colSousCategorie <> 0 Then tblOp.DataBodyRange.Cells(ligneParent, colSousCategorie).value = ""
+
+    ' La categorie "Ventile" doit exister dans le referentiel pour que les listes
+    ' deroulantes (et un futur controle a l'import) l'acceptent -- meme appel que
+    ' mod_ControleCategories.ControleVentiler.
+    mod_Categories.AjouterCategoriePersonnalisee CategorieVentileRO(), ""
+    mod_Categories.RafraichirListesCategories
+
+    mod_SuiviSante.CalculerSuiviSante AfficherResume:=False
+
+End Sub
+
+' =====================================================================================
+' EditerCategorieRO (ajout 02/10/2026)
+' =====================================================================================
+' Declenchee par un double-clic sur une cellule de la colonne Categorie (voir
+' ThisWorkbook.Workbook_SheetBeforeDoubleClick) : reutilise le MEME formulaire que le
+' controle des categories a l'import (mod_ControleCategories.ControlerCategories), en
+' mode "une seule operation" (son parametre uneSeuleOperation), pour profiter de toutes
+' ses fonctionnalites existantes (liste deroulante Sous-categorie dependante, bouton "+"
+' de creation d'une nouvelle categorie, etc.) sans dupliquer ce code.
+'
+' Ne s'applique PAS a une ligne deja ventilee (Ventile = "Oui", ou Categorie =
+' "Ventile") : sa categorie se gere depuis le detail de la ventilation (double-clic sur
+' Ventile), pas ici -- un message d'information l'explique dans ce cas, pour ne pas
+' laisser croire a un bug.
+Public Sub EditerCategorieRO()
+
+    Dim ws As Worksheet
+    Dim tblRecherche As ListObject
+    Dim ligneSelection As Long, ligneRelative As Long
+    Dim categorieValeur As String, ventileValeur As String
+    Dim idTransaction As String
+
+    Set ws = ThisWorkbook.Worksheets(mod_InstallRechercheOperations.NOM_FEUILLE_RECHERCHE)
+    Set tblRecherche = ws.ListObjects(mod_InstallRechercheOperations.NOM_TABLE_RECHERCHE)
+
+    If tblRecherche.DataBodyRange Is Nothing Then Exit Sub
+
+    ligneSelection = ActiveCell.Row
+    ligneRelative = ligneSelection - tblRecherche.DataBodyRange.Row + 1
+    If ligneRelative < 1 Or ligneRelative > tblRecherche.DataBodyRange.rows.count Then Exit Sub
+
+    categorieValeur = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_CATEGORIE).value))
+    ventileValeur = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_VENTILE).value))
+
+    If LCase(ventileValeur) = "oui" Or categorieValeur = CategorieVentileRO() Then
+        MsgBox mod_Display.FR("Cette op{e2}ration est ventil{e2}e : sa cat{e2}gorie se g{e2}re depuis le d{e2}tail de la ventilation (double-clique sur la colonne Ventile), pas ici."), vbInformation
+        Exit Sub
+    End If
+
+    idTransaction = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_ID).value))
+    If idTransaction = "" Then
+        MsgBox mod_Display.FR("Impossible de retrouver l'ID_Transaction de cette ligne."), vbExclamation
+        Exit Sub
+    End If
+
+    Dim tblOp As ListObject
+    Dim donneesOp As Variant
+    Dim i As Long, ligneParent As Long
+    Dim categorieActuelleTbl As String, sousCategorieActuelleTbl As String
+
+    Set tblOp = mod_DonneesTable.GetOperationsTable()
+    If tblOp Is Nothing Or tblOp.DataBodyRange Is Nothing Then
+        MsgBox mod_Display.FR("Le tableau TblOperations est introuvable."), vbExclamation
+        Exit Sub
+    End If
+
+    mod_Display.RecupIndexCol
+    donneesOp = tblOp.DataBodyRange.value
+
+    ligneParent = 0
+    For i = 1 To UBound(donneesOp, 1)
+        If mod_DataStructure.CellText(donneesOp(i, colID)) = idTransaction Then
+            ligneParent = i
+            Exit For
+        End If
+    Next i
+
+    If ligneParent = 0 Then
+        MsgBox mod_Display.FR("Op{e2}ration introuvable dans TblOperations (ID '") & idTransaction & "').", vbExclamation
+        Exit Sub
+    End If
+
+    categorieActuelleTbl = mod_DataStructure.CellText(donneesOp(ligneParent, colCategorie))
+    sousCategorieActuelleTbl = ""
+    If colSousCategorie <> 0 Then sousCategorieActuelleTbl = mod_DataStructure.CellText(donneesOp(ligneParent, colSousCategorie))
+
+    ' --- Formulaire de controle des categories, en mode "une seule operation" :
+    ' CTRL_OP_CATSOURCE est laisse vide expres (pas de "source banque" ici, voir
+    ' ControlerCategories) ; c'est categorieActuelleUnique/sousCategorieActuelleUnique
+    ' ci-dessous qui prerempliront le formulaire avec la VRAIE categorie actuelle. ---
+    Dim ops(1 To 1, 1 To mod_ControleCategories.CTRL_OP_NBCOL) As Variant
+    Dim catFinale() As String, sousFinale() As String
+    Dim catAvantVen() As String, sousAvantVen() As String
+    Dim ok As Boolean
+
+    ops(1, mod_ControleCategories.CTRL_OP_DATE) = donneesOp(ligneParent, colDate)
+    ops(1, mod_ControleCategories.CTRL_OP_TIERS) = mod_DataStructure.CellText(donneesOp(ligneParent, colTiers))
+    ops(1, mod_ControleCategories.CTRL_OP_LIBELLE) = ""
+    ops(1, mod_ControleCategories.CTRL_OP_MONTANT) = mod_DataStructure.ToDouble(donneesOp(ligneParent, colMontant))
+    ops(1, mod_ControleCategories.CTRL_OP_CATSOURCE) = ""
+    ops(1, mod_ControleCategories.CTRL_OP_ID) = idTransaction
+
+    ok = mod_ControleCategories.ControlerCategories(ops, 1, catFinale, sousFinale, catAvantVen, sousAvantVen, _
+                                                     uneSeuleOperation:=True, _
+                                                     categorieActuelleUnique:=categorieActuelleTbl, _
+                                                     sousCategorieActuelleUnique:=sousCategorieActuelleTbl)
+
+    ws.Activate
+
+    If ok Then
+        tblOp.DataBodyRange.Cells(ligneParent, colCategorie).value = catFinale(1)
+        If colSousCategorie <> 0 Then tblOp.DataBodyRange.Cells(ligneParent, colSousCategorie).value = sousFinale(1)
+        mod_SuiviSante.CalculerSuiviSante AfficherResume:=False
+        RechercherOperations g_ROPrefiltreActif, g_ROParamActif
+    End If
 
 End Sub
 
