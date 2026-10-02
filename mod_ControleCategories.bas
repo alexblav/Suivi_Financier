@@ -83,6 +83,14 @@ Private g_CtrlOps As Variant             ' copie des operations fournies
 Private g_CtrlNbOps As Long
 Private g_CtrlCat() As String            ' categorie courante de chaque operation
 Private g_CtrlSous() As String           ' sous-categorie courante de chaque operation
+' Ajout 01/10/2026 (point 4 : annuler une ventilation) : categorie/sous-categorie
+' TELLES QU'ELLES ETAIENT avant la toute premiere ventilation de l'operation (vide tant
+' que l'operation n'a jamais ete ventilee). Memorisees par ControleVentiler juste avant
+' d'ecraser g_CtrlCat/g_CtrlSous par "Ventile", et restituees a l'appelant (import) via
+' ControlerCategories pour etre ecrites dans les 2 colonnes techniques de TblOperations
+' (CategorieAvantVentilation / SousCategorieAvantVentilation -- voir mod_InstallVentilation).
+Private g_CtrlCatAvantVen() As String
+Private g_CtrlSousAvantVen() As String
 Private g_CtrlVu() As Boolean            ' operation deja affichee / enregistree
 Private g_CtrlARanger() As Boolean       ' correspondance introuvable (a ranger a la main)
 
@@ -108,10 +116,17 @@ Private g_CtrlRefN As Long
 '   nbOps      : nombre d'operations a controler
 '   catFinale  : (en sortie) categorie retenue pour chaque operation, indice 1..nbOps
 '   sousFinale : (en sortie) sous-categorie retenue pour chaque operation
+'   catAvantVentilation, sousAvantVentilation : (en sortie, ajout 01/10/2026, point 4)
+'                categorie/sous-categorie D'AVANT LA VENTILATION pour chaque operation
+'                (chaine vide si l'operation n'a jamais ete ventilee). A ecrire par
+'                l'appelant dans les colonnes CategorieAvantVentilation /
+'                SousCategorieAvantVentilation de TblOperations, pour pouvoir restaurer
+'                la categorie d'origine si la ventilation est supprimee plus tard.
 ' Renvoie True si l'operateur a valide (ou s'il n'y avait rien a controler),
 '         False s'il a annule ou si un pre-requis manque (un message est alors affiche).
 Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
-                                    ByRef catFinale() As String, ByRef sousFinale() As String) As Boolean
+                                    ByRef catFinale() As String, ByRef sousFinale() As String, _
+                                    ByRef catAvantVentilation() As String, ByRef sousAvantVentilation() As String) As Boolean
 
     Dim ws As Worksheet
     Dim i As Long, nbARanger As Long
@@ -147,6 +162,8 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
     g_CtrlNbOps = nbOps
     ReDim g_CtrlCat(1 To nbOps)
     ReDim g_CtrlSous(1 To nbOps)
+    ReDim g_CtrlCatAvantVen(1 To nbOps)
+    ReDim g_CtrlSousAvantVen(1 To nbOps)
     ReDim g_CtrlVu(1 To nbOps)
     ReDim g_CtrlARanger(1 To nbOps)
 
@@ -214,9 +231,13 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
     If g_CtrlValide Then
         ReDim catFinale(1 To nbOps)
         ReDim sousFinale(1 To nbOps)
+        ReDim catAvantVentilation(1 To nbOps)
+        ReDim sousAvantVentilation(1 To nbOps)
         For i = 1 To nbOps
             catFinale(i) = g_CtrlCat(i)
             sousFinale(i) = g_CtrlSous(i)
+            catAvantVentilation(i) = g_CtrlCatAvantVen(i)
+            sousAvantVentilation(i) = g_CtrlSousAvantVen(i)
         Next i
     End If
     Exit Function
@@ -687,6 +708,7 @@ Public Sub ControleVentiler()
     Dim i As Long
     Dim idTransaction As String
     Dim ok As Boolean
+    Dim ventilationSupprimee As Boolean
 
     If Not g_CtrlEnCours Then Exit Sub
     On Error GoTo Erreur
@@ -700,13 +722,25 @@ Public Sub ControleVentiler()
         Exit Sub
     End If
 
+    ' Ajout 01/10/2026 (point 4 : annuler une ventilation) : on memorise la categorie/
+    ' sous-categorie ACTUELLE avant de risquer de l'ecraser par "Ventile" plus bas, mais
+    ' UNE SEULE FOIS par operation. Si l'operateur revient sur une operation DEJA
+    ' ventilee (bouton "Precedent" de ce meme import, puis de nouveau "Ventiler"),
+    ' g_CtrlCat(i) contient alors deja "Ventile" a cet instant : il ne faut surtout pas
+    ' ecraser la vraie valeur d'origine (deja memorisee la premiere fois) par "Ventile"
+    ' lui-meme, sinon elle serait perdue pour de bon.
+    If g_CtrlCat(i) <> CategorieVentile Then
+        g_CtrlCatAvantVen(i) = g_CtrlCat(i)
+        g_CtrlSousAvantVen(i) = g_CtrlSous(i)
+    End If
+
     g_CtrlVerrouActif = False
 
     ok = mod_Ventilation.OuvrirVentilation(idTransaction, g_CtrlOps(i, CTRL_OP_DATE), _
             mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_TIERS)), _
             mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_LIBELLE)), _
             mod_DataStructure.ToDouble(g_CtrlOps(i, CTRL_OP_MONTANT)), _
-            g_CtrlCat(i), g_CtrlSous(i))
+            g_CtrlCat(i), g_CtrlSous(i), ventilationSupprimee)
 
     g_CtrlVerrouActif = True
     ws.Activate
@@ -729,6 +763,28 @@ Public Sub ControleVentiler()
         RemplirListeSousCategories ws, CategorieVentile
         ws.Range(CTRL_ADR_MESSAGE).value = mod_Display.FR("Op{e2}ration ventil{e2}e : la cat{e2}gorie '") & CategorieVentile & _
                                             mod_Display.FR("' a {e2}t{e2} affect{e2}e. Le d{e2}tail est enregistr{e2} dans TblVentilations.")
+        ws.Range(CTRL_ADR_MESSAGE).Font.Color = RGB(31, 120, 60)
+        Application.EnableEvents = True
+
+    ElseIf ventilationSupprimee Then
+        ' Ajout 01/10/2026 (point 4) : l'operateur a supprime une ventilation deja
+        ' existante (bouton "Supprimer cette ventilation" de frm_Ventilation), y compris
+        ' en plein milieu de cet import (bouton "Precedent" puis "Ventiler"). On restaure
+        ' la categorie/sous-categorie memorisee avant la toute premiere ventilation, puis
+        ' on l'efface : il n'y a plus rien a restaurer tant qu'une nouvelle ventilation
+        ' n'est pas recreee pour cette operation.
+        g_CtrlCat(i) = g_CtrlCatAvantVen(i)
+        g_CtrlSous(i) = g_CtrlSousAvantVen(i)
+        g_CtrlCatAvantVen(i) = ""
+        g_CtrlSousAvantVen(i) = ""
+        g_CtrlVu(i) = True
+
+        Application.EnableEvents = False
+        PoserValidationCategorie ws.Range(CTRL_ADR_CAT)
+        ws.Range(CTRL_ADR_CAT).value = g_CtrlCat(i)
+        RemplirListeSousCategories ws, g_CtrlCat(i)
+        ws.Range(CTRL_ADR_SOUS).value = g_CtrlSous(i)
+        ws.Range(CTRL_ADR_MESSAGE).value = mod_Display.FR("Ventilation supprim{e2}e : l'op{e2}ration a repris sa cat{e2}gorie d'origine.")
         ws.Range(CTRL_ADR_MESSAGE).Font.Color = RGB(31, 120, 60)
         Application.EnableEvents = True
     End If
@@ -853,6 +909,7 @@ Public Sub TesterControleCategories()
     Dim ops() As Variant
     Dim indices() As Long
     Dim catF() As String, sousF() As String
+    Dim catAvantF() As String, sousAvantF() As String
     Dim saisie As String
     Dim nbDemande As Long, nbTrouves As Long, nbLignesLues As Long
     Dim i As Long, k As Long
@@ -929,7 +986,9 @@ Public Sub TesterControleCategories()
     If reponse = vbYes Then ops(1, CTRL_OP_CATSOURCE) = mod_Display.FR("Cat{e2}gorie source inconnue (test)")
 
     ' --- Appel du controle : c'est EXACTEMENT ce que fera l'import en Phase 5 ---
-    If Not ControlerCategories(ops, nbTrouves, catF, sousF) Then
+    ' (catAvantF/sousAvantF : nouveaux parametres de sortie, ajout 01/10/2026, point 4 ;
+    ' ce test ne les affiche pas, mais doit les fournir comme n'importe quel appelant.)
+    If Not ControlerCategories(ops, nbTrouves, catF, sousF, catAvantF, sousAvantF) Then
         MsgBox mod_Display.FR("Test termin{e2} : contr{o2}le annul{e2} ou impossible. Rien n'a {e2}t{e2} modifi{e2}."), vbInformation
         Exit Sub
     End If

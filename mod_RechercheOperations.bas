@@ -947,7 +947,8 @@ Public Sub RevoirVentilationRO()
     sousActuelleOp = ""
     If colSousCategorie <> 0 Then sousActuelleOp = mod_DataStructure.CellText(donneesOp(ligneParent, colSousCategorie))
 
-    ok = mod_Ventilation.OuvrirVentilation(idTransaction, dateOp, tiersOp, "", montantOp, catActuelleOp, sousActuelleOp)
+    Dim ventilationSupprimee As Boolean
+    ok = mod_Ventilation.OuvrirVentilation(idTransaction, dateOp, tiersOp, "", montantOp, catActuelleOp, sousActuelleOp, ventilationSupprimee)
 
     ws.Activate
 
@@ -955,7 +956,57 @@ Public Sub RevoirVentilationRO()
         ' PHASE 6 : on recharge l'ecran dans le MÃŠME contexte qu'avant (mÃªme
         ' prefiltre/param), plutÃ´t que de retomber en recherche libre.
         RechercherOperations g_ROPrefiltreActif, g_ROParamActif
+    ElseIf ventilationSupprimee Then
+        ' Ajout 01/10/2026 (point 4 : annuler une ventilation) : l'operateur a
+        ' supprime la ventilation existante (bouton "Supprimer cette ventilation" de
+        ' frm_Ventilation) -- on restaure la categorie/sous-categorie d'avant la toute
+        ' premiere ventilation de cette operation (voir RestaurerCategorieAvantVentilation
+        ' plus bas), puis on recharge l'ecran dans le meme contexte qu'avant, exactement
+        ' comme pour une ventilation validee normalement.
+        RestaurerCategorieAvantVentilation tblOp, ligneParent
+        RechercherOperations g_ROPrefiltreActif, g_ROParamActif
     End If
+
+End Sub
+
+' Ajout 01/10/2026 (point 4 : annuler une ventilation, depuis cet ecran) ----------------
+' Relit les colonnes techniques CategorieAvantVentilation / SousCategorieAvantVentilation
+' (ajoutees par mod_InstallVentilation.AjouterColonnesAnnulationVentilation) de la ligne
+' ligneParent dans TblOperations et les recopie dans Categorie / SousCategorie, puisque
+' c'est la categorie que l'operation avait AVANT sa toute premiere ventilation (memorisee
+' par mod_ControleCategories.ControleVentiler au moment de l'import). On vide ensuite ces
+' 2 colonnes techniques : il n'y a plus rien a restaurer tant qu'une nouvelle ventilation
+' n'est pas recreee pour cette operation.
+' ligneParent : numero de ligne DANS LE TABLEAU (1 = premiere ligne de donnees), au sens
+' ou RevoirVentilationRO le calcule plus haut -- PAS un numero de ligne de la feuille.
+Private Sub RestaurerCategorieAvantVentilation(ByVal tblOp As ListObject, ByVal ligneParent As Long)
+
+    Dim colCatAvant As Long, colSousAvant As Long
+    Dim catAvant As String, sousAvant As String
+
+    colCatAvant = 0
+    colSousAvant = 0
+    On Error Resume Next
+    colCatAvant = tblOp.ListColumns(mod_InstallVentilation.NOM_COL_CAT_AVANT_VENTILATION).index
+    colSousAvant = tblOp.ListColumns(mod_InstallVentilation.NOM_COL_SOUS_AVANT_VENTILATION).index
+    On Error GoTo 0
+
+    If colCatAvant = 0 Or colSousAvant = 0 Then
+        MsgBox mod_Display.FR("Les colonnes 'CategorieAvantVentilation' / 'SousCategorieAvantVentilation' sont introuvables dans TblOperations.") & vbCrLf & _
+               mod_Display.FR("La cat{e2}gorie d'origine n'a pas pu {ea}tre restaur{e2}e automatiquement."), vbExclamation
+        Exit Sub
+    End If
+
+    catAvant = mod_DataStructure.CellText(tblOp.DataBodyRange.Cells(ligneParent, colCatAvant).value)
+    sousAvant = mod_DataStructure.CellText(tblOp.DataBodyRange.Cells(ligneParent, colSousAvant).value)
+
+    tblOp.DataBodyRange.Cells(ligneParent, colCategorie).value = catAvant
+    If colSousCategorie <> 0 Then tblOp.DataBodyRange.Cells(ligneParent, colSousCategorie).value = sousAvant
+
+    ' On vide les colonnes techniques : l'operation n'est plus ventilee, il n'y a donc
+    ' plus de "categorie d'avant" a conserver pour elle.
+    tblOp.DataBodyRange.Cells(ligneParent, colCatAvant).value = ""
+    tblOp.DataBodyRange.Cells(ligneParent, colSousAvant).value = ""
 
 End Sub
 

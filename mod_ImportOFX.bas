@@ -223,6 +223,7 @@ Public Sub ImporterOperationsOFX()
     If nbAjoutees > 0 Then
         Dim opsControle() As Variant
         Dim catFinaleCtrl() As String, sousFinaleCtrl() As String
+        Dim catAvantVentilCtrl() As String, sousAvantVentilCtrl() As String
         Dim kCtrl As Long
 
         ReDim opsControle(1 To nbAjoutees, 1 To mod_ControleCategories.CTRL_OP_NBCOL)
@@ -235,7 +236,8 @@ Public Sub ImporterOperationsOFX()
             opsControle(kCtrl, mod_ControleCategories.CTRL_OP_ID) = resultats(kCtrl, COL_ID)
         Next kCtrl
 
-        If Not mod_ControleCategories.ControlerCategories(opsControle, nbAjoutees, catFinaleCtrl, sousFinaleCtrl) Then
+        If Not mod_ControleCategories.ControlerCategories(opsControle, nbAjoutees, catFinaleCtrl, sousFinaleCtrl, _
+                                                            catAvantVentilCtrl, sousAvantVentilCtrl) Then
             MsgBox "Import annule : aucune ligne n'a ete ecrite dans Import_data.", vbInformation, "Import interrompu"
             Exit Sub
         End If
@@ -391,6 +393,40 @@ Public Sub ImporterOperationsOFX()
         Else
             For kCtrl = 1 To nbAjoutees
                 wsDonnees.Cells(premiereLigneEcriture + kCtrl - 1, colSousCategorieFeuille).value = sousFinaleCtrl(kCtrl)
+            Next kCtrl
+        End If
+    End If
+
+    ' --- ETAPE 8ter (ajout 01/10/2026, point 4 : annuler une ventilation) -----
+    ' Ecrit, pour les lignes juste importees, la categorie/sous-categorie D'AVANT
+    ' LA VENTILATION renvoyees par ControlerCategories (catAvantVentilCtrl/
+    ' sousAvantVentilCtrl) dans les 2 colonnes techniques CategorieAvantVentilation /
+    ' SousCategorieAvantVentilation de TblOperations (ajoutees par
+    ' mod_InstallVentilation.AjouterColonnesAnnulationVentilation). Reste vide pour
+    ' toute operation qui n'a pas ete ventilee pendant cet import (valeur par defaut
+    ' "" de ces tableaux). Meme technique que la SousCategorie ci-dessus (colonne
+    ' retrouvee par son NOM, jamais par un numero fixe), et meme principe de
+    ' tolerance : si les colonnes n'existent pas encore chez l'operateur (Phase
+    ' "annulation de ventilation" pas encore installee), on previent sans bloquer
+    ' l'import, exactement comme pour SousCategorie plus haut.
+    If nbAjoutees > 0 Then
+        Dim colCatAvantVenFeuille As Long, colSousAvantVenFeuille As Long
+        On Error Resume Next
+        colCatAvantVenFeuille = 0
+        colSousAvantVenFeuille = 0
+        colCatAvantVenFeuille = wsDonnees.ListObjects(NOM_TABLE).ListColumns(mod_InstallVentilation.NOM_COL_CAT_AVANT_VENTILATION).index
+        colSousAvantVenFeuille = wsDonnees.ListObjects(NOM_TABLE).ListColumns(mod_InstallVentilation.NOM_COL_SOUS_AVANT_VENTILATION).index
+        On Error GoTo 0
+
+        If colCatAvantVenFeuille = 0 Or colSousAvantVenFeuille = 0 Then
+            MsgBox "Les colonnes 'CategorieAvantVentilation' / 'SousCategorieAvantVentilation' sont introuvables dans TblOperations." & vbCrLf & _
+                   "L'import continue, mais l'annulation d'une ventilation ne pourra pas restaurer " & _
+                   "la categorie d'origine pour les operations qui viennent d'etre importees." & vbCrLf & _
+                   "Executez PreparerPhase4Ventilation (mod_InstallVentilation) pour les ajouter.", vbExclamation, "Colonnes manquantes"
+        Else
+            For kCtrl = 1 To nbAjoutees
+                wsDonnees.Cells(premiereLigneEcriture + kCtrl - 1, colCatAvantVenFeuille).value = catAvantVentilCtrl(kCtrl)
+                wsDonnees.Cells(premiereLigneEcriture + kCtrl - 1, colSousAvantVenFeuille).value = sousAvantVentilCtrl(kCtrl)
             Next kCtrl
         End If
     End If
