@@ -78,15 +78,21 @@ Public Const VEN_LIGNE_GRILLE_FIN As Long = 26     ' = VEN_LIGNE_GRILLE_DEBUT + 
 Public Const VEN_COL_CAT As Long = 2      ' colonne B
 Public Const VEN_COL_SOUS As Long = 3     ' colonne C
 Public Const VEN_COL_MONTANT As Long = 4  ' colonne D
-Public Const VEN_COL_EDITER As Long = 5   ' colonne E : bouton "Editer" de chaque ligne
+' Ajout 01/10/2026 (champ Notes sur les ventilations) : une colonne de plus dans la
+' grille d'affichage, le bouton "Editer" est donc decale de la colonne E a la colonne F.
+Public Const VEN_COL_NOTES As Long = 5    ' colonne E : commentaire libre de la ligne
+Public Const VEN_COL_EDITER As Long = 6   ' colonne F : bouton "Editer" de chaque ligne
 
 ' --- Formulaire de SAISIE (une seule ligne a la fois : ajout ou edition) ---
 Public Const VEN_LIGNE_SAISIE_TITRE As Long = 28
 Public Const VEN_ADR_SAISIE_CAT As String = "C29"
 Public Const VEN_ADR_SAISIE_SOUS As String = "C30"
 Public Const VEN_ADR_SAISIE_MONTANT As String = "C31"
-Public Const VEN_ADR_SAISIE_MESSAGE As String = "B32"
-Public Const VEN_LIGNE_BOUTON_AJOUTER As Long = 34
+' Ajout 01/10/2026 : case de saisie du commentaire libre, decale la ligne de message
+' et le bouton "Ajouter la ligne" d'une ligne vers le bas (32->33, 34->35).
+Public Const VEN_ADR_SAISIE_NOTES As String = "C32"
+Public Const VEN_ADR_SAISIE_MESSAGE As String = "B33"
+Public Const VEN_LIGNE_BOUTON_AJOUTER As Long = 35
 
 ' Zone technique cachee : sous-categories de la categorie choisie DANS LE FORMULAIRE
 ' DE SAISIE (une seule liste a gerer maintenant, comme dans les formulaires precedents,
@@ -94,12 +100,22 @@ Public Const VEN_LIGNE_BOUTON_AJOUTER As Long = 34
 Public Const VEN_COL_AIDE As Long = 26         ' colonne Z
 Public Const VEN_LIGNE_AIDE_MAX As Long = 300
 
+' Ajout 01/10/2026 (possibilite d'annuler une ventilation) : noms des 2 colonnes
+' ajoutees a TblOperations pour retenir la categorie/sous-categorie que l'operation
+' avait juste avant d'etre ventilee. Sans ca, impossible de les restituer plus tard :
+' ControleVentiler les remplace par "Ventile" / "" des la premiere ventilation, et
+' l'ancienne valeur n'est conservee nulle part ailleurs. Voir AjouterColonnesAnnulationVentilation
+' plus bas, et mod_ControleCategories.ControleVentiler pour leur remplissage.
+Public Const NOM_COL_CAT_AVANT_VENTILATION As String = "CategorieAvantVentilation"
+Public Const NOM_COL_SOUS_AVANT_VENTILATION As String = "SousCategorieAvantVentilation"
+
 
 ' =====================================================================================
 ' MACRO D'ENSEMBLE : cree/met a jour la table de stockage PUIS le formulaire
 ' =====================================================================================
 Public Sub PreparerPhase4Ventilation()
     PreparerTableVentilations
+    AjouterColonnesAnnulationVentilation
     CreerFeuilleVentilation
 End Sub
 
@@ -162,6 +178,36 @@ Private Function ColonneExisteDansTable(ByVal tbl As ListObject, ByVal nom As St
     On Error GoTo 0
     ColonneExisteDansTable = Not (lc Is Nothing)
 End Function
+
+
+' =====================================================================================
+' ETAPE 1bis : 2 colonnes sur TblOperations, pour pouvoir annuler une ventilation
+' =====================================================================================
+' Ajout 01/10/2026. Meme principe de securite que mod_Categories.AjouterColonneSousCategorie :
+' les colonnes sont ajoutees A LA FIN de TblOperations (aucune position existante ne
+' bouge), et seulement si elles n'existent pas deja (sans danger a relancer).
+'
+' Role : mod_ControleCategories.ControleVentiler y recopie la categorie/sous-categorie
+' de l'operation juste avant de les remplacer par "Ventile" / "". Si l'operateur
+' supprime la ventilation plus tard (bouton "Supprimer cette ventilation", voir
+' mod_Ventilation), ces 2 colonnes permettent de relire l'ancienne valeur et de la
+' remettre en place dans Categorie/SousCategorie. Elles sont ensuite revidees : une
+' fois la restauration faite, il n'y a plus de ventilation a annuler une seconde fois.
+Public Sub AjouterColonnesAnnulationVentilation()
+
+    Dim tblOps As ListObject
+
+    Set tblOps = mod_DonneesTable.GetOperationsTable()
+    If tblOps Is Nothing Then Exit Sub
+
+    If Not ColonneExisteDansTable(tblOps, NOM_COL_CAT_AVANT_VENTILATION) Then
+        tblOps.ListColumns.Add.Name = NOM_COL_CAT_AVANT_VENTILATION
+    End If
+    If Not ColonneExisteDansTable(tblOps, NOM_COL_SOUS_AVANT_VENTILATION) Then
+        tblOps.ListColumns.Add.Name = NOM_COL_SOUS_AVANT_VENTILATION
+    End If
+
+End Sub
 
 
 ' =====================================================================================
@@ -231,8 +277,9 @@ Private Sub MettreEnFormeGenerale(ByVal ws As Worksheet)
     ws.Columns("B").ColumnWidth = 26
     ws.Columns("C").ColumnWidth = 30
     ws.Columns("D").ColumnWidth = 16
-    ws.Columns("E").ColumnWidth = 16
-    ws.Columns("F").ColumnWidth = 2
+    ws.Columns("E").ColumnWidth = 30   ' Ajout 01/10/2026 : colonne Notes
+    ws.Columns("F").ColumnWidth = 16   ' bouton "Editer" (etait en E avant l'ajout de Notes)
+    ws.Columns("G").ColumnWidth = 2
 
     ws.Cells.Font.Name = "Calibri"
     ws.Cells.Font.Size = 10
@@ -259,6 +306,15 @@ Private Sub ConstruireBoutonsGlobaux(ByVal ws As Worksheet)
     Set zone = ws.Cells(VEN_LIGNE_BOUTONS, 3)
     AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, "Annuler", "VenAnnuler", "btnVenAnnuler"
 
+    ' Ajout 01/10/2026 (annuler une ventilation) : 3eme bouton, sur les colonnes D a F
+    ' pour avoir la place d'ecrire sa legende en entier. MASQUE a la construction :
+    ' mod_Ventilation.OuvrirVentilation le rend visible uniquement quand la ventilation
+    ' rouverte existait deja (rien a supprimer pour une ventilation toute neuve).
+    Set zone = ws.Range(ws.Cells(VEN_LIGNE_BOUTONS, 4), ws.Cells(VEN_LIGNE_BOUTONS, 6))
+    AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, _
+                  mod_Display.FR("Supprimer cette ventilation"), "VenSupprimerVentilation", "btnVenSupprimerVentilation"
+    ws.Shapes("btnVenSupprimerVentilation").Visible = False
+
 End Sub
 
 Private Sub AjouterBouton(ByVal ws As Worksheet, ByVal gauche As Double, ByVal haut As Double, _
@@ -277,7 +333,7 @@ End Sub
 ' =====================================================================================
 Private Sub ConstruireEntete(ByVal ws As Worksheet)
 
-    With ws.Range("B4:E4")
+    With ws.Range("B4:F4")   ' etendu a F (etait E) : la feuille est plus large depuis l'ajout de Notes
         .Merge
         .Font.Size = 14
         .Font.Bold = True
@@ -356,6 +412,9 @@ Private Sub ConstruireGrilleAffichage(ByVal ws As Worksheet)
     With ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_MONTANT)
         .value = "Montant"
     End With
+    With ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_NOTES)      ' Ajout 01/10/2026
+        .value = "Notes"
+    End With
     With ws.Range(ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_CAT), ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_EDITER))
         .Font.Bold = True
         .Font.Color = RGB(31, 78, 121)
@@ -364,7 +423,7 @@ Private Sub ConstruireGrilleAffichage(ByVal ws As Worksheet)
     End With
 
     For ligne = VEN_LIGNE_GRILLE_DEBUT To VEN_LIGNE_GRILLE_FIN
-        With ws.Range(ws.Cells(ligne, VEN_COL_CAT), ws.Cells(ligne, VEN_COL_MONTANT))
+        With ws.Range(ws.Cells(ligne, VEN_COL_CAT), ws.Cells(ligne, VEN_COL_NOTES))   ' etendu a Notes (etait Montant)
             .Interior.Color = RGB(242, 242, 240)          ' gris tres pale = affichage, pas saisie
             .Borders(xlEdgeBottom).LineStyle = xlContinuous
             .Borders(xlEdgeBottom).Color = RGB(220, 220, 215)
@@ -372,6 +431,7 @@ Private Sub ConstruireGrilleAffichage(ByVal ws As Worksheet)
         ws.Cells(ligne, VEN_COL_CAT).NumberFormat = "@"
         ws.Cells(ligne, VEN_COL_SOUS).NumberFormat = "@"
         ws.Cells(ligne, VEN_COL_MONTANT).NumberFormat = "#,##0.00"
+        ws.Cells(ligne, VEN_COL_NOTES).NumberFormat = "@"      ' Ajout 01/10/2026
         ws.rows(ligne).RowHeight = 18
 
         ' Bouton "Editer" de cette ligne. Toutes les lignes ont leur bouton des la
@@ -398,7 +458,7 @@ End Sub
 Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
 
     ' --- Titre de la zone ---
-    With ws.Range("B" & VEN_LIGNE_SAISIE_TITRE & ":E" & VEN_LIGNE_SAISIE_TITRE)
+    With ws.Range("B" & VEN_LIGNE_SAISIE_TITRE & ":F" & VEN_LIGNE_SAISIE_TITRE)   ' etendu a F (etait E)
         .Merge
         .value = mod_Display.FR("Ajouter ou modifier une ligne")
         .Font.Bold = True
@@ -453,15 +513,34 @@ Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
     End With
     ws.rows(31).RowHeight = 22
 
+    ' --- Notes (commentaire libre de la ligne, facultatif) --- Ajout 01/10/2026 :
+    ' meme principe que le champ Notes de TblOperations (voir mod_FormulairesNotes) --
+    ' texte libre pour toute ligne, sauf qu'une ligne "Frais, remb sante" verra ce
+    ' texte remplace par la cle technique du rapprochement sante des que l'operateur
+    ' la traitera (comportement IDENTIQUE a celui d'une operation normale).
+    EcrireEtiquette ws, "B32", "Notes"
+    ws.Range("B32").Font.Color = RGB(31, 78, 121)
+    With ws.Range(VEN_ADR_SAISIE_NOTES & ":F32")
+        .Merge
+        .NumberFormat = "@"
+        .Interior.Color = RGB(255, 250, 225)
+        .Font.Size = 10
+        .WrapText = True
+        .VerticalAlignment = xlCenter
+        .Borders.LineStyle = xlContinuous
+        .Borders.Color = RGB(200, 185, 120)
+    End With
+    ws.rows(32).RowHeight = 22
+
     ' --- Message (erreurs de saisie de cette ligne) ---
-    With ws.Range(VEN_ADR_SAISIE_MESSAGE & ":E32")
+    With ws.Range(VEN_ADR_SAISIE_MESSAGE & ":F33")   ' decale de 32 a 33, etendu a F (etait E32)
         .Merge
         .WrapText = True
         .VerticalAlignment = xlTop
         .Font.Size = 9
         .Font.Color = RGB(192, 80, 0)
     End With
-    ws.rows(32).RowHeight = 26
+    ws.rows(33).RowHeight = 26
 
     ' --- Boutons "Ajouter la ligne" et "Effacer la saisie" ---
     ws.rows(VEN_LIGNE_BOUTON_AJOUTER).RowHeight = 24

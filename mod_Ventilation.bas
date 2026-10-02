@@ -47,6 +47,24 @@ Option Explicit
 '   perdre ce rapprochement, qu'il faudra refaire. Signal? ? l'op?rateur, pas encore
 '   trait? plus finement (? discuter si ?a devient g?nant en pratique).
 '
+'   Ajout du 01/10/2026 (points 3, 4 et 6 du suivi des besoins) :
+'     - Chaque ligne de la ventilation a desormais un champ "Notes" libre (identique
+'       dans l'esprit au champ Notes de TblOperations). Il est ecrit pour TOUTES les
+'       lignes, et mod_FormulairesNotes.VerifierNotesSante le remplace automatiquement
+'       par la cle de rapprochement si la ligne est une depense de sante non traitee.
+'     - Le montant est desormais ecrit SIGNE dans TblVentilations.Montant (negatif pour
+'       une depense, positif pour un remboursement), comme TblOperations.Montant. La
+'       saisie et l'affichage en memoire restent POSITIFS : seule l'ecriture finale
+'       (AjouterLigneVentilation) et la relecture (ChargerLignesExistantes) appliquent
+'       le signe / la valeur absolue.
+'     - Un nouveau bouton "Supprimer cette ventilation" (visible uniquement si la
+'       ventilation existait deja) permet d'effacer completement les lignes de
+'       TblVentilations pour cette operation. L'appelant (mod_ControleCategories pendant
+'       un import, ou RevoirVentilationRO depuis la recherche) est prevenu via le nouveau
+'       parametre de sortie de OuvrirVentilation et doit restaurer l'ancienne categorie/
+'       sous-categorie de l'operation (colonnes CategorieAvantVentilation /
+'       SousCategorieAvantVentilation, ajoutees a TblOperations par mod_InstallVentilation).
+'
 ' ? PROPOS DES ACCENTS : tout ce qui s'affiche dans Excel (messages, valeurs de
 ' cellules) continue ? passer par la fonction mod_Display.FR() pour rester 100% s?r ? l'import
 ' VBA. Les commentaires que j'ajoute ? partir de maintenant utilisent de vrais
@@ -74,9 +92,20 @@ Private g_VenNbLignes As Long
 Private g_VenLigneCat(1 To 10) As String
 Private g_VenLigneSous(1 To 10) As String
 Private g_VenLigneMontant(1 To 10) As Double
+Private g_VenLigneNotes(1 To 10) As String     ' Ajout 01/10/2026 : commentaire libre de la ligne
 
 ' --- Index (1..10) de la ligne en cours de modification ; 0 = aucune (mode "ajout") ---
 Private g_VenIndexEdition As Long
+
+' --- Ajout 01/10/2026 (possibilite d'annuler une ventilation) ------------------------
+' g_VenEtaitDejaVentilee : vrai si ChargerLignesExistantes a trouve au moins une ligne
+' a l'ouverture du formulaire -- sert a n'afficher le bouton "Supprimer cette
+' ventilation" que quand il y a effectivement quelque chose a supprimer.
+' g_VenSupprimee : vrai si l'operateur a confirme la suppression via ce bouton ; lu par
+' OuvrirVentilation juste avant de rendre la main a l'appelant (ControleVentiler ou
+' RevoirVentilationRO), qui doit alors restaurer l'ancienne categorie de l'operation.
+Private g_VenEtaitDejaVentilee As Boolean
+Private g_VenSupprimee As Boolean
 
 
 ' =====================================================================================
@@ -91,14 +120,24 @@ Private g_VenIndexEdition As Long
 '                          et utilises pour pre-remplir la 1ere saisie.
 ' Renvoie True si l'operateur a valide une ventilation complete (les lignes ont deja
 ' ete enregistrees dans TblVentilations), False s'il a annule.
+' Ajout 01/10/2026 (possibilite d'annuler une ventilation) : nouveau parametre de
+' SORTIE optionnel "ventilationSupprimee". L'appelant (ControleVentiler pendant un
+' import, ou RevoirVentilationRO depuis la recherche) doit le lire juste apres l'appel :
+' s'il revient a True, la ventilation existante a ete entierement supprimee (bouton
+' "Supprimer cette ventilation") et l'appelant doit alors restaurer l'ancienne
+' categorie/sous-categorie de l'operation (voir les colonnes CategorieAvantVentilation /
+' SousCategorieAvantVentilation ajoutees a TblOperations par mod_InstallVentilation).
+' Reste optionnel pour ne pas casser TesterVentilation, qui ne s'en sert pas.
 Public Function OuvrirVentilation(ByVal idTransaction As String, ByVal dateOp As Variant, _
                                   ByVal tiers As String, ByVal libelle As String, _
                                   ByVal montantOp As Double, _
-                                  ByVal categorieActuelle As String, ByVal sousCategorieActuelle As String) As Boolean
+                                  ByVal categorieActuelle As String, ByVal sousCategorieActuelle As String, _
+                                  Optional ByRef ventilationSupprimee As Boolean) As Boolean
 
     Dim ws As Worksheet
     Dim evAvant As Boolean
 
+    ventilationSupprimee = False
     On Error GoTo Erreur
 
     Set ws = FeuilleSansErreur(VEN_NOM_FEUILLE)
@@ -112,6 +151,7 @@ Public Function OuvrirVentilation(ByVal idTransaction As String, ByVal dateOp As
     g_VenMontantOperation = montantOp
     g_VenNomFeuillePrec = ActiveSheet.Name
     g_VenValide = False
+    g_VenSupprimee = False
     g_VenNbLignes = 0
     g_VenIndexEdition = 0
 
@@ -120,6 +160,14 @@ Public Function OuvrirVentilation(ByVal idTransaction As String, ByVal dateOp As
     ' la feuille, pour que l'op?rateur retrouve son d?tail au lieu d'un formulaire
     ' vide. Voir l'explication compl?te en t?te de module.
     ChargerLignesExistantes idTransaction
+
+    ' Ajout 01/10/2026 : le bouton "Supprimer cette ventilation" n'a de sens que s'il y
+    ' a deja quelque chose a supprimer -- on le masque donc pour une toute nouvelle
+    ' ventilation (ChargerLignesExistantes n'a alors rien trouve).
+    g_VenEtaitDejaVentilee = (g_VenNbLignes > 0)
+    On Error Resume Next
+    ws.Shapes("btnVenSupprimerVentilation").Visible = g_VenEtaitDejaVentilee
+    On Error GoTo 0
 
     RemplirEntete ws, dateOp, tiers, libelle, montantOp, categorieActuelle, sousCategorieActuelle
     RafraichirAffichageLignes ws
@@ -161,6 +209,7 @@ Public Function OuvrirVentilation(ByVal idTransaction As String, ByVal dateOp As
     ThisWorkbook.Worksheets(g_VenNomFeuillePrec).Activate
     On Error GoTo 0
 
+    ventilationSupprimee = g_VenSupprimee
     OuvrirVentilation = g_VenValide
     Exit Function
 
@@ -223,13 +272,16 @@ Private Sub RafraichirAffichageLignes(ByVal ws As Worksheet)
 
     ' On efface TOUTES les lignes d'affichage d'abord (une ligne editee, donc retiree,
     ' ne doit pas laisser une ancienne valeur trainer en bas du tableau).
-    ws.Range(ws.Cells(VEN_LIGNE_GRILLE_DEBUT, VEN_COL_CAT), ws.Cells(VEN_LIGNE_GRILLE_FIN, VEN_COL_MONTANT)).ClearContents
+    ' Ajout 01/10/2026 : la plage effacee va maintenant jusqu'a VEN_COL_NOTES (et non
+    ' plus VEN_COL_MONTANT) pour couvrir aussi la nouvelle colonne Notes.
+    ws.Range(ws.Cells(VEN_LIGNE_GRILLE_DEBUT, VEN_COL_CAT), ws.Cells(VEN_LIGNE_GRILLE_FIN, VEN_COL_NOTES)).ClearContents
 
     For i = 1 To g_VenNbLignes
         ligne = VEN_LIGNE_GRILLE_DEBUT + i - 1
         ws.Cells(ligne, VEN_COL_CAT).value = g_VenLigneCat(i)
         ws.Cells(ligne, VEN_COL_SOUS).value = g_VenLigneSous(i)
         ws.Cells(ligne, VEN_COL_MONTANT).value = g_VenLigneMontant(i)
+        ws.Cells(ligne, VEN_COL_NOTES).value = g_VenLigneNotes(i)
     Next i
 
     Application.EnableEvents = evAvant
@@ -408,6 +460,7 @@ Public Sub VenAjouterLigne()
 
     Dim ws As Worksheet
     Dim cat As String, sous As String
+    Dim notes As String
     Dim Montant As Variant
     Dim listeCat() As String, listeSous() As String
     Dim indiceCible As Long
@@ -419,6 +472,9 @@ Public Sub VenAjouterLigne()
     cat = mod_DataStructure.CellText(ws.Range(VEN_ADR_SAISIE_CAT).value)
     sous = mod_DataStructure.CellText(ws.Range(VEN_ADR_SAISIE_SOUS).value)
     Montant = ws.Range(VEN_ADR_SAISIE_MONTANT).Value2
+    ' Ajout 01/10/2026 (champ Notes) : commentaire libre, facultatif, disponible pour
+    ' CHAQUE ligne de la ventilation (pas seulement les lignes "sante").
+    notes = mod_DataStructure.CellText(ws.Range(VEN_ADR_SAISIE_NOTES).value)
 
     If cat = "" Then
         ws.Range(VEN_ADR_SAISIE_MESSAGE).value = mod_Display.FR("La cat{e2}gorie est obligatoire.")
@@ -464,6 +520,7 @@ Public Sub VenAjouterLigne()
     g_VenLigneCat(indiceCible) = cat
     g_VenLigneSous(indiceCible) = sous
     g_VenLigneMontant(indiceCible) = CDbl(Montant)
+    g_VenLigneNotes(indiceCible) = notes
 
     g_VenIndexEdition = 0
     RafraichirAffichageLignes ws
@@ -498,6 +555,7 @@ Private Sub ViderChampsSaisie(ByVal ws As Worksheet)
     ws.Range(VEN_ADR_SAISIE_CAT).ClearContents
     ws.Range(VEN_ADR_SAISIE_SOUS).ClearContents
     ws.Range(VEN_ADR_SAISIE_MONTANT).ClearContents
+    ws.Range(VEN_ADR_SAISIE_NOTES).ClearContents
     ws.Range(VEN_ADR_SAISIE_MESSAGE).value = ""
     RemplirListeSousCatSaisie ws, ""
     Application.EnableEvents = evAvant
@@ -543,6 +601,7 @@ Public Sub VenEditerLigne()
     RemplirListeSousCatSaisie ws, g_VenLigneCat(indice)
     ws.Range(VEN_ADR_SAISIE_SOUS).value = g_VenLigneSous(indice)
     ws.Range(VEN_ADR_SAISIE_MONTANT).value = g_VenLigneMontant(indice)
+    ws.Range(VEN_ADR_SAISIE_NOTES).value = g_VenLigneNotes(indice)
     ws.Range(VEN_ADR_SAISIE_MESSAGE).value = mod_Display.FR("Ligne retir{e2}e du tableau pour modification.") & _
         mod_Display.FR(" Cliquez sur 'Ajouter la ligne' pour la remettre (avec vos changements), sinon elle restera supprim{e2}e.")
     Application.EnableEvents = evAvant
@@ -552,6 +611,7 @@ Public Sub VenEditerLigne()
         g_VenLigneCat(i) = g_VenLigneCat(i + 1)
         g_VenLigneSous(i) = g_VenLigneSous(i + 1)
         g_VenLigneMontant(i) = g_VenLigneMontant(i + 1)
+        g_VenLigneNotes(i) = g_VenLigneNotes(i + 1)
     Next i
     g_VenNbLignes = g_VenNbLignes - 1
     g_VenIndexEdition = indice
@@ -609,7 +669,8 @@ Public Sub VenTerminer()
     SupprimerLignesExistantes g_VenIdTransaction
 
     For i = 1 To g_VenNbLignes
-        AjouterLigneVentilation g_VenIdTransaction, g_VenLigneCat(i), g_VenLigneSous(i), g_VenLigneMontant(i)
+        AjouterLigneVentilation g_VenIdTransaction, g_VenLigneCat(i), g_VenLigneSous(i), g_VenLigneMontant(i), _
+                                g_VenLigneNotes(i), g_VenMontantOperation
     Next i
 
     g_VenValide = True
@@ -645,6 +706,50 @@ Erreur:
 
 End Sub
 
+' --- Bouton "Supprimer cette ventilation" (global - ajout 01/10/2026, point 4) ------
+' Ne s'affiche (voir OuvrirVentilation) que si cette ventilation existait DEJA avant
+' l'ouverture du formulaire (g_VenEtaitDejaVentilee) : il n'y a sinon rien a supprimer.
+' Contrairement a "Annuler" (qui abandonne la SAISIE en cours sans rien changer a
+' TblVentilations), ce bouton supprime definitivement les lignes deja enregistrees pour
+' cette operation, et previent l'appelant (via le parametre de sortie de
+' OuvrirVentilation) qu'il doit restaurer l'ancienne categorie de l'operation.
+Public Sub VenSupprimerVentilation()
+
+    Dim ws As Worksheet
+    Dim reponse As VbMsgBoxResult
+    Dim avertissementSante As String
+
+    If Not g_VenEnCours Then Exit Sub
+    If Not g_VenEtaitDejaVentilee Then Exit Sub   ' garde-fou : le bouton est normalement masque dans ce cas
+    On Error GoTo Erreur
+
+    avertissementSante = ""
+    If VentilationContientLigneSanteDejaTraitee(g_VenIdTransaction) Then
+        avertissementSante = vbCrLf & vbCrLf & _
+            mod_Display.FR("ATTENTION : au moins une de ses lignes est une d{e2}pense de sant{e2} d{e2}j{a2} trait{e2}e dans le suivi sant{e2}.") & _
+            " " & mod_Display.FR("Ce rapprochement sera {e2}galement perdu, d{e2}finitivement.")
+    End If
+
+    reponse = MsgBox(mod_Display.FR("Supprimer compl{e2}tement cette ventilation ?") & vbCrLf & _
+                      mod_Display.FR("Toutes ses lignes seront effac{e2}es, et l'op{e2}ration reprendra sa cat{e2}gorie d'origine.") & _
+                      avertissementSante, _
+                      vbYesNo + vbExclamation, mod_Display.FR("Confirmation de suppression"))
+    If reponse = vbNo Then Exit Sub
+
+    Set ws = ThisWorkbook.Worksheets(VEN_NOM_FEUILLE)
+    SupprimerLignesExistantes g_VenIdTransaction
+
+    g_VenValide = False
+    g_VenSupprimee = True
+    FermerFeuilleVen ws
+    Exit Sub
+
+Erreur:
+    Application.EnableEvents = True
+    MsgBox mod_Display.FR("Erreur dans VenSupprimerVentilation : ") & Err.Number & " - " & Err.Description, vbCritical
+
+End Sub
+
 
 ' =====================================================================================
 ' FERMETURE DU FORMULAIRE
@@ -666,38 +771,55 @@ End Sub
 ' Ecrit une ligne dans TblVentilations. Les colonnes sont retrouvees PAR LEUR NOM
 ' (jamais par un numero fixe) : plus robuste si l'ordre des colonnes change un jour.
 '
-' Les colonnes de suivi sante (Notes, Date_consult, StatutSante...) ne sont remplies
+' Montant (ajout 01/10/2026, point 6) : le PARAMETRE "Montant" recu ici reste POSITIF
+' (c'est ce que l'operateur saisit et ce qui est garde en memoire pendant l'edition,
+' voir VenAjouterLigne). On applique le signe de l'operation PARENTE (montantOperationSigne)
+' uniquement au moment de l'ECRITURE dans TblVentilations, pour que la colonne Montant y
+' soit SIGNEE exactement comme TblOperations.Montant (negatif = depense, positif =
+' remboursement) : c'est ce qu'attendent deja mod_SuiviSante et la mise en forme
+' vert/rouge de frm_RechercheOperations.
+'
+' Notes (ajout 01/10/2026, point 3) : le commentaire libre saisi par l'operateur est
+' desormais ecrit pour TOUTE ligne, quelle que soit sa categorie (ce n'est plus reserve
+' aux lignes de sante). Si la ligne est elle-meme "Frais, remb sante" et pas encore
+' rapprochee, mod_FormulairesNotes.VerifierNotesSante la detectera et remplacera alors
+' cette valeur par la cle technique de rapprochement, exactement comme il le fait deja
+' pour une ligne de TblOperations -- ce module prend deja en charge TblVentilations
+' (voir mod_FormulairesNotes.bas, PHASE 6), il n'y a donc rien d'autre a faire ici.
+'
+' Les AUTRES colonnes de suivi sante (Date_consult, StatutSante...) restent remplies
 ' QUE si cette ligne est elle-meme categorisee "Frais, remb sante" : c'est la seule
 ' sous-categorie suivie par le moteur sante existant (mod_SuiviSante). Une ligne
 ' sante est initialisee exactement comme le fait mod_ImportOFX pour une operation
 ' fraichement importee dont le libelle n'a pas pu etre decode automatiquement
-' (StatutSante = "KO", Date_consult = la "sentinelle" 02/01/1900) : elle sera ainsi
-' proposee au rapprochement (frm_RapprochementNotes / frm_GenerationCle) des que
-' mod_FormulairesNotes sera adapte pour reconnaitre aussi les lignes de
-' TblVentilations (prochaine etape de ce chantier, pas encore faite).
+' (StatutSante = "KO", Date_consult = la "sentinelle" 02/01/1900).
 Private Sub AjouterLigneVentilation(ByVal idTransaction As String, ByVal categorie As String, _
-                                    ByVal sousCategorie As String, ByVal Montant As Double)
+                                    ByVal sousCategorie As String, ByVal Montant As Double, _
+                                    ByVal notes As String, ByVal montantOperationSigne As Double)
 
     Dim wsData As Worksheet
     Dim tbl As ListObject
     Dim ligne As Long
     Dim estSante As Boolean
+    Dim montantSigne As Double
 
     Set wsData = ThisWorkbook.Worksheets(VEN_NOM_FEUILLE_DONNEES)
     Set tbl = wsData.ListObjects(VEN_NOM_TABLE)
 
     ligne = tbl.ListRows.Add.Range.Row
 
+    montantSigne = Montant * Sgn(montantOperationSigne)
+
     EcrireCelluleTexte wsData, tbl, ligne, "ID_Transaction", idTransaction
     EcrireCelluleTexte wsData, tbl, ligne, "Categorie", categorie
     EcrireCelluleTexte wsData, tbl, ligne, "SousCategorie", sousCategorie
-    EcrireCelluleNombre wsData, tbl, ligne, "Montant", Montant, "#,##0.00"
+    EcrireCelluleNombre wsData, tbl, ligne, "Montant", montantSigne, "#,##0.00"
     EcrireCelluleDate wsData, tbl, ligne, "DateVentilation", Now, "dd/mm/yyyy hh:mm"
+    EcrireCelluleTexte wsData, tbl, ligne, "Notes", notes
 
     estSante = (mod_Categories.NormaliserTexte(sousCategorie) = mod_Categories.NormaliserTexte(SousCategorieSanteReference()))
 
     If estSante Then
-        EcrireCelluleTexte wsData, tbl, ligne, "Notes", ""
         EcrireCelluleDate wsData, tbl, ligne, "Date_consult", DateSerial(1900, 1, 2), "dd/mm/yyyy"
         EcrireCelluleTexte wsData, tbl, ligne, "Spe_Consult", ""
         EcrireCelluleTexte wsData, tbl, ligne, "StatutSante", "KO"
@@ -721,7 +843,7 @@ Private Sub ChargerLignesExistantes(ByVal idTransaction As String)
 
     Dim wsData As Worksheet
     Dim tbl As ListObject
-    Dim colID As Long, colCat As Long, colSous As Long, colMontant As Long
+    Dim colID As Long, colCat As Long, colSous As Long, colMontant As Long, colNotes As Long
     Dim r As Long
     Dim idLigne As String
 
@@ -738,6 +860,10 @@ Private Sub ChargerLignesExistantes(ByVal idTransaction As String)
     colCat = tbl.ListColumns("Categorie").index
     colSous = tbl.ListColumns("SousCategorie").index
     colMontant = tbl.ListColumns("Montant").index
+    colNotes = 0
+    On Error Resume Next
+    colNotes = tbl.ListColumns("Notes").index
+    On Error GoTo 0
 
     For r = 1 To tbl.ListRows.count
         idLigne = mod_DataStructure.CellText(tbl.DataBodyRange.Cells(r, colID).value)
@@ -746,11 +872,73 @@ Private Sub ChargerLignesExistantes(ByVal idTransaction As String)
             g_VenNbLignes = g_VenNbLignes + 1
             g_VenLigneCat(g_VenNbLignes) = mod_DataStructure.CellText(tbl.DataBodyRange.Cells(r, colCat).value)
             g_VenLigneSous(g_VenNbLignes) = mod_DataStructure.CellText(tbl.DataBodyRange.Cells(r, colSous).value)
-            g_VenLigneMontant(g_VenNbLignes) = mod_DataStructure.ToDouble(tbl.DataBodyRange.Cells(r, colMontant).value)
+            ' Ajout 01/10/2026 (point 6, montant signe) : TblVentilations stocke
+            ' desormais le montant avec le signe de l'operation d'origine (voir
+            ' AjouterLigneVentilation) -- on reprend ici la valeur ABSOLUE en memoire,
+            ' puisque le formulaire de saisie continue de n'afficher/demander que des
+            ' montants positifs (voir VenAjouterLigne).
+            g_VenLigneMontant(g_VenNbLignes) = Abs(mod_DataStructure.ToDouble(tbl.DataBodyRange.Cells(r, colMontant).value))
+            If colNotes <> 0 Then
+                g_VenLigneNotes(g_VenNbLignes) = mod_DataStructure.CellText(tbl.DataBodyRange.Cells(r, colNotes).value)
+            Else
+                g_VenLigneNotes(g_VenNbLignes) = ""
+            End If
         End If
     Next r
 
 End Sub
+
+' Vrai si au moins une ligne de TblVentilations pour cet ID_Transaction est une depense
+' de sante dont le rapprochement a deja ete fait (Date_consult n'est plus la sentinelle
+' 02/01/1900). Sert uniquement a renforcer le message d'avertissement affiche avant la
+' suppression d'une ventilation (VenSupprimerVentilation) : ce rapprochement serait
+' perdu en meme temps que la ligne.
+Private Function VentilationContientLigneSanteDejaTraitee(ByVal idTransaction As String) As Boolean
+
+    Dim wsData As Worksheet
+    Dim tbl As ListObject
+    Dim colID As Long, colSous As Long, colDateConsult As Long
+    Dim r As Long
+    Dim idLigne As String, sousLigne As String
+    Dim dateConsultVal As Variant
+
+    VentilationContientLigneSanteDejaTraitee = False
+
+    Set wsData = FeuilleSansErreur(VEN_NOM_FEUILLE_DONNEES)
+    If wsData Is Nothing Then Exit Function
+
+    On Error Resume Next
+    Set tbl = wsData.ListObjects(VEN_NOM_TABLE)
+    On Error GoTo 0
+    If tbl Is Nothing Then Exit Function
+    If tbl.ListRows.count = 0 Then Exit Function
+
+    colID = tbl.ListColumns("ID_Transaction").index
+    colSous = 0
+    colDateConsult = 0
+    On Error Resume Next
+    colSous = tbl.ListColumns("SousCategorie").index
+    colDateConsult = tbl.ListColumns("Date_consult").index
+    On Error GoTo 0
+    If colSous = 0 Or colDateConsult = 0 Then Exit Function
+
+    For r = 1 To tbl.ListRows.count
+        idLigne = mod_DataStructure.CellText(tbl.DataBodyRange.Cells(r, colID).value)
+        If idLigne = idTransaction Then
+            sousLigne = mod_DataStructure.CellText(tbl.DataBodyRange.Cells(r, colSous).value)
+            If mod_Categories.NormaliserTexte(sousLigne) = mod_Categories.NormaliserTexte(SousCategorieSanteReference()) Then
+                dateConsultVal = tbl.DataBodyRange.Cells(r, colDateConsult).value
+                If IsDate(dateConsultVal) Then
+                    If CDate(dateConsultVal) <> DateSerial(1900, 1, 2) Then
+                        VentilationContientLigneSanteDejaTraitee = True
+                        Exit Function
+                    End If
+                End If
+            End If
+        End If
+    Next r
+
+End Function
 
 ' Supprime de TblVentilations toutes les lignes d?j? enregistr?es pour cet
 ' ID_Transaction. Appel?e par VenTerminer juste avant de r??crire la liste actuelle,
