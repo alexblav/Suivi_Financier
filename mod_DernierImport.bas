@@ -56,6 +56,11 @@ Public Sub MemoriserDernierImport(ByRef listeID() As String, ByVal nb As Long)
 
     wsTech.Range("A" & (LIGNE_DEBUT_LISTE_ID - 1)).value = "ID_Transaction"
 
+    ' Forcer la colonne en TEXTE *avant* d'ecrire les ID_Transaction, sinon Excel
+    ' convertit silencieusement les longs identifiants numeriques en nombre (meme
+    ' piege que celui deja traite dans mod_ImportOFX.bas pour TblOperations).
+    wsTech.Range(wsTech.Cells(LIGNE_DEBUT_LISTE_ID, 1), wsTech.Cells(LIGNE_DEBUT_LISTE_ID - 1 + nb, 1)).NumberFormat = "@"
+
     For i = 1 To nb
         wsTech.Cells(LIGNE_DEBUT_LISTE_ID - 1 + i, 1).value = listeID(i)
     Next i
