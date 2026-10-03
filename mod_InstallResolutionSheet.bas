@@ -1,4 +1,3 @@
-Attribute VB_Name = "mod_InstallResolutionSheet"
 Option Explicit
 
 ' =====================================================================================
@@ -41,22 +40,7 @@ Public Const LIGNE_TITRE_INSTRUCTIONS As Long = 5
 Public Const LIGNE_DEBUT_TEXTE_INSTRUCTIONS As Long = 6
 Public Const LIGNE_FIN_TEXTE_INSTRUCTIONS As Long = 9
 
-' --- Zone du tableau des cas ambigus ---
-Public Const LIGNE_ENTETES_TABLEAU As Long = 11   ' ligne des libelles de colonnes
-Public Const LIGNE_PREMIERE_DONNEE As Long = 12   ' premiere ligne ou s'affichera un cas
 
-' --- Colonnes du tableau (une lettre = une colonne Excel) ---
-Public Const COL_STATUT As String = "B"
-Public Const COL_DATE As String = "C"
-Public Const COL_MONTANT As String = "D"
-Public Const COL_TIERS As String = "E"
-Public Const COL_CATEGORIE As String = "F"
-
-' Nombre maximal de cas que la mise en forme du tableau preparera a l'avance.
-' Ce n'est PAS une limite dure : en Phase 2, si jamais il y avait plus de cas que
-' cela, le code etendra la mise en forme automatiquement. Ce nombre sert juste a
-' preparer une zone confortable des l'installation, pour un rendu propre immediat.
-Public Const NB_LIGNES_PREPAREES As Long = 200
 
 
 ' =====================================================================================
@@ -97,7 +81,7 @@ Sub CreerFeuilleResolutionCategories()
     Else
         ' La feuille n'existe pas encore : on la cree, positionnee en derniere position
         ' pour ne pas perturber l'ordre des onglets existants (Accueil, Synthese...).
-        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.count))
         ws.Name = NOM_FEUILLE_RESOLUTION
     End If
 
@@ -207,7 +191,7 @@ Private Sub ConstruireZoneBoutons(ws As Worksheet)
     With boutonValider
         ' IMPORTANT : le texte affiche est deja son intitule FINAL valide avec toi,
         ' a savoir sa fonction de reinitialisation (et non plus "Valider ce cas").
-        .Caption = "Réinitialiser cette ligne"
+        .Caption = "R?initialiser cette ligne"
         ' Le nom de macro ci-dessous n'existe pas encore : il sera ecrit en Phase 2.
         ' Cela ne provoque AUCUNE erreur maintenant ; l'erreur n'apparaitrait que si
         ' quelqu'un cliquait sur le bouton avant que la Phase 2 soit installee.
@@ -234,7 +218,7 @@ Private Sub ConstruireZoneBoutons(ws As Worksheet)
         .VerticalAlignment = xlCenter
         .Font.Size = 9
         .Font.Color = RGB(120, 120, 120)   ' gris discret, texte d'information secondaire
-        .Value = ""   ' rempli dynamiquement en Phase 2
+        .value = ""   ' rempli dynamiquement en Phase 2
     End With
     ws.Names.Add Name:="CompteurCasRestants", RefersTo:=ws.Range(COL_TIERS & LIGNE_BOUTONS)
 
@@ -248,7 +232,7 @@ Private Sub ConstruireZoneInstructions(ws As Worksheet)
 
     ' --- Titre "Instructions" ---
     With ws.Range(COL_STATUT & LIGNE_TITRE_INSTRUCTIONS)
-        .Value = "Instructions"
+        .value = "Instructions"
         .Font.Bold = True
         .Font.Size = 11
     End With
@@ -264,11 +248,11 @@ Private Sub ConstruireZoneInstructions(ws As Worksheet)
         .Merge
         ' Le texte exact que tu m'as fourni, avec des sauts de ligne internes
         ' (Chr(10) est le caractere "retour a la ligne" a l'interieur d'une cellule).
-        .Value = "Les opérations listées n'ont pas pu être catégorisées de façon automatique." & Chr(10) & _
-                 "Il faut donc le faire manuellement. Pour ce faire suivre les étapes suivantes :" & Chr(10) & _
-                 "1. Sélectionner une catégorie dans la liste déroulante en face de l'opération concernée" & Chr(10) & _
-                 "2. Le statut de la ligne passe automatiquement à "" OK "" une fois la catégorie choisie" & Chr(10) & _
-                 "3. Recommencer pour chaque opération puis cliquer sur ""Terminer et appliquer"""
+        .value = "Les op?rations list?es n'ont pas pu ?tre cat?goris?es de fa?on automatique." & Chr(10) & _
+                 "Il faut donc le faire manuellement. Pour ce faire suivre les ?tapes suivantes :" & Chr(10) & _
+                 "1. S?lectionner une cat?gorie dans la liste d?roulante en face de l'op?ration concern?e" & Chr(10) & _
+                 "2. Le statut de la ligne passe automatiquement ? "" OK "" une fois la cat?gorie choisie" & Chr(10) & _
+                 "3. Recommencer pour chaque op?ration puis cliquer sur ""Terminer et appliquer"""
         .WrapText = True                     ' le texte revient a la ligne dans la cellule
         .VerticalAlignment = xlTop
         .HorizontalAlignment = xlLeft
@@ -290,7 +274,7 @@ Private Sub ConstruireZoneInstructions(ws As Worksheet)
     ' de texte, sans impact sur le reste du code.
 
     ' Ajuste la hauteur des lignes du bloc pour laisser de la place au texte
-    ws.Rows(LIGNE_DEBUT_TEXTE_INSTRUCTIONS & ":" & LIGNE_FIN_TEXTE_INSTRUCTIONS).RowHeight = 16
+    ws.rows(LIGNE_DEBUT_TEXTE_INSTRUCTIONS & ":" & LIGNE_FIN_TEXTE_INSTRUCTIONS).RowHeight = 16
 
 End Sub
 
@@ -311,12 +295,12 @@ Private Sub ConstruireTableauCas(ws As Worksheet)
         .Borders(xlEdgeBottom).Weight = xlMedium
         .VerticalAlignment = xlCenter
     End With
-    ws.Range(COL_STATUT & LIGNE_ENTETES_TABLEAU).Value = "Statut"
-    ws.Range(COL_DATE & LIGNE_ENTETES_TABLEAU).Value = "Date"
-    ws.Range(COL_MONTANT & LIGNE_ENTETES_TABLEAU).Value = "Montant"
-    ws.Range(COL_TIERS & LIGNE_ENTETES_TABLEAU).Value = "Tiers"
-    ws.Range(COL_CATEGORIE & LIGNE_ENTETES_TABLEAU).Value = "Catégorie(s)"
-    ws.Rows(LIGNE_ENTETES_TABLEAU).RowHeight = 20
+    ws.Range(COL_STATUT & LIGNE_ENTETES_TABLEAU).value = "Statut"
+    ws.Range(COL_DATE & LIGNE_ENTETES_TABLEAU).value = "Date"
+    ws.Range(COL_MONTANT & LIGNE_ENTETES_TABLEAU).value = "Montant"
+    ws.Range(COL_TIERS & LIGNE_ENTETES_TABLEAU).value = "Tiers"
+    ws.Range(COL_CATEGORIE & LIGNE_ENTETES_TABLEAU).value = "Cat?gorie(s)"
+    ws.rows(LIGNE_ENTETES_TABLEAU).RowHeight = 20
 
     ' --- Mise en forme "a blanc" des lignes de donnees preparees a l'avance ---
     ' On ne remplit PAS encore de vraies donnees ici (ce sera fait dynamiquement en
@@ -336,7 +320,7 @@ Private Sub ConstruireTableauCas(ws As Worksheet)
 
     ws.Range(COL_STATUT & LIGNE_PREMIERE_DONNEE & ":" & COL_STATUT & derniereLigne).HorizontalAlignment = xlCenter
     ws.Range(COL_MONTANT & LIGNE_PREMIERE_DONNEE & ":" & COL_MONTANT & derniereLigne).HorizontalAlignment = xlRight
-    ws.Range(COL_MONTANT & LIGNE_PREMIERE_DONNEE & ":" & COL_MONTANT & derniereLigne).NumberFormat = "#,##0.00 €"
+    ws.Range(COL_MONTANT & LIGNE_PREMIERE_DONNEE & ":" & COL_MONTANT & derniereLigne).NumberFormat = "#,##0.00 ?"
     ws.Range(COL_DATE & LIGNE_PREMIERE_DONNEE & ":" & COL_DATE & derniereLigne).NumberFormat = "dd/mm/yyyy"
 
     For ligneCourante = LIGNE_PREMIERE_DONNEE To derniereLigne Step 2
@@ -392,7 +376,7 @@ Private Sub SupprimerFormesExistantes(ws As Worksheet)
     ' On parcourt a l'envers car supprimer un element d'une collection pendant qu'on
     ' la parcourt "vers l'avant" peut sauter des elements - une precaution classique.
     Dim i As Long
-    For i = ws.Shapes.Count To 1 Step -1
+    For i = ws.Shapes.count To 1 Step -1
         ws.Shapes(i).Delete
     Next i
 End Sub

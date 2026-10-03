@@ -86,3 +86,27 @@ Public Titre As String, Message As String
 ' Variables de construction d'un bouton
 Public zoneBouton As Range, texteBouton As String, nomMacroBouton As String
 
+'' -------------------------------------------------------------------------------------
+'' CONSTANTES DE MISE EN PAGE
+'' -------------------------------------------------------------------------------------
+'' Regrouper ici toutes les positions de cellules evite d'avoir des "nombres magiques"
+'' disperses dans le code. Si un jour tu veux deplacer une zone, tu changes UNE seule
+'' ligne ici plutot que de chercher partout dans le code.
+'' Ces constantes seront reutilisees telles quelles dans le module de la Phase 2.
+' --- Colonnes du tableau (une lettre = une colonne Excel) ---
+Public Const COL_STATUT As String = "B"
+Public Const COL_DATE As String = "C"
+Public Const COL_MONTANT As String = "D"
+Public Const COL_TIERS As String = "E"
+Public Const COL_CATEGORIE As String = "F"
+' --- Zone du tableau des cas ambigus ---
+Public Const LIGNE_ENTETES_TABLEAU As Long = 11   ' ligne des libelles de colonnes
+Public Const LIGNE_PREMIERE_DONNEE As Long = 12   ' premiere ligne ou s'affichera un cas
+
+
+
+' Nombre maximal de cas que la mise en forme du tableau preparera a l'avance.
+' Ce n'est PAS une limite dure : en Phase 2, si jamais il y avait plus de cas que
+' cela, le code etendra la mise en forme automatiquement. Ce nombre sert juste a
+' preparer une zone confortable des l'installation, pour un rendu propre immediat.
+Public Const NB_LIGNES_PREPAREES As Long = 200

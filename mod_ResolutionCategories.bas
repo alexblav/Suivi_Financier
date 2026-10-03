@@ -44,34 +44,6 @@ Private g_NomFeuillePrecedente As String
 Public Const COL_AIDE_CANDIDATS_DEBUT As String = "Z"
 Public Const NB_COL_AIDE_MAX As Long = 15   ' marge large : jusqu'a 15 categories candidates par cas
 
-' --- Zone du tableau des cas ambigus ---
-Public Const LIGNE_ENTETES_TABLEAU As Long = 11   ' ligne des libelles de colonnes
-Public Const LIGNE_PREMIERE_DONNEE As Long = 12   ' premiere ligne ou s'affichera un cas
-
-' Nombre maximal de cas que la mise en forme du tableau preparera a l'avance.
-' Ce n'est PAS une limite dure : en Phase 2, si jamais il y avait plus de cas que
-' cela, le code etendra la mise en forme automatiquement. Ce nombre sert juste a
-' preparer une zone confortable des l'installation, pour un rendu propre immediat.
-Public Const NB_LIGNES_PREPAREES As Long = 200
-
-'' -------------------------------------------------------------------------------------
-'' CONSTANTES DE MISE EN PAGE
-'' -------------------------------------------------------------------------------------
-'' Regrouper ici toutes les positions de cellules evite d'avoir des "nombres magiques"
-'' disperses dans le code. Si un jour tu veux deplacer une zone, tu changes UNE seule
-'' ligne ici plutot que de chercher partout dans le code.
-'' Ces constantes seront reutilisees telles quelles dans le module de la Phase 2.
-
-' --- Colonnes du tableau (une lettre = une colonne Excel) ---
-Public Const COL_STATUT As String = "B"
-Public Const COL_DATE As String = "C"
-Public Const COL_MONTANT As String = "D"
-Public Const COL_TIERS As String = "E"
-Public Const COL_CATEGORIE As String = "F"
-
-
-
-
 ' =====================================================================================
 ' PROCEDURE PRINCIPALE - remplace l'ancien "frmResolutionCategories.Show vbModal"
 ' A appeler depuis mod_ImportOFX exactement a l'endroit ou se trouvait l'ancien appel.
@@ -255,7 +227,7 @@ End Sub
 
 
 ' =====================================================================================
-' ACTION DU BOUTON "Réinitialiser cette ligne"
+' ACTION DU BOUTON "RÃ©initialiser cette ligne"
 ' Efface le choix de categorie de la ligne actuellement selectionnee. L'effacement
 ' de la cellule declenche automatiquement Worksheet_Change (code-behind), qui se
 ' charge lui-meme de remettre le statut a "?" et de mettre a jour g_CasChoix et
