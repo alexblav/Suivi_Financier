@@ -1,50 +1,63 @@
 Option Explicit
-' Module stockant les macros d'action (attachée à un bouton ou déclenché sur événements dans la feuille) des formulaire
+' Module stockant les macros d'action (attachÃ©e Ã  un bouton ou dÃ©clenchÃ© sur Ã©vÃ©nements dans la feuille) des formulaire
 
 Public Sub Sortir()
     ActionSortir True
 End Sub
+
+Public Sub RchDernierImport()
+  mod_RechercheOperations.RechercherOperations "DernierImport"
+End Sub
+
+Public Sub RchOperationsDuMois()
+  mod_RechercheOperations.RechercherOperations "OperationsDuMois"
+End Sub
+
+Public Sub RchErreursSante()
+  mod_RechercheOperations.RechercherOperations "ErreursSante"
+End Sub
+
 Private Sub ActionSortir(Suppr As Boolean)
     Dim ActiveFeuille As String
     Dim ws As Worksheet
     
     ActiveFeuille = ActiveSheet.Name
 
-    ' On crée un pointeur vers la feuille à supprimer
+    ' On crÃ©e un pointeur vers la feuille Ã  supprimer
     Set ws = ThisWorkbook.Worksheets(ActiveFeuille)
-    ' PHASE 6 : l'appel à AppliquerLignesMarquees lié à RecherOperations est
-    ' supprimé, il appartenait à l'ancien mod_SyntheseRechercheOperations
-    ' (supprimé). RecherOperations n'est désormais plus jamais mis à True.
+    ' PHASE 6 : l'appel Ã  AppliquerLignesMarquees liÃ© Ã  RecherOperations est
+    ' supprimÃ©, il appartenait Ã  l'ancien mod_SyntheseRechercheOperations
+    ' (supprimÃ©). RecherOperations n'est dÃ©sormais plus jamais mis Ã  True.
     If Suppr Then
-        ' Désactiver les messages d'avertissement d'Excel ("Voulez-vous vraiment supprimer...")
+        ' DÃ©sactiver les messages d'avertissement d'Excel ("Voulez-vous vraiment supprimer...")
         Application.DisplayAlerts = False
-        ' On appelle la méthode pour supprimer la feuille pointée
+        ' On appelle la mÃ©thode pour supprimer la feuille pointÃ©e
         ws.Delete
-        ' On réactive obligatoirement les alertes pour ne pas perturber le reste d'Excel
+        ' On rÃ©active obligatoirement les alertes pour ne pas perturber le reste d'Excel
         Application.DisplayAlerts = True
         
         If ActiveFeuille = mod_VarGlobales.NOM_FEUILLE_DETAIL_POSITIF Or ActiveFeuille = mod_VarGlobales.NOM_FEUILLE_DETAIL_NEGATIF Then
-            ' On réaffiche la feuille Resultat
+            ' On rÃ©affiche la feuille Resultat
             wsResultat.Visible = xlSheetVisible
             
             ' On se repositionne dessus
             wsResultat.Activate
         Else
-            'On réaffiche la feuille Synthese
+            'On rÃ©affiche la feuille Synthese
             wsSynthese.Visible = xlSheetVisible
             
             ' On se repositionne dessus
             wsSynthese.Activate
             
-            ' Arrêt complet du programme on est revenu au départ
-            ' End réinitialise les variable en mémoire si on l'exécute trop tot l'exécution suivant s'arrête sur erreur
+            ' ArrÃªt complet du programme on est revenu au dÃ©part
+            ' End rÃ©initialise les variable en mÃ©moire si on l'exÃ©cute trop tot l'exÃ©cution suivant s'arrÃªte sur erreur
             End
         End If
     Else
         ' On masque la feuille en cours
         ws.Visible = xlSheetVeryHidden
         
-        ' On réaffiche la feuille Synthese
+        ' On rÃ©affiche la feuille Synthese
         wsSynthese.Visible = xlSheetVisible
         
         ' On se repositionne dessus
@@ -53,15 +66,15 @@ Private Sub ActionSortir(Suppr As Boolean)
 
 End Sub
 
-' PHASE 6 : DoubleClick / frm_Resultat_Double_Click (appelées depuis
-' ThisWorkbook.Workbook_SheetBeforeDoubleClick, supprimé) ainsi que leurs deux
+' PHASE 6 : DoubleClick / frm_Resultat_Double_Click (appelÃ©es depuis
+' ThisWorkbook.Workbook_SheetBeforeDoubleClick, supprimÃ©) ainsi que leurs deux
 ' fonctions utilitaires IsValidDetailSortField et ResolveDetailSortOrder sont
-' supprimées ici. Elles ne servaient qu'à l'ancien mécanisme de double-clic sur
-' les totaux du Bilan Mensuel, remplacé par les 2 boutons explicites
+' supprimÃ©es ici. Elles ne servaient qu'Ã  l'ancien mÃ©canisme de double-clic sur
+' les totaux du Bilan Mensuel, remplacÃ© par les 2 boutons explicites
 ' "VoirDetailEntreesRO"/"VoirDetailDepensesRO" (mod_SyntheseBudgetBilanMensuel.bas)
 ' qui ouvrent directement frm_RechercheOperations (prefiltre "DetailTotal").
-' Le tri automatique par champ choisi n'est pas repris : l'opérateur trie
-' désormais lui-même avec les flèches de filtre natives du nouvel écran.
+' Le tri automatique par champ choisi n'est pas repris : l'opÃ©rateur trie
+' dÃ©sormais lui-mÃªme avec les flÃ¨ches de filtre natives du nouvel Ã©cran.
 
 Sub AfficherFeuilleNotesPourEdition(ByVal nomFeuille As String)
     Dim ws As Worksheet
