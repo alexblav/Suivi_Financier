@@ -37,7 +37,7 @@ Public colSousCategorie As Long
 '     justement pour ne pas abimer cette date avant meme qu'elle soit lue.
 ' Les 2 modules DOIVENT utiliser cette meme constante (jamais leur propre texte en
 ' dur) pour rester surs de comparer exactement la meme chaine.
-Public Const SOUS_CATEGORIE_SANTE As String = "Frais, remb sant" & Chr(233)   ' "Frais, remb santé"
+Public Const SOUS_CATEGORIE_SANTE As String = "Frais, remb santé"
 
 ' Stoque l'index d'une colonne, calculé à partir d'un des champ de l'ARRAY, sur toute la feuille de sortie
 ' EXEMPLE Si on veut poser les entêtes à partir de E1 dans synthese,
