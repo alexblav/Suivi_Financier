@@ -223,6 +223,13 @@ Private Sub ConstruireTitreEtInformations(ByVal ws As Worksheet)
     EcrireEtiquette ws, "B11", mod_Display.FR("Cat{e2}gorie source (banque)")
 
     ' --- Valeurs (colonne C) : format TEXTE pour que rien ne soit reinterprete ---
+    ' NOTE (ajout 03/10/2026) : Date (C7), Montant (C10) et Categorie source (C11) restent
+    ' TOUJOURS en lecture seule. Tiers (C8) et Notes (C9) sont un cas particulier : depuis
+    ' le 03/10/2026, l'operateur peut les modifier (sauf operation de sante) -- mais leur
+    ' couleur de fond n'est PAS fixee ici a l'installation : elle est recalculee a chaque
+    ' affichage d'operation par mod_ControleCategories.AfficherOperation (gris = verrouille,
+    ' sans couleur = modifiable), puisque ca depend de la sous-categorie de l'operation en
+    ' cours, qui change a chaque fois. Ne pas s'etonner de ne rien voir de special ici.
     With ws.Range("C7:C11")
         .NumberFormat = "@"
         .WrapText = True
@@ -379,4 +386,3 @@ Private Sub SupprimerFormes(ByVal ws As Worksheet)
         ws.Shapes(i).Delete
     Next i
 End Sub
-

@@ -1,33 +1,46 @@
 Option Explicit
 
-' Cellule de démarrage de la plage d'écriture feuille Resultat
+' Cellule de dÃ©marrage de la plage d'Ã©criture feuille Resultat
 Public Const cellSortieDep As String = "A1"
 
-' 1. Définition des couleurs (exemple avec un thème bleu)
-Public Const coulEntete As Long = &H794E1F     ' Bleu principal (en-tête)
-Public Const coulClair1 As Long = &HF8F2EE  ' Nuance 1 (très claire)
-Public Const coulClair2 As Long = &HF8E3DA   ' Nuance 2 (légèrement plus soutenue)
+' 1. DÃ©finition des couleurs (exemple avec un thÃ¨me bleu)
+Public Const coulEntete As Long = &H794E1F     ' Bleu principal (en-tÃªte)
+Public Const coulClair1 As Long = &HF8F2EE  ' Nuance 1 (trÃ¨s claire)
+Public Const coulClair2 As Long = &HF8E3DA   ' Nuance 2 (lÃ©gÃ¨rement plus soutenue)
 Public Const coulBloc As Long = &H868878 ' Couleur des cellules de blocage
 
-' Défini si l'obtion double click doit être activé ou non sur un feuille
+' DÃ©fini si l'obtion double click doit Ãªtre activÃ© ou non sur un feuille
 Public AllowDetailDoubleClick As Boolean
 Public RecherOperations As Boolean
 
-' Stocke le numéro d'index d'une colonne dans le tableau TblOperations
+' Stocke le numÃ©ro d'index d'une colonne dans le tableau TblOperations
 Public colCategorie As Long, colMontant As Long, colNotes As Long, colDate As Long, colLibelle As Long, colDateConsult As Long, colSpeConsult As Long
 Public colType As Long, colBudget As Long, colTiers As Long, colMoisBud As Long, colAnneeBud As Long, colCheque As Long
 Public colID As Long, colStatutSante As Long, colSoldeSante As Long, colDepassementHoraires As Long, colCommentaireSante As Long, colFranchise As Long
 Public colBeneficiaire As Long
 
-' --- PHASE 1/6 (gestion des catégories a 2 niveaux) --------------------------------
+' --- PHASE 1/6 (gestion des catÃ©gories a 2 niveaux) --------------------------------
 ' Index de la colonne SousCategorie dans TblOperations. Vaut 0 tant que la colonne
 ' n'existe pas encore (feuille Param / Phase 1 pas encore installee) : tout code qui
-' utilisé cette variable DOIT vérifier qu'elle est différent de 0 avant de s'en servir,
+' utilisÃ© cette variable DOIT vÃ©rifier qu'elle est diffÃ©rent de 0 avant de s'en servir,
 ' exactement comme pour colCategorie, colMontant, etc.
 Public colSousCategorie As Long
 
-' Stoque l'index d'une colonne, calculé à partir d'un des champ de l'ARRAY, sur toute la feuille de sortie
-' EXEMPLE Si on veut poser les entêtes à partir de E1 dans synthese,
+' --- Sous-categorie technique "Frais, remb sante" (ajout 03/10/2026) --------------
+' Regroupee ici, au lieu d'etre recopiee en dur dans chaque module (demande operateur :
+' regrouper les constantes globales), car PLUSIEURS modules doivent reconnaitre cette
+' sous-categorie precise :
+'   - mod_ImportOFX : y lit, dans le champ Notes, une date de consultation placee
+'     AVANT le premier ";" (voir CalculerBudget/segment0 a l'import).
+'   - mod_ControleCategories : interdit desormais la modification libre du Tiers et
+'     de la Notes sur l'ecran de controle des categories pour cette sous-categorie,
+'     justement pour ne pas abimer cette date avant meme qu'elle soit lue.
+' Les 2 modules DOIVENT utiliser cette meme constante (jamais leur propre texte en
+' dur) pour rester surs de comparer exactement la meme chaine.
+Public Const SOUS_CATEGORIE_SANTE As String = "Frais, remb sant" & Chr(233)   ' "Frais, remb santÃ©"
+
+' Stoque l'index d'une colonne, calculÃ© Ã  partir d'un des champ de l'ARRAY, sur toute la feuille de sortie
+' EXEMPLE Si on veut poser les entÃªtes Ã  partir de E1 dans synthese,
 ' Array("Date", "Tiers", "Montant"): posDate=5,posTiers=6,posMontant=7
 Public posSortieCategorie As Long, posSortieMontant As Long, posSortieNotes As Long, posSortieDate As Long, posSortieLibelle As Long, posSortieDateConsult As Long, posSortieSpeConsult As Long
 Public posSortieType As Long, posSortieBudget As Long, posSortieTiers As Long, posSortieMoisBudget As Long, posSortieAnneeBudget As Long, posSortieCheque As Long
@@ -40,10 +53,10 @@ Public posCategorie As Long, posMontant As Long, posNotes As Long, posDate As Lo
 Public posCheque As Long, posMoisBudget As Long, posAnneeBudget As Long, posType As Long, posBudget As Long, posTiers As Long, posMoisBud As Long, posAnneeBud As Long
 Public posStatutSante As Long, posSoldeSante As Long, posID As Long, posValider As Long
 
-' Stoque les valeurs des critères de recherche dans la feuille Synthese
+' Stoque les valeurs des critÃ¨res de recherche dans la feuille Synthese
 Public critAnnee As String, critMois As String, critNbOperations As Long, critMontantMin As Double, critTriChamps As String, critTriOrdre As String
 
-' En vu de faciliter la relecture de nombreuses variables sont déclarées au niveau global
+' En vu de faciliter la relecture de nombreuses variables sont dÃ©clarÃ©es au niveau global
 ' pour ne pas surcharger les macros
 Public wsSynthese As Worksheet
 Public wsResultat As Worksheet

@@ -91,6 +91,15 @@ Private g_CtrlSous() As String           ' sous-categorie courante de chaque ope
 ' (CategorieAvantVentilation / SousCategorieAvantVentilation -- voir mod_InstallVentilation).
 Private g_CtrlCatAvantVen() As String
 Private g_CtrlSousAvantVen() As String
+' AJOUT 03/10/2026 (demande operateur : pouvoir corriger Tiers/Notes a l'import) :
+' valeur COURANTE du Tiers et de la Notes de chaque operation. Initialisees avec la
+' valeur d'origine (celle fournie dans "ops"), puis mises a jour par
+' EnregistrerOperationAffichee chaque fois que l'operateur modifie la cellule
+' correspondante -- SAUF pour une operation de sante (sous-categorie
+' mod_VarGlobales.SOUS_CATEGORIE_SANTE), ou toute saisie est ignoree : voir
+' AfficherOperation et EnregistrerOperationAffichee pour le detail de cette regle.
+Private g_CtrlTiers() As String
+Private g_CtrlLibelle() As String
 Private g_CtrlVu() As Boolean            ' operation deja affichee / enregistree
 Private g_CtrlARanger() As Boolean       ' correspondance introuvable (a ranger a la main)
 
@@ -131,6 +140,18 @@ Private g_CtrlRefN As Long
 '                l'appelant dans les colonnes CategorieAvantVentilation /
 '                SousCategorieAvantVentilation de TblOperations, pour pouvoir restaurer
 '                la categorie d'origine si la ventilation est supprimee plus tard.
+'   tiersFinale, libelleFinale : (en sortie, ajout 03/10/2026, demande operateur) --
+'                Tiers et Notes retenus pour chaque operation : la valeur d'origine
+'                (fournie dans ops) si l'operateur n'y a pas touche, ou sa correction
+'                sinon. EXCEPTION : pour une operation dont la sous-categorie est
+'                mod_VarGlobales.SOUS_CATEGORIE_SANTE, ces 2 champs restent TOUJOURS
+'                figes sur leur valeur d'origine, meme si l'operateur a tape autre
+'                chose dans la cellule (son champ Notes encode une date de consultation
+'                lue par mod_ImportOFX juste apres -- voir AfficherOperation). Pour la
+'                MEME raison, en mode "une seule operation" (uneSeuleOperation:=True,
+'                voir plus bas -- c'est le cas de l'edition directe depuis l'ecran de
+'                recherche), ces 2 champs restent eux aussi toujours figes : cette
+'                possibilite de correction est pour l'instant reservee au seul import.
 '   uneSeuleOperation, categorieActuelleUnique, sousCategorieActuelleUnique :
 '                (ajout 02/10/2026, edition directe depuis l'ecran de recherche) --
 '                parametres optionnels, NON utilises par l'import (valeur par defaut
@@ -145,6 +166,7 @@ Private g_CtrlRefN As Long
 Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
                                     ByRef catFinale() As String, ByRef sousFinale() As String, _
                                     ByRef catAvantVentilation() As String, ByRef sousAvantVentilation() As String, _
+                                    ByRef tiersFinale() As String, ByRef libelleFinale() As String, _
                                     Optional ByVal uneSeuleOperation As Boolean = False, _
                                     Optional ByVal categorieActuelleUnique As String = "", _
                                     Optional ByVal sousCategorieActuelleUnique As String = "") As Boolean
@@ -189,6 +211,8 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
     ReDim g_CtrlSousAvantVen(1 To nbOps)
     ReDim g_CtrlVu(1 To nbOps)
     ReDim g_CtrlARanger(1 To nbOps)
+    ReDim g_CtrlTiers(1 To nbOps)
+    ReDim g_CtrlLibelle(1 To nbOps)
 
     ' --- ETAPE 1 : application automatique de la correspondance --------------------------
     For i = 1 To nbOps
@@ -204,6 +228,11 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
             g_CtrlARanger(i) = True
             nbARanger = nbARanger + 1
         End If
+        ' AJOUT 03/10/2026 : valeur de depart = la valeur fournie par l'appelant. Elle ne
+        ' changera que si l'operateur la modifie ET que c'est autorise (voir
+        ' EnregistrerOperationAffichee).
+        g_CtrlTiers(i) = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_TIERS))
+        g_CtrlLibelle(i) = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_LIBELLE))
     Next i
 
     ' Ajout 02/10/2026 : en mode "edition directe" (uneSeuleOperation:=True), on ignore
@@ -275,11 +304,15 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
         ReDim sousFinale(1 To nbOps)
         ReDim catAvantVentilation(1 To nbOps)
         ReDim sousAvantVentilation(1 To nbOps)
+        ReDim tiersFinale(1 To nbOps)
+        ReDim libelleFinale(1 To nbOps)
         For i = 1 To nbOps
             catFinale(i) = g_CtrlCat(i)
             sousFinale(i) = g_CtrlSous(i)
             catAvantVentilation(i) = g_CtrlCatAvantVen(i)
             sousAvantVentilation(i) = g_CtrlSousAvantVen(i)
+            tiersFinale(i) = g_CtrlTiers(i)
+            libelleFinale(i) = g_CtrlLibelle(i)
         Next i
     End If
     Exit Function
@@ -337,6 +370,29 @@ End Sub
 
 
 ' =====================================================================================
+' TIERS / NOTES MODIFIABLES ? (ajout 03/10/2026, demande operateur)
+' =====================================================================================
+' Centralise ICI la regle, pour qu'AfficherOperation (affichage + couleur) et
+' EnregistrerOperationAffichee (lecture de la saisie) appliquent TOUJOURS exactement la
+' meme condition -- si on l'avait recopiee aux 2 endroits, un futur correctif fait a un
+' seul des deux aurait pu les desynchroniser (c'est deja arrive par le passe sur ce
+' chantier avec le message d'erreur de validation Categorie, voir PoserValidationCategorie
+' plus haut, d'ou le reflexe de centraliser).
+' i : indice de l'operation (1..nbOps, PAS la position affichee g_CtrlPos).
+Private Function TiersNotesEditables(ByVal i As Long) As Boolean
+    ' Pas encore active pour l'edition directe depuis l'ecran de recherche (une seule
+    ' operation) : cette possibilite reste pour l'instant reservee a l'import.
+    If g_CtrlModeUnique Then
+        TiersNotesEditables = False
+        Exit Function
+    End If
+    ' Jamais pour une operation de sante : la Notes y encode une date de consultation
+    ' lue par mod_ImportOFX juste apres (segment avant le premier ";").
+    TiersNotesEditables = (g_CtrlSous(i) <> mod_VarGlobales.SOUS_CATEGORIE_SANTE)
+End Function
+
+
+' =====================================================================================
 ' AFFICHAGE DE L'OPERATION COURANTE (position g_CtrlPos)
 ' =====================================================================================
 Private Sub AfficherOperation(ByVal ws As Worksheet)
@@ -358,10 +414,31 @@ Private Sub AfficherOperation(ByVal ws As Worksheet)
     ' --- Compteur et informations (lecture seule) ---
     ws.Range(CTRL_ADR_COMPTEUR).value = mod_Display.FR("Op{e2}ration ") & g_CtrlPos & " / " & g_CtrlNbAffiches
     ws.Range(CTRL_ADR_DATE).value = FormaterDate(g_CtrlOps(i, CTRL_OP_DATE))
-    ws.Range(CTRL_ADR_TIERS).value = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_TIERS))
-    ws.Range(CTRL_ADR_LIBELLE).value = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_LIBELLE))
     ws.Range(CTRL_ADR_MONTANT).value = Format(mod_DataStructure.ToDouble(g_CtrlOps(i, CTRL_OP_MONTANT)), "#,##0.00") & " " & ChrW(8364)
     ws.Range(CTRL_ADR_SOURCE).value = Source
+
+    ' --- Tiers / Notes : AJOUT 03/10/2026 (demande operateur) --------------------------
+    ' Ces 2 champs sont desormais MODIFIABLES par l'operateur, sauf dans les 2 cas ou on
+    ' ne veut surtout pas qu'une saisie libre vienne abimer les donnees (voir
+    ' TiersNotesEditables juste plus bas) : operation de sante (Notes encode une date de
+    ' consultation lue par mod_ImportOFX), ou edition directe depuis l'ecran de recherche
+    ' (pas encore prevue pour ce cas). On affiche TOUJOURS g_CtrlTiers/g_CtrlLibelle (la
+    ' valeur COURANTE, eventuellement deja corrigee par l'operateur sur une operation
+    ' precedemment affichee) et jamais g_CtrlOps (la valeur d'ORIGINE, figee), pour que la
+    ' correction survive quand on navigue avec Precedent/Suivant.
+    ws.Range(CTRL_ADR_TIERS).value = g_CtrlTiers(i)
+    ws.Range(CTRL_ADR_LIBELLE).value = g_CtrlLibelle(i)
+    If TiersNotesEditables(i) Then
+        ' Modifiable : pas de fond special (meme aspect que Categorie/Sous-categorie
+        ' serait trop appuye ici, on garde simplement "sans couleur" = neutre).
+        ws.Range(CTRL_ADR_TIERS & ":" & CTRL_ADR_LIBELLE).Interior.ColorIndex = xlColorIndexNone
+    Else
+        ' Verrouille : MEME repere visuel (gris) que la colonne Notes verrouillee sur
+        ' l'ecran de recherche (voir mod_RechercheOperations.RechercherOperations,
+        ' RGB(240, 240, 240)) -- on reutilise exactement la meme couleur, a la demande de
+        ' l'operateur, pour que le meme code couleur signifie toujours la meme chose.
+        ws.Range(CTRL_ADR_TIERS & ":" & CTRL_ADR_LIBELLE).Interior.Color = RGB(240, 240, 240)
+    End If
 
     ' --- Zones de saisie : valeurs actuelles + listes deroulantes ---
     ws.Range(CTRL_ADR_CAT).value = g_CtrlCat(i)
@@ -563,6 +640,18 @@ Private Function EnregistrerOperationAffichee(ByVal ws As Worksheet) As Boolean
 
     g_CtrlCat(i) = cat
     g_CtrlSous(i) = sous
+
+    ' AJOUT 03/10/2026 (demande operateur) : on ne lit la cellule Tiers/Notes que si
+    ' c'est autorise pour la sous-categorie qu'on VIENT de retenir juste au-dessus (donc
+    ' TiersNotesEditables doit etre appele APRES g_CtrlSous(i) = sous, pas avant). Sinon,
+    ' on ignore purement et simplement ce qui a pu etre tape dans la cellule : g_CtrlTiers/
+    ' g_CtrlLibelle gardent leur valeur precedente (celle d'origine, ou une correction
+    ' faite plus tot alors que la sous-categorie le permettait encore).
+    If TiersNotesEditables(i) Then
+        g_CtrlTiers(i) = mod_DataStructure.CellText(ws.Range(CTRL_ADR_TIERS).value)
+        g_CtrlLibelle(i) = mod_DataStructure.CellText(ws.Range(CTRL_ADR_LIBELLE).value)
+    End If
+
     g_CtrlVu(i) = True
     EnregistrerOperationAffichee = True
 
@@ -970,6 +1059,10 @@ Public Sub TesterControleCategories()
     Dim indices() As Long
     Dim catF() As String, sousF() As String
     Dim catAvantF() As String, sousAvantF() As String
+    ' AJOUT 03/10/2026 : nouveaux parametres de sortie de ControlerCategories (Tiers/Notes
+    ' modifiables a l'import) ; ce test ne les affiche pas non plus, meme logique que
+    ' catAvantF/sousAvantF ci-dessus.
+    Dim tiersF() As String, libelleF() As String
     Dim saisie As String
     Dim nbDemande As Long, nbTrouves As Long, nbLignesLues As Long
     Dim i As Long, k As Long
@@ -1046,9 +1139,10 @@ Public Sub TesterControleCategories()
     If reponse = vbYes Then ops(1, CTRL_OP_CATSOURCE) = mod_Display.FR("Cat{e2}gorie source inconnue (test)")
 
     ' --- Appel du controle : c'est EXACTEMENT ce que fera l'import en Phase 5 ---
-    ' (catAvantF/sousAvantF : nouveaux parametres de sortie, ajout 01/10/2026, point 4 ;
-    ' ce test ne les affiche pas, mais doit les fournir comme n'importe quel appelant.)
-    If Not ControlerCategories(ops, nbTrouves, catF, sousF, catAvantF, sousAvantF) Then
+    ' (catAvantF/sousAvantF : parametres de sortie ajoutes le 01/10/2026, point 4 ;
+    ' tiersF/libelleF : ajoutes le 03/10/2026 ; ce test ne les affiche pas, mais doit les
+    ' fournir comme n'importe quel appelant.)
+    If Not ControlerCategories(ops, nbTrouves, catF, sousF, catAvantF, sousAvantF, tiersF, libelleF) Then
         MsgBox mod_Display.FR("Test termin{e2} : contr{o2}le annul{e2} ou impossible. Rien n'a {e2}t{e2} modifi{e2}."), vbInformation
         Exit Sub
     End If
@@ -1146,6 +1240,3 @@ Private Function FormaterDate(ByVal v As Variant) As String
         FormaterDate = mod_DataStructure.CellText(v)
     End If
 End Function
-
-
-

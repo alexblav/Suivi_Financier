@@ -1209,6 +1209,11 @@ Public Sub EditerCategorieRO()
     Dim ops(1 To 1, 1 To mod_ControleCategories.CTRL_OP_NBCOL) As Variant
     Dim catFinale() As String, sousFinale() As String
     Dim catAvantVen() As String, sousAvantVen() As String
+    ' AJOUT 03/10/2026 : ControlerCategories exige maintenant ces 2 tableaux de sortie
+    ' supplementaires (Tiers/Notes modifiables a l'import, voir ce module). Ici on ne s'en
+    ' sert pas (TiersNotesEditables les garde figes en mode "une seule operation", voir
+    ' mod_ControleCategories) : on les declare juste pour pouvoir passer l'appel.
+    Dim tiersFinaleInutilise() As String, libelleFinaleInutilise() As String
     Dim ok As Boolean
 
     ops(1, mod_ControleCategories.CTRL_OP_DATE) = donneesOp(ligneParent, colDate)
@@ -1219,6 +1224,7 @@ Public Sub EditerCategorieRO()
     ops(1, mod_ControleCategories.CTRL_OP_ID) = idTransaction
 
     ok = mod_ControleCategories.ControlerCategories(ops, 1, catFinale, sousFinale, catAvantVen, sousAvantVen, _
+                                                     tiersFinaleInutilise, libelleFinaleInutilise, _
                                                      uneSeuleOperation:=True, _
                                                      categorieActuelleUnique:=categorieActuelleTbl, _
                                                      sousCategorieActuelleUnique:=sousCategorieActuelleTbl)

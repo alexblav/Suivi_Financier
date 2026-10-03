@@ -224,6 +224,12 @@ Public Sub ImporterOperationsOFX()
         Dim opsControle() As Variant
         Dim catFinaleCtrl() As String, sousFinaleCtrl() As String
         Dim catAvantVentilCtrl() As String, sousAvantVentilCtrl() As String
+        ' AJOUT 03/10/2026 (demande operateur) : l'opérateur peut desormais corriger le
+        ' Tiers et la Notes directement sur l'ecran de controle des categories (sauf pour
+        ' les operations de sante, voir mod_ControleCategories.AfficherOperation) -> ces 2
+        ' tableaux recoivent les valeurs FINALES (modifiees ou non) renvoyees par
+        ' ControlerCategories, sur le meme principe que catFinaleCtrl/sousFinaleCtrl.
+        Dim tiersFinaleCtrl() As String, libelleFinaleCtrl() As String
         Dim kCtrl As Long
 
         ReDim opsControle(1 To nbAjoutees, 1 To mod_ControleCategories.CTRL_OP_NBCOL)
@@ -237,7 +243,8 @@ Public Sub ImporterOperationsOFX()
         Next kCtrl
 
         If Not mod_ControleCategories.ControlerCategories(opsControle, nbAjoutees, catFinaleCtrl, sousFinaleCtrl, _
-                                                            catAvantVentilCtrl, sousAvantVentilCtrl) Then
+                                                            catAvantVentilCtrl, sousAvantVentilCtrl, _
+                                                            tiersFinaleCtrl, libelleFinaleCtrl) Then
             MsgBox "Import annule : aucune ligne n'a ete ecrite dans Import_data.", vbInformation, "Import interrompu"
             Exit Sub
         End If
@@ -248,8 +255,14 @@ Public Sub ImporterOperationsOFX()
         ' sousFinaleCtrl() pour être ecrite plus loin (ETAPE 8bis), une fois
         ' que la colonne SousCategorie de TblOperations est atteignable par
         ' son NOM (elle n'existe pas dans le tableau fixe résultats()/arrFinal()).
+        ' COL_TIERS/COL_LIBELLE recoivent de la meme façon la valeur FINALE (corrigee ou
+        ' non par l'opérateur) : tout le reste du code plus bas (calcul du budget,
+        ' lecture de la date de consultation sante...) lit déjà ces 2 colonnes, donc rien
+        ' d'autre n'a besoin de changer pour que la correction soit prise en compte.
         For kCtrl = 1 To nbAjoutees
             resultats(kCtrl, COL_CATEGORIE) = catFinaleCtrl(kCtrl)
+            resultats(kCtrl, COL_TIERS) = tiersFinaleCtrl(kCtrl)
+            resultats(kCtrl, COL_LIBELLE) = libelleFinaleCtrl(kCtrl)
         Next kCtrl
     End If
 
@@ -276,7 +289,12 @@ Public Sub ImporterOperationsOFX()
         ' prevoyance", commune a plusieurs sous-catégories) : le test doit
         ' donc porter sur la SOUS-catégorie choisie par l'opérateur a l'étape
         ' 6bis ci-dessus.
-        If sousFinaleCtrl(i) = "Frais, remb sant" & Chr(233) Then   ' "Frais, remb santé"
+        ' MISE A JOUR 03/10/2026 (regroupement des constantes globales, demande operateur) :
+        ' le texte "Frais, remb santé" etait recopie en dur ici ET dans
+        ' mod_ControleCategories (nouvelle regle de verrouillage Tiers/Notes) -> deplace
+        ' dans mod_VarGlobales.SOUS_CATEGORIE_SANTE pour n'avoir qu'un seul endroit a
+        ' modifier si ce libelle change un jour.
+        If sousFinaleCtrl(i) = mod_VarGlobales.SOUS_CATEGORIE_SANTE Then   ' "Frais, remb santé"
             segment0 = SegmentTexte(libelleFinal, ";", 0)
             If EstDateValide(segment0) Then
                 dateConsult = DateSerial(CInt(Left(segment0, 4)), CInt(Mid(segment0, 5, 2)), CInt(Right(segment0, 2)))
