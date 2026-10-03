@@ -17,6 +17,14 @@ Public Sub RchErreursSante()
   mod_RechercheOperations.RechercherOperations "ErreursSante"
 End Sub
 
+' AJOUT 03/10/2026 (demande operateur) : recherche "generale", sans aucun
+' prefiltre - affiche TOUTES les operations de TblOperations (et de
+' TblVentilations). Correspond a l'appel sans argument de
+' RechercherOperations, son parametre "prefiltre" valant "" par defaut.
+Public Sub RchGenerale()
+  mod_RechercheOperations.RechercherOperations
+End Sub
+
 Private Sub ActionSortir(Suppr As Boolean)
     Dim ActiveFeuille As String
     Dim ws As Worksheet

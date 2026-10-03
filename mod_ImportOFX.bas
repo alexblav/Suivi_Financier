@@ -490,32 +490,62 @@ Public Sub ImporterOperationsOFX()
         End With
     End If
 
-    ' --- ETAPE 9bis-0 : Vérification/reparation du decoupage du champ Notes --
-    ' Sur TOUTE la table (pas seulement les lignes de cet import), pour
-    ' detecter aussi les cas ou une valeur a change a la source depuis un
-    ' import precedent (le rapprochement par FITID ne les detecterait pas).
-    mod_FormulairesNotes.VerifierNotesSante
-
-    ' --- ETAPE 9bis : Suivi santé (calcul automatique + formulaire opérateur) --
-    ' On recalcule d'abord StatutSante/SoldeSante sur TOUTE la table (pas
-    ' seulement les lignes de cet import : ca permet aussi de retraiter les
-    ' anciens cas "KO" en attente, par exemple si un remboursement tarde a
-    ' arriver). Puis on propose le formulaire pour tous les cas qui ont
-    ' besoin d'une action de l'opérateur (Bénéficiaire, Tiers, Franchise,
-    ' Depassement d'honoraires).
-    mod_SuiviSante.CalculerSuiviSante AfficherResume:=False
-    mod_SuiviSanteFormulaire.TraiterCasSuiviSante
-
-    ' --- ETAPE 9ter : Memoriser et afficher les opérations nouvellement importees --
-    ' PHASE 6 : l'affichage se fait desormais dans l'ecran central
-    ' frm_RechercheOperations (prefiltre "DernierImport"), a la place de
-    ' l'ancien mod_DernierImport.AfficherDernierImportSurSynthese qui est
-    ' supprime. La memorisation (MemoriserDernierImport) est inchangee : elle
-    ' alimente la feuille technique "TechDernierImport" que ce nouveau
-    ' prefiltre va lire.
+    ' --- ETAPE 9bis-0 : Memorisation du dernier import (toujours faite) -------
+    ' Ecriture rapide, sans affichage, dans la feuille technique tres masquee
+    ' "TechDernierImport" : elle alimente le futur bouton "Dernier import" sur
+    ' la feuille Synthese (mod_Actions.RchDernierImport), que l'operateur
+    ' pourra utiliser quand il le souhaite.
     If nbAjoutees > 0 Then
         mod_DernierImport.MemoriserDernierImport listeIDsImportes, nbAjoutees
-        mod_RechercheOperations.RechercherOperations "DernierImport"
+    End If
+
+    ' --- ETAPE 9bis : Suivi sante (desormais A LA DEMANDE, pas automatique) ---
+    ' AJOUT 03/10/2026 (demande operateur) : l'import ne doit plus enchainer
+    ' systematiquement le traitement sante (potentiellement long, avec un
+    ' formulaire a remplir) - l'operateur peut desormais le faire plus tard,
+    ' via le bouton "Traitement des donnees de sante" sur la feuille Synthese
+    ' (mod_FormulairesNotes.RetraiterSuiviSante). Ici, on se contente de LUI
+    ' DEMANDER s'il veut le faire tout de suite, en 2 questions distinctes
+    ' (il peut faire la 1re sans la 2e, mais pas l'inverse - voir plus bas) :
+    '   1. Verification/reparation du decoupage du champ Notes (rapprochement
+    '      des cles Notes avec les consultations - frm_RapprochementNotes).
+    '   2. Calcul du suivi sante (StatutSante/SoldeSante) et formulaire des
+    '      cas restant a completer par l'operateur (Beneficiaire, Tiers,
+    '      Franchise, Depassement d'honoraires) - CECI A BESOIN que l'etape 1
+    '      ait ete faite, sinon des dates de consultation pas encore
+    '      resolues fausseraient le calcul : on ne pose donc la question 2
+    '      que si l'operateur a repondu Oui a la question 1.
+    Dim repSante1 As VbMsgBoxResult, repSante2 As VbMsgBoxResult
+    Dim santeEtape1Faite As Boolean
+
+    repSante1 = MsgBox("Voulez-vous traiter/revoir les catégories des opérations affectées à Santé, Prévoyance ?", _
+                        vbYesNo + vbQuestion, "Suivi santé")
+    If repSante1 = vbYes Then
+        mod_FormulairesNotes.VerifierNotesSante
+        santeEtape1Faite = True
+    End If
+
+    If santeEtape1Faite Then
+        repSante2 = MsgBox("Voulez-vous réaliser le rapprochement des opérations de santé ?", _
+                            vbYesNo + vbQuestion, "Suivi santé")
+        If repSante2 = vbYes Then
+            ' TraiterCasSuiviSante relance elle-meme CalculerSuiviSante en tout
+            ' premier (voir mod_SuiviSanteFormulaire.bas) : pas besoin de
+            ' l'appeler une 2e fois ici.
+            mod_SuiviSanteFormulaire.TraiterCasSuiviSante
+        End If
+    End If
+
+    ' --- ETAPE 9ter : Afficher les operations importees (desormais A LA DEMANDE) --
+    ' AJOUT 03/10/2026 (demande operateur) : meme logique que ci-dessus - on
+    ' ne bascule plus automatiquement sur l'ecran de recherche, on demande.
+    Dim repAfficher As VbMsgBoxResult
+    If nbAjoutees > 0 Then
+        repAfficher = MsgBox("Voulez-vous afficher les opérations importées ?", _
+                              vbYesNo + vbQuestion, "Import")
+        If repAfficher = vbYes Then
+            mod_RechercheOperations.RechercherOperations "DernierImport"
+        End If
     End If
 
     ' --- ETAPE 10 : Rapport final -----------------------------------------------
