@@ -634,11 +634,23 @@ Public Sub ControleTerminer()
     Next p
 
     ' 3. Aucune operation ne peut rester sans categorie : on renvoie l'operateur dessus.
+    ' MISE A JOUR 03/10/2026 (demande operateur) : la regle de gestion ne change
+    ' pas -- on ne peut pas terminer tant qu'il reste des operations sans
+    ' categorie, ce message reste donc bloquant dans tous les cas (Exit Sub a
+    ' la fin, que l'on clique OK ou Annuler). Ce qui change, c'est que
+    ' l'operateur a maintenant le choix de la suite :
+    '   - OK      : on l'emmene directement sur la premiere operation a
+    '               corriger (comportement d'origine, inchange).
+    '   - Annuler : on ne le deplace pas, il reste sur l'ecran actuel pour
+    '               reflechir ou corriger a son rythme.
     If nbSans > 0 Then
-        MsgBox nbSans & mod_Display.FR(" op{e2}ration(s) n'ont pas de cat{e2}gorie.") & vbCrLf & _
-               mod_Display.FR("Choisissez une cat{e2}gorie pour chacune avant de terminer."), vbExclamation
-        g_CtrlPos = premiere
-        AfficherOperation ws
+        reponse = MsgBox(nbSans & mod_Display.FR(" op{e2}ration(s) n'ont pas de cat{e2}gorie.") & vbCrLf & _
+                          mod_Display.FR("Choisissez une cat{e2}gorie pour chacune avant de terminer."), _
+                          vbOKCancel + vbExclamation)
+        If reponse = vbOK Then
+            g_CtrlPos = premiere
+            AfficherOperation ws
+        End If
         Exit Sub
     End If
 
