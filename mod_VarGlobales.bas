@@ -110,3 +110,19 @@ Public Const LIGNE_PREMIERE_DONNEE As Long = 12   ' premiere ligne ou s'afficher
 ' cela, le code etendra la mise en forme automatiquement. Ce nombre sert juste a
 ' preparer une zone confortable des l'installation, pour un rendu propre immediat.
 Public Const NB_LIGNES_PREPAREES As Long = 200
+
+'' -------------------------------------------------------------------------------------
+'' TABLEAU DES DECALAGES DE BUDGET (ajout 03/10/2026, demande operateur)
+'' -------------------------------------------------------------------------------------
+'' Remplace la regle codee en dur qui existait dans mod_ImportOFX.CalculerBudget
+'' (seul le cas "DRFIP OCCITANIE ET HTE" + "Salaire/Revenus d'activite" beneficiait
+'' d'un decalage d'un mois). Desormais, N'IMPORTE QUELLE combinaison Tiers / Categorie /
+'' Sous-categorie peut avoir son propre decalage (+1, -1, ou toute autre valeur entiere),
+'' en ajoutant simplement une ligne dans ce tableau - voir mod_DecalagesBudget.bas pour
+'' la logique de lecture, et mod_Categories.NOM_FEUILLE_PARAM pour la feuille (reutilisee
+'' telle quelle, pas de redeclaration de "Param" ici - un seul nom, un seul endroit).
+Public Const NOM_TABLE_DECALAGES_BUDGET As String = "TblDecalagesBudget"
+' Les colonnes A a R de Param sont deja utilisees (TblCategories en K:N notamment) :
+' on place ce nouveau tableau plus a droite, a partir de la colonne S.
+Public Const DECALAGES_BUDGET_COL_DEBUT As Long = 19   ' colonne S
+Public Const DECALAGES_BUDGET_NB_COL As Long = 4        ' S,T,U,V = Tiers/Categorie/SousCategorie/Decalage

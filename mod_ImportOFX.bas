@@ -278,7 +278,7 @@ Public Sub ImporterOperationsOFX()
         tiersFinal = CStr(resultats(i, COL_TIERS))
         libelleFinal = CStr(resultats(i, COL_LIBELLE))
 
-        budget = CalculerBudget(CDate(resultats(i, COL_DATE_COMPTABLE)), tiersFinal, categorieFinale)
+        budget = CalculerBudget(CDate(resultats(i, COL_DATE_COMPTABLE)), tiersFinal, categorieFinale, sousFinaleCtrl(i))
         resultats(i, COL_BUDGET) = budget
         resultats(i, COL_MOIS_BUDGET) = Month(budget)
         resultats(i, COL_ANNEE_BUDGET) = Year(budget)
@@ -682,17 +682,21 @@ Public Function EstDateValide(texte As String) As Boolean
 End Function
 
 
-' Calcule la colonne Budget selon la règle metier :
-' - Si Tiers = "DRFIP OCCITANIE ET HTE" ET Catégorie = "Salaire/Revenus d'activite"
-'   -> mois suivant celui de Date_Comptable
-' - Sinon -> mois de Date_Comptable
-' DateSerial() gere seul le changement d'année (mois 13 -> janvier année+1).
-Private Function CalculerBudget(dateComptable As Date, tiers As String, categorie As String) As Date
-    If Trim(UCase(tiers)) = "DRFIP OCCITANIE ET HTE" And categorie = "Salaire/Revenus d'activit" & Chr(233) Then
-        CalculerBudget = DateSerial(Year(dateComptable), Month(dateComptable) + 1, 1)
-    Else
-        CalculerBudget = DateSerial(Year(dateComptable), Month(dateComptable), 1)
-    End If
+' Calcule la colonne Budget selon la règle métier :
+' MISE A JOUR 03/10/2026 (demande opérateur) : la règle n'est plus codée en dur
+' ici (seul le cas DRFIP OCCITANIE ET HTE / Salaire bénéficiait d'un décalage).
+' Elle est désormais lue dans le tableau "TblDecalagesBudget" (feuille Param,
+' voir mod_DecalagesBudget.bas) : Tiers/Catégorie/SousCatégorie y sont comparés
+' à des critères modifiables par l'opérateur sans toucher au code, et le nombre
+' de mois à décaler (+1, -1, 0...) est appliqué ici. Une opération qui ne
+' correspond à AUCUNE ligne du tableau garde le comportement d'origine (aucun
+' décalage, budget = mois de l'opération).
+' DateSerial() gère seul le changement d'année (mois 13 -> janvier année+1,
+' et de la même façon mois 0 -> décembre année-1 pour un décalage négatif).
+Private Function CalculerBudget(dateComptable As Date, tiers As String, categorie As String, sousCategorie As String) As Date
+    Dim decalage As Long
+    decalage = mod_DecalagesBudget.ObtenirDecalageBudget(tiers, categorie, sousCategorie)
+    CalculerBudget = DateSerial(Year(dateComptable), Month(dateComptable) + decalage, 1)
 End Function
 
 ' Recherche l'index d'une colonne par son nom d'entete (recherche exacte).
