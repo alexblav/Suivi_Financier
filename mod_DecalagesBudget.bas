@@ -89,7 +89,7 @@ Public Sub InitialiserTableDecalagesBudget()
     ' --- Migration de l'ancienne regle codee en dur (DRFIP) ---
     wsParam.Cells(2, colDebut).value = "DRFIP OCCITANIE ET HTE"          ' Tiers
     wsParam.Cells(2, colDebut + 1).value = "Revenus"                     ' Categorie (parente)
-    wsParam.Cells(2, colDebut + 2).value = "Salaire/Revenus d'activité"  ' SousCategorie
+    wsParam.Cells(2, colDebut + 2).value = "Salaire/Revenus d'activit" & Chr(233)  ' SousCategorie
     wsParam.Cells(2, colDebut + 3).value = 1                             ' Decalage (+1 mois)
 
     Set tbl = wsParam.ListObjects.Add(xlSrcRange, _
