@@ -1254,3 +1254,143 @@ Public Sub SortirRechercheOperations()
     On Error GoTo 0
     ws.Visible = xlSheetVeryHidden
 End Sub
+
+
+' =====================================================================================
+' AJOUT 03/10/2026 (demande opérateur) : FONCTIONS PARTAGEES PAR LES 2 BOUTONS
+' "DECALAGE DE BUDGET" DE L'ECRAN DE RECHERCHE (voir plus bas
+' AjouterDecalageDepuisRO et DecalerBudgetOperationRO).
+' =====================================================================================
+
+' Relit la ligne SELECTIONNEE dans les resultats de recherche et renvoie son
+' ID_Transaction, Tiers, Categorie et SousCategorie (telles qu'affichees a l'ecran).
+' Repris du mecanisme de RevoirVentilationRO plus haut (ActiveCell.Row -> ligne
+' relative -> lecture directe dans TblRechercheOperations). Renvoie une chaine vide
+' pour idTransaction si aucune ligne valide n'est selectionnee (et affiche alors le
+' message d'erreur lui-meme - l'appelant n'a qu'a tester idTransaction = "").
+Private Sub LireSelectionRO(ByRef idTransaction As String, ByRef tiersSel As String, _
+                             ByRef categorieSel As String, ByRef sousCategorieSel As String)
+
+    Dim ws As Worksheet
+    Dim tblRecherche As ListObject
+    Dim ligneSelection As Long, ligneRelative As Long
+
+    idTransaction = ""
+
+    Set ws = ThisWorkbook.Worksheets(mod_InstallRechercheOperations.NOM_FEUILLE_RECHERCHE)
+    Set tblRecherche = ws.ListObjects(mod_InstallRechercheOperations.NOM_TABLE_RECHERCHE)
+
+    If tblRecherche.DataBodyRange Is Nothing Then
+        MsgBox mod_Display.FR("Aucune ligne {a2} traiter. Utilise d'abord 'Rechercher'."), vbInformation
+        Exit Sub
+    End If
+
+    ligneSelection = ActiveCell.Row
+    ligneRelative = ligneSelection - tblRecherche.DataBodyRange.Row + 1
+
+    If ligneRelative < 1 Or ligneRelative > tblRecherche.DataBodyRange.rows.count Then
+        MsgBox mod_Display.FR("S{e2}lectionne d'abord une ligne d'op{e2}ration dans le tableau, puis clique sur ce bouton."), vbExclamation
+        Exit Sub
+    End If
+
+    idTransaction = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_ID).value))
+    tiersSel = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_TIERS).value))
+    categorieSel = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_CATEGORIE).value))
+    sousCategorieSel = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_SOUSCATEGORIE).value))
+
+    If idTransaction = "" Then
+        MsgBox mod_Display.FR("Impossible de retrouver l'ID_Transaction de cette ligne."), vbExclamation
+    End If
+
+End Sub
+
+' Demande a l'operateur un nombre entier de mois de decalage (+ ou -), avec
+' validation (meme pattern que mod_ControleCategories.bas : IsNumeric + bornage).
+' Renvoie True si une valeur valide a ete saisie (decalage rempli par reference),
+' False si l'operateur a annule ou saisi autre chose qu'un nombre.
+Private Function SaisirDecalageRO(ByVal titreBoite As String, ByRef decalage As Long) As Boolean
+
+    Dim saisie As String
+
+    SaisirDecalageRO = False
+
+    saisie = InputBox(mod_Display.FR("Nombre de mois {a2} d{e2}caler (par exemple 1, ou -1) :"), titreBoite)
+    If Trim(saisie) = "" Then Exit Function
+
+    If Not IsNumeric(saisie) Then
+        MsgBox mod_Display.FR("Veuillez saisir un nombre entier (par exemple 1 ou -1)."), vbExclamation
+        Exit Function
+    End If
+
+    decalage = CLng(saisie)
+    If decalage < -24 Or decalage > 24 Then
+        MsgBox mod_Display.FR("Le d{e2}calage doit {ea}tre compris entre -24 et 24 mois."), vbExclamation
+        Exit Function
+    End If
+
+    SaisirDecalageRO = True
+
+End Function
+
+
+' =====================================================================================
+' BOUTON "Ajouter un décalage" : ajoute une REGLE GENERALE dans TblDecalagesBudget
+' (feuille Param), a partir du Tiers/Categorie/SousCategorie de la ligne actuellement
+' selectionnee dans les resultats de recherche. Cette regle s'appliquera ensuite a
+' TOUTE operation (deja importee ou future) qui correspond a ces memes criteres - pas
+' seulement a l'operation selectionnee. Pour ne decaler QUE l'operation selectionnee,
+' voir le bouton "Decaler le budget de cette operation" (DecalerBudgetOperationRO,
+' juste apres).
+' =====================================================================================
+Public Sub AjouterDecalageDepuisRO()
+
+    Dim idTransaction As String, tiersSel As String, categorieSel As String, sousCategorieSel As String
+    Dim decalage As Long
+    Dim reponse As VbMsgBoxResult
+
+    LireSelectionRO idTransaction, tiersSel, categorieSel, sousCategorieSel
+    If idTransaction = "" Then Exit Sub
+
+    reponse = MsgBox(mod_Display.FR("Ajouter une r{e2}gle de d{e2}calage pour :") & vbCrLf & vbCrLf & _
+                      "Tiers : " & tiersSel & vbCrLf & _
+                      "Cat" & ChrW(233) & "gorie : " & categorieSel & vbCrLf & _
+                      "Sous-cat" & ChrW(233) & "gorie : " & sousCategorieSel & vbCrLf & vbCrLf & _
+                      mod_Display.FR("Cette r{e2}gle s'appliquera {a2} TOUTES les op{e2}rations correspondant {a2} ces crit{ea}res."), _
+                      vbOKCancel + vbQuestion, mod_Display.FR("Ajouter un d{e2}calage"))
+    If reponse <> vbOK Then Exit Sub
+
+    If Not SaisirDecalageRO(mod_Display.FR("Ajouter un d{e2}calage"), decalage) Then Exit Sub
+
+    If mod_DecalagesBudget.AjouterRegleDecalage(tiersSel, categorieSel, sousCategorieSel, decalage) Then
+        MsgBox mod_Display.FR("R{e2}gle ajout{e2}e {a2} TblDecalagesBudget (feuille Param) :") & vbCrLf & _
+               "Tiers=" & tiersSel & " / Cat" & ChrW(233) & "gorie=" & categorieSel & " / Sous-cat" & ChrW(233) & "gorie=" & sousCategorieSel & _
+               " / D" & ChrW(233) & "calage=" & decalage & vbCrLf & vbCrLf & _
+               mod_Display.FR("Elle s'appliquera au prochain calcul de budget (import ou d{e2}calage manuel)."), vbInformation
+    End If
+
+End Sub
+
+
+' =====================================================================================
+' BOUTON "Decaler le budget de cette operation" : force le decalage de budget de LA
+' SEULE operation selectionnee (sans toucher aux autres), via
+' mod_DecalagesBudget.AppliquerDecalageManuel. Rafraichit ensuite l'ecran dans le meme
+' contexte qu'avant (meme principe que RevoirVentilationRO plus haut).
+' =====================================================================================
+Public Sub DecalerBudgetOperationRO()
+
+    Dim idTransaction As String, tiersSel As String, categorieSel As String, sousCategorieSel As String
+    Dim decalage As Long
+
+    LireSelectionRO idTransaction, tiersSel, categorieSel, sousCategorieSel
+    If idTransaction = "" Then Exit Sub
+
+    If Not SaisirDecalageRO(mod_Display.FR("D{e2}caler le budget de cette op{e2}ration"), decalage) Then Exit Sub
+
+    If mod_DecalagesBudget.AppliquerDecalageManuel(idTransaction, decalage) Then
+        MsgBox mod_Display.FR("D{e2}calage de ") & decalage & mod_Display.FR(" mois appliqu{e2} {a2} cette op{e2}ration uniquement.") & vbCrLf & _
+               mod_Display.FR("Les autres op{e2}rations de m{ea}me Tiers/Cat{e2}gorie ne sont pas affect{e2}es."), vbInformation
+        RechercherOperations g_ROPrefiltreActif, g_ROParamActif
+    End If
+
+End Sub

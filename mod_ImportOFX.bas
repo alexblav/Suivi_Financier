@@ -540,11 +540,15 @@ Public Sub ImporterOperationsOFX()
     ' AJOUT 03/10/2026 (demande operateur) : meme logique que ci-dessus - on
     ' ne bascule plus automatiquement sur l'ecran de recherche, on demande.
     Dim repAfficher As VbMsgBoxResult
+    Dim unEcranOuvertSurDemande As Boolean   ' Vrai si Oui a ete repondu a Q2 ou Q3 ci-dessus
+    unEcranOuvertSurDemande = (santeEtape1Faite And repSante2 = vbYes)
+
     If nbAjoutees > 0 Then
         repAfficher = MsgBox("Voulez-vous afficher les opérations importées ?", _
                               vbYesNo + vbQuestion, "Import")
         If repAfficher = vbYes Then
             mod_RechercheOperations.RechercherOperations "DernierImport"
+            unEcranOuvertSurDemande = True
         End If
     End If
 
@@ -556,6 +560,22 @@ Public Sub ImporterOperationsOFX()
            "  dont sans correspondance CSV (categorie vide) : " & nbSansCategorie & vbCrLf & _
            "  dont categorie ambigue traitee via le formulaire : " & nbAmbigus, _
            vbInformation, "Import OFX + CSV"
+
+    ' --- ETAPE 11 : retour sur Synthese (demande operateur 03/10/2026) -----------
+    ' Si l'operateur a demande a voir un ecran particulier ci-dessus (recherche ou
+    ' traitement sante), on le laisse la ou il est - inutile de l'en faire sortir
+    ' aussitot. Sinon (toutes les questions repondues par Non, ou aucune ligne
+    ' ajoutee), on revient explicitement sur la feuille Synthese plutot que de
+    ' laisser l'interface sur la derniere feuille active par hasard.
+    If Not unEcranOuvertSurDemande Then
+        If mod_VarGlobales.wsSynthese Is Nothing Then
+            Set mod_VarGlobales.wsSynthese = mod_Criteres.GetFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+        End If
+        If Not mod_VarGlobales.wsSynthese Is Nothing Then
+            mod_VarGlobales.wsSynthese.Visible = xlSheetVisible
+            mod_VarGlobales.wsSynthese.Activate
+        End If
+    End If
 
 End Sub
 
@@ -691,12 +711,18 @@ End Function
 ' de mois à décaler (+1, -1, 0...) est appliqué ici. Une opération qui ne
 ' correspond à AUCUNE ligne du tableau garde le comportement d'origine (aucun
 ' décalage, budget = mois de l'opération).
-' DateSerial() gère seul le changement d'année (mois 13 -> janvier année+1,
-' et de la même façon mois 0 -> décembre année-1 pour un décalage négatif).
-Private Function CalculerBudget(dateComptable As Date, tiers As String, categorie As String, sousCategorie As String) As Date
+' MISE A JOUR 03/10/2026 bis (demande opérateur) : fonction rendue PUBLIQUE, et le
+' calcul de la date elle-même (DateSerial) est déplacé dans
+' mod_DecalagesBudget.CalculerDateBudget. Objectif : garantir qu'il n'existe
+' qu'UNE SEULE fonction, dans tout le projet, qui transforme une date comptable
+' + un décalage en date de budget - que ce soit ici, à l'import, ou plus tard
+' pour le décalage manuel d'une opération précise (voir
+' mod_DecalagesBudget.AppliquerDecalageManuel). Le calcul reste identique à
+' l'ancienne version : AUCUNE régression attendue sur l'import.
+Public Function CalculerBudget(dateComptable As Date, tiers As String, categorie As String, sousCategorie As String) As Date
     Dim decalage As Long
     decalage = mod_DecalagesBudget.ObtenirDecalageBudget(tiers, categorie, sousCategorie)
-    CalculerBudget = DateSerial(Year(dateComptable), Month(dateComptable) + decalage, 1)
+    CalculerBudget = mod_DecalagesBudget.CalculerDateBudget(dateComptable, decalage)
 End Function
 
 ' Recherche l'index d'une colonne par son nom d'entete (recherche exacte).

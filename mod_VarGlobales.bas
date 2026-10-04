@@ -19,6 +19,15 @@ Public colType As Long, colBudget As Long, colTiers As Long, colMoisBud As Long,
 Public colID As Long, colStatutSante As Long, colSoldeSante As Long, colDepassementHoraires As Long, colCommentaireSante As Long, colFranchise As Long
 Public colBeneficiaire As Long
 
+' Decalage manuel d'une operation precise (ajout 03/10/2026, demande operateur) : vaut
+' 0 (ou vide) pour la grande majorite des operations, qui suivent la regle generale
+' lue dans TblDecalagesBudget. Quand l'operateur force un decalage pour UNE operation
+' en particulier (ecran de recherche, bouton "Decaler le budget de cette operation"),
+' cette colonne garde la valeur choisie : elle MARQUE la ligne, pour qu'un futur
+' recalcul automatique ne vienne jamais l'ecraser silencieusement (voir
+' mod_DecalagesBudget.AppliquerDecalageManuel).
+Public colDecalageManuel As Long
+
 ' --- PHASE 1/6 (gestion des catégories a 2 niveaux) --------------------------------
 ' Index de la colonne SousCategorie dans TblOperations. Vaut 0 tant que la colonne
 ' n'existe pas encore (feuille Param / Phase 1 pas encore installee) : tout code qui
@@ -126,3 +135,8 @@ Public Const NOM_TABLE_DECALAGES_BUDGET As String = "TblDecalagesBudget"
 ' on place ce nouveau tableau plus a droite, a partir de la colonne S.
 Public Const DECALAGES_BUDGET_COL_DEBUT As Long = 19   ' colonne S
 Public Const DECALAGES_BUDGET_NB_COL As Long = 4        ' S,T,U,V = Tiers/Categorie/SousCategorie/Decalage
+
+' Nom de la colonne technique ajoutee a TblOperations (ajout 03/10/2026) pour
+' marquer/memoriser le decalage manuel d'une operation precise - voir colDecalageManuel
+' ci-dessus et mod_DecalagesBudget.AjouterColonneDecalageManuel/AppliquerDecalageManuel.
+Public Const NOM_COL_DECALAGE_MANUEL As String = "DecalageManuel"

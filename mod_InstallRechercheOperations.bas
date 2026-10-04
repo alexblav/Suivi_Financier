@@ -254,6 +254,13 @@ Sub CreerFeuilleRechercheOperations()
         .Name = "btnSortirRechercheOperations"
     End With
 
+    ' AJOUT 03/10/2026 (demande operateur) : 2 nouveaux boutons "decalage de budget",
+    ' places a droite des 3 boutons existants (colonnes H a M de la ligne des boutons,
+    ' inoccupees jusqu'ici). Factorises dans AjouterBoutonsDecalageRO ci-dessous (voir
+    ' ce Sub pour le detail), pour pouvoir aussi les ajouter sans tout reconstruire si
+    ' la feuille existe deja (c'est d'ailleurs ce Sub qui les cree ici).
+    AjouterBoutonsDecalageRO ws
+
     ' --- Petit rappel du fonctionnement, au-dessus du tableau ---
     ' Refonte 02/10/2026 (apres discussion avec l'operateur) : mode operatoire en
     ' liste a puces (plus lisible qu'un paragraphe), avec les noms de colonnes mis en
@@ -340,6 +347,49 @@ Sub CreerFeuilleRechercheOperations()
 
     MsgBox "La feuille '" & NOM_FEUILLE_RECHERCHE & "' a ete creee et masquee." & vbCrLf & _
            "Pour la revoir : AfficherFeuilleRecherchePourEdition", vbInformation, "Installation terminee"
+
+End Sub
+
+
+' =====================================================================================
+' AJOUT 03/10/2026 (demande operateur) : ajoute les 2 boutons "decalage de budget" sur
+' la feuille de recherche SI ELLE EXISTE DEJA, sans la reconstruire entierement (donc
+' sans perdre les lignes/filtres en cours). Appelee automatiquement a la fin de
+' CreerFeuilleRechercheOperations ci-dessus (nouvelle installation complete), et peut
+' aussi etre relancee seule, par Ctrl+G, sur une feuille deja en place :
+'   AjouterBoutonsDecalageRO ThisWorkbook.Worksheets("frm_RechercheOperations")
+' Idempotente : si les boutons existent deja (meme nom), ne fait rien.
+' =====================================================================================
+Public Sub AjouterBoutonsDecalageRO(ByVal ws As Worksheet)
+
+    Dim forme As Shape
+    Dim btn As Button
+    Dim zoneBtn5 As Range, zoneBtn6 As Range
+
+    ' On verifie si l'un des 2 boutons existe deja (meme principe que les colonnes/
+    ' tableaux installes ailleurs dans le projet : ne jamais recreer en double).
+    On Error Resume Next
+    Set forme = ws.Shapes("btnAjouterDecalageRO")
+    On Error GoTo 0
+    If Not forme Is Nothing Then Exit Sub
+
+    ws.Range(RO_LIGNE_BOUTONS & ":" & RO_LIGNE_BOUTONS).RowHeight = 22
+
+    Set zoneBtn5 = ws.Range("H" & RO_LIGNE_BOUTONS & ":J" & RO_LIGNE_BOUTONS)
+    Set btn = ws.Buttons.Add(zoneBtn5.Left, zoneBtn5.Top, zoneBtn5.Width, zoneBtn5.Height)
+    With btn
+        .Caption = FR("Ajouter un d{e2}calage")
+        .OnAction = "AjouterDecalageDepuisRO"
+        .Name = "btnAjouterDecalageRO"
+    End With
+
+    Set zoneBtn6 = ws.Range("K" & RO_LIGNE_BOUTONS & ":M" & RO_LIGNE_BOUTONS)
+    Set btn = ws.Buttons.Add(zoneBtn6.Left, zoneBtn6.Top, zoneBtn6.Width, zoneBtn6.Height)
+    With btn
+        .Caption = FR("D{e2}caler cette op{e2}ration")
+        .OnAction = "DecalerBudgetOperationRO"
+        .Name = "btnDecalerBudgetOperationRO"
+    End With
 
 End Sub
 
