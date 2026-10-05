@@ -297,7 +297,16 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
     ' Fige l'affichage sous la ligne d'en-tete du tableau (RO_LIGNE_ENTETES),
     ' pour que les intitules de colonnes restent visibles en faisant defiler
     ' une longue liste de resultats -- demande operateur du 01/10/2026.
+    ' CORRECTIF 05/10/2026 (constat operateur) : on remet D'ABORD la fenetre en
+    ' haut-gauche (ScrollRow/ScrollColumn = 1) AVANT de figer. Sans ces 2 lignes,
+    ' si la feuille avait deja defile (meme legerement) lors d'une utilisation
+    ' precedente, le figement se faisait a partir de la position de defilement
+    ' EN COURS et non depuis la ligne 1 -- donnant l'impression que les lignes
+    ' du haut etaient "masquees". Passait inapercu avec RO_LIGNE_ENTETES=5 (ecart
+    ' trop petit pour etre visible), devenu flagrant avec RO_LIGNE_ENTETES=7.
     ActiveWindow.FreezePanes = False
+    ActiveWindow.ScrollRow = 1
+    ActiveWindow.ScrollColumn = 1
     ws.Range("A" & (mod_InstallRechercheOperations.RO_LIGNE_ENTETES + 1)).Select
     ActiveWindow.FreezePanes = True
 
