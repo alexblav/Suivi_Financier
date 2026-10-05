@@ -1,3 +1,6 @@
+' =====================================================================================
+' MODULE : mod_Actions
+
 Option Explicit
 ' Module stockant les macros d'action (attachée à un bouton ou déclenché sur événements dans la feuille) des formulaire
 

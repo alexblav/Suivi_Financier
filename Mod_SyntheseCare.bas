@@ -1,12 +1,17 @@
+Attribute VB_Name = "Mod_SyntheseCare"
 Option Explicit
-' Fonction permettant le suivi des remboursement de santé
-' Elle affiche la liste des opérations  liées à la catégorie "Frais, remb santé"
-' Ajoute un champs calculé statuant du résulat du Rbt
+
+' =====================================================================================
+' MODULE : Mod_SyntheseCare
+
+' Fonction permettant le suivi des remboursement de santÃ©
+' Elle affiche la liste des opÃ©rations  liÃ©es Ã  la catÃ©gorie "Frais, remb santÃ©"
+' Ajoute un champs calculÃ© statuant du rÃ©sulat du Rbt
 
 Public Sub Synthese_Care()
     Dim tabResultat() As Variant
-    Dim tabNeg() As mod_Rapports.TOperation ' Contient les enregistrements Négatif
-    Dim countNeg As Long: countNeg = 0 ' Déclaration de la variable countNeg et initialisation de cette dernière à 0
+    Dim tabNeg() As mod_Rapports.TOperation ' Contient les enregistrements NÃ©gatif
+    Dim countNeg As Long: countNeg = 0 ' DÃ©claration de la variable countNeg et initialisation de cette derniÃ¨re Ã  0
     Dim tabPos() As mod_Rapports.TOperation ' Contient les enregistrements Positif
     Dim countPos As Long: countPos = 0
     Dim nbLigne As Long, nbLigneNeg As Long, nbLignePos As Long, idxRes As Long
@@ -15,12 +20,12 @@ Public Sub Synthese_Care()
     Dim rngMontants As Range, debPlageTravail As Range
     Dim reponse As VbMsgBoxResult
 
-    ' 1. Récupération des pointeurs vers la feuille et le tableau
+    ' 1. RÃ©cupÃ©ration des pointeurs vers la feuille et le tableau
     Set wsSynthese = mod_Criteres.GetFeuille(NOM_FEUILLE_SYNTHESE)
     Set wsResultat = mod_Criteres.GetFeuille(NOM_FEUILLE_RESULTAT)
     Set tbl = mod_DonneesTable.GetOperationsValue(NOM_FEUILLE_DONNEES, "TblOperations")
     If tbl Is Nothing Then
-        MsgBox "Le tableau ne contient aucune ligne de données.", vbExclamation
+        MsgBox "Le tableau ne contient aucune ligne de donnÃ©es.", vbExclamation
         Exit Sub
     End If
     If tbl.DataBodyRange Is Nothing Then
@@ -53,51 +58,51 @@ Public Sub Synthese_Care()
         wsResultat.Name = NOM_FEUILLE_RESULTAT
     End If
     
-    ' On masque la feuille Synthese. Cette option est prise pour éviter à l'opérateur de se déplacer en dehors de la feuille crée
+    ' On masque la feuille Synthese. Cette option est prise pour Ã©viter Ã  l'opÃ©rateur de se dÃ©placer en dehors de la feuille crÃ©e
     wsSynthese.Visible = xlSheetVeryHidden
     
-    ' 2. Charge TOUT le tableau de données (en-têtes incluses en ligne 1)
+    ' 2. Charge TOUT le tableau de donnÃ©es (en-tÃªtes incluses en ligne 1)
     tblData = tbl.Range.value
     tblDataLineTotal = UBound(tblData, 1)
     
-    ' 3. Récupération des index de colonne dans la base de données
+    ' 3. RÃ©cupÃ©ration des index de colonne dans la base de donnÃ©es
     mod_Display.RecupIndexCol
     
     ' 4. Autorise ou non le double click
     AllowDetailDoubleClick = False
-    ' Paramètre de navigation
+    ' ParamÃ¨tre de navigation
     RecherOperations = False
-    ' Désactive les événements
+    ' DÃ©sactive les Ã©vÃ©nements
     Application.EnableEvents = False
 
     ' 5. Construction de la zone des boutons
-    ' On détermine la position du bouton
+    ' On dÃ©termine la position du bouton
     Set zoneBouton = wsResultat.Range(cellSortieDep).Offset(0, 0)
     
-    'On définit son titre
+    'On dÃ©finit son titre
     texteBouton = "Sortir"
     nomMacroBouton = "Sortir"
     Call mod_Display.ConstruireBoutons(wsResultat, zoneBouton, texteBouton, nomMacroBouton)
 
     ' 6. Construction de la zone des instructions
-    ' On fournit le message à afficher en remplaçant les carractères accentué par les balise de la fonction FR
+    ' On fournit le message Ã  afficher en remplaÃ§ant les carractÃ¨res accentuÃ© par les balise de la fonction FR
     Message = " Suivi Sant{e2}" & Chr(10) & _
                 "Les op{e2}rations list{e2}es sont toutes les op{e2}rations traitant du suivi sant{e2}" & Chr(10) & _
                  "{A2} la fin sortez avec le bouton ""Sortir"""
                  
-    ' On fournit le titre, la position de la cellule dans laquelle on veut écrire de titre
+    ' On fournit le titre, la position de la cellule dans laquelle on veut Ã©crire de titre
     Titre = "Instructions"
     Set PositionTitre = wsResultat.Range(cellSortieDep).Offset(2, 0)
     
-    ' On détermine la plage de début et de fin de la zone
+    ' On dÃ©termine la plage de dÃ©but et de fin de la zone
     Set debutZone = wsResultat.Range(cellSortieDep).Offset(3, 0)
     Set finZone = wsResultat.Range(cellSortieDep).Offset(5, 6)
     
     Call mod_Display.ConstruireZoneTexte(wsResultat, Titre, Message, PositionTitre, debutZone, finZone)
     
     
-    ' 7. Affiche les entêtes du tableau de sortie
-    ' Définit le début de la page de travail
+    ' 7. Affiche les entÃªtes du tableau de sortie
+    ' DÃ©finit le dÃ©but de la page de travail
     Set debPlageTravail = wsResultat.Range(cellSortieDep).Offset(7, 0)
     
     MonArray = Array("Date", "Tiers", "Montant", "Notes", "Date_consult", "Spe_consult", "Statut")
@@ -105,34 +110,34 @@ Public Sub Synthese_Care()
     
     nbColonne = UBound(MonArray) - LBound(MonArray) + 1
     
-    ' Récupére la position du champs dans l'ARRAY (Application.Match est naturellement insensible à la casse)
+    ' RÃ©cupÃ©re la position du champs dans l'ARRAY (Application.Match est naturellement insensible Ã  la casse)
     Call mod_Display.RecupPosArray
     
-    ' Récupération des index de colonne dans la feuille de sortie
+    ' RÃ©cupÃ©ration des index de colonne dans la feuille de sortie
     Call mod_Display.RecupPosSortieIndex(wsResultat, debPlageTravail)
     
-    ' Taille maximale du tableau de résultat = nombre total de lignes source
-    ' ATTENTION on ajoute une dernière colonne pour le statut
+    ' Taille maximale du tableau de rÃ©sultat = nombre total de lignes source
+    ' ATTENTION on ajoute une derniÃ¨re colonne pour le statut
     ReDim tabResultat(1 To tblDataLineTotal, 1 To nbColonne + 1)
            
-    ' 8. Lire les critères saisis par l'utilisateur (B1 à B6).
+    ' 8. Lire les critÃ¨res saisis par l'utilisateur (B1 Ã  B6).
     mod_Criteres.GetSelectCriteres
 
-    ' 9. Remplissage des tableaux tabNeg et tabPos (filtrés sur "Frais, remb santé")
+    ' 9. Remplissage des tableaux tabNeg et tabPos (filtrÃ©s sur "Frais, remb santÃ©")
     For nbLigne = 2 To tblDataLineTotal
-        ' On contrôle que la valeur de la colonne "Catégorie" à pour valeur: "Frais, remb santé"
-        If mod_DataStructure.CellText(tblData(nbLigne, colCategorie)) = mod_DataStructure.CellText("Frais, remb santé") Then
+        ' On contrÃ´le que la valeur de la colonne "CatÃ©gorie" Ã  pour valeur: "Frais, remb santÃ©"
+        If mod_DataStructure.CellText(tblData(nbLigne, colCategorie)) = mod_DataStructure.CellText("Frais, remb santÃ©") Then
         
-            ' S'assurer que la valeur de Montant est numérique
+            ' S'assurer que la valeur de Montant est numÃ©rique
             If IsNumeric(tblData(nbLigne, colMontant)) Then
-                ' On récupérère le montant
+                ' On rÃ©cupÃ©rÃ¨re le montant
                 mnt = CDbl(tblData(nbLigne, colMontant))
             
                 If mnt < 0 Then
                     countNeg = countNeg + 1
                     ' On redimentionne le tableau "tabNeg" pour que sa longueur vaille countNeg
                     ReDim Preserve tabNeg(1 To countNeg)
-                    tabNeg(countNeg).LigneOrigine = nbLigne ' On stocke le numéro de la ligne d'origine (celle de Données)
+                    tabNeg(countNeg).LigneOrigine = nbLigne ' On stocke le numÃ©ro de la ligne d'origine (celle de DonnÃ©es)
                     tabNeg(countNeg).Montant = mnt ' Converti en positif pour la comparaison
                     tabNeg(countNeg).Notes = mod_DataStructure.CellText(tblData(nbLigne, colNotes))
                     tabNeg(countNeg).Utilise = False '
@@ -149,21 +154,21 @@ Public Sub Synthese_Care()
         End If
     Next nbLigne
 
-    ' 10. Algorithme de rapprochement (Négatif <-> Positif(s) selon le champ Notes)
+    ' 10. Algorithme de rapprochement (NÃ©gatif <-> Positif(s) selon le champ Notes)
     If countNeg > 0 Then
     
-        ' Maintenant que le tri entre tabNeg et tabPos est réalisé on parcours tabNeg et on vérifie si une opération correspondante exite en positif
+        ' Maintenant que le tri entre tabNeg et tabPos est rÃ©alisÃ© on parcours tabNeg et on vÃ©rifie si une opÃ©ration correspondante exite en positif
         For nbLigneNeg = 1 To countNeg
-            ' Étape A : Compter combien d'enregistrements positifs non utilisés partagent la même note
+            ' Ã‰tape A : Compter combien d'enregistrements positifs non utilisÃ©s partagent la mÃªme note
             countMatches = 0
         'trouve = False
         'idxRes = idxRes + 1
         'enrMatch = 0
-            ' On vérifie la présence de données dans "countPos"
+            ' On vÃ©rifie la prÃ©sence de donnÃ©es dans "countPos"
             If countPos > 0 Then
                 ' On parcours "countPos"
                 For nbLignePos = 1 To countPos
-                    ' On vérifie que la ligne n'a pas été utilisé lors d'un traitement précédent
+                    ' On vÃ©rifie que la ligne n'a pas Ã©tÃ© utilisÃ© lors d'un traitement prÃ©cÃ©dent
                     If Not tabPos(nbLignePos).Utilise Then
                         ' On utilise le champ Notes afin de trouver les correspondances
                         If mod_DataStructure.CellText(tabPos(nbLignePos).Notes) = mod_DataStructure.CellText(tabNeg(nbLigneNeg).Notes) Then
@@ -173,14 +178,14 @@ Public Sub Synthese_Care()
                 Next nbLignePos
             End If
             
-            ' Étape B : Traitement selon la présence de correspondances
+            ' Ã‰tape B : Traitement selon la prÃ©sence de correspondances
             If countMatches > 0 Then
-                ' Match trouvé : statut OK pour le négatif
+                ' Match trouvÃ© : statut OK pour le nÃ©gatif
                 tabNeg(nbLigneNeg).Utilise = True
 '                        tabNeg(nbLigneNeg).Utilise = True
 '                        tabPos(nbLignePos).Utilise = True
                 idxRes = idxRes + 1
-                ' On affecte à "tabResultat" les données de la ligne négative
+                ' On affecte Ã  "tabResultat" les donnÃ©es de la ligne nÃ©gative
                 tabResultat(idxRes, posDate) = tblData(tabNeg(nbLigneNeg).LigneOrigine, colDate)
                 tabResultat(idxRes, posTiers) = tblData(tabNeg(nbLigneNeg).LigneOrigine, colTiers)
                 tabResultat(idxRes, posMontant) = tblData(tabNeg(nbLigneNeg).LigneOrigine, colMontant)
@@ -189,7 +194,7 @@ Public Sub Synthese_Care()
                 tabResultat(idxRes, posSpeConsult) = tblData(tabNeg(nbLigneNeg).LigneOrigine, colSpeConsult)
                 tabResultat(idxRes, 7) = "OK"
                 
-                ' Écriture de TOUS les enregistrements Positifs correspondants (statut OK)
+                ' Ã‰criture de TOUS les enregistrements Positifs correspondants (statut OK)
                 For nbLignePos = 1 To countPos
                     If Not tabPos(nbLignePos).Utilise Then
                         If mod_DataStructure.CellText(tabPos(nbLignePos).Notes) = mod_DataStructure.CellText(tabNeg(nbLigneNeg).Notes) Then
@@ -207,7 +212,7 @@ Public Sub Synthese_Care()
                     End If
                 Next nbLignePos
             Else
-                ' Aucun match trouvé : statut KO pour l'enregistrement Négatif
+                ' Aucun match trouvÃ© : statut KO pour l'enregistrement NÃ©gatif
                 idxRes = idxRes + 1
                 tabResultat(idxRes, posDate) = tblData(tabNeg(nbLigneNeg).LigneOrigine, colDate)
                 tabResultat(idxRes, posTiers) = tblData(tabNeg(nbLigneNeg).LigneOrigine, colTiers)
@@ -220,7 +225,7 @@ Public Sub Synthese_Care()
         Next nbLigneNeg
     End If
     
-    ' 11. Marquer KO les enregistrements Positifs restants (sans correspondance négative)
+    ' 11. Marquer KO les enregistrements Positifs restants (sans correspondance nÃ©gative)
     If countPos > 0 Then
         For nbLignePos = 1 To countPos
             If Not tabPos(nbLignePos).Utilise Then
@@ -236,11 +241,11 @@ Public Sub Synthese_Care()
         Next nbLignePos
     End If
     
-    ' 12. Écriture en bloc sur la feuille Synthese
+    ' 12. Ã‰criture en bloc sur la feuille Synthese
     If idxRes > 0 Then
         Application.ScreenUpdating = False
         
-        ' Injection directe du tableau mémoire dans la plage d'affichage
+        ' Injection directe du tableau mÃ©moire dans la plage d'affichage
         ' On redimentionne la taille de la plage pour pas voir s'afficher des erreur type #N/A dans les cellules en trop
         plageSortieEcriture.Resize(idxRes, nbColonne).value = tabResultat
         
@@ -264,15 +269,15 @@ Public Sub Synthese_Care()
             .Font.Bold = True
         End With
         
-        ' Activation des boutons de filtre automatique sur l'entête
+        ' Activation des boutons de filtre automatique sur l'entÃªte
         'plageSortieEcriture.Resize(1, nbColonne + 1).Columns.AutoFit
         
-         ' Réactive les événements
+         ' RÃ©active les Ã©vÃ©nements
         Application.EnableEvents = True
         Application.ScreenUpdating = True
     End If
 
-    MsgBox "Traitement terminé : " & idxRes & " dépenses de santé traitées", vbInformation
+    MsgBox "Traitement terminÃ© : " & idxRes & " dÃ©penses de santÃ© traitÃ©es", vbInformation
 
 End Sub
 

@@ -1,5 +1,8 @@
 Option Explicit
 
+' =====================================================================================
+' MODULE : mod_VarGlobales
+
 ' Cellule de démarrage de la plage d'écriture feuille Resultat
 Public Const cellSortieDep As String = "A1"
 

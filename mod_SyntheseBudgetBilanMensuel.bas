@@ -1,8 +1,11 @@
 Option Explicit
 
+' =====================================================================================
+' MODULE : mod_SyntheseBudgetBilanMensuel
+
 ' ------------------------------------------------------------------------
-' Budget_Bilan_Mensuel : calcule et affiche le total des entrées, le total
-' des dépenses, et la différence entre les deux, pour la période B1:B2.
+' Budget_Bilan_Mensuel : calcule et affiche le total des entrÃ©es, le total
+' des dÃ©penses, et la diffÃ©rence entre les deux, pour la pÃ©riode B1:B2.
 ' ------------------------------------------------------------------------
 Public Sub Budget_Bilan_Mensuel()
     Dim totalDepenses As Double
@@ -15,12 +18,12 @@ Public Sub Budget_Bilan_Mensuel()
     Dim debPlageTravail As Range
     Dim reponse As VbMsgBoxResult
     
-    ' 1. Récupération des pointeurs vers la feuille et le tableau
+    ' 1. RÃ©cupÃ©ration des pointeurs vers la feuille et le tableau
     Set wsSynthese = mod_Criteres.GetFeuille(NOM_FEUILLE_SYNTHESE)
     Set wsResultat = mod_Criteres.GetFeuille(NOM_FEUILLE_RESULTAT)
     Set tbl = mod_DonneesTable.GetOperationsValue(NOM_FEUILLE_DONNEES, "TblOperations")
     If tbl Is Nothing Then
-        MsgBox "Le tableau ne contient aucune ligne de données.", vbExclamation
+        MsgBox "Le tableau ne contient aucune ligne de donnÃ©es.", vbExclamation
         Exit Sub
     End If
     If tbl.DataBodyRange Is Nothing Then
@@ -53,35 +56,35 @@ Public Sub Budget_Bilan_Mensuel()
         wsResultat.Name = NOM_FEUILLE_RESULTAT
     End If
     
-    ' PHASE 6 : le double-clic est abandonné (jugé trop discret par l'operateur),
+    ' PHASE 6 : le double-clic est abandonnÃ© (jugÃ© trop discret par l'operateur),
     ' remplace par 2 boutons explicites -- voir plus bas. AllowDetailDoubleClick
     ' n'est donc plus mis a True ici.
-    ' Paramètre de navigation
+    ' ParamÃ¨tre de navigation
     RecherOperations = False
-    ' Désactive les événements
+    ' DÃ©sactive les Ã©vÃ©nements
     Application.EnableEvents = False
         
-    ' On masque la feuille Synthese. Cette option est prise pour éviter à l'opérateur de se déplacer en dehors de la feuille crée
+    ' On masque la feuille Synthese. Cette option est prise pour Ã©viter Ã  l'opÃ©rateur de se dÃ©placer en dehors de la feuille crÃ©e
     wsSynthese.Visible = xlSheetVeryHidden
     
-    ' 2. Charge TOUT le tableau de données (en-têtes incluses en ligne 1)
+    ' 2. Charge TOUT le tableau de donnÃ©es (en-tÃªtes incluses en ligne 1)
     tblData = tbl.Range.value
     tblDataLineTotal = UBound(tblData, 1)
     
-    ' 3. Récupération des index de colonne dans la base de données
+    ' 3. RÃ©cupÃ©ration des index de colonne dans la base de donnÃ©es
     mod_Display.RecupIndexCol
     
     ' 5. Construction de la zone des boutons
-    ' On détermine la position du bouton
+    ' On dÃ©termine la position du bouton
     Set zoneBouton = wsResultat.Range(cellSortieDep).Offset(0, 0)
 
-    'On définit son titre
+    'On dÃ©finit son titre
     texteBouton = "Sortir"
     nomMacroBouton = "Sortir"
     Call mod_Display.ConstruireBoutons(wsResultat, zoneBouton, texteBouton, nomMacroBouton)
 
     ' PHASE 6 : 2 boutons remplacent l'ancien double-clic sur les cellules de
-    ' total, pour ouvrir le détail correspondant dans le nouvel écran central
+    ' total, pour ouvrir le dÃ©tail correspondant dans le nouvel Ã©cran central
     ' frm_RechercheOperations (prefiltre "DetailTotal").
     Set zoneBouton = wsResultat.Range(cellSortieDep).Offset(0, 2).Resize(1, 2)
     texteBouton = FR("Voir le d{e2}tail des entr{e2}es")
@@ -94,24 +97,24 @@ Public Sub Budget_Bilan_Mensuel()
     Call mod_Display.ConstruireBoutons(wsResultat, zoneBouton, texteBouton, nomMacroBouton)
 
     ' 6. Construction de la zone des instructions
-    ' On fournit le message à afficher en remplaçant les carractères accentué par les balise de la fonction FR
+    ' On fournit le message Ã  afficher en remplaÃ§ant les carractÃ¨res accentuÃ© par les balise de la fonction FR
     Message = " Bilan Mensuel" & Chr(10) & _
-                "Affiche une synth{e2}se des dépenses et des revenus sur la p{e2}riode du:" & Chr(10) & _
+                "Affiche une synth{e2}se des dÃ©penses et des revenus sur la p{e2}riode du:" & Chr(10) & _
                 "Mois: " & critMois & " Ann{e2}e: " & critAnnee & Chr(10) & _
                  "Utilisez les boutons ci-dessus pour voir le d{e2}tail des op{e2}rations. " & _
                  "{A2} la fin sortez avec le bouton ""Sortir"""
                  
-    ' On fournit le titre, la position de la cellule dans laquelle on veut écrire de titre
+    ' On fournit le titre, la position de la cellule dans laquelle on veut Ã©crire de titre
     Titre = "Instructions"
     Set PositionTitre = wsResultat.Range(cellSortieDep).Offset(2, 0)
     
-    ' On détermine la plage de début et de fin de la zone
+    ' On dÃ©termine la plage de dÃ©but et de fin de la zone
     Set debutZone = wsResultat.Range(cellSortieDep).Offset(3, 0)
     Set finZone = wsResultat.Range(cellSortieDep).Offset(6, 6)
     
     Call mod_Display.ConstruireZoneTexte(wsResultat, Titre, Message, PositionTitre, debutZone, finZone)
     
-    ' 7. Lire les critères saisis par l'utilisateur (B1 à B6).
+    ' 7. Lire les critÃ¨res saisis par l'utilisateur (B1 Ã  B6).
     mod_Criteres.GetSelectCriteres
     
     ' 8. Nettoyage de la zone de sortie
@@ -119,19 +122,19 @@ Public Sub Budget_Bilan_Mensuel()
     Call mod_Display.PrepareOutputArea(wsSynthese, , debPlageTravail)
 
     
-    ' Taille maximale du tableau de résultat = nombre total de lignes source
+    ' Taille maximale du tableau de rÃ©sultat = nombre total de lignes source
     ReDim tabResultat(1 To 3, 1 To 2)
     totalDepenses = 0
     totalEntrees = 0
 
-    ' 5. On parcourt toute la table et on additionne, ligne par ligne, entrées
-    ' et dépenses du mois/année sélectionnés.
+    ' 5. On parcourt toute la table et on additionne, ligne par ligne, entrÃ©es
+    ' et dÃ©penses du mois/annÃ©e sÃ©lectionnÃ©s.
     For nbLigne = 2 To tblDataLineTotal
         If mod_DonneesTable.RowMatchesFilter(nbLigne, tblData(nbLigne, colMoisBud), tblData(nbLigne, colAnneeBud), tblData(nbLigne, colMontant), True) Then
             Montant = tblData(nbLigne, colMontant)
             If Montant < 0 Then
-                ' Une dépense est additionnée en valeur positive (voir mod_DonneesTable
-                ' pour la même logique appliquée au filtrage par seuil).
+                ' Une dÃ©pense est additionnÃ©e en valeur positive (voir mod_DonneesTable
+                ' pour la mÃªme logique appliquÃ©e au filtrage par seuil).
                 totalDepenses = totalDepenses + Abs(Montant)
             ElseIf Montant >= 0 Then
                 totalEntrees = totalEntrees + Montant
@@ -139,12 +142,12 @@ Public Sub Budget_Bilan_Mensuel()
         End If
     Next nbLigne
 
-    ' On définit la plage de sortie
+    ' On dÃ©finit la plage de sortie
     'Set plageSortieEnTetes = wsResultat.Range(cellSortieDep).Resize(9, 1)
-    ' On efface l'ancien affichage avant d'écrire le nouveau bilan.
-    wsResultat.Range(cellSortieDep).Offset(9, 1) = "Total Entrées"
-    wsResultat.Range(cellSortieDep).Offset(10, 1) = "Total Dépenses"
-    wsResultat.Range(cellSortieDep).Offset(11, 1) = "Différence (Entrées - Dépenses)"
+    ' On efface l'ancien affichage avant d'Ã©crire le nouveau bilan.
+    wsResultat.Range(cellSortieDep).Offset(9, 1) = "Total EntrÃ©es"
+    wsResultat.Range(cellSortieDep).Offset(10, 1) = "Total DÃ©penses"
+    wsResultat.Range(cellSortieDep).Offset(11, 1) = "DiffÃ©rence (EntrÃ©es - DÃ©penses)"
     wsResultat.Range(cellSortieDep).Offset(9, 2) = totalEntrees
     wsResultat.Range(cellSortieDep).Offset(10, 2) = totalDepenses
     wsResultat.Range(cellSortieDep).Offset(11, 2) = totalEntrees - totalDepenses
@@ -155,23 +158,23 @@ Public Sub Budget_Bilan_Mensuel()
     wsResultat.Columns.AutoFit
     wsResultat.rows.AutoFit
     
-    ' Réactive les événements
+    ' RÃ©active les Ã©vÃ©nements
     Application.EnableEvents = True
     Application.ScreenUpdating = True
 
     'AllowDetailDoubleClick = True
-    MsgBox "Bilan calculé : " & Format(totalEntrees - totalDepenses, "#,##0.00"), vbInformation
+    MsgBox "Bilan calculÃ© : " & Format(totalEntrees - totalDepenses, "#,##0.00"), vbInformation
 End Sub
 
 ' ------------------------------------------------------------------------
-' PHASE 6 : ShowDetailForTotal (et le double-clic qui l'appelait, côté
-' ThisWorkbook/mod_Actions) est supprimée. Le détail d'un total s'ouvre
-' désormais dans l'écran central frm_RechercheOperations, via les 2 boutons
-' ajoutés dans Budget_Bilan_Mensuel ci-dessus (prefiltre "DetailTotal").
+' PHASE 6 : ShowDetailForTotal (et le double-clic qui l'appelait, cÃ´tÃ©
+' ThisWorkbook/mod_Actions) est supprimÃ©e. Le dÃ©tail d'un total s'ouvre
+' dÃ©sormais dans l'Ã©cran central frm_RechercheOperations, via les 2 boutons
+' ajoutÃ©s dans Budget_Bilan_Mensuel ci-dessus (prefiltre "DetailTotal").
 ' NOTE POUR L'OPERATEUR : la case "trier automatiquement par le champ choisi
-' sur Synthese" n'a PAS été reprise -- l'opérateur trie desormais lui-même
-' avec les flèches de filtre natives du nouvel écran, comme pour tout le
-' reste. Simplification assumée pour éviter une correspondance de colonnes
+' sur Synthese" n'a PAS Ã©tÃ© reprise -- l'opÃ©rateur trie desormais lui-mÃªme
+' avec les flÃ¨ches de filtre natives du nouvel Ã©cran, comme pour tout le
+' reste. Simplification assumÃ©e pour Ã©viter une correspondance de colonnes
 ' fragile entre l'ancien et le nouveau tableau.
 ' ------------------------------------------------------------------------
 Public Sub VoirDetailEntreesRO()

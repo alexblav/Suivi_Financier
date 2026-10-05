@@ -1,4 +1,8 @@
 Option Explicit
+
+' =====================================================================================
+' MODULE : mod_Display
+
 ' Ce module regroupe les macros qui prparent une ZONE D'AFFICHAGE sur une
 ' feuille (nettoyage, mise en place des en-ttes) AVANT que d'autres modules
 ' n'y crivent des donnes. Il ne contient volontairement AUCUNE logique de
