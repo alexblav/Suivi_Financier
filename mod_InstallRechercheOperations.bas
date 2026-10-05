@@ -124,10 +124,6 @@ Option Explicit
 '     travaille (recherche globale, dernier import, mois precis...).
 ' =====================================================================================
 
-
-Public Const NOM_FEUILLE_RECHERCHE As String = "frm_RechercheOperations"
-Public Const NOM_TABLE_RECHERCHE As String = "TblRechercheOperations"
-
 Public Const RO_LIGNE_BOUTONS As Long = 2
 ' RO_LIGNE_ENTETES = 5 (et non 4) : la ligne 3, laissee libre entre les
 ' boutons (ligne 2) et l'entete du tableau, accueille desormais la zone de
@@ -533,3 +529,5 @@ Sub MasquerFeuilleRechercheApresEdition()
     ws.Visible = xlSheetVeryHidden
     MsgBox "La feuille est de nouveau masquee.", vbInformation
 End Sub
+
+

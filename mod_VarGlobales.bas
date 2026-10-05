@@ -84,6 +84,7 @@ Public Const NOM_FEUILLE_GENERATION As String = "frm_GenerationCle"
 Public Const NOM_FEUILLE_RESULTAT As String = "frm_Resultat"
 Public Const NOM_FEUILLE_SYNTHESE As String = "Synthese"
 Public Const NOM_TABLE_RECHERCHE As String = "TblRechercheOperations"
+Public Const NOM_FEUILLE_RECHERCHE As String = "frm_RechercheOperations"
 Public Const NOM_FEUILLE_TECH As String = "TechDernierImport"
 Public Const NOM_FEUILLE_SUIVI_SANTE As String = "frm_SuiviSante"
 Public Const NOM_FEUILLE_RESOLUTION As String = "frm_ResolutionCategories"
@@ -140,3 +141,4 @@ Public Const DECALAGES_BUDGET_NB_COL As Long = 4        ' S,T,U,V = Tiers/Catego
 ' marquer/memoriser le decalage manuel d'une operation precise - voir colDecalageManuel
 ' ci-dessus et mod_DecalagesBudget.AjouterColonneDecalageManuel/AppliquerDecalageManuel.
 Public Const NOM_COL_DECALAGE_MANUEL As String = "DecalageManuel"
+
