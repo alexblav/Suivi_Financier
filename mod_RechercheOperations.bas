@@ -233,8 +233,8 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
     g_ROPrefiltreActif = prefiltre
     g_ROParamActif = param
 
-    Set ws = ThisWorkbook.Worksheets(mod_InstallRechercheOperations.NOM_FEUILLE_RECHERCHE)
-    Set tblRecherche = ws.ListObjects(mod_InstallRechercheOperations.NOM_TABLE_RECHERCHE)
+    Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RECHERCHE)
+    Set tblRecherche = ws.ListObjects(mod_VarGlobales.NOM_TABLE_RECHERCHE)
 
     Set tbl = mod_DonneesTable.GetOperationsTable()
     If tbl Is Nothing Then
@@ -807,8 +807,8 @@ Public Sub AppliquerLignesMarquees()
     Dim tblVen As ListObject
     Dim venDisponible As Boolean
 
-    Set ws = ThisWorkbook.Worksheets(mod_InstallRechercheOperations.NOM_FEUILLE_RECHERCHE)
-    Set tblRecherche = ws.ListObjects(mod_InstallRechercheOperations.NOM_TABLE_RECHERCHE)
+    Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RECHERCHE)
+    Set tblRecherche = ws.ListObjects(mod_VarGlobales.NOM_TABLE_RECHERCHE)
 
     If tblRecherche.DataBodyRange Is Nothing Then
         MsgBox mod_Display.FR("Aucune ligne {a2} traiter. Utilise d'abord 'Rechercher'."), vbInformation
@@ -950,8 +950,8 @@ Public Sub RevoirVentilationRO()
     Dim ok As Boolean
     Dim etaitDejaVentilee As Boolean
 
-    Set ws = ThisWorkbook.Worksheets(mod_InstallRechercheOperations.NOM_FEUILLE_RECHERCHE)
-    Set tblRecherche = ws.ListObjects(mod_InstallRechercheOperations.NOM_TABLE_RECHERCHE)
+    Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RECHERCHE)
+    Set tblRecherche = ws.ListObjects(mod_VarGlobales.NOM_TABLE_RECHERCHE)
 
     If tblRecherche.DataBodyRange Is Nothing Then
         MsgBox mod_Display.FR("Aucune ligne {a2} traiter. Utilise d'abord 'Rechercher'."), vbInformation
@@ -1148,8 +1148,8 @@ Public Sub EditerCategorieRO()
     Dim categorieValeur As String, ventileValeur As String
     Dim idTransaction As String
 
-    Set ws = ThisWorkbook.Worksheets(mod_InstallRechercheOperations.NOM_FEUILLE_RECHERCHE)
-    Set tblRecherche = ws.ListObjects(mod_InstallRechercheOperations.NOM_TABLE_RECHERCHE)
+    Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RECHERCHE)
+    Set tblRecherche = ws.ListObjects(mod_VarGlobales.NOM_TABLE_RECHERCHE)
 
     If tblRecherche.DataBodyRange Is Nothing Then Exit Sub
 
@@ -1244,7 +1244,7 @@ End Sub
 ' ouvert depuis le détail d'un total, sinon sur Synthèse comme avant.
 Public Sub SortirRechercheOperations()
     Dim ws As Worksheet
-    Set ws = ThisWorkbook.Worksheets(mod_InstallRechercheOperations.NOM_FEUILLE_RECHERCHE)
+    Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RECHERCHE)
     On Error Resume Next
     If g_ROPrefiltreActif = "DetailTotal" Then
         ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RESULTAT).Activate
@@ -1277,8 +1277,8 @@ Private Sub LireSelectionRO(ByRef idTransaction As String, ByRef tiersSel As Str
 
     idTransaction = ""
 
-    Set ws = ThisWorkbook.Worksheets(mod_InstallRechercheOperations.NOM_FEUILLE_RECHERCHE)
-    Set tblRecherche = ws.ListObjects(mod_InstallRechercheOperations.NOM_TABLE_RECHERCHE)
+    Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RECHERCHE)
+    Set tblRecherche = ws.ListObjects(mod_VarGlobales.NOM_TABLE_RECHERCHE)
 
     If tblRecherche.DataBodyRange Is Nothing Then
         MsgBox mod_Display.FR("Aucune ligne {a2} traiter. Utilise d'abord 'Rechercher'."), vbInformation
@@ -1394,3 +1394,5 @@ Public Sub DecalerBudgetOperationRO()
     End If
 
 End Sub
+
+

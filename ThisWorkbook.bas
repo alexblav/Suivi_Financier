@@ -36,11 +36,11 @@ Option Explicit
 Private Sub Workbook_SheetBeforeDoubleClick(ByVal Sh As Object, ByVal Target As Range, Cancel As Boolean)
 
     ' On ne s'interesse qu'a l'ecran central de recherche.
-    If Sh.Name <> mod_InstallRechercheOperations.NOM_FEUILLE_RECHERCHE Then Exit Sub
+    If Sh.Name <> mod_VarGlobales.NOM_FEUILLE_RECHERCHE Then Exit Sub
 
     Dim tbl As ListObject
     On Error Resume Next
-    Set tbl = Sh.ListObjects(mod_InstallRechercheOperations.NOM_TABLE_RECHERCHE)
+    Set tbl = Sh.ListObjects(mod_VarGlobales.NOM_TABLE_RECHERCHE)
     On Error GoTo 0
     If tbl Is Nothing Then Exit Sub
     If tbl.DataBodyRange Is Nothing Then Exit Sub
