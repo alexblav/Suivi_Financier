@@ -88,7 +88,7 @@ Private derniereAction As String
 ' =====================================================================================
 Public Sub RetraiterSuiviSante()
     VerifierNotesSante
-    ' mod_SuiviSante.CalculerSuiviSante est lancé par la macro suivante
+    ' mod_SuiviSante.CalculerSuiviSante est lancï¿½ par la macro suivante
     mod_SuiviSanteFormulaire.TraiterCasSuiviSante
 End Sub
 
@@ -184,13 +184,20 @@ Public Sub VerifierNotesSante()
     numeroEnCours = 0
     For nbLigne = 1 To nbPendingOp
         numeroEnCours = numeroEnCours + 1
-        AfficherRapprochementPourLigne pendingOp(nbLigne), "O", numeroEnCours, totalATraiter
+        ' CORRECTIF 05/10/2026 (constat operateur) : on passe desormais directement
+        ' donneesInitiales (le tableau DEJA charge juste au-dessus, ligne 135) en
+        ' parametre, au lieu de laisser AfficherRapprochementPourLigne lire la
+        ' variable globale PARTAGEE "tblData" -- qui n'est pas forcement a jour ou
+        ' meme remplie quand cette macro est lancee seule (meme famille de bug que
+        ' wsSynthese corrige plus tot cette semaine : une globale partagee entre
+        ' plusieurs ecrans, pas forcement initialisee au bon moment).
+        AfficherRapprochementPourLigne pendingOp(nbLigne), "O", numeroEnCours, totalATraiter, donneesInitiales
     Next nbLigne
 
     If venDisponible Then
         For nbLigne = 1 To nbPendingVen
             numeroEnCours = numeroEnCours + 1
-            AfficherRapprochementPourLigne pendingVen(nbLigne), "V", numeroEnCours, totalATraiter
+            AfficherRapprochementPourLigne pendingVen(nbLigne), "V", numeroEnCours, totalATraiter, donneesInitiales
         Next nbLigne
     End If
 
@@ -282,7 +289,7 @@ End Function
 ' (position dans DataBodyRange), attend la decision de l'opÃ©rateur, puis
 ' applique le rÃ©sultat.
 ' =====================================================================================
-Private Sub AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVal Source As String, ByVal numero As Long, ByVal total As Long)
+Private Sub AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVal Source As String, ByVal numero As Long, ByVal total As Long, ByRef donneesOp As Variant)
 
     Dim ws As Worksheet
     Dim candidats() As TCandidatCle
@@ -295,17 +302,20 @@ Private Sub AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVal Sou
     '     ventilation, Date/Tiers/NumCheque n'existent pas dans TblVentilations
     '     elle-mÃªme : on va les chercher sur la ligne PARENTE de
     '     TblOperations via ID_Transaction (voir TrouverContexteParentVentilation). ---
+    ' CORRECTIF 05/10/2026 : "donneesOp" est desormais recu en parametre (le
+    ' tableau TblOperations deja charge par l'appelant), et non plus lu depuis la
+    ' variable globale partagee "tblData" (voir le commentaire au point d'appel).
     Dim dateCtx As Variant, tiersCtx As String, chequeCtx As Variant, notesCtx As String, montantCtx As Double
     Dim tblVen As ListObject
     Dim donneesVen As Variant
     Dim colVenNotes As Long, colVenMontant As Long
 
     If Source = "O" Then
-        dateCtx = tblData(ligneDepense, colDate)
-        tiersCtx = mod_DataStructure.CellText(tblData(ligneDepense, colTiers))
-        chequeCtx = tblData(ligneDepense, colCheque)
-        notesCtx = mod_DataStructure.CellText(tblData(ligneDepense, colNotes))
-        montantCtx = mod_DataStructure.ToDouble(tblData(ligneDepense, colMontant))
+        dateCtx = donneesOp(ligneDepense, colDate)
+        tiersCtx = mod_DataStructure.CellText(donneesOp(ligneDepense, colTiers))
+        chequeCtx = donneesOp(ligneDepense, colCheque)
+        notesCtx = mod_DataStructure.CellText(donneesOp(ligneDepense, colNotes))
+        montantCtx = mod_DataStructure.ToDouble(donneesOp(ligneDepense, colMontant))
     Else
         Set tblVen = ObtenirTableVentilationsFN()
         donneesVen = tblVen.DataBodyRange.value
@@ -433,7 +443,7 @@ Private Sub AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVal Sou
         Case "Valider"
             AppliquerNouvelleCle ligneDepense, Source, CStr(ws.Range("rnCleTrouvee").value)
         Case "PasDeCorrespondance"
-            AfficherGenerationPourLigne ligneDepense, Source
+            AfficherGenerationPourLigne ligneDepense, Source, donneesOp
         Case "Passer"
             ' Volontairement rien a faire : la ligne reste inchangee (KO,
             ' Date_consult toujours sentinelle), elle sera repropose au
@@ -492,23 +502,25 @@ End Sub
 ' =====================================================================================
 ' AfficherGenerationPourLigne : ouvre frm_GenerationCle pour UNE ligne
 ' =====================================================================================
-Private Sub AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal Source As String)
+Private Sub AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal Source As String, ByRef donneesOp As Variant)
 
     Dim ws As Worksheet
 
     ' --- PHASE 6 : mÃªmes lectures gÃ©nÃ©ralisÃ©es O/V que dans
     '     AfficherRapprochementPourLigne (voir ses commentaires) ---
+    ' CORRECTIF 05/10/2026 : "donneesOp" recu en parametre, voir
+    ' AfficherRapprochementPourLigne pour le detail du probleme corrige.
     Dim dateCtx As Variant, tiersCtx As String, chequeCtx As Variant, notesCtx As String, montantCtx As Double
     Dim tblVen As ListObject
     Dim donneesVen As Variant
     Dim colVenNotes As Long, colVenMontant As Long
 
     If Source = "O" Then
-        dateCtx = tblData(ligneDepense, colDate)
-        tiersCtx = mod_DataStructure.CellText(tblData(ligneDepense, colTiers))
-        chequeCtx = tblData(ligneDepense, colCheque)
-        notesCtx = mod_DataStructure.CellText(tblData(ligneDepense, colNotes))
-        montantCtx = mod_DataStructure.ToDouble(tblData(ligneDepense, colMontant))
+        dateCtx = donneesOp(ligneDepense, colDate)
+        tiersCtx = mod_DataStructure.CellText(donneesOp(ligneDepense, colTiers))
+        chequeCtx = donneesOp(ligneDepense, colCheque)
+        notesCtx = mod_DataStructure.CellText(donneesOp(ligneDepense, colNotes))
+        montantCtx = mod_DataStructure.ToDouble(donneesOp(ligneDepense, colMontant))
     Else
         Set tblVen = ObtenirTableVentilationsFN()
         donneesVen = tblVen.DataBodyRange.value
@@ -936,7 +948,7 @@ Private Sub EcrireListeMontantsEtCles(ws As Worksheet, ByRef candidats() As TCan
     EcrireListeEtRedefinirNom ws, "rnListeCles", mod_InstallFormulairesNotes.RN_COL_LISTE_CLES, cles
 End Sub
 
-' Percours la totalité du tableau "candidats()" à la recherche de la clé saisie
+' Percours la totalitï¿½ du tableau "candidats()" ï¿½ la recherche de la clï¿½ saisie
 Private Function TrouverCle(ByRef candidats() As TCandidatCle, ByVal nbCandidats As Long, _
                              ByVal dateFiltre As String, ByVal specialiteFiltre As String, _
                              ByVal beneficiaireFiltre As String, ByVal montantFiltre As String) As String
