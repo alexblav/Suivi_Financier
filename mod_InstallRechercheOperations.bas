@@ -130,7 +130,7 @@ Public Const RO_LIGNE_BOUTONS As Long = 2
 ' commentaire explicatif ci-dessous. Avant ce changement, ce commentaire
 ' etait ecrit sur la MEME ligne que les boutons (RO_LIGNE_ENTETES - 2 = 2) :
 ' invisible, cache sous les boutons eux-memes (constat operateur du 01/10/2026).
-Public Const RO_LIGNE_ENTETES As Long = 5
+Public Const RO_LIGNE_ENTETES As Long = 7
 
 ' RO_LIGNE_FILTRE = 4 (ajout 02/10/2026) : ligne restee vide entre le texte d'aide
 ' (RO_LIGNE_ENTETES - 2 = 3) et l'entete du tableau (RO_LIGNE_ENTETES = 5). Accueille

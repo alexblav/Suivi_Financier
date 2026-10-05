@@ -44,6 +44,9 @@ End Function
 ' critTriChamps    <- lit B5 : champ utilisé pour trier le détail
 ' critTriOrdre     <- lit B6 : ordre de tri du détail (croissant/décroissant)
 Public Sub GetSelectCriteres()
+    If wsSynthese Is Nothing Then
+        Set wsSynthese = mod_Criteres.GetFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+    End If
     critAnnee = mod_DataStructure.CellText(wsSynthese.Range("critAnnee").Value2)
     critMois = mod_DataStructure.CellText(wsSynthese.Range("critMois").Value2)
     critNbOperations = mod_DataStructure.ToLong(wsSynthese.Range("critNbLigne").Value2)
