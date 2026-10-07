@@ -1,30 +1,30 @@
 ' =====================================================================================
-' CODE A COLLER DANS LE MODULE DE LA FEUILLE "frm_ControleCategories"
+' CODE À COLLER DANS LE MODULE DE LA FEUILLE "frm_ControleCategories"
 ' =====================================================================================
-' Pourquoi cette etape manuelle ?
-'   En VBA, les "evenements" d'une feuille (ce qui se passe quand on modifie une cellule
-'   ou qu'on quitte la feuille) doivent obligatoirement etre ecrits dans le module de
-'   code de LA FEUILLE ELLE-MEME. On ne peut pas les livrer dans un fichier .bas.
-'   Le code ci-dessous est volontairement minimal : il ne fait qu'appeler les procedures
-'   de mod_ControleCategories, ou se trouve toute la logique.
+' Pourquoi cette étape manuelle ?
+'   En VBA, les "événements" d'une feuille (ce qui se passe quand on modifie une cellule
+'   ou qu'on quitte la feuille) doivent obligatoirement être écrits dans le module de
+'   code de LA FEUILLE ELLE-MÊME. On ne peut pas les livrer dans un fichier .bas.
+'   Le code ci-dessous est volontairement minimal : il ne fait qu'appeler les procédures
+'   de mod_ControleCategories, où se trouve toute la logique.
 '
 ' COMMENT FAIRE :
-'   1. Alt+F11 pour ouvrir l'editeur VBA.
-'   2. Dans l'explorateur de projet (a gauche, Ctrl+R si absent), reperez la ligne :
+'   1. Alt+F11 pour ouvrir l'éditeur VBA.
+'   2. Dans l'explorateur de projet (à gauche, Ctrl+R si absent), repérez la ligne :
 '          <CodeName> (frm_ControleCategories)
-'      (le CodeName vous a ete indique dans le message de fin d'installation ;
+'      (le CodeName vous a été indiqué dans le message de fin d'installation ;
 '       c'est de la forme Feuil11, Feuil12...). Double-cliquez dessus.
-'   3. La fenetre de code de cette feuille s'ouvre (vide). Collez-y LES LIGNES CI-DESSOUS,
-'      a partir de "Private Sub Worksheet_Change" (sans les lignes de commentaires du haut).
-'   4. Ne collez pas ce code dans une autre feuille : il s'y declencherait a tort.
+'   3. La fenêtre de code de cette feuille s'ouvre (vide). Collez-y LES LIGNES CI-DESSOUS,
+'      à partir de "Private Sub Worksheet_Change" (sans les lignes de commentaires du haut).
+'   4. Ne collez pas ce code dans une autre feuille : il s'y déclencherait à tort.
 ' =====================================================================================
 
-' Se declenche des qu'une cellule de la feuille est modifiee par l'operateur.
+' Se déclenche dès qu'une cellule de la feuille est modifiée par l'opérateur.
 Private Sub Worksheet_Change(ByVal Target As Range)
     mod_ControleCategories.CtrlTraiterChangement Me, Target
 End Sub
 
-' Se declenche quand l'operateur essaie de quitter la feuille (verrou "modal").
+' Se déclenche quand l'opérateur essaie de quitter la feuille (verrou "modal").
 Private Sub Worksheet_Deactivate()
     mod_ControleCategories.CtrlVerrouiller Me
 End Sub

@@ -3,65 +3,64 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_DecalagesBudget
 '
-' ROLE (ajout 03/10/2026, demande operateur) :
-'   Avant ce module, UNE SEULE regle etait codee en dur dans
-'   mod_ImportOFX.CalculerBudget : les salaires verses par "DRFIP OCCITANIE ET HTE"
-'   etaient affectes au mois SUIVANT celui de l'operation (le virement de fin de
-'   mois correspond au salaire du mois qui commence). Cette regle a casse
-'   silencieusement lors du passage a la hierarchie Categorie/Sous-categorie
-'   (Phase 5) : le test comparait la colonne Categorie a "Salaire/Revenus
-'   d'activite", qui est devenue une SOUS-categorie de "Revenus" - plus aucune
-'   operation ne pouvait donc jamais correspondre.
+' RÔLE (ajout du 03/10/2026, demande opérateur) :
+'   Avant ce module, une seule règle était codée en dur dans
+'   mod_ImportOFX.CalculerBudget : les salaires versés par "DRFIP OCCITANIE ET HTE"
+'   étaient affectés au mois SUIVANT celui de l'opération (le virement de fin de
+'   mois correspond au salaire du mois qui commence). Cette règle a cessé de
+'   fonctionner silencieusement lors du passage à la hiérarchie Catégorie/Sous-catégorie
+'   (phase 5) : le test comparait la colonne Categorie à "Salaire/Revenus
+'   d'activite", devenue une SOUS-CATÉGORIE de "Revenus". Aucune opération ne pouvait
+'   donc correspondre.
 '
-'   Ce module remplace cette regle unique par un TABLEAU DE CORRESPONDANCE,
-'   modifiable par l'operateur sans toucher au code : la feuille Param, tableau
-'   "TblDecalagesBudget" (colonnes S a V, voir mod_VarGlobales). Chaque ligne du
-'   tableau precise un critere (Tiers / Categorie / Sous-categorie - chaque
-'   champ laisse VIDE agit comme un joker, "n'importe quelle valeur") et le
-'   decalage a appliquer, en nombre de mois (+1, -1, 0, ou toute autre valeur
-'   entiere si besoin un jour).
+'   Ce module remplace cette règle par un TABLEAU DE CORRESPONDANCE modifiable
+'   par l'opérateur sans toucher au code : le tableau "TblDecalagesBudget" de la
+'   feuille Param (colonnes S à V, voir mod_VarGlobales). Chaque ligne précise un
+'   critère (Tiers / Categorie / Sous-categorie; un champ laissé VIDE agit comme
+'   un joker, c'est-à-dire "n'importe quelle valeur") et le décalage à appliquer,
+'   exprimé en nombre de mois (+1, -1, 0 ou toute autre valeur entière si nécessaire).
 '
-'   Une operation qui ne correspond a AUCUNE ligne du tableau garde le
-'   comportement actuel (aucun decalage, budget = mois de l'operation).
+'   Une opération qui ne correspond à AUCUNE ligne du tableau conserve le
+'   comportement actuel (aucun décalage, budget = mois de l'opération).
 '
 ' COLONNES DU TABLEAU "TblDecalagesBudget" (feuille Param, S:V) :
 '   S = Tiers          : texte exact du Tiers, ou VIDE = n'importe quel Tiers.
-'   T = Categorie      : categorie PARENTE (ex: "Revenus"), ou VIDE = joker.
-'   U = SousCategorie  : sous-categorie (ex: "Salaire/Revenus d'activite"), ou
+'   T = Categorie      : catégorie PARENTE (ex. : "Revenus"), ou VIDE = joker.
+'   U = SousCategorie  : sous-catégorie (ex. : "Salaire/Revenus d'activite"), ou
 '                        VIDE = joker.
-'   V = Decalage       : nombre de mois a ajouter a Date_Comptable pour obtenir
-'                        le mois de budget (entier, positif ou negatif).
+'   V = Decalage       : nombre de mois à ajouter à Date_Comptable pour obtenir
+'                        le mois de budget (entier positif ou négatif).
 '
-' COMMENT INSTALLER / RE-INSTALLER LE TABLEAU :
-'   Ctrl+G (fenetre Execution), taper :  InitialiserTableDecalagesBudget
-'   Sans danger si le tableau existe deja : la procedure ne fait rien dans ce cas
-'   (meme principe que mod_Categories.AjouterColonneSousCategorie).
+' COMMENT INSTALLER / RÉINSTALLER LE TABLEAU :
+'   Ctrl+G (fenêtre Exécution), taper : InitialiserTableDecalagesBudget
+'   Sans danger si le tableau existe déjà : la procédure ne fait rien dans ce cas
+'   (même principe que mod_Categories.AjouterColonneSousCategorie).
 '
-' COMMENT AJOUTER UNE NOUVELLE REGLE DE DECALAGE :
+' COMMENT AJOUTER UNE NOUVELLE RÈGLE DE DÉCALAGE :
 '   Directement dans le tableau TblDecalagesBudget (feuille Param) : ajouter une
-'   ligne, remplir les criteres voulus (laisser vide ce qui ne doit pas filtrer)
-'   et le decalage. Aucune modification de code necessaire.
+'   ligne, remplir les critères voulus (laisser vide ce qui ne doit pas filtrer)
+'   et le décalage. Aucune modification du code n'est nécessaire.
 '
-' AJOUT 03/10/2026 (demande operateur) : DECALAGE MANUEL D'UNE OPERATION PRECISE.
-'   En plus des regles generales ci-dessus (qui peuvent s'appliquer a PLUSIEURS
-'   operations partageant le meme Tiers/Categorie/SousCategorie), l'operateur peut
-'   desormais forcer un decalage pour UNE SEULE operation, depuis l'ecran de
-'   recherche (bouton "Decaler le budget de cette operation", voir
-'   mod_RechercheOperations.DecalerBudgetOperationRO). Ce choix est ecrit dans une
+' AJOUT du 03/10/2026 (demande opérateur) : DÉCALAGE MANUEL D'UNE OPÉRATION PRÉCISE.
+'   En plus des règles générales ci-dessus (qui peuvent s'appliquer à PLUSIEURS
+'   opérations partageant le même Tiers/Categorie/SousCategorie), l'opérateur peut
+'   désormais forcer un décalage pour UNE SEULE opération depuis l'écran de recherche
+'   (bouton "Decaler le budget de cette operation", voir
+'   mod_RechercheOperations.DecalerBudgetOperationRO). Ce choix est écrit dans une
 '   nouvelle colonne technique de TblOperations, "DecalageManuel" (voir
-'   mod_VarGlobales.NOM_COL_DECALAGE_MANUEL / colDecalageManuel), qui MARQUE la
-'   ligne : si un futur recalcul automatique global devait un jour exister, il
-'   devra imperativement commencer par verifier cette colonne et ne JAMAIS modifier
-'   une ligne ou elle est renseignee (non vide) - le choix de l'operateur doit
-'   toujours primer sur les regles generales pour cette operation precise.
+'   mod_VarGlobales.NOM_COL_DECALAGE_MANUEL / colDecalageManuel), qui MARQUE la ligne.
+'   Si un recalcul automatique global devait un jour exister, il devra impérativement
+'   vérifier cette colonne en premier et ne JAMAIS modifier une ligne où elle est
+'   renseignée (non vide). Le choix de l'opérateur doit toujours primer sur les règles
+'   générales pour cette opération précise.
 ' =====================================================================================
 
 
 ' =====================================================================================
-' INSTALLATION : cree le tableau TblDecalagesBudget s'il n'existe pas encore, avec en
-' premiere ligne la regle DRFIP (migree depuis l'ancien codage en dur de
-' mod_ImportOFX.CalculerBudget). Ne fait rien si le tableau existe deja : ne JAMAIS
-' ecraser des regles que l'operateur aurait deja ajoutees ou modifiees.
+' INSTALLATION : crée le tableau TblDecalagesBudget s'il n'existe pas encore, avec en
+' première ligne la règle DRFIP (migrée depuis l'ancien codage en dur de
+' mod_ImportOFX.CalculerBudget). Ne fait rien si le tableau existe déjà : ne JAMAIS
+' écraser les règles que l'opérateur aurait déjà ajoutées ou modifiées.
 ' =====================================================================================
 Public Sub InitialiserTableDecalagesBudget()
 
@@ -89,21 +88,21 @@ Public Sub InitialiserTableDecalagesBudget()
         Exit Sub
     End If
 
-    ' --- En-tetes ---
+    ' --- En-têtes ---
     wsParam.Range(wsParam.Cells(1, colDebut), wsParam.Cells(1, colDebut + nbCol - 1)).value = _
         Array("Tiers", "Categorie", "SousCategorie", "Decalage")
 
-    ' --- Format TEXTE sur les 3 premieres colonnes avant d'ecrire (meme precaution que
-    ' partout ailleurs dans ce projet : un Tiers ou une Categorie qui ressemble a un
-    ' nombre ne doit jamais etre convertie silencieusement). La colonne Decalage, elle,
+    ' --- Format TEXTE sur les trois premières colonnes avant d'écrire (même précaution
+    ' que partout ailleurs dans ce projet : un Tiers ou une Categorie ressemblant à un
+    ' nombre ne doit jamais être converti silencieusement). La colonne Decalage, elle,
     ' reste un nombre normal (Standard). ---
     wsParam.Range(wsParam.Cells(2, colDebut), wsParam.Cells(2, colDebut + nbCol - 2)).NumberFormat = "@"
 
-    ' --- Migration de l'ancienne regle codee en dur (DRFIP) ---
+    ' --- Migration de l'ancienne règle codée en dur (DRFIP) ---
     wsParam.Cells(2, colDebut).value = "DRFIP OCCITANIE ET HTE"          ' Tiers
     wsParam.Cells(2, colDebut + 1).value = "Revenus"                     ' Categorie (parente)
     wsParam.Cells(2, colDebut + 2).value = "Salaire/Revenus d'activit" & Chr(233)  ' SousCategorie
-    wsParam.Cells(2, colDebut + 3).value = 1                             ' Decalage (+1 mois)
+    wsParam.Cells(2, colDebut + 3).value = 1                             ' Décalage (+1 mois)
 
     Set tbl = wsParam.ListObjects.Add(xlSrcRange, _
         wsParam.Range(wsParam.Cells(1, colDebut), wsParam.Cells(2, colDebut + nbCol - 1)), , xlYes)
@@ -116,15 +115,15 @@ End Sub
 
 
 ' =====================================================================================
-' LECTURE : renvoie le decalage (en mois) a appliquer pour une operation donnee, ou 0
-' si aucune ligne du tableau ne correspond (comportement identique a aujourd'hui :
-' budget = mois de l'operation). Chaque critere laisse VIDE dans le tableau agit comme
-' un joker ("n'importe quelle valeur") ; la comparaison ignore la casse et les espaces
-' en debut/fin (memes conventions que le reste du projet).
+' LECTURE : renvoie le décalage (en mois) à appliquer pour une opération donnée, ou 0
+' si aucune ligne du tableau ne correspond (comportement identique à aujourd'hui :
+' budget = mois de l'opération). Chaque critère laissé VIDE dans le tableau agit comme
+' un joker ("n'importe quelle valeur"); la comparaison ignore la casse et les espaces
+' en début/fin (mêmes conventions que le reste du projet).
 '
-' En cas de PLUSIEURS lignes correspondantes, c'est la PREMIERE rencontree (de haut en
-' bas dans le tableau) qui s'applique : a l'operateur de placer ses regles les plus
-' specifiques en premier si un jour plusieurs regles pouvaient se chevaucher.
+' En cas de PLUSIEURS lignes correspondantes, c'est la PREMIÈRE rencontrée (de haut en
+' bas dans le tableau) qui s'applique : à l'opérateur de placer ses règles les plus
+' spécifiques en premier si plusieurs règles venaient à se chevaucher.
 ' =====================================================================================
 Public Function ObtenirDecalageBudget(ByVal tiers As String, ByVal categorie As String, ByVal sousCategorie As String) As Long
 
@@ -134,7 +133,7 @@ Public Function ObtenirDecalageBudget(ByVal tiers As String, ByVal categorie As 
     Dim i As Long
     Dim critTiers As String, critCategorie As String, critSousCategorie As String
 
-    ObtenirDecalageBudget = 0   ' valeur par defaut : aucun decalage
+    ObtenirDecalageBudget = 0   ' valeur par défaut : aucun décalage
 
     On Error Resume Next
     Set wsParam = ThisWorkbook.Worksheets(mod_Categories.NOM_FEUILLE_PARAM)
@@ -147,7 +146,7 @@ Public Function ObtenirDecalageBudget(ByVal tiers As String, ByVal categorie As 
     If tbl Is Nothing Then Exit Function
     If tbl.DataBodyRange Is Nothing Then Exit Function
 
-    donnees = tbl.DataBodyRange.value   ' colonnes 1 a 4 = Tiers/Categorie/SousCategorie/Decalage
+    donnees = tbl.DataBodyRange.value   ' colonnes 1 à 4 = Tiers/Categorie/SousCategorie/Decalage
 
     For i = 1 To UBound(donnees, 1)
         critTiers = Trim(mod_DataStructure.CellText(donnees(i, 1)))
@@ -166,15 +165,15 @@ End Function
 
 
 ' =====================================================================================
-' CALCUL DE DATE (ajout 03/10/2026, demande operateur) : SEULE fonction de tout le
-' projet qui transforme une date comptable + un decalage (en mois) en date de budget
-' (toujours ramenee au 1er du mois). Reutilisee a la fois par mod_ImportOFX.CalculerBudget
-' (decalage lu dans TblDecalagesBudget) et par AppliquerDecalageManuel ci-dessous
-' (decalage impose par l'operateur pour une seule operation) : ainsi, quel que soit le
-' chemin de code empreinte, le budget d'une operation est TOUJOURS calcule de la meme
-' maniere - aucune formule dupliquee ailleurs dans le projet.
-' DateSerial() gere seul le changement d'annee (mois 13 -> janvier annee+1, et de la
-' meme facon mois 0 -> decembre annee-1 pour un decalage negatif).
+' CALCUL DE DATE (ajout du 03/10/2026, demande opérateur) : SEULE fonction du projet
+' qui transforme une date comptable et un décalage (en mois) en date de budget
+' (toujours ramenée au premier du mois). Elle est réutilisée par mod_ImportOFX.CalculerBudget
+' (décalage lu dans TblDecalagesBudget) et par AppliquerDecalageManuel ci-dessous
+' (décalage imposé par l'opérateur pour une seule opération). Ainsi, quel que soit le
+' chemin de code emprunté, le budget d'une opération est TOUJOURS calculé de la même
+' manière, sans formule dupliquée ailleurs dans le projet.
+' DateSerial() gère seul le changement d'année (mois 13 -> janvier de l'année suivante;
+' de même, mois 0 -> décembre de l'année précédente pour un décalage négatif).
 ' =====================================================================================
 Public Function CalculerDateBudget(ByVal dateComptable As Date, ByVal decalage As Long) As Date
     CalculerDateBudget = DateSerial(Year(dateComptable), Month(dateComptable) + decalage, 1)
@@ -182,11 +181,11 @@ End Function
 
 
 ' =====================================================================================
-' INSTALLATION : ajoute la colonne technique "DecalageManuel" a la fin de TblOperations,
-' si elle n'existe pas deja (meme principe, et meme prudence, que
-' mod_Categories.AjouterColonneSousCategorie : ajout TOUJOURS a la fin du tableau, pour
-' ne deplacer aucune colonne existante ; ne fait rien si la colonne existe deja).
-' A executer UNE FOIS, par Ctrl+G : AjouterColonneDecalageManuel
+' INSTALLATION : ajoute la colonne technique "DecalageManuel" à la fin de TblOperations,
+' si elle n'existe pas déjà (même principe et même prudence que
+' mod_Categories.AjouterColonneSousCategorie : ajout TOUJOURS à la fin du tableau afin
+' de ne déplacer aucune colonne existante; ne fait rien si la colonne existe déjà).
+' À exécuter UNE FOIS, par Ctrl+G : AjouterColonneDecalageManuel
 ' =====================================================================================
 Public Sub AjouterColonneDecalageManuel()
 
@@ -206,7 +205,7 @@ Public Sub AjouterColonneDecalageManuel()
         Exit Sub
     End If
 
-    ' ListColumns.Add sans argument = ajout apres la derniere colonne du tableau.
+    ' ListColumns.Add sans argument ajoute la colonne après la dernière du tableau.
     Set colonne = tblOps.ListColumns.Add
     colonne.Name = mod_VarGlobales.NOM_COL_DECALAGE_MANUEL
 
@@ -218,17 +217,17 @@ End Sub
 
 
 ' =====================================================================================
-' ECRITURE : force le decalage de budget d'UNE SEULE operation, identifiee par son
-' ID_Transaction. Retrouve la ligne dans TblOperations (meme mecanisme de recherche
-' que mod_RechercheOperations.RevoirVentilationRO : lecture de colID colonne par
-' colonne, pas de formule), ecrit le decalage choisi dans la colonne technique
-' "DecalageManuel" (ce qui MARQUE la ligne, voir l'en-tete de ce module), puis
-' recalcule Budget/MoisBudget/AnneeBudget via CalculerDateBudget ci-dessus - jamais
-' via ObtenirDecalageBudget, puisque l'operateur a choisi ce decalage explicitement et
-' qu'il ne doit pas etre recalcule a partir des regles generales.
+' ÉCRITURE : force le décalage de budget d'UNE SEULE opération, identifiée par son
+' ID_Transaction. Retrouve la ligne dans TblOperations (même mécanisme de recherche
+' que mod_RechercheOperations.RevoirVentilationRO : lecture de colID colonne par colonne,
+' sans formule), écrit le décalage choisi dans la colonne technique "DecalageManuel"
+' (ce qui MARQUE la ligne; voir l'en-tête du module), puis recalcule
+' Budget/MoisBudget/AnneeBudget via CalculerDateBudget ci-dessus, jamais via
+' ObtenirDecalageBudget : l'opérateur a choisi ce décalage explicitement, il ne doit
+' donc pas être recalculé à partir des règles générales.
 '
-' Renvoie True si la ligne a bien ete retrouvee et mise a jour, False sinon (et affiche
-' lui-meme un message d'erreur dans ce cas - l'appelant n'a rien d'autre a faire).
+' Renvoie True si la ligne a été trouvée et mise à jour, False sinon (et affiche alors
+' un message d'erreur; l'appelant n'a rien d'autre à faire).
 ' =====================================================================================
 Public Function AppliquerDecalageManuel(ByVal idTransaction As String, ByVal nouveauDecalage As Long) As Boolean
 
@@ -283,21 +282,20 @@ End Function
 
 
 ' =====================================================================================
-' ECRITURE : ajoute une nouvelle REGLE GENERALE dans TblDecalagesBudget (feuille
-' Param), a partir de criteres deja connus (typiquement relus sur une operation
-' selectionnee dans l'ecran de recherche - voir
-' mod_RechercheOperations.AjouterDecalageDepuisRO). Contrairement a
-' AppliquerDecalageManuel ci-dessus (qui ne modifie qu'UNE operation), une regle
-' ajoutee ici s'appliquera a TOUTES les operations qui correspondent aux criteres,
-' y compris celles qui seront importees plus tard.
+' ÉCRITURE : ajoute une nouvelle RÈGLE GÉNÉRALE dans TblDecalagesBudget (feuille Param),
+' à partir de critères déjà connus (généralement lus sur une opération sélectionnée
+' dans l'écran de recherche; voir mod_RechercheOperations.AjouterDecalageDepuisRO).
+' Contrairement à AppliquerDecalageManuel (qui ne modifie qu'UNE opération), une règle
+' ajoutée ici s'appliquera à TOUTES les opérations correspondant aux critères, y compris
+' celles qui seront importées plus tard.
 '
-' Meme precaution que partout ailleurs dans ce module : format TEXTE sur les 3
-' premieres colonnes avant d'ecrire (pattern repris de
-' mod_Categories.AjouterCategoriePersonnalisee), pour qu'un Tiers qui ressemble a un
+' Même précaution que partout ailleurs dans ce module : format TEXTE sur les trois
+' premières colonnes avant d'écrire (méthode reprise de
+' mod_Categories.AjouterCategoriePersonnalisee), afin qu'un Tiers ressemblant à un
 ' nombre ne soit jamais converti silencieusement.
 '
-' Renvoie True si la ligne a bien ete ajoutee, False si le tableau est introuvable
-' (et affiche lui-meme un message d'erreur dans ce cas).
+' Renvoie True si la ligne a été ajoutée, False si le tableau est introuvable
+' (et affiche alors un message d'erreur).
 ' =====================================================================================
 Public Function AjouterRegleDecalage(ByVal tiers As String, ByVal categorie As String, _
                                       ByVal sousCategorie As String, ByVal decalage As Long) As Boolean
@@ -330,8 +328,8 @@ Public Function AjouterRegleDecalage(ByVal tiers As String, ByVal categorie As S
     End If
 
     Set nouvelleLigne = tbl.ListRows.Add
-    ' Format TEXTE sur les 3 premieres colonnes (Tiers/Categorie/SousCategorie) AVANT
-    ' d'y ecrire quoi que ce soit - meme precaution qu'a l'installation du tableau.
+    ' Format TEXTE sur les trois premières colonnes (Tiers/Categorie/SousCategorie) AVANT
+    ' d'y écrire quoi que ce soit, par précaution comme lors de l'installation du tableau.
     wsParam.Range(wsParam.Cells(nouvelleLigne.Range.Row, colDebut), _
                   wsParam.Cells(nouvelleLigne.Range.Row, colDebut + nbCol - 2)).NumberFormat = "@"
 

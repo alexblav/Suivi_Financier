@@ -3,40 +3,40 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_DernierImport
 '
-' ROLE (PHASE 3, partie ergonomie -- ALLEGE EN PHASE 6) :
-'   Memorise la liste des operations ajoutees par le DERNIER import OFX (leurs
-'   ID_Transaction et la date/heure de l'import) dans une feuille technique.
+' RÔLE (PHASE 3, volet ergonomie, allégé en phase 6) :
+'   Mémorise dans une feuille technique la liste des opérations ajoutées par le
+'   DERNIER import OFX (leurs ID_Transaction et la date/heure de l'import).
 '
-'   Point d'entree unique de ce module desormais :
-'     - MemoriserDernierImport : appelee automatiquement par ImporterOperationsOFX
-'                                 a la fin de chaque import (rien a faire cote operateur)
+'   Point d'entrée unique de ce module :
+'     - MemoriserDernierImport : appelée automatiquement par ImporterOperationsOFX
+'                                à la fin de chaque import (aucune action opérateur requise).
 '
-'   PHASE 6 : la fonction d'AFFICHAGE (AfficherDernierImportSurSynthese) a ete
-'   retiree de ce module. L'affichage se fait desormais via l'ecran central
+'   PHASE 6 : la fonction d'affichage (AfficherDernierImportSurSynthese) a été
+'   retirée de ce module. L'affichage se fait désormais dans l'écran central
 '   mod_RechercheOperations.RechercherOperations("DernierImport"), qui relit
-'   cette meme feuille technique. Ce module ne s'occupe donc plus que de
-'   MEMORISER, pas d'afficher.
+'   cette même feuille technique. Ce module ne s'occupe donc plus que de
+'   MÉMORISER, et non d'afficher.
 '
-' STOCKAGE : une feuille technique tres masquee ("TechDernierImport") contient :
+' STOCKAGE : une feuille technique très masquée ("TechDernierImport") contient :
 '     A1 = "DateImport"      B1 = date/heure du dernier import
-'     A2 = "NbOperations"    B2 = nombre d'ID_Transaction memorises
-'     A4, A5, A6...          liste des ID_Transaction (un par ligne, a partir de A4)
-'   Cette structure simple est deliberement extensible : si un jour tu veux
-'   conserver plusieurs imports (pas seulement le dernier), il suffira d'ajouter
-'   une colonne "NumeroImport" sans tout redessiner.
+'     A2 = "NbOperations"    B2 = nombre d'ID_Transaction mémorisés
+'     A4, A5, A6...          liste des ID_Transaction (un par ligne, à partir de A4)
+'   Cette structure simple est délibérément extensible : pour conserver plusieurs
+'   imports (pas seulement le dernier), il suffira d'ajouter une colonne
+'   "NumeroImport", sans tout redessiner.
 '
-' A PROPOS DES ACCENTS : meme convention que les autres modules du chantier
-' Suivi Sante : fichier 100% ASCII, textes accentues affiches a l'operateur
-' construits via la fonction mod_Display.FR().
+' À PROPOS DES ACCENTS : même convention que dans les autres modules du chantier
+' Suivi Santé : les textes affichés à l'opérateur sont construits via
+' mod_Display.FR(); les commentaires du fichier sont encodés en UTF-8.
 ' =====================================================================================
 
 'Private Const NOM_FEUILLE_TECH As String = "TechDernierImport"
 Private Const LIGNE_DEBUT_LISTE_ID As Long = 4
 
 ' =====================================================================================
-' MemoriserDernierImport : enregistre la liste des ID_Transaction du dernier
-' import, avec la date/heure, dans la feuille technique (ecrase le contenu
-' precedent : on ne garde que le tout dernier import pour l'instant).
+' MemoriserDernierImport : enregistre dans la feuille technique la liste des
+' ID_Transaction du dernier import et sa date/heure (écrase le contenu précédent :
+' pour l'instant, seul le dernier import est conservé).
 ' =====================================================================================
 Public Sub MemoriserDernierImport(ByRef listeID() As String, ByVal nb As Long)
 
@@ -56,9 +56,9 @@ Public Sub MemoriserDernierImport(ByRef listeID() As String, ByVal nb As Long)
 
     wsTech.Range("A" & (LIGNE_DEBUT_LISTE_ID - 1)).value = "ID_Transaction"
 
-    ' Forcer la colonne en TEXTE *avant* d'ecrire les ID_Transaction, sinon Excel
-    ' convertit silencieusement les longs identifiants numeriques en nombre (meme
-    ' piege que celui deja traite dans mod_ImportOFX.bas pour TblOperations).
+    ' Forcer la colonne au format TEXTE avant d'écrire les ID_Transaction, sinon Excel
+    ' convertit silencieusement les longs identifiants numériques en nombres (même
+    ' piège que celui déjà traité dans mod_ImportOFX.bas pour TblOperations).
     wsTech.Range(wsTech.Cells(LIGNE_DEBUT_LISTE_ID, 1), wsTech.Cells(LIGNE_DEBUT_LISTE_ID - 1 + nb, 1)).NumberFormat = "@"
 
     For i = 1 To nb
@@ -68,16 +68,15 @@ Public Sub MemoriserDernierImport(ByRef listeID() As String, ByVal nb As Long)
 End Sub
 
 
-' PHASE 6 : AfficherDernierImportSurSynthese est supprimee. L'affichage du
-' dernier import se fait desormais dans l'ecran central
-' frm_RechercheOperations (mod_RechercheOperations.RechercherOperations
-' "DernierImport", appelee par mod_ImportOFX a la fin de chaque import, ou
-' a la demande depuis n'importe quel bouton). Elle relit la meme feuille
-' technique "TechDernierImport" que celle-ci alimente toujours
-' (MemoriserDernierImport, juste au-dessus, est INCHANGEE).
-'' =====================================================================================
-'' FONCTIONS UTILITAIRES (creation / recuperation de la feuille technique)
-'' =====================================================================================
+' PHASE 6 : AfficherDernierImportSurSynthese a été supprimée. L'affichage du
+' dernier import se fait désormais dans l'écran central frm_RechercheOperations
+' (mod_RechercheOperations.RechercherOperations("DernierImport")), appelée par
+' mod_ImportOFX à la fin de chaque import ou à la demande depuis n'importe quel bouton.
+' Cette procédure relit la même feuille technique "TechDernierImport", toujours
+' alimentée par MemoriserDernierImport (juste au-dessus, inchangée).
+' =====================================================================================
+' FONCTIONS UTILITAIRES (création et récupération de la feuille technique)
+' =====================================================================================
 Private Function ObtenirFeuilleTechSiExiste() As Worksheet
     Dim ws As Worksheet
     On Error Resume Next

@@ -3,116 +3,116 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_Categories
 '
-' PHASE 1 du chantier "Categorie / Sous-categorie / Ventilation".
+' PHASE 1 du chantier « Catégorie / Sous-catégorie / Ventilation ».
 '
-' ROLE DE CE MODULE (a lire en premier, meme si vous debutez) :
+' RÔLE DE CE MODULE (à lire en premier, même si vous débutez) :
 '
-'   Aujourd'hui, une operation n'a qu'UNE categorie, sous forme de texte simple
-'   (ex : "Frais, remb sante"). Le nouveau fonctionnement demande DEUX niveaux :
-'        Categorie      (ex : "Sante, prevoyance")
-'        Sous-categorie (ex : "Frais, remb sante")
+'   Aujourd'hui, une opération n'a qu'UNE catégorie, sous forme de texte simple
+'   (ex. : "Frais, remb santé"). Le nouveau fonctionnement demande DEUX niveaux :
+'        Catégorie      (ex. : "Santé, prévoyance")
+'        Sous-catégorie (ex. : "Frais, remb santé")
 '
 '   Les fichiers sources de la banque (OFX + CSV) ne fournissent toujours qu'UNE
-'   categorie : c'est la "CATEGORIE SOURCE". Il faut donc un TABLEAU DE
-'   CORRESPONDANCE qui dit, pour chaque categorie source :
-'        "quand la banque m'envoie X, je la range dans Categorie Y / Sous-categorie Z".
+'   catégorie : c'est la "CATÉGORIE SOURCE". Il faut donc un TABLEAU DE
+'   CORRESPONDANCE qui indique, pour chaque catégorie source :
+'        "quand la banque m'envoie X, je la range dans Catégorie Y / Sous-catégorie Z".
 '
 '   Ce module met en place les deux briques de base, RIEN d'autre :
-'     1. La colonne "SousCategorie" ajoutee a la fin de TblOperations.
-'     2. Le tableau "TblCategories" dans la feuille Param (colonnes K a N), pre-rempli
-'        avec toutes les categories deja presentes dans vos operations.
+'     1. La colonne "SousCategorie" ajoutée à la fin de TblOperations.
+'     2. Le tableau "TblCategories" dans la feuille Param (colonnes K à N), prérempli
+'        avec toutes les catégories déjà présentes dans vos opérations.
 '
-'   CE MODULE NE MODIFIE AUCUNE DONNEE EXISTANTE de TblOperations : les valeurs de
-'   la colonne Categorie ne sont pas touchees. La conversion des anciennes operations
-'   viendra dans une phase ulterieure, apres votre validation du tableau.
+'   CE MODULE NE MODIFIE AUCUNE DONNÉE EXISTANTE de TblOperations : les valeurs de
+'   la colonne Categorie ne sont pas touchées. La conversion des anciennes opérations
+'   viendra dans une phase ultérieure, après votre validation du tableau.
 '
 '   Il ne modifie PAS non plus les autres modules (mod_ImportOFX, mod_Display, ...).
 '
 ' COMMENT UTILISER (dans l'ordre) :
-'   1. Enregistrer une COPIE du classeur (precaution, une colonne va etre ajoutee).
-'   2. Ctrl+G (fenetre Execution), taper :  PreparerPhase1Categories   puis Entree.
-'   3. Sur la feuille Param qui s'affiche, verifier / corriger le tableau K:N,
-'      puis mettre "Oui" dans la colonne "Verifie" pour chaque ligne controlee.
+'   1. Enregistrer une COPIE du classeur (précaution : une colonne va être ajoutée).
+'   2. Ctrl+G (fenêtre Exécution), taper : PreparerPhase1Categories, puis Entrée.
+'   3. Sur la feuille Param qui s'affiche, vérifier ou corriger le tableau K:N,
+'      puis mettre "Oui" dans la colonne "Verifie" pour chaque ligne contrôlée.
 '   4. Quand vous avez fini : MasquerParam (Ctrl+G) pour cacher la feuille.
 '
-' A PROPOS DES ACCENTS : ce fichier est 100% ASCII. Les lettres accentuees sont
-' fabriquees a l'execution avec ChrW() ou avec la fonction AccentsFR (voir plus bas).
+' À PROPOS DES ACCENTS : les textes destinés à Excel sont construits à l'exécution
+' avec ChrW() ou la fonction AccentsFR (voir plus bas). Les commentaires sont en UTF-8.
 ' =====================================================================================
 
 ' --- Nom de la feuille et du tableau de correspondance ---------------------------------
 Public Const NOM_FEUILLE_PARAM As String = "Param"
 Public Const NOM_TABLE_CATEGORIES As String = "TblCategories"
 
-' --- Nom de la colonne ajoutee dans TblOperations -----------------------------------
+' --- Nom de la colonne ajoutée dans TblOperations -----------------------------------
 Public Const NOM_COL_SOUS_CATEGORIE As String = "SousCategorie"
 
 ' --- Position du tableau dans la feuille Param ----------------------------------------
-' Les colonnes A a I de Param sont deja utilisees (listes Mois, Annees, Medecins...).
-' On place donc le nouveau tableau plus a droite, en laissant la colonne J vide.
-Private Const COL_DEBUT As Long = 11        ' colonne K : premiere colonne du tableau
+' Les colonnes A à I de Param sont déjà utilisées (listes Mois, Années, Médecins...).
+' On place donc le nouveau tableau plus à droite, en laissant la colonne J vide.
+Private Const COL_DEBUT As Long = 11        ' colonne K : première colonne du tableau
 Private Const NB_COL_TABLE As Long = 4      ' K, L, M, N = 4 colonnes
-Private Const COL_LISTE As Long = 16        ' colonne P : liste technique des categories
+Private Const COL_LISTE As Long = 16        ' colonne P : liste technique des catégories
 
-' Nom (au niveau du classeur) de la liste servant aux menus deroulants
+' Nom (au niveau du classeur) de la liste servant aux menus déroulants
 Private Const NOM_LISTE_CATEGORIES As String = "ListeCategories"
 
 ' Les 4 colonnes du tableau, dans l'ordre :
-'   K = CategorieSource : le texte EXACT envoye par la banque (ne pas modifier)
-'   L = Categorie       : la categorie de rangement dans le nouvel outil
-'   M = SousCategorie   : la sous-categorie (peut rester vide)
-'   N = Verifie         : "Oui" quand l'operateur a controle la ligne
+'   K = CategorieSource : le texte EXACT envoyé par la banque (ne pas modifier)
+'   L = Categorie       : la catégorie de rangement dans le nouvel outil
+'   M = SousCategorie   : la sous-catégorie (peut rester vide)
+'   N = Verifie         : "Oui" quand l'opérateur a contrôlé la ligne
 
 
 ' =====================================================================================
-' PROCEDURE D'ENSEMBLE : enchaine les 3 etapes de la Phase 1.
-' (Chaque etape reste utilisable seule, voir plus bas.)
+' PROCÉDURE D'ENSEMBLE : enchaîne les trois étapes de la phase 1.
+' (Chaque étape reste utilisable seule; voir plus bas.)
 ' =====================================================================================
 Public Sub PreparerPhase1Categories()
 
-    ' Etape 1 : colonne SousCategorie dans TblOperations
+    ' Étape 1 : colonne SousCategorie dans TblOperations
     AjouterColonneSousCategorie
 
-    ' Etape 2 : creation / mise a jour du tableau de correspondance
+    ' Étape 2 : création ou mise à jour du tableau de correspondance
     InitialiserTableCategories
 
-    ' Etape 3 : on montre la feuille Param pour que l'operateur puisse verifier
+    ' Étape 3 : on affiche la feuille Param pour que l'opérateur puisse vérifier.
     AfficherParamCategories
 
 End Sub
 
 
 ' =====================================================================================
-' ETAPE 1 : ajoute la colonne "SousCategorie" a la fin de TblOperations
+' ÉTAPE 1 : ajoute la colonne "SousCategorie" à la fin de TblOperations
 ' =====================================================================================
-' Pourquoi "a la fin" ? Parce que tout votre code lit les colonnes par NOM
-' (voir RecupIndexCol) ou par position pour les colonnes 1 a 20. En ajoutant la
-' nouvelle colonne apres la derniere (colonne U), aucune position existante ne bouge.
-' Cette procedure peut etre relancee sans danger : si la colonne existe deja,
+' Pourquoi "à la fin" ? Parce que tout votre code lit les colonnes par nom
+' (voir RecupIndexCol) ou par position pour les colonnes 1 à 20. En ajoutant la
+' nouvelle colonne après la dernière (colonne U), aucune position existante ne bouge.
+' Cette procédure peut être relancée sans danger : si la colonne existe déjà,
 ' elle ne fait rien.
 Public Sub AjouterColonneSousCategorie()
 
     Dim tblOps As ListObject
     Dim colonne As ListColumn
 
-    ' On reutilise la fonction existante qui retrouve TblOperations
-    ' (elle affiche elle-meme un message si le tableau est introuvable).
+    ' On réutilise la fonction existante qui retrouve TblOperations
+    ' (elle affiche elle-même un message si le tableau est introuvable).
     Set tblOps = mod_DonneesTable.GetOperationsTable()
     If tblOps Is Nothing Then Exit Sub
 
-    ' On cherche si la colonne existe deja. "On Error Resume Next" evite un plantage :
-    ' demander une colonne inexistante provoque une erreur, que l'on sait interpreter
-    ' (colonne restee a Nothing = elle n'existe pas).
+    ' On vérifie si la colonne existe déjà. "On Error Resume Next" évite un plantage :
+    ' demander une colonne inexistante provoque une erreur que l'on peut interpréter
+    ' (colonne restée à Nothing = elle n'existe pas).
     On Error Resume Next
     Set colonne = tblOps.ListColumns(NOM_COL_SOUS_CATEGORIE)
     On Error GoTo 0
 
     If Not colonne Is Nothing Then
-        MsgBox "La colonne " & NOM_COL_SOUS_CATEGORIE & " existe deja dans " & _
-               tblOps.Name & ". Rien n'a ete modifie.", vbInformation, "Phase 1"
+         MsgBox "La colonne " & NOM_COL_SOUS_CATEGORIE & " existe deja dans " & _
+             tblOps.Name & ". Rien n'a ete modifie.", vbInformation, "Phase 1"
         Exit Sub
     End If
 
-    ' ListColumns.Add sans argument = ajout apres la derniere colonne du tableau.
+    ' ListColumns.Add sans argument ajoute une colonne après la dernière du tableau.
     Set colonne = tblOps.ListColumns.Add
     colonne.Name = NOM_COL_SOUS_CATEGORIE
 
@@ -123,17 +123,17 @@ End Sub
 
 
 ' =====================================================================================
-' ETAPE 2 : cree ou complete le tableau de correspondance TblCategories (feuille Param)
+' ÉTAPE 2 : crée ou complète le tableau de correspondance TblCategories (feuille Param)
 ' =====================================================================================
-' - 1ere execution : le tableau est cree, avec UNE ligne par categorie source
-'   trouvee dans TblOperations (toutes les valeurs distinctes, triees A a Z).
-' - Executions suivantes : seules les categories source NOUVELLES sont ajoutees en
-'   bas. Ce que l'operateur a deja saisi n'est JAMAIS ecrase.
+' - Première exécution : le tableau est créé avec UNE ligne par catégorie source
+'   trouvée dans TblOperations (toutes les valeurs distinctes, triées de A à Z).
+' - Aux exécutions suivantes, seules les NOUVELLES catégories source sont ajoutées en
+'   bas. Les saisies de l'opérateur ne sont JAMAIS écrasées.
 '
-' Valeurs proposees au depart (l'operateur peut tout modifier) :
-'   - Categorie = le texte source recopie tel quel, SousCategorie vide, Verifie vide.
-'   - Cas particulier que vous avez decrit : "Frais, remb sante" est une sous-categorie
-'     de "Sante, prevoyance" -> pre-rempli ainsi, et Verifie = "Oui".
+' Valeurs proposées au départ (l'opérateur peut tout modifier) :
+'   - Categorie = le texte source recopié tel quel; SousCategorie et Verifie sont vides.
+'   - Cas particulier décrit : "Frais, remb santé" est une sous-catégorie
+'     de "Santé, prévoyance"; ces valeurs sont préremplies et Verifie = "Oui".
 Public Sub InitialiserTableCategories()
 
     Dim tblOps As ListObject, tblCat As ListObject
@@ -149,7 +149,7 @@ Public Sub InitialiserTableCategories()
     Dim premiereLigne As Long, derniereLigne As Long
     Dim nbAVerifier As Long, verifies As Variant
 
-    ' --- Recuperer TblOperations et la feuille Param -------------------------------
+    ' --- Récupérer TblOperations et la feuille Param -------------------------------
     Set tblOps = mod_DonneesTable.GetOperationsTable()
     If tblOps Is Nothing Then Exit Sub
     If tblOps.DataBodyRange Is Nothing Then
@@ -171,16 +171,16 @@ Public Sub InitialiserTableCategories()
         Exit Sub
     End If
 
-    ' --- Lire toutes les categories source en memoire (un seul aller-retour = rapide) ---
+    ' --- Lire toutes les catégories source en mémoire (un seul aller-retour = rapide) ---
     donnees = LireColonne(colonneCat.DataBodyRange)
 
-    ' --- "dejaVu" : dictionnaire qui memorise les categories deja traitees ------------
+    ' --- "dejaVu" : dictionnaire qui mémorise les catégories déjà traitées ------------
     ' CompareMode = 1 (vbTextCompare) : on ignore majuscules/minuscules.
-    ' Il doit etre regle AVANT d'ajouter le moindre element.
+    ' Il doit être réglé AVANT d'ajouter le moindre élément.
     Set dejaVu = CreateObject("Scripting.Dictionary")
     dejaVu.CompareMode = 1
 
-    ' Si le tableau existe deja, on y lit les sources connues pour ne pas les redoubler.
+    ' Si le tableau existe déjà, on y lit les sources connues pour éviter les doublons.
     Set tblCat = TrouverTable(wsParam, NOM_TABLE_CATEGORIES)
     If Not tblCat Is Nothing Then
         If Not tblCat.DataBodyRange Is Nothing Then
@@ -194,11 +194,11 @@ Public Sub InitialiserTableCategories()
         End If
     End If
 
-    ' --- Reperer les categories source qui ne sont pas encore dans le tableau -----------
+    ' --- Repérer les catégories source qui ne sont pas encore dans le tableau -----------
     ReDim nouvelles(1 To UBound(donnees, 1))
     nbNouvelles = 0
     For i = 1 To UBound(donnees, 1)
-        ' CellText : lecture "securisee" (jamais d'erreur, espaces inutiles retires)
+        ' CellText : lecture "sécurisée" (jamais d'erreur, espaces inutiles retirés)
         texte = mod_DataStructure.CellText(donnees(i, 1))
         If texte <> "" Then
             If Not dejaVu.Exists(texte) Then
@@ -209,7 +209,7 @@ Public Sub InitialiserTableCategories()
         End If
     Next i
 
-    ' --- Rien de nouveau : on s'assure seulement que les listes sont a jour -------------
+    ' --- Rien de nouveau : on s'assure seulement que les listes sont à jour -------------
     If nbNouvelles = 0 Then
         If Not tblCat Is Nothing Then
             RafraichirListesCategories
@@ -219,19 +219,19 @@ Public Sub InitialiserTableCategories()
         Exit Sub
     End If
 
-    ' --- Trier les nouvelles categories de A a Z ------------------------------------------
+    ' --- Trier les nouvelles catégories de A à Z ------------------------------------------
     TrierTextes nouvelles, nbNouvelles
 
-    ' --- Preparer le bloc a ecrire (tableau en memoire : 4 colonnes) ----------------------
+    ' --- Préparer le bloc à écrire (tableau en mémoire : 4 colonnes) -----------------------
     ReDim Sortie(1 To nbNouvelles, 1 To NB_COL_TABLE)
     For i = 1 To nbNouvelles
         Sortie(i, 1) = nouvelles(i)      ' CategorieSource
-        Sortie(i, 2) = nouvelles(i)      ' Categorie : proposition = meme texte
+        Sortie(i, 2) = nouvelles(i)      ' Categorie : proposition = même texte
         Sortie(i, 3) = ""                ' SousCategorie : vide
-        Sortie(i, 4) = ""                ' Verifie : a faire par l'operateur
+        Sortie(i, 4) = ""                ' Verifie : à faire par l'opérateur
 
-        ' Cas particulier decrit par l'operateur : "Frais, remb sante" est une
-        ' sous-categorie de "Sante, prevoyance".
+        ' Cas particulier décrit par l'opérateur : "Frais, remb santé" est une
+        ' sous-catégorie de "Santé, prévoyance".
         If StrComp(nouvelles(i), CategorieSourceSante(), vbTextCompare) = 0 Then
             Sortie(i, 2) = CategorieSanteNouvelle()
             Sortie(i, 3) = CategorieSourceSante()
@@ -239,22 +239,22 @@ Public Sub InitialiserTableCategories()
         End If
     Next i
 
-    ' --- Ecriture dans la feuille Param -----------------------------------------------------
+    ' --- Écriture dans la feuille Param -----------------------------------------------------
     If tblCat Is Nothing Then
-        ' PREMIERE FOIS : en-tetes + donnees + creation du tableau Excel
+        ' PREMIÈRE FOIS : en-têtes, données et création du tableau Excel
         wsParam.Range(wsParam.Cells(1, COL_DEBUT), wsParam.Cells(1, COL_DEBUT + NB_COL_TABLE - 1)).value = _
             Array("CategorieSource", "Categorie", "SousCategorie", "Verifie")
         premiereLigne = 2
     Else
-        ' Tableau deja present : on ecrit sous la derniere ligne remplie. On se base sur la
-        ' colonne L (Categorie) car elle est toujours remplie, contrairement a la colonne K
-        ' (une categorie creee a la main n'a pas de categorie source).
+        ' Tableau déjà présent : on écrit sous la dernière ligne remplie. On se base sur
+        ' la colonne L (Categorie), toujours remplie, contrairement à la colonne K
+        ' (une catégorie créée à la main n'a pas de catégorie source).
         derniereLigne = wsParam.Cells(wsParam.rows.count, COL_DEBUT + 1).End(xlUp).Row
         premiereLigne = derniereLigne + 1
     End If
 
-    ' Format TEXTE avant d'ecrire : evite qu'Excel transforme une valeur en date ou en nombre
-    ' (piege deja rencontre dans ce projet).
+    ' Format TEXTE avant d'écrire : évite qu'Excel transforme une valeur en date ou en nombre
+    ' (piège déjà rencontré dans ce projet).
     With wsParam.Range(wsParam.Cells(premiereLigne, COL_DEBUT), _
                        wsParam.Cells(premiereLigne + nbNouvelles - 1, COL_DEBUT + NB_COL_TABLE - 1))
         .NumberFormat = "@"
@@ -267,16 +267,16 @@ Public Sub InitialiserTableCategories()
                           wsParam.Cells(premiereLigne + nbNouvelles - 1, COL_DEBUT + NB_COL_TABLE - 1)), , xlYes)
         tblCat.Name = NOM_TABLE_CATEGORIES
     Else
-        ' On agrandit le tableau Excel pour qu'il englobe les lignes ajoutees.
+        ' On agrandit le tableau Excel pour qu'il englobe les lignes ajoutées.
         tblCat.Resize wsParam.Range(wsParam.Cells(1, COL_DEBUT), _
                           wsParam.Cells(premiereLigne + nbNouvelles - 1, COL_DEBUT + NB_COL_TABLE - 1))
     End If
 
-    ' --- Listes deroulantes ---------------------------------------------------------------------
+    ' --- Listes déroulantes ---------------------------------------------------------------------
     RafraichirListesCategories
     PoserListesDeroulantes tblCat
 
-    ' --- Petit bilan : combien de lignes restent a controler ? ------------------------------------
+    ' --- Petit bilan : combien de lignes restent à contrôler ? -----------------------------------
     verifies = LireColonne(tblCat.ListColumns("Verifie").DataBodyRange)
     For i = 1 To UBound(verifies, 1)
         If StrComp(mod_DataStructure.CellText(verifies(i, 1)), "Oui", vbTextCompare) <> 0 Then
@@ -294,17 +294,17 @@ End Sub
 
 
 ' =====================================================================================
-' Met a jour la liste TECHNIQUE des categories distinctes (colonne P de Param).
+' Met à jour la liste TECHNIQUE des catégories distinctes (colonne P de Param).
 ' =====================================================================================
-' Cette liste alimente le menu deroulant de la colonne "Categorie". Elle est
-' RECALCULEE a partir du tableau, donc toute categorie ajoutee au tableau apparait
-' dans le menu apres un appel a cette procedure. Elle sera aussi reutilisee par les
-' futurs formulaires (Phases 2 et 3).
+' Cette liste alimente le menu déroulant de la colonne "Categorie". Elle est
+' recalculée à partir du tableau : toute catégorie ajoutée au tableau apparaît
+' dans le menu après l'appel de cette procédure. Elle sera aussi réutilisée par
+' les futurs formulaires (phases 2 et 3).
 '
-' Pourquoi ne pas mettre les categories dans le menu sous forme de texte separe par
-' des virgules ? Parce que vos categories contiennent elles-memes des virgules
-' ("Alimentation, supermarche") : Excel les couperait en morceaux. On passe donc
-' par des CELLULES, et le menu pointe vers cette plage.
+' Pourquoi ne pas mettre les catégories dans le menu sous forme de texte séparé par
+' des virgules ? Parce que vos catégories contiennent elles-mêmes des virgules
+' ("Alimentation, supermarché") : Excel les couperait en morceaux. On passe donc
+' par des cellules, et le menu pointe vers cette plage.
 Public Sub RafraichirListesCategories()
 
     Dim wsParam As Worksheet
@@ -345,7 +345,7 @@ Public Sub RafraichirListesCategories()
 
     TrierTextes liste, nb
 
-    ' On efface l'ancienne liste (sous l'en-tete), puis on ecrit la nouvelle.
+    ' On efface l'ancienne liste (sous l'en-tête), puis on écrit la nouvelle.
     wsParam.Range(wsParam.Cells(2, COL_LISTE), wsParam.Cells(wsParam.rows.count, COL_LISTE)).ClearContents
     wsParam.Cells(1, COL_LISTE).value = "Liste categories (zone technique - ne pas modifier)"
 
@@ -357,8 +357,8 @@ Public Sub RafraichirListesCategories()
     wsParam.Cells(2, COL_LISTE).Resize(nb, 1).Value2 = Sortie
 
     ' Nom "ListeCategories" : plage DYNAMIQUE (OFFSET) qui s'adapte au nombre de
-    ' categories ecrites. Cree au niveau du CLASSEUR (ThisWorkbook.Names), comme les
-    ' autres noms du projet, pour eviter la confusion de portee deja rencontree.
+    ' catégories écrites. Créé au niveau du CLASSEUR (ThisWorkbook.Names), comme les
+    ' autres noms du projet, pour éviter la confusion de portée déjà rencontrée.
     ThisWorkbook.Names.Add Name:=NOM_LISTE_CATEGORIES, _
         RefersTo:="=OFFSET(" & NOM_FEUILLE_PARAM & "!$" & ColonneEnLettre(COL_LISTE) & "$2,0,0," & _
                   "MAX(1,COUNTA(" & NOM_FEUILLE_PARAM & "!$" & ColonneEnLettre(COL_LISTE) & "$2:$" & _
@@ -368,13 +368,13 @@ End Sub
 
 
 ' =====================================================================================
-' Pose les menus deroulants du tableau TblCategories
+' Pose les menus déroulants du tableau TblCategories
 ' =====================================================================================
-'   - colonne Categorie : liste des categories existantes, MAIS l'operateur peut
-'     taper une categorie nouvelle (alerte "avertissement", pas de blocage).
+'   - colonne Categorie : liste des catégories existantes, MAIS l'opérateur peut
+'     saisir une nouvelle catégorie (alerte "avertissement", sans blocage).
 '   - colonne Verifie   : uniquement "Oui" ou vide.
 ' La colonne SousCategorie reste en saisie libre pour l'instant : sa liste
-' dependante de la categorie choisie sera geree dans les formulaires (Phase 2).
+' dépendante de la catégorie choisie sera gérée dans les formulaires (phase 2).
 Private Sub PoserListesDeroulantes(ByVal tblCat As ListObject)
 
     If tblCat.DataBodyRange Is Nothing Then Exit Sub
@@ -398,7 +398,7 @@ End Sub
 
 
 ' =====================================================================================
-' Affiche la feuille Param (normalement masquee) et se place sur le tableau
+' Affiche la feuille Param (normalement masquée) et se place sur le tableau.
 ' =====================================================================================
 Public Sub AfficherParamCategories()
 
@@ -417,7 +417,7 @@ End Sub
 
 
 ' =====================================================================================
-' Remasque la feuille Param (a lancer quand le controle du tableau est termine)
+' Remasque la feuille Param (à lancer quand le contrôle du tableau est terminé).
 ' =====================================================================================
 Public Sub MasquerParam()
 
@@ -439,26 +439,26 @@ End Sub
 
 
 ' =====================================================================================
-' PHASE 3 : creation d'une categorie / sous-categorie par l'operateur
+' PHASE 3 : création d'une catégorie ou sous-catégorie par l'opérateur
 ' =====================================================================================
-' Ces deux fonctions sont utilisees par le formulaire de creation (mod_NouvelleCategorie).
-' Elles vivent ici, et non dans ce nouveau module, car TblCategories est "la propriete"
-' de mod_Categories : c'est le seul endroit du projet qui sait comment ce tableau est
+' Ces deux fonctions sont utilisées par le formulaire de création (mod_NouvelleCategorie).
+' Elles se trouvent ici, et non dans ce nouveau module, car TblCategories appartient
+' à mod_Categories : c'est le seul endroit du projet qui sait comment ce tableau est
 ' construit (nom de la feuille, position des colonnes...).
 
 ' ---------------------------------------------------------------------------------------
-' AjouterCategoriePersonnalisee : enregistre une paire (Categorie, SousCategorie) choisie
-' ou creee par l'operateur dans le tableau TblCategories, si elle n'y est pas deja.
+' AjouterCategoriePersonnalisee : enregistre dans TblCategories une paire (Categorie,
+' SousCategorie) choisie ou créée par l'opérateur, si elle n'y figure pas déjà.
 ' ---------------------------------------------------------------------------------------
-' ByRef categorie / sousCategorie : en ENTREE, ce que l'operateur a tape ou choisi.
-' En SORTIE (si la fonction renvoie True), ces deux variables sont remplacees par leur
-' forme "canonique" : si "sante" existait deja sous la forme "Sante" dans le tableau,
-' categorie devient "Sante", pour eviter que deux orthographes de la meme categorie
-' cohabitent (ex: "Sante" et "sante" traites comme deux categories differentes ailleurs
-' dans le classeur).
+' ByRef categorie / sousCategorie : en entrée, les valeurs saisies ou choisies par
+' l'opérateur. En sortie (si la fonction renvoie True), ces variables prennent leur
+' forme "canonique" : si "sante" existe déjà sous la forme "Sante" dans le tableau,
+' categorie devient "Sante", afin d'éviter que deux graphies de la même catégorie
+' cohabitent (ex. : "Sante" et "sante" traitées comme deux catégories différentes
+' ailleurs dans le classeur).
 '
-' Renvoie False uniquement si la categorie est vide, ou si TblCategories est introuvable
-' (le formulaire appelant doit alors afficher un message et ne pas continuer).
+' Renvoie False uniquement si la catégorie est vide ou si TblCategories est introuvable
+' (le formulaire appelant doit alors afficher un message et s'arrêter).
 Public Function AjouterCategoriePersonnalisee(ByRef categorie As String, ByRef sousCategorie As String) As Boolean
 
     Dim wsParam As Worksheet, tblCat As ListObject
@@ -484,20 +484,21 @@ Public Function AjouterCategoriePersonnalisee(ByRef categorie As String, ByRef s
     sous = LireColonne(tblCat.ListColumns("SousCategorie").DataBodyRange)
 
     ' --- Recherche d'une correspondance existante ------------------------------------------
-    ' NIVEAU 1 du garde-fou orthographique (normalisation silencieuse, aucune question
-    ' posee) : on ignore les majuscules/minuscules, les accents et les espaces en trop.
-    ' "Sante" et "Sant{e2}" sont ainsi reconnus comme LA MEME categorie, sans interruption.
+    ' NIVEAU 1 du garde-fou orthographique (normalisation silencieuse, sans question) :
+    ' on ignore les majuscules/minuscules, les accents et les espaces superflus.
+    ' "Sante" et "Sant{e2}" sont ainsi reconnues comme une seule catégorie.
     For r = 1 To UBound(cat, 1)
         texteCat = mod_DataStructure.CellText(cat(r, 1))
         texteSous = mod_DataStructure.CellText(sous(r, 1))
 
         If NormaliserTexte(texteCat) = NormaliserTexte(categorie) Then
             casCatTrouvee = True
-            casCatCanonique = texteCat            ' on garde la 1ere ecriture rencontree
+            casCatCanonique = texteCat            ' on garde la première graphie rencontrée
 
             If NormaliserTexte(texteSous) = NormaliserTexte(sousCategorie) Then
-                ' La paire existe deja (memes lettres, accents/espaces/casse mis a part) :
-                ' rien a ajouter. On renvoie les libelles EXACTS deja presents dans le tableau.
+                ' La paire existe déjà (mêmes lettres, sans tenir compte des accents,
+                ' espaces ou majuscules) : rien à ajouter. On renvoie les libellés EXACTS
+                ' déjà présents dans le tableau.
                 categorie = texteCat
                 sousCategorie = texteSous
                 AjouterCategoriePersonnalisee = True
@@ -506,24 +507,24 @@ Public Function AjouterCategoriePersonnalisee(ByRef categorie As String, ByRef s
         End If
     Next r
 
-    ' La categorie existe deja (sous une autre paire) : on reprend son ecriture exacte,
-    ' pour eviter que "Sante" et "sante" deviennent deux categories differentes.
+    ' La catégorie existe déjà (dans une autre paire) : on reprend sa graphie exacte
+    ' pour éviter que "Sante" et "sante" deviennent deux catégories différentes.
     If casCatTrouvee Then categorie = casCatCanonique
 
     ' --- Aucune paire correspondante : ajout d'une nouvelle ligne au tableau -------------
     ' CategorieSource reste VIDE : cette ligne ne provient pas d'un import bancaire,
-    ' mais d'une creation manuelle de l'operateur.
+    ' mais d'une création manuelle par l'opérateur.
     ligneCible = tblCat.ListRows.Add.Range.Row
 
     With wsParam.Range(wsParam.Cells(ligneCible, COL_DEBUT), wsParam.Cells(ligneCible, COL_DEBUT + NB_COL_TABLE - 1))
-        .NumberFormat = "@"        ' format TEXTE avant ecriture (voir piege deja rencontre)
+        .NumberFormat = "@"        ' format TEXTE avant écriture (voir le piège déjà rencontré)
     End With
     wsParam.Cells(ligneCible, COL_DEBUT).value = ""             ' CategorieSource
     wsParam.Cells(ligneCible, COL_DEBUT + 1).value = categorie  ' Categorie
     wsParam.Cells(ligneCible, COL_DEBUT + 2).value = sousCategorie   ' SousCategorie
     wsParam.Cells(ligneCible, COL_DEBUT + 3).value = "Oui"      ' Verifie : creee volontairement
 
-    ' La liste deroulante des categories (Phase 1) doit refleter cet ajout immediatement.
+    ' La liste déroulante des catégories (phase 1) doit refléter cet ajout immédiatement.
     RafraichirListesCategories
 
     AjouterCategoriePersonnalisee = True
@@ -531,13 +532,13 @@ Public Function AjouterCategoriePersonnalisee(ByRef categorie As String, ByRef s
 End Function
 
 ' ---------------------------------------------------------------------------------------
-' ObtenirSousCategories : renvoie, triees par ordre alphabetique, les sous-categories
-' (non vides) deja associees a une categorie donnee dans TblCategories.
+' ObtenirSousCategories : renvoie, triées par ordre alphabétique, les sous-catégories
+' (non vides) déjà associées à une catégorie donnée dans TblCategories.
 ' ---------------------------------------------------------------------------------------
-' Si la categorie n'a aucune sous-categorie connue (ou n'existe pas encore), la fonction
-' renvoie un tableau NON ALLOUE (comportement normal d'une fonction de type tableau qui
-' ne lui affecte jamais de valeur). L'appelant doit verifier cela avant d'utiliser le
-' resultat, par exemple avec un test "On Error Resume Next : x = UBound(...)".
+' Si la catégorie n'a aucune sous-catégorie connue (ou n'existe pas encore), la fonction
+' renvoie un tableau NON ALLOUÉ (comportement normal d'une fonction de type tableau
+' qui ne lui affecte aucune valeur). L'appelant doit le vérifier avant d'utiliser le
+' résultat, par exemple avec un test "On Error Resume Next : x = UBound(...)".
 Public Function ObtenirSousCategories(ByVal categorie As String) As String()
 
     Dim wsParam As Worksheet, tblCat As ListObject
@@ -585,17 +586,17 @@ Public Function ObtenirSousCategories(ByVal categorie As String) As String()
         TrierTextes liste, nb
         ObtenirSousCategories = liste
     End If
-    ' Si nb = 0, la fonction renvoie son tableau par defaut (non alloue) : c'est voulu.
+    ' Si nb = 0, la fonction renvoie son tableau par défaut (non alloué) : c'est voulu.
 
 End Function
 
 
 ' ---------------------------------------------------------------------------------------
-' ObtenirCategories : renvoie, triees par ordre alphabetique, toutes les categories
-' distinctes deja presentes dans TblCategories.
+' ObtenirCategories : renvoie, triées par ordre alphabétique, toutes les catégories
+' distinctes déjà présentes dans TblCategories.
 ' ---------------------------------------------------------------------------------------
-' Meme principe que ObtenirSousCategories : renvoie un tableau NON ALLOUE si le tableau
-' est introuvable ou vide.
+' Même principe que pour ObtenirSousCategories : renvoie un tableau NON ALLOUÉ si le
+' tableau est introuvable ou vide.
 Public Function ObtenirCategories() As String()
 
     Dim wsParam As Worksheet, tblCat As ListObject
@@ -641,49 +642,50 @@ End Function
 
 
 ' =====================================================================================
-' GARDE-FOU ORTHOGRAPHIQUE (Niveau 2 : detection de ressemblance)
+' GARDE-FOU ORTHOGRAPHIQUE (niveau 2 : détection de ressemblances)
 ' =====================================================================================
-' Le Niveau 1 (accents, espaces, majuscules ignores) est deja integre dans
-' AjouterCategoriePersonnalisee ci-dessus : il ne pose jamais de question, il "reconnait"
-' silencieusement deux ecritures de la meme chose.
+' Le niveau 1 (accents, espaces et majuscules ignorés) est déjà intégré dans
+' AjouterCategoriePersonnalisee ci-dessus : il ne pose aucune question et reconnaît
+' silencieusement deux graphies d'une même valeur.
 '
-' Le Niveau 2, lui, POSE UNE QUESTION a l'operateur quand le texte tape ressemble
-' BEAUCOUP a une valeur existante SANS lui etre identique (typiquement : une faute de
-' frappe). Il est utilise par mod_NouvelleCategorie (Phase 3), juste avant l'enregistrement.
+' Le niveau 2, lui, POSE UNE QUESTION à l'opérateur lorsque le texte saisi ressemble
+' BEAUCOUP à une valeur existante SANS lui être identique (typiquement, à cause d'une
+' faute de frappe). Il est utilisé par mod_NouvelleCategorie (phase 3), juste avant
+' l'enregistrement.
 
 ' ---------------------------------------------------------------------------------------
-' NormaliserTexte : reduit un texte a une forme minimale pour le COMPARER (jamais pour
-' l'afficher ou l'enregistrer : c'est uniquement un outil de comparaison interne).
+' NormaliserTexte : réduit un texte à une forme minimale pour le COMPARER (jamais pour
+' l'afficher ou l'enregistrer; c'est uniquement un outil de comparaison interne).
 ' ---------------------------------------------------------------------------------------
 ' - minuscules
-' - accents retires (e2 -> e, e1 -> e, etc.)
-' - espaces en trop reduits a un seul espace, debut/fin coupes
+' - accents retirés (e2 -> e, e1 -> e, etc.)
+' - espaces superflus réduits à un seul espace, début et fin supprimés
 Public Function NormaliserTexte(ByVal texte As String) As String
 
     Dim r As String
 
     r = Trim(texte)
 
-    ' Lettres accentuees courantes (minuscules et majuscules) -> lettre simple.
-    r = Replace(r, ChrW(233), "e"): r = Replace(r, ChrW(201), "e")    ' e aigu
-    r = Replace(r, ChrW(232), "e"): r = Replace(r, ChrW(200), "e")    ' e grave
-    r = Replace(r, ChrW(234), "e"): r = Replace(r, ChrW(202), "e")    ' e circonflexe
-    r = Replace(r, ChrW(235), "e"): r = Replace(r, ChrW(203), "e")    ' e trema
-    r = Replace(r, ChrW(224), "a"): r = Replace(r, ChrW(192), "a")    ' a grave
-    r = Replace(r, ChrW(226), "a"): r = Replace(r, ChrW(194), "a")    ' a circonflexe
-    r = Replace(r, ChrW(238), "i"): r = Replace(r, ChrW(206), "i")    ' i circonflexe
-    r = Replace(r, ChrW(239), "i"): r = Replace(r, ChrW(207), "i")    ' i trema
-    r = Replace(r, ChrW(244), "o"): r = Replace(r, ChrW(212), "o")    ' o circonflexe
-    r = Replace(r, ChrW(249), "u"): r = Replace(r, ChrW(217), "u")    ' u grave
-    r = Replace(r, ChrW(251), "u"): r = Replace(r, ChrW(219), "u")    ' u circonflexe
-    r = Replace(r, ChrW(252), "u"): r = Replace(r, ChrW(220), "u")    ' u trema
-    r = Replace(r, ChrW(231), "c"): r = Replace(r, ChrW(199), "c")    ' c cedille
+    ' Lettres accentuées courantes (minuscules et majuscules) remplacées par une lettre simple.
+    r = Replace(r, ChrW(233), "e"): r = Replace(r, ChrW(201), "e")    ' é aigu
+    r = Replace(r, ChrW(232), "e"): r = Replace(r, ChrW(200), "e")    ' è grave
+    r = Replace(r, ChrW(234), "e"): r = Replace(r, ChrW(202), "e")    ' ê circonflexe
+    r = Replace(r, ChrW(235), "e"): r = Replace(r, ChrW(203), "e")    ' ë tréma
+    r = Replace(r, ChrW(224), "a"): r = Replace(r, ChrW(192), "a")    ' à grave
+    r = Replace(r, ChrW(226), "a"): r = Replace(r, ChrW(194), "a")    ' â circonflexe
+    r = Replace(r, ChrW(238), "i"): r = Replace(r, ChrW(206), "i")    ' î circonflexe
+    r = Replace(r, ChrW(239), "i"): r = Replace(r, ChrW(207), "i")    ' ï tréma
+    r = Replace(r, ChrW(244), "o"): r = Replace(r, ChrW(212), "o")    ' ô circonflexe
+    r = Replace(r, ChrW(249), "u"): r = Replace(r, ChrW(217), "u")    ' ù grave
+    r = Replace(r, ChrW(251), "u"): r = Replace(r, ChrW(219), "u")    ' û circonflexe
+    r = Replace(r, ChrW(252), "u"): r = Replace(r, ChrW(220), "u")    ' ü tréma
+    r = Replace(r, ChrW(231), "c"): r = Replace(r, ChrW(199), "c")    ' ç cédille
 
     r = LCase(r)
 
     ' Espaces multiples -> un seul espace (boucle simple : le nombre d'espaces
-    ' consecutifs dans une categorie est toujours tres petit, la performance n'est pas
-    ' un enjeu ici).
+    ' consécutifs dans une catégorie est toujours très faible; la performance
+    ' n'est pas un enjeu ici).
     Do While InStr(r, "  ") > 0
         r = Replace(r, "  ", " ")
     Loop
@@ -693,9 +695,9 @@ Public Function NormaliserTexte(ByVal texte As String) As String
 End Function
 
 ' ---------------------------------------------------------------------------------------
-' DistanceLevenshtein : nombre minimal de lettres a ajouter, retirer ou remplacer pour
-' transformer "a" en "b". Methode standard pour detecter une faute de frappe : deux mots
-' identiques ont une distance de 0, une seule lettre differente donne 1, etc.
+' DistanceLevenshtein : nombre minimal de lettres à ajouter, retirer ou remplacer pour
+' transformer "a" en "b". Méthode standard de détection d'une faute de frappe : deux mots
+' identiques ont une distance de 0; une seule lettre différente donne une distance de 1.
 ' ---------------------------------------------------------------------------------------
 Public Function DistanceLevenshtein(ByVal a As String, ByVal b As String) As Long
 
@@ -709,10 +711,10 @@ Public Function DistanceLevenshtein(ByVal a As String, ByVal b As String) As Lon
     ReDim d(0 To la, 0 To lb)
 
     For i = 0 To la
-        d(i, 0) = i        ' transformer "a" en "" coute la Len(a) suppressions
+        d(i, 0) = i        ' transformer "a" en "" coûte Len(a) suppressions
     Next i
     For j = 0 To lb
-        d(0, j) = j        ' transformer "" en "b" coute la Len(b) ajouts
+        d(0, j) = j        ' transformer "" en "b" coûte Len(b) ajouts
     Next j
 
     For i = 1 To la
@@ -733,18 +735,18 @@ End Function
 
 ' ---------------------------------------------------------------------------------------
 ' TrouverCorrespondanceProche : cherche, dans une liste de textes existants, celui qui
-' ressemble le plus a "texte" (distance <= seuil), en ignorant les correspondances DEJA
-' IDENTIQUES apres normalisation (Niveau 1 s'en charge ailleurs, ce n'est pas son role).
+' ressemble le plus à "texte" (distance <= seuil), en ignorant les correspondances DÉJÀ
+' IDENTIQUES après normalisation (le niveau 1 s'en charge ailleurs; ce n'est pas son rôle).
 ' ---------------------------------------------------------------------------------------
-' texte      : ce que l'operateur vient de taper.
-' liste      : les valeurs existantes a comparer (peut etre un tableau NON ALLOUE : dans
+' texte      : valeur que l'opérateur vient de saisir.
+' liste      : valeurs existantes à comparer (peut être un tableau NON ALLOUÉ; dans
 '              ce cas, la fonction renvoie simplement False, sans erreur).
-' seuil      : distance maximale consideree comme "une simple faute de frappe" (2 conseille).
-' longueurMin: en dessous de cette longueur (texte normalise), on ne propose jamais de
-'              correction : sur un texte tres court, une petite distance ne veut rien dire.
-' trouve     : (en sortie) le texte existant trouve, EXACTEMENT comme ecrit dans le
-'              tableau (jamais normalise), pret a etre affiche ou reutilise tel quel.
-' Renvoie True si une correspondance proche a ete trouvee.
+' seuil      : distance maximale considérée comme une simple faute de frappe (2 conseillé).
+' longueurMin: en dessous de cette longueur (texte normalisé), aucune correction n'est
+'              proposée; sur un texte très court, une faible distance n'est pas significative.
+' trouve     : en sortie, texte existant trouvé, EXACTEMENT comme écrit dans le tableau
+'              (jamais normalisé), prêt à être affiché ou réutilisé tel quel.
+' Renvoie True si une correspondance proche a été trouvée.
 Public Function TrouverCorrespondanceProche(ByVal texte As String, ByRef liste() As String, _
                                             ByVal seuil As Long, ByVal longueurMin As Long, _
                                             ByRef trouve As String) As Boolean
@@ -761,23 +763,23 @@ Public Function TrouverCorrespondanceProche(ByVal texte As String, ByRef liste()
     texteNorm = NormaliserTexte(texte)
     If Len(texteNorm) < longueurMin Then Exit Function
 
-    ' La liste peut etre un tableau jamais alloue (aucune valeur existante) : on le
-    ' detecte sans planter, via le meme idiome que EstTableauAlloue ailleurs dans le projet.
+    ' La liste peut être un tableau non alloué (aucune valeur existante) : on le détecte
+    ' sans erreur, avec le même idiome que EstTableauAlloue ailleurs dans le projet.
     On Error Resume Next
     borneInf = LBound(liste)
     borneSup = UBound(liste)
     If Err.Number <> 0 Then Exit Function
     On Error GoTo 0
 
-    meilleureDistance = seuil + 1      ' rien trouve pour l'instant (valeur "hors seuil")
+    meilleureDistance = seuil + 1      ' rien trouvé pour l'instant (valeur hors seuil)
 
     For i = borneInf To borneSup
         candidatNorm = NormaliserTexte(liste(i))
-        If candidatNorm <> texteNorm Then      ' identique apres normalisation = Niveau 1, pas ici
+        If candidatNorm <> texteNorm Then      ' identique après normalisation = niveau 1, pas ici
             d = DistanceLevenshtein(texteNorm, candidatNorm)
             If d <= seuil And d < meilleureDistance Then
                 meilleureDistance = d
-                trouve = liste(i)               ' forme EXACTE du candidat, pas la normalisee
+                trouve = liste(i)               ' graphie EXACTE du candidat, pas la forme normalisée
             End If
         End If
     Next i
@@ -786,7 +788,7 @@ Public Function TrouverCorrespondanceProche(ByVal texte As String, ByRef liste()
 
 End Function
 
-' Renvoie le plus petit de 3 nombres (utilise par DistanceLevenshtein).
+' Renvoie le plus petit de trois nombres (utilisé par DistanceLevenshtein).
 Private Function PlusPetit(ByVal a As Long, ByVal b As Long, ByVal c As Long) As Long
     Dim m As Long
     m = a
@@ -797,10 +799,10 @@ End Function
 
 
 ' ---------------------------------------------------------------------------------------
-' ObtenirToutesSousCategories : renvoie, triees, TOUTES les sous-categories distinctes
-' du tableau, toutes categories confondues. Utilisee par la grille de ventilation
-' (Phase 4) comme simple aide a la saisie (liste "large", pas filtree ligne par ligne) :
-' contrairement a ObtenirSousCategories, elle ne depend pas d'une categorie precise.
+' ObtenirToutesSousCategories : renvoie, triées, TOUTES les sous-catégories distinctes
+' du tableau, toutes catégories confondues. Utilisée par la grille de ventilation
+' (phase 4) comme aide à la saisie (liste générale, non filtrée ligne par ligne) :
+' contrairement à ObtenirSousCategories, elle ne dépend pas d'une catégorie précise.
 ' ---------------------------------------------------------------------------------------
 Public Function ObtenirToutesSousCategories() As String()
 
@@ -846,9 +848,10 @@ Public Function ObtenirToutesSousCategories() As String()
 End Function
 
 ' ---------------------------------------------------------------------------------------
-' FormeCanonique : recherche "texte" dans "liste" en ignorant accents/espaces/majuscules,
-' et renvoie l'ECRITURE EXACTE trouvee dans la liste (ex : l'operateur tape "sante", la
-' liste contient "Sante" -> renvoie "Sante"). Si rien n'est trouve, renvoie "texte" tel quel.
+' FormeCanonique : recherche "texte" dans "liste" sans tenir compte des accents, espaces
+' ou majuscules, et renvoie la graphie exacte trouvée dans la liste (ex. : l'opérateur
+' saisit "sante" et la liste contient "Sante"; la fonction renvoie "Sante"). Si aucune
+' valeur ne correspond, elle renvoie "texte" tel quel.
 ' ---------------------------------------------------------------------------------------
 Public Function FormeCanonique(ByVal texte As String, ByRef liste() As String) As String
 
@@ -862,7 +865,7 @@ Public Function FormeCanonique(ByVal texte As String, ByRef liste() As String) A
     On Error Resume Next
     borneInf = LBound(liste)
     borneSup = UBound(liste)
-    If Err.Number <> 0 Then Exit Function      ' liste non allouee : rien a chercher
+    If Err.Number <> 0 Then Exit Function      ' liste non allouée : rien à chercher
     On Error GoTo 0
 
     texteNorm = NormaliserTexte(texte)
@@ -877,7 +880,7 @@ End Function
 
 
 ' =====================================================================================
-' OUTILS INTERNES (prives : invisibles dans la liste des macros)
+' OUTILS INTERNES (privés : invisibles dans la liste des macros)
 ' =====================================================================================
 
 ' Retrouve un tableau Excel par son nom dans une feuille. Renvoie Nothing s'il n'existe pas.
@@ -891,9 +894,9 @@ Private Function TrouverTable(ByVal ws As Worksheet, ByVal nomTable As String) A
     Next lo
 End Function
 
-' Lit une plage en memoire et renvoie TOUJOURS un tableau a 2 dimensions.
-' (Piege VBA : quand la plage ne contient qu'UNE cellule, .Value2 renvoie une simple
-'  valeur et non un tableau ; cette fonction uniformise le resultat.)
+' Lit une plage en mémoire et renvoie TOUJOURS un tableau à deux dimensions.
+' (Piège VBA : quand la plage ne contient qu'UNE cellule, .Value2 renvoie une simple
+' valeur et non un tableau; cette fonction uniformise le résultat.)
 Private Function LireColonne(ByVal plage As Range) As Variant
     Dim t() As Variant
     If plage.Cells.count = 1 Then
@@ -905,9 +908,9 @@ Private Function LireColonne(ByVal plage As Range) As Variant
     End If
 End Function
 
-' Tri alphabetique (insensible a la casse) des n premiers elements d'un tableau de textes.
-' "Tri par insertion" : simple a lire, largement assez rapide pour quelques centaines
-' d'elements.
+' Tri alphabétique (insensible à la casse) des n premiers éléments d'un tableau de textes.
+' Le tri par insertion est simple à lire et suffisamment rapide pour quelques centaines
+' d'éléments.
 Private Sub TrierTextes(ByRef t() As String, ByVal n As Long)
     Dim i As Long, j As Long
     Dim cle As String
@@ -923,17 +926,17 @@ Private Sub TrierTextes(ByRef t() As String, ByVal n As Long)
     Next i
 End Sub
 
-' Convertit un numero de colonne en lettre (1 -> A, 16 -> P). Valable jusqu'a la colonne Z.
+' Convertit un numéro de colonne en lettre (1 -> A, 16 -> P). Valable jusqu'à la colonne Z.
 Private Function ColonneEnLettre(ByVal numero As Long) As String
     ColonneEnLettre = Chr$(64 + numero)
 End Function
 
-' Categorie SOURCE "Frais, remb sante" (avec accent, fabrique par ChrW pour rester en ASCII)
+' Catégorie SOURCE "Frais, remb santé" (accent construit avec ChrW pour rester compatible à l'import).
 Private Function CategorieSourceSante() As String
     CategorieSourceSante = "Frais, remb sant" & ChrW(233)
 End Function
 
-' Nouvelle categorie parente : "Sante, prevoyance" (telle qu'ecrite dans vos donnees)
+' Nouvelle catégorie parente : "Santé, prévoyance" (telle qu'écrite dans vos données).
 Private Function CategorieSanteNouvelle() As String
     CategorieSanteNouvelle = "Sant" & ChrW(233) & ", pr" & ChrW(233) & "voyance"
 End Function

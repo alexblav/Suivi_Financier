@@ -2,90 +2,88 @@ Option Explicit
 
 ' ============================================================================
 '  MODULE : mod_SuiviSante
-'  ROLE   : Suivi persistant des opÃ©rations de la sous-catÃ©gorie "Frais, remb
-'           santÃ©" dans TblOperations -- ET, depuis la PHASE 6, Ã©galement dans
-'           TblVentilations (les lignes de ventilation affectees a cette mÃªme
-'           sous-catÃ©gorie).
+'  RÔLE   : Suivi persistant des opérations de la sous-catégorie "Frais, remb
+'           santé" dans TblOperations, et également dans TblVentilations depuis
+'           la phase 6 (lignes de ventilation affectées à cette même sous-catégorie).
 '
 '  HISTORIQUE DES PHASES :
 '   - Phase 1 (version d'origine) : calcul automatique de StatutSante et
 '     SoldeSante, en isolant les lignes de TblOperations dont la COLONNE
-'     "CatÃ©gorie" valait "Frais, remb santÃ©" (a l'epoque, il n'existait pas
-'     encore de sous-catÃ©gorie : CatÃ©gorie ETAIT la plus fine granularite).
-'   - Phase 6 (ce fichier) : DEUX changements structurels, demandes par
-'     l'opÃ©rateur lors de la mise en place de la gestion des catÃ©gories a
-'     2 niveaux (CatÃ©gorie / SousCategorie) et de la ventilation :
+'     "Catégorie" valait "Frais, remb santé" (à l'époque, il n'existait pas
+'     encore de sous-catégorie : Catégorie était la granularité la plus fine).
+'   - Phase 6 (ce fichier) : deux changements structurels demandés par
+'     l'opérateur lors de la mise en place des catégories à deux niveaux
+'     (Catégorie / SousCategorie) et de la ventilation :
 '       (a) le test bascule sur la colonne "SousCategorie" (la colonne
-'           "CatÃ©gorie" contient desormais la catÃ©gorie PARENTE, par exemple
-'           "SantÃ©, prevoyance", commune a plusieurs sous-catÃ©gories) ;
+'           "Catégorie" contient désormais la catégorie PARENTE, par exemple
+'           "Santé, prévoyance", commune à plusieurs sous-catégories) ;
 '       (b) les lignes de TblVentilations dont la SousCategorie vaut aussi
-'           "Frais, remb santÃ©" entrent DANS LA MEME MECANIQUE qu'une ligne
-'           normale de TblOperations : mÃªme regroupement par clÃ© "Notes",
-'           mÃªme calcul de solde, mÃªme ecriture de StatutSante/SoldeSante --
+'           "Frais, remb santé" entrent dans la MÊME MÉCANIQUE qu'une ligne
+'           normale de TblOperations : même regroupement par clé "Notes",
+'           même calcul de solde, même écriture de StatutSante/SoldeSante,
 '           mais chacune dans SA PROPRE table (TblOperations ou
 '           TblVentilations), puisque ce sont deux tableaux Excel distincts.
-'           C'est la consÃ©quence directe de la decision de l'opÃ©rateur :
-'           "les opÃ©rations ventilees entrent dans la mecanique principale
-'           ... a terme elles doivent Ãªtre considÃ©rÃ©es comme une opÃ©ration
+'           conséquence directe de la décision de l'opérateur :
+'           "les opérations ventilées entrent dans la mécanique principale
+'           ... à terme elles doivent être considérées comme une opération
 '           comme une autre."
 '
-'  PRINCIPE DE REGROUPEMENT (inchange depuis la Phase 1) : un "groupe" est
-'  l'ensemble des lignes qui partagent EXACTEMENT la mÃªme valeur dans la
+'  PRINCIPE DE REGROUPEMENT (inchangé depuis la phase 1) : un "groupe" est
+'  l'ensemble des lignes qui partagent exactement la même valeur dans la
 '  colonne "Notes" -- qu'elles viennent de TblOperations ou de
-'  TblVentilations. Un groupe contient en general : une ligne de depense
-'  (montant negatif) et une ou plusieurs lignes de remboursement (montant
-'  positif). Avec la Phase 6, la ligne de DEPENSE peut desormais venir soit
-'  de TblOperations (opÃ©ration classique), soit de TblVentilations (partie
-'  d'une opÃ©ration ventilee) -- le remboursement, lui, reste presque toujours
+'  TblVentilations. Un groupe contient en général une ligne de dépense
+'  (montant négatif) et une ou plusieurs lignes de remboursement (montant
+'  positif). Depuis la phase 6, la ligne de dépense peut venir soit de
+'  TblOperations (opération classique), soit de TblVentilations (partie
+'  d'une opération ventilée). Le remboursement, lui, reste presque toujours
 '  une ligne bancaire classique de TblOperations (un remboursement de
 '  mutuelle n'est jamais ventile).
 '
-'  REGLE DE NON-RETRAITEMENT (pour ne pas re-poser les mÃªmes questions a
-'  chaque import) : un groupe n'est PAS retraitÃ© si sa ligne de depense a :
+'  RÈGLE DE NON-RETRAITEMENT (pour ne pas reposer les mêmes questions à
+'  chaque import) : un groupe n'est PAS retraité si sa ligne de dépense a :
 '     - StatutSante = "OK"                                   -> rien a faire
 '     - StatutSante = "KO" ET DepassementHoraires = VRAI      -> rien a faire
-'  Dans tous les autres cas (premiÃ¨re fois, ou "KO" avec Honoraire = FAUX),
+'  Dans tous les autres cas (première fois, ou "KO" avec Honoraire = FAUX),
 '  on recalcule.
 '
-'  IMPORTANT : ce module ne rÃ©Ã©crit JAMAIS un tableau en entier, et ne
-'  rÃ©Ã©crit mÃªme pas la colonne Franchise (saisie reservee a l'opÃ©rateur). Il
+'  IMPORTANT : ce module ne réécrit JAMAIS un tableau en entier et ne
+'  réécrit même pas la colonne Franchise (saisie réservée à l'opérateur). Il
 '  ne touche qu'aux colonnes qu'il a le droit de modifier (StatutSante,
 '  SoldeSante, DepassementHoraires), chacune via tbl.ListColumns("NomColonne"),
-'  et ce SEPAREMENT pour TblOperations et pour TblVentilations.
+'  et cela SÉPARÉMENT pour TblOperations et TblVentilations.
 '
 '  TblVentilations EST FACULTATIVE : si la feuille "Ventilations" ou le
-'  tableau "TblVentilations" n'existent pas encore (Phase 4 pas installee
-'  chez l'opÃ©rateur), ou si ses colonnes de suivi santÃ© n'ont pas encore ete
-'  ajoutees, ce module continue de fonctionner NORMALEMENT sur TblOperations
-'  seule -- aucune erreur n'est levee, la partie Ventilations est simplement
-'  ignoree.
+'  tableau "TblVentilations" n'existent pas encore (phase 4 non installée
+'  chez l'opérateur), ou si ses colonnes de suivi santé n'ont pas encore été
+'  ajoutées, ce module continue de fonctionner normalement sur TblOperations
+'  seule. Aucune erreur n'est levée : la partie Ventilations est simplement
+'  ignorée.
 ' ============================================================================
 
-' --- Petit "type" prive, utilisÃ© pour charger en memoire les opÃ©rations de
-'     santÃ© des DEUX tables avant de les regrouper. Le champ "Source" indique
-'     dans quel tableau la ligne a ete trouvee ("O" = TblOperations,
-'     "V" = TblVentilations) : c'est lui qui dit, au moment de reecrire les
-'     rÃ©sultats, quel jeu de tableaux memoire (OP ou VEN) utiliser. ---
+' --- Petit type privé utilisé pour charger en mémoire les opérations de santé
+'     des deux tables avant de les regrouper. Le champ "Source" indique dans
+'     quel tableau la ligne a été trouvée ("O" = TblOperations, "V" =
+'     TblVentilations) et détermine quel tableau mémoire (OP ou VEN) utiliser
+'     au moment de réécrire les résultats. ---
 
-' --- Noms de la feuille et du tableau de ventilation, DUPLIQUES ICI en dur
-'     (plutot que de referencer mod_InstallVentilation.VEN_NOM_xxx) pour que
-'     ce module continue a COMPILER mÃªme si mod_InstallVentilation n'a pas
-'     encore ete importe (Phase 4 optionnelle vis-a-vis de ce module) --------
+' --- Noms de la feuille et du tableau de ventilation dupliqués ici en dur
+'     (plutôt que de référencer mod_InstallVentilation.VEN_NOM_xxx) pour que
+'     ce module puisse compiler même si mod_InstallVentilation n'a pas encore
+'     été importé (phase 4 facultative pour ce module). -----------------------
 Private Const VEN_FEUILLE As String = "Ventilations"
 Private Const VEN_TABLE As String = "TblVentilations"
 
 Private Type TOperationSante
     Source As String        ' "O" (TblOperations) ou "V" (TblVentilations)
-    LigneOrigine As Long    ' numÃ©ro de ligne DANS LE TABLEAU MEMOIRE DE SA SOURCE (tblData ou tblDataVen), PAS le numÃ©ro de ligne Excel
-    Montant As Double       ' montant tel quel (negatif pour une depense, positif pour un remboursement)
-    Notes As String         ' valeur du champ Notes : c'est la clÃ© de regroupement
-    Traite As Boolean       ' cette ligne a-t-elle dÃ©jÃ  ete rattachee a un groupe traitÃ© ?
+    LigneOrigine As Long    ' numéro de ligne dans le tableau mémoire de sa source, pas dans Excel
+    Montant As Double       ' montant tel quel (négatif pour une dépense, positif pour un remboursement)
+    Notes As String         ' valeur du champ Notes : c'est la clé de regroupement
+    Traite As Boolean       ' cette ligne a-t-elle déjà été rattachée à un groupe traité ?
 End Type
 
-' Nom exact de la sous-catÃ©gorie a surveiller. On utilisÃ© ChrW(233) pour le
-' "e" accentue de "santÃ©" au lieu de taper directement le caractere accentue :
-' cela garantit que la comparaison fonctionnera correctement quel que soit
-' l'encodage utilisÃ© au moment de l'import du fichier .bas.
+' Nom exact de la sous-catégorie à surveiller. ChrW(233) construit le « é »
+' de « santé » au lieu de saisir directement le caractère accentué, ce qui
+' garantit une comparaison correcte quel que soit l'encodage du fichier .bas.
 Private Function SousCategorieSante() As String
     SousCategorieSante = "Frais, remb sant" & ChrW(233)
 End Function
@@ -93,7 +91,7 @@ End Function
 
 ' ----------------------------------------------------------------------------
 ' ValeursColonne : lit une colonne du tableau et renvoie TOUJOURS un tableau
-' 2D (1 To n, 1 To 1), mÃªme si la table ne contient qu'une seule ligne.
+' 2D (1 To n, 1 To 1), même si la table ne contient qu'une seule ligne.
 ' ----------------------------------------------------------------------------
 ' Piege classique VBA : Range.Value renvoie un tableau 2D quand la plage
 ' contient plusieurs cellules, mais renvoie une simple valeur (pas un
@@ -112,8 +110,8 @@ End Function
 
 ' ----------------------------------------------------------------------------
 ' ObtenirTableVentilationsSiExiste : renvoie le ListObject TblVentilations,
-' ou Nothing si la feuille/le tableau n'existe pas encore chez l'opÃ©rateur
-' (Phase 4 pas installee). Ne leve jamais d'erreur.
+' ou Nothing si la feuille ou le tableau n'existe pas encore chez l'opérateur
+' (phase 4 non installée). Ne lève jamais d'erreur.
 ' ----------------------------------------------------------------------------
 Private Function ObtenirTableVentilationsSiExiste() As ListObject
     Dim ws As Worksheet
@@ -140,8 +138,8 @@ End Function
 ' MACRO PRINCIPALE
 ' ----------------------------------------------------------------------------
 ' Appelee automatiquement depuis ImporterOperationsOFX, ou manuellement
-' (Ctrl+G, CalculerSuiviSante) pour retraiter toute la table (par exemple
-' aprÃ¨s une saisie manuelle de Franchise).
+' (Ctrl+G, CalculerSuiviSante) pour retraiter toute la table, par exemple
+' après une saisie manuelle de Franchise.
 Public Sub CalculerSuiviSante(Optional ByVal AfficherResume As Boolean = True)
 
     Dim tblData As Variant
@@ -152,7 +150,7 @@ Public Sub CalculerSuiviSante(Optional ByVal AfficherResume As Boolean = True)
 
     ' --- Jeux de tableaux memoire pour TblVentilations (Phase 6) : restent
     '     vides (Empty) si TblVentilations n'existe pas ou n'a pas encore ses
-    '     colonnes de suivi santÃ© -------------------------------------------
+    '     colonnes de suivi santé --------------------------------------------
     Dim tblVen As ListObject
     Dim tblDataVen As Variant
     Dim nbLignesVen As Long
@@ -167,7 +165,7 @@ Public Sub CalculerSuiviSante(Optional ByVal AfficherResume As Boolean = True)
     Dim i As Long
     Dim nbGroupesTraites As Long
 
-    ' --- ETAPE 1 : rÃ©cupÃ©ration de TblOperations et des index de colonnes ---
+    ' --- ÉTAPE 1 : récupération de TblOperations et des index de colonnes ---
     Set tbl = mod_DonneesTable.GetOperationsTable()
     If tbl Is Nothing Then
         MsgBox "Le tableau TblOperations est introuvable.", vbExclamation
@@ -179,12 +177,12 @@ Public Sub CalculerSuiviSante(Optional ByVal AfficherResume As Boolean = True)
     End If
 
     ' RecupIndexCol (mod_Display) remplit les variables publiques colXxx en
-    ' recherchant chaque colonne PAR SON NOM D'ENTETE (jamais un numÃ©ro fixe).
+    ' recherchant chaque colonne par son nom d'en-tête, jamais par un numéro fixe.
     mod_Display.RecupIndexCol
 
-    ' PHASE 6 : la colonne testee est desormais SousCategorie (et non plus
-    ' CatÃ©gorie). Si elle n'existe pas encore (Phase 1 pas installee), on
-    ' previent clairement au lieu de comparer une colonne qui n'a pas le sens
+    ' PHASE 6 : la colonne testée est désormais SousCategorie (et non plus
+    ' Catégorie). Si elle n'existe pas encore (phase 1 non installée), on
+    ' prévient clairement au lieu de comparer une colonne qui n'a pas le sens
     ' attendu.
     If colSousCategorie = 0 Then
         MsgBox "La colonne 'SousCategorie' est introuvable dans TblOperations." & vbCrLf & _
@@ -203,16 +201,16 @@ Public Sub CalculerSuiviSante(Optional ByVal AfficherResume As Boolean = True)
         Exit Sub
     End If
 
-    ' --- ETAPE 2 : lecture memoire de TblOperations ---
+    ' --- ÉTAPE 2 : lecture en mémoire de TblOperations ---
     tblData = tbl.DataBodyRange.value
     nbLignesTable = UBound(tblData, 1)
 
     arrStatut = ValeursColonne(tbl.ListColumns("StatutSante").DataBodyRange)
     arrSolde = ValeursColonne(tbl.ListColumns("SoldeSante").DataBodyRange)
     arrHonoraire = ValeursColonne(tbl.ListColumns("DepassementHoraires").DataBodyRange)
-    arrFranchise = ValeursColonne(tbl.ListColumns("Franchise").DataBodyRange)   ' jamais ecrite, lue seulement
+    arrFranchise = ValeursColonne(tbl.ListColumns("Franchise").DataBodyRange)   ' jamais écrite, lue seulement
 
-    ' --- ETAPE 2bis (PHASE 6) : lecture memoire de TblVentilations, si dispo ---
+    ' --- ÉTAPE 2bis (PHASE 6) : lecture en mémoire de TblVentilations, si disponible ---
     venDisponible = False
     Set tblVen = ObtenirTableVentilationsSiExiste()
     If Not tblVen Is Nothing Then
@@ -236,12 +234,12 @@ Public Sub CalculerSuiviSante(Optional ByVal AfficherResume As Boolean = True)
                 venDisponible = True
             End If
             ' Si une colonne de suivi manque encore dans TblVentilations, on ne
-            ' bloque pas : on continue simplement sans elle (venDisponible reste False).
+            ' bloque pas : on continue sans cette table (venDisponible reste False).
         End If
     End If
 
-    ' --- ETAPE 3 : on isole toutes les lignes "Frais, remb santÃ©", des DEUX
-    '     tables, dans un seul tableau memoire combine ------------------------
+    ' --- ÉTAPE 3 : on isole toutes les lignes "Frais, remb santé" des deux
+    '     tables dans un seul tableau mémoire combiné -------------------------
     nbOps = 0
 
     For nbLigne = 1 To nbLignesTable
@@ -280,10 +278,10 @@ Public Sub CalculerSuiviSante(Optional ByVal AfficherResume As Boolean = True)
         Exit Sub
     End If
 
-    ' --- ETAPE 4 : on traitÃ© chaque groupe (= chaque valeur de Notes) une
-    '     seule fois. Le regroupement se fait SUR L'ENSEMBLE COMBINE : deux
-    '     lignes venant de tables diffÃ©rentes mais partageant la mÃªme clÃ©
-    '     Notes sont bien traitÃ©es comme UN SEUL groupe. -----------------------
+    ' --- ÉTAPE 4 : on traite chaque groupe (chaque valeur de Notes) une seule
+    '     fois. Le regroupement se fait sur l'ensemble combiné : deux lignes
+    '     venant de tables différentes mais partageant la même clé Notes sont
+    '     bien traitées comme un seul groupe. ----------------------------------
     nbGroupesTraites = 0
     For i = 1 To nbOps
         If Not tabOps(i).Traite Then
@@ -294,9 +292,9 @@ Public Sub CalculerSuiviSante(Optional ByVal AfficherResume As Boolean = True)
         End If
     Next i
 
-    ' --- ETAPE 5 : rÃ©Ã©criture UNIQUEMENT des colonnes concernÃ©es, table par
-    '     table. On n'ecrit jamais un tableau en entier : seules les colonnes
-    '     de suivi sont reecrites, chacune independamment. ---------------------
+    ' --- ÉTAPE 5 : réécriture uniquement des colonnes concernées, table par
+    '     table. On n'écrit jamais un tableau en entier : seules les colonnes
+    '     de suivi sont réécrites, chacune indépendamment. ----------------------
     Application.ScreenUpdating = False
     tbl.ListColumns("StatutSante").DataBodyRange.value = arrStatut
     tbl.ListColumns("SoldeSante").DataBodyRange.value = arrSolde
@@ -320,17 +318,17 @@ End Sub
 
 
 ' ----------------------------------------------------------------------------
-' TraiterGroupeSante : traitÃ© UN groupe (toutes les lignes qui partagent la
-' mÃªme valeur de "Notes" que la ligne tabOps(indexDepart)), en lisant/ecrivant
-' dans le jeu de tableaux memoire correspondant a la SOURCE de chaque ligne.
+' TraiterGroupeSante : traite un groupe (toutes les lignes qui partagent la
+' même valeur de "Notes" que la ligne tabOps(indexDepart)), en lisant et écrivant
+' dans le tableau mémoire correspondant à la source de chaque ligne.
 ' ----------------------------------------------------------------------------
-' Parametres :
-'   tabOps                        -> toutes les opÃ©rations santÃ© (2 tables), en memoire
+' Paramètres :
+'   tabOps                        -> toutes les opérations santé (2 tables), en mémoire
 '   nbOps                         -> nombre de lignes dans tabOps
-'   indexDepart                   -> position, dans tabOps, d'une ligne du groupe a traiter
+'   indexDepart                   -> position dans tabOps d'une ligne du groupe à traiter
 '   arrStatut/arrSolde/arrHonoraire/arrFranchise (ByRef)      -> colonnes de TblOperations
 '   arrStatutVen/arrSoldeVen/arrHonoraireVen/arrFranchiseVen (ByRef) -> colonnes de TblVentilations
-'   nbGroupesTraites (ByRef)      -> compteur global, incremente si ce groupe a ete recalcule
+'   nbGroupesTraites (ByRef)      -> compteur global, incrémenté si ce groupe a été recalculé
 Private Sub TraiterGroupeSante(ByRef tabOps() As TOperationSante, ByVal nbOps As Long, _
                                 ByVal indexDepart As Long, _
                                 ByRef arrStatut As Variant, ByRef arrSolde As Variant, _
@@ -341,11 +339,11 @@ Private Sub TraiterGroupeSante(ByRef tabOps() As TOperationSante, ByVal nbOps As
 
     Dim notesRef As String
     Dim j As Long, k As Long
-    Dim indexDepense As Long        ' position DANS TABOPS (pas dans une table) de la 1ere depense du groupe, 0 si aucune
+    Dim indexDepense As Long        ' position dans tabOps (pas dans une table) de la première dépense du groupe, 0 si aucune
     Dim montantDepenses As Double
     Dim montantRemb As Double
     Dim nbLignesGroupe As Long
-    Dim indicesGroupe() As Long      ' positions DANS TABOPS de toutes les lignes du groupe
+    Dim indicesGroupe() As Long      ' positions dans tabOps de toutes les lignes du groupe
     Dim statutActuel As String
     Dim honoraireActuel As Boolean
     Dim nouveauStatut As String
@@ -354,8 +352,8 @@ Private Sub TraiterGroupeSante(ByRef tabOps() As TOperationSante, ByVal nbOps As
 
     notesRef = tabOps(indexDepart).Notes
 
-    ' --- Sous-Ã©tape A : on repÃ¨re TOUTES les lignes du groupe (peu importe
-    '     leur source) et on les marque "TraitÃ©" tout de suite --------------
+    ' --- Sous-étape A : on repère toutes les lignes du groupe, quelle que soit
+    '     leur source, et on les marque "Traité" tout de suite -----------------
     nbLignesGroupe = 0
     indexDepense = 0
     montantDepenses = 0
@@ -378,8 +376,8 @@ Private Sub TraiterGroupeSante(ByRef tabOps() As TOperationSante, ByVal nbOps As
         End If
     Next j
 
-    ' --- Sous-Ã©tape B : faut-il seulement RETRAITER ce groupe ? (le verrou se
-    '     lit dans le jeu de tableaux memoire de la source de la depense) ------
+    ' --- Sous-étape B : faut-il retraiter ce groupe ? Le verrou se lit dans le
+    '     tableau mémoire correspondant à la source de la dépense. -------------
     If indexDepense <> 0 Then
         If tabOps(indexDepense).Source = "O" Then
             statutActuel = mod_DataStructure.CellText(arrStatut(tabOps(indexDepense).LigneOrigine, 1))
@@ -393,8 +391,8 @@ Private Sub TraiterGroupeSante(ByRef tabOps() As TOperationSante, ByVal nbOps As
         If statutActuel = "KO" And honoraireActuel Then Exit Sub
     End If
 
-    ' --- Sous-Ã©tape C : calcul du solde (uniquement si une ligne de depense
-    '     existe), franchise lue dans le jeu de tableaux memoire de sa source --
+    ' --- Sous-étape C : calcul du solde (uniquement si une ligne de dépense
+    '     existe), franchise lue dans le tableau mémoire de sa source -----------
     If indexDepense <> 0 Then
         montantFranchise = 0
         If tabOps(indexDepense).Source = "O" Then
@@ -421,17 +419,17 @@ Private Sub TraiterGroupeSante(ByRef tabOps() As TOperationSante, ByVal nbOps As
             End If
         End If
 
-        ' Tolerance de 0,005 (un demi-centime) pour l'Ã©galitÃ© a zero, comme en Phase 1.
+        ' Tolérance de 0,005 (un demi-centime) pour l'égalité à zéro, comme en phase 1.
         nouveauStatut = IIf(Abs(solde) < 0.005, "OK", "KO")
     Else
-        ' Groupe compose uniquement de remboursements, sans depense
+        ' Groupe composé uniquement de remboursements, sans dépense
         ' correspondante : impossible de calculer un solde. Convention
-        ' inchangee depuis la Phase 1 : ces lignes orphelines restent "KO".
+        ' inchangée depuis la phase 1 : ces lignes orphelines restent "KO".
         nouveauStatut = "KO"
     End If
 
-    ' --- Sous-Ã©tape D : ecriture du statut sur TOUTES les lignes du groupe,
-    '     chacune dans le jeu de tableaux memoire de SA source ---------------
+    ' --- Sous-étape D : écriture du statut sur toutes les lignes du groupe,
+    '     chacune dans le tableau mémoire de sa source -------------------------
     For k = 1 To nbLignesGroupe
         j = indicesGroupe(k)
         If tabOps(j).Source = "O" Then

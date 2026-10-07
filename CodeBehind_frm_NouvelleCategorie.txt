@@ -1,18 +1,18 @@
 ' =====================================================================================
-' CODE A COLLER DANS LE MODULE DE LA FEUILLE "frm_NouvelleCategorie"
+' CODE À COLLER DANS LE MODULE DE LA FEUILLE "frm_NouvelleCategorie"
 ' =====================================================================================
-' Meme principe qu'en Phase 2 (voir CodeBehind_frm_ControleCategories.txt) : les
-' evenements d'une feuille doivent obligatoirement etre ecrits dans le module de code
-' de LA FEUILLE ELLE-MEME. Ce code ne fait qu'appeler mod_NouvelleCategorie.
+' Même principe qu'en phase 2 (voir CodeBehind_frm_ControleCategories.txt) : les
+' événements d'une feuille doivent obligatoirement être écrits dans le module de code
+' de LA FEUILLE ELLE-MÊME. Ce code ne fait qu'appeler mod_NouvelleCategorie.
 '
 ' COMMENT FAIRE :
-'   1. Alt+F11 pour ouvrir l'editeur VBA.
-'   2. Dans l'explorateur de projet (Ctrl+R si absent), reperez la ligne :
+'   1. Alt+F11 pour ouvrir l'éditeur VBA.
+'   2. Dans l'explorateur de projet (Ctrl+R si absent), repérez la ligne :
 '          <CodeName> (frm_NouvelleCategorie)
-'      (le CodeName vous a ete indique dans le message de fin d'installation).
+'      (le CodeName vous a été indiqué dans le message de fin d'installation).
 '      Double-cliquez dessus.
-'   3. Collez-y LES LIGNES CI-DESSOUS, a partir de "Private Sub Worksheet_Change".
-'   4. Ne collez pas ce code dans une autre feuille : il s'y declencherait a tort.
+'   3. Collez-y LES LIGNES CI-DESSOUS, à partir de "Private Sub Worksheet_Change".
+'   4. Ne collez pas ce code dans une autre feuille : il s'y déclencherait à tort.
 ' =====================================================================================
 
 Private Sub Worksheet_Change(ByVal Target As Range)

@@ -97,7 +97,7 @@ Public Sub Budget_Bilan_Mensuel()
     Call mod_Display.ConstruireBoutons(wsResultat, zoneBouton, texteBouton, nomMacroBouton)
 
     ' 6. Construction de la zone des instructions
-    ' On fournit le message à afficher en remplaçant les carractères accentué par les balise de la fonction FR
+    ' On fournit le message à afficher en remplaçant les caractères accentués par les balises de la fonction FR.
     Message = " Bilan Mensuel" & Chr(10) & _
                 "Affiche une synth{e2}se des dépenses et des revenus sur la p{e2}riode du:" & Chr(10) & _
                 "Mois: " & critMois & " Ann{e2}e: " & critAnnee & Chr(10) & _

@@ -33,9 +33,9 @@ Public Sub Synthese_Care()
         Exit Sub
     End If
     
-    ' 1. Verifier si la feuille de travail existe deja, pour eviter d'ecraser du travail sans prevenir.
+    ' 1. Vérifier si la feuille de travail existe deja, pour éviter d'écraser du travail sans prévenir.
     If Not wsResultat Is Nothing Then
-        ' La feuille existe deja : on demande confirmation avant de tout reconstruire,
+        ' La feuille existe déjà : on demande confirmation avant de tout reconstruire,
         ' car cela va effacer sa mise en forme actuelle.
         reponse = MsgBox(FR("La feuille '" & NOM_FEUILLE_RESULTAT & "' existe deja." & vbCrLf & _
                             "Voulez-vous la reconstruire enti{e1}rement (sa mise en forme actuelle sera perdue) ?"), _
@@ -85,7 +85,7 @@ Public Sub Synthese_Care()
     Call mod_Display.ConstruireBoutons(wsResultat, zoneBouton, texteBouton, nomMacroBouton)
 
     ' 6. Construction de la zone des instructions
-    ' On fournit le message à afficher en remplaçant les carractères accentué par les balise de la fonction FR
+    ' On fournit le message à afficher en remplaçant les caractères accentués par les balises de la fonction FR.
     Message = " Suivi Sant{e2}" & Chr(10) & _
                 "Les op{e2}rations list{e2}es sont toutes les op{e2}rations traitant du suivi sant{e2}" & Chr(10) & _
                  "{A2} la fin sortez avec le bouton ""Sortir"""

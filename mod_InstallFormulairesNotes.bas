@@ -3,48 +3,48 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_InstallFormulairesNotes
 '
-' ROLE (PHASE 4a du chantier "Suivi Sante") :
+' RÔLE (phase 4a du chantier "Suivi Santé") :
 '   Construit la mise en page STATIQUE (aucune logique de clic pour l'instant)
-'   de 2 feuilles masquees utilisees quand le champ "Notes" d'une operation de
-'   sante ne peut pas etre decoupe automatiquement (voir mod_ImportOFX,
+'   de deux feuilles masquées, utilisées lorsque le champ "Notes" d'une opération
+'   de santé ne peut pas être découpé automatiquement (voir mod_ImportOFX,
 '   fonction EstDateValide) :
 '
 '     1) frm_RapprochementNotes : propose une recherche par 4 filtres en
-'        cascade (Date -> Specialite -> Beneficiaire -> Montant) parmi les
-'        cles "Notes" deja valides ailleurs dans TblOperations, pour
-'        retrouver la bonne cle sans avoir a la retaper.
+'        cascade (Date -> Spécialité -> Bénéficiaire -> Montant) parmi les
+'        clés "Notes" déjà valides ailleurs dans TblOperations, afin de retrouver
+'        la bonne clé sans avoir à la ressaisir.
 '
 '     2) frm_GenerationCle : si aucune correspondance n'existe, permet de
-'        generer une nouvelle cle "AAAAMMJJ;Specialite;Beneficiaire;Montant"
-'        a partir de 4 champs.
+'        générer une nouvelle cle "AAAAMMJJ;Specialite;Beneficiaire;Montant"
+'        à partir de quatre champs.
 '
-'   Comme pour frm_SuiviSante (mod_InstallSuiviSanteSheet), ce module ne fait
-'   QUE poser les cellules, noms et boutons : aucun clic n'est encore
-'   fonctionnel. Ce sera l'objet de la Phase 4b (mod_FormulairesNotes).
+'   Comme pour frm_SuiviSante (mod_InstallSuiviSanteSheet), ce module fait
+'   UNIQUEMENT placer les cellules, noms et boutons : aucune action n'est encore
+'   fonctionnelle. Ce sera l'objet de la phase 4b (mod_FormulairesNotes).
 '
-' CE MODULE EST VOLONTAIREMENT AUTONOME (il ne reutilise pas les fonctions
-' internes de mod_InstallSuiviSanteSheet) : elles sont Private a leur module,
-' et dupliquer ces quelques dizaines de lignes de mise en forme est plus sur
-' que de multiplier les dependances entre fichiers -- see le mecanisme
-' equivalent, deja duplique volontairement, dans mod_SuiviSanteFormulaire.
+' CE MODULE EST VOLONTAIREMENT AUTONOME (il ne réutilise pas les fonctions
+' internes de mod_InstallSuiviSanteSheet) : elles sont Private dans leur module,
+' et dupliquer ces quelques dizaines de lignes de mise en forme est plus sûr
+' que de multiplier les dépendances entre fichiers. Voir le mécanisme équivalent,
+' déjà dupliqué volontairement, dans mod_SuiviSanteFormulaire.
 '
-' A PROPOS DES ACCENTS : meme convention que tout le chantier Suivi Sante :
-' fichier 100% ASCII, textes accentues construits via la fonction FR().
+' À PROPOS DES ACCENTS : même convention que dans le reste du chantier Suivi Santé :
+' les textes affichés sont construits via la fonction FR(); les commentaires sont en UTF-8.
 '
 ' A FAIRE POUR INSTALLER CE MODULE :
-'   1. Alt+F11, Fichier > Importer un fichier..., choisir ce fichier .bas
-'   2. Dans la fenetre Execution immediate (Ctrl+G) :
+'   1. Alt+F11, Fichier > Importer un fichier..., puis choisir ce fichier .bas.
+'   2. Dans la fenêtre Exécution immédiate (Ctrl+G), lancer :
 '        CreerFeuilleRapprochementNotes
 '        CreerFeuilleGenerationCle
-'   3. Pour revoir une feuille a l'ecran : AfficherFeuilleNotesPourEdition "frm_RapprochementNotes"
-'      (ou "frm_GenerationCle"). Pour la remasquer : MasquerFeuilleNotesApresEdition "..."
+'   3. Pour afficher une feuille : AfficherFeuilleNotesPourEdition "frm_RapprochementNotes"
+'      (ou "frm_GenerationCle"). Pour la masquer de nouveau : MasquerFeuilleNotesApresEdition "..."
 ' =====================================================================================
 
 
 Public Const NOM_FEUILLE_RAPPROCHEMENT As String = "frm_RapprochementNotes"
 Public Const NOM_FEUILLE_GENERATION As String = "frm_GenerationCle"
 
-' Colonnes communes aux 2 feuilles (3 paires libelle/valeur par ligne, comme frm_SuiviSante)
+' Colonnes communes aux deux feuilles (trois paires libellé/valeur par ligne, comme dans frm_SuiviSante).
 Public Const FN_COL_LIBELLE_1 As String = "B"
 Public Const FN_COL_VALEUR_1 As String = "C"
 Public Const FN_COL_LIBELLE_2 As String = "D"
@@ -67,14 +67,14 @@ Public Const RN_LIGNE_BENEFICIAIRE As Long = 17
 Public Const RN_LIGNE_MONTANT As Long = 18
 Public Const RN_LIGNE_CLE_TROUVEE As Long = 20
 
-' Colonnes techniques masquees : listes de candidats pour les 4 filtres en
-' cascade, recalculees par la Phase 4b a chaque changement de filtre. Prevues
-' ici (Phase 4a) uniquement pour que les noms definis existent des le depart.
+' Colonnes techniques masquées : listes de candidats pour les quatre filtres en
+' cascade, recalculées par la phase 4b à chaque changement de filtre. Prévues ici
+' (phase 4a) uniquement pour que les noms définis existent dès le départ.
 Public Const RN_COL_LISTE_DATES As String = "L"
 Public Const RN_COL_LISTE_SPECIALITES As String = "M"
 Public Const RN_COL_LISTE_BENEFICIAIRES As String = "N"
 Public Const RN_COL_LISTE_MONTANTS As String = "O"
-Public Const RN_COL_LISTE_CLES As String = "P"   ' cle brute correspondant a chaque montant de la colonne O (meme ligne)
+Public Const RN_COL_LISTE_CLES As String = "P"   ' clé brute associée à chaque montant de la colonne O (même ligne)
 
 ' --- Mise en page de frm_GenerationCle ---
 Public Const GC_LIGNE_BOUTONS As Long = 2
@@ -104,7 +104,7 @@ Sub CreerFeuilleRapprochementNotes()
 
     If Not ws Is Nothing Then
         reponse = MsgBox("La feuille '" & NOM_FEUILLE_RAPPROCHEMENT & "' existe deja." & vbCrLf & _
-                          "Veux-tu la reconstruire entierement (sa mise en forme actuelle sera perdue) ?", _
+                  "Veux-tu la reconstruire entierement (sa mise en forme actuelle sera perdue) ?", _
                           vbYesNo + vbQuestion, "Confirmation de reconstruction")
         If reponse = vbNo Then
             MsgBox "Installation annulee, aucune modification effectuee.", vbInformation
@@ -121,7 +121,7 @@ Sub CreerFeuilleRapprochementNotes()
 
     Call FN_AppliquerMiseEnFormeGenerale(ws)
 
-    ' --- Boutons + compteur ---
+    ' --- Boutons et compteur ---
     Dim zoneBtn1 As Range, zoneBtn2 As Range
     Dim btn As Button
 
@@ -175,7 +175,7 @@ Sub CreerFeuilleRapprochementNotes()
     End With
     ws.rows(RN_LIGNE_DEBUT_INSTRUCTIONS & ":" & RN_LIGNE_FIN_INSTRUCTIONS).RowHeight = 15
 
-    ' --- Bloc "Operation concernee" (lecture seule) ---
+    ' --- Bloc "Opération concernée" (lecture seule) ---
     With ws.Range(FN_COL_LIBELLE_1 & RN_LIGNE_TITRE_OPERATION & ":" & FN_COL_VALEUR_3 & RN_LIGNE_TITRE_OPERATION)
         .Merge
         .value = mod_Display.FR("Op{e2}ration concern{e2}e")
@@ -235,7 +235,7 @@ Sub CreerFeuilleRapprochementNotes()
     Call FN_MettreEnFormeZoneSaisie(rngMontant)
     Call CreerNomSiAbsentFN(ws, "rnMontant", ws.Range(FN_COL_VALEUR_1 & RN_LIGNE_MONTANT))
 
-    ' --- Cle trouvee (lecture seule) ---
+    ' --- Clé trouvée (lecture seule) ---
     ws.Range(FN_COL_LIBELLE_1 & RN_LIGNE_CLE_TROUVEE).value = mod_Display.FR("Cl{e2} trouv{e2}e :")
     Call FN_MettreEnFormeLibelles(ws, RN_LIGNE_CLE_TROUVEE)
     With ws.Range(FN_COL_VALEUR_1 & RN_LIGNE_CLE_TROUVEE & ":" & FN_COL_VALEUR_3 & RN_LIGNE_CLE_TROUVEE)
@@ -245,7 +245,7 @@ Sub CreerFeuilleRapprochementNotes()
     Call FN_MettreEnFormeValeursLectureSeule(ws, RN_LIGNE_CLE_TROUVEE)
     Call CreerNomSiAbsentFN(ws, "rnCleTrouvee", ws.Range(FN_COL_VALEUR_1 & RN_LIGNE_CLE_TROUVEE))
 
-    ' --- Zone technique masquee ---
+    ' --- Zone technique masquée ---
     ws.Columns(RN_COL_LISTE_DATES).ColumnWidth = 12
     ws.Columns(RN_COL_LISTE_SPECIALITES).ColumnWidth = 12
     ws.Columns(RN_COL_LISTE_BENEFICIAIRES).ColumnWidth = 12
@@ -259,9 +259,9 @@ Sub CreerFeuilleRapprochementNotes()
     ws.Range(RN_COL_LISTE_MONTANTS & "1").value = "ListeMontants"
     ws.Range(RN_COL_LISTE_CLES & "1").value = "ListeCles"
 
-    ' Chaque liste demarre avec UNE cellule de reserve (ligne 2), que la
-    ' Phase 4b redimensionnera dynamiquement, comme deja fait pour les
-    ' plages Beneficiaires/Praticiens (voir AjouterValeurDansListe).
+    ' Chaque liste commence par UNE cellule de réserve (ligne 2), que la
+    ' phase 4b redimensionnera dynamiquement, comme pour les plages
+    ' Beneficiaires/Praticiens (voir AjouterValeurDansListe).
     Call CreerNomSiAbsentFN(ws, "rnListeDates", ws.Range(RN_COL_LISTE_DATES & "2"))
     Call CreerNomSiAbsentFN(ws, "rnListeSpecialites", ws.Range(RN_COL_LISTE_SPECIALITES & "2"))
     Call CreerNomSiAbsentFN(ws, "rnListeBeneficiaires", ws.Range(RN_COL_LISTE_BENEFICIAIRES & "2"))
@@ -353,7 +353,7 @@ Sub CreerFeuilleGenerationCle()
     End With
     ws.rows(GC_LIGNE_DEBUT_INSTRUCTIONS & ":" & GC_LIGNE_FIN_INSTRUCTIONS).RowHeight = 15
 
-    ' --- Bloc "Operation concernee" (lecture seule) ---
+    ' --- Bloc "Opération concernée" (lecture seule) ---
     With ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_TITRE_OPERATION & ":" & FN_COL_VALEUR_3 & GC_LIGNE_TITRE_OPERATION)
         .Merge
         .value = mod_Display.FR("Op{e2}ration concern{e2}e")
@@ -369,7 +369,7 @@ Sub CreerFeuilleGenerationCle()
     Call CreerNomSiAbsentFN(ws, "gcDateOp", ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_OPERATION))
     Call CreerNomSiAbsentFN(ws, "gcTiersOp", ws.Range(FN_COL_VALEUR_2 & GC_LIGNE_OPERATION))
 
-    ' --- Bloc "Generation de la cle" ---
+    ' --- Bloc "Génération de la clé" ---
     With ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_TITRE_GENERATION & ":" & FN_COL_VALEUR_3 & GC_LIGNE_TITRE_GENERATION)
         .Merge
         .value = mod_Display.FR("G{e2}n{e2}ration de la cl{e2}")
@@ -430,7 +430,7 @@ Sub CreerFeuilleGenerationCle()
     Call FN_MettreEnFormeValeursLectureSeule(ws, GC_LIGNE_MONTANT)
     Call CreerNomSiAbsentFN(ws, "gcMontant", ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_MONTANT))
 
-    ' --- Cle generee (lecture seule) ---
+    ' --- Clé générée (lecture seule) ---
     ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_CLE_GENEREE).value = mod_Display.FR("Cl{e2} g{e2}n{e2}r{e2}e :")
     Call FN_MettreEnFormeLibelles(ws, GC_LIGNE_CLE_GENEREE)
     With ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_CLE_GENEREE & ":" & FN_COL_VALEUR_3 & GC_LIGNE_CLE_GENEREE)
@@ -440,7 +440,7 @@ Sub CreerFeuilleGenerationCle()
     Call FN_MettreEnFormeValeursLectureSeule(ws, GC_LIGNE_CLE_GENEREE)
     Call CreerNomSiAbsentFN(ws, "gcCleGeneree", ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_CLE_GENEREE))
 
-    ' --- Zone technique masquee ---
+    ' --- Zone technique masquée ---
     ws.Range(FN_COL_TECHNIQUE & GC_LIGNE_BOUTONS).value = 0
     Call CreerNomSiAbsentFN(ws, "gcLigneEnCours", ws.Range(FN_COL_TECHNIQUE & GC_LIGNE_BOUTONS))
     ws.Columns(FN_COL_TECHNIQUE).Hidden = True
@@ -455,7 +455,7 @@ End Sub
 
 
 ' =====================================================================================
-' MISE EN FORME GENERALE (commune aux 2 feuilles)
+' MISE EN FORME GÉNÉRALE (commune aux deux feuilles)
 ' =====================================================================================
 Private Sub FN_AppliquerMiseEnFormeGenerale(ws As Worksheet)
 
@@ -483,8 +483,8 @@ End Sub
 
 
 ' =====================================================================================
-' UTILITAIRES DE MISE EN FORME (communs aux 2 feuilles, meme esprit que les
-' fonctions SS_xxx de mod_InstallSuiviSanteSheet)
+' UTILITAIRES DE MISE EN FORME (communs aux deux feuilles, dans le même esprit
+' que les fonctions SS_xxx de mod_InstallSuiviSanteSheet)
 ' =====================================================================================
 Private Sub FN_MettreEnFormeLibelles(ws As Worksheet, ByVal ligne As Long)
     ws.Range(FN_COL_LIBELLE_1 & ligne).Font.Color = RGB(90, 90, 90)
@@ -518,7 +518,7 @@ End Sub
 
 
 ' =====================================================================================
-' FONCTIONS UTILITAIRES (creation/suppression feuille, noms, formes)
+' FONCTIONS UTILITAIRES (création/suppression de feuilles, noms et formes)
 ' =====================================================================================
 Private Function ObtenirFeuilleSansErreurFN(ByVal nomFeuille As String) As Worksheet
     Dim ws As Worksheet
@@ -557,15 +557,15 @@ End Sub
 
 
 ' =====================================================================================
-' OUTILS DEVELOPPEUR : basculent la visibilite d'une des 2 feuilles pour
-' pouvoir la retoucher. Passe le nom exact de la feuille en parametre.
+' OUTILS DÉVELOPPEUR : basculent la visibilité d'une des deux feuilles pour
+' permettre de la retoucher. Passer le nom exact de la feuille en paramètre.
 ' =====================================================================================
 ' =====================================================================================
 ' AjouterBoutonPasserEtInstructions : ajoute UNIQUEMENT le bouton "Passer" sur
-' les 2 feuilles (ligne 3, sous les boutons existants) et met a jour le texte
-' des instructions (plus complet sur les consequences de chaque action), SANS
-' reconstruire le reste des feuilles. A executer UNE SEULE FOIS, dans la
-' fenetre Execution immediate (Ctrl+G) :
+' les deux feuilles (ligne 3, sous les boutons existants) et met à jour le texte
+' des instructions pour préciser les conséquences de chaque action, SANS
+' reconstruire le reste des feuilles. À exécuter UNE SEULE FOIS dans la fenêtre
+' Exécution immédiate (Ctrl+G) :
 '      AjouterBoutonPasserEtInstructions
 ' =====================================================================================
 Sub AjouterBoutonPasserEtInstructions()
@@ -613,8 +613,8 @@ Private Sub AjouterBoutonPasserSurFeuille(ByVal nomFeuille As String, ByVal lign
 
 End Sub
 
-' Reecrit uniquement le texte des instructions de frm_RapprochementNotes,
-' avec une explication complete de chaque bouton et de sa consequence.
+' Réécrit uniquement le texte des instructions de frm_RapprochementNotes,
+' avec une explication complète de chaque bouton et de ses conséquences.
 Private Sub MettreAJourInstructionsRapprochement()
 
     Dim ws As Worksheet
@@ -645,8 +645,8 @@ Private Sub MettreAJourInstructionsRapprochement()
 
 End Sub
 
-' Reecrit uniquement le texte des instructions de frm_GenerationCle, avec une
-' mise en garde explicite sur la portee definitive d'une cle generee.
+' Réécrit uniquement le texte des instructions de frm_GenerationCle, avec une
+' mise en garde explicite sur la portée définitive d'une clé générée.
 Private Sub MettreAJourInstructionsGeneration()
 
     Dim ws As Worksheet

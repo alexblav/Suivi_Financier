@@ -3,33 +3,34 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_NouvelleCategorie
 '
-' PHASE 3 du chantier "Categorie / Sous-categorie / Ventilation" - PARTIE 2/2
+' PHASE 3 du chantier « Catégorie / Sous-catégorie / Ventilation » - PARTIE 2/2
 '
-' ROLE (a lire en premier, meme si vous debutez) :
-'   Ce module contient toute la LOGIQUE du formulaire de creation d'une categorie ou
-'   d'une sous-categorie. Il s'appuie sur :
+' RÔLE (à lire en premier, même si vous débutez) :
+'   Ce module contient toute la logique du formulaire de création d'une catégorie ou
+'   d'une sous-catégorie. Il s'appuie sur :
 '     - la feuille-formulaire frm_NouvelleCategorie (mod_InstallNouvelleCategorie),
 '     - le tableau TblCategories, via les fonctions de mod_Categories (Phase 1).
 '
 '   FONCTIONNEMENT "PAR-DESSUS" UN AUTRE FORMULAIRE :
-'   Ce formulaire est concu pour s'ouvrir A PARTIR d'un autre formulaire-feuille deja
-'   ouvert (le controle des categories, Phase 2), via son bouton "+ Nouvelle categorie".
-'   La fonction OuvrirNouvelleCategorie() ci-dessous gere ce cas : elle attend la
-'   fermeture de CE formulaire (Valider ou Annuler) et renvoie le resultat a l'appelant,
-'   sans jamais toucher aux donnees elle-meme -- c'est l'appelant qui decide quoi faire
-'   du resultat (ici : mod_ControleCategories.ControleNouvelleCategorie).
+'   Ce formulaire est conçu pour s'ouvrir À PARTIR d'un autre formulaire-feuille déjà
+'   ouvert (le contrôle des catégories, phase 2), via son bouton "+ Nouvelle catégorie".
+'   La fonction OuvrirNouvelleCategorie() ci-dessous gère ce cas : elle attend la
+'   fermeture de CE formulaire (Valider ou Annuler) et renvoie le résultat à l'appelant,
+'   sans jamais toucher aux données elles-mêmes : c'est l'appelant qui décide quoi faire
+'   du résultat (ici : mod_ControleCategories.ControleNouvelleCategorie).
 '
-'   Le formulaire peut aussi etre teste seul (voir TesterNouvelleCategorie), sans passer
-'   par le formulaire de controle.
+'   Le formulaire peut aussi être testé seul (voir TesterNouvelleCategorie), sans passer
+'   par le formulaire de contrôle.
 '
-' A PROPOS DES ACCENTS : fichier 100% ASCII, accents fabriques par la fonction mod_Display.FR().
+' À PROPOS DES ACCENTS : les textes affichés sont construits par mod_Display.FR(); les
+' commentaires sont encodés en UTF-8.
 ' =====================================================================================
 
-' --- Etat du formulaire ------------------------------------------------------------------
+' --- État du formulaire ------------------------------------------------------------------
 Public g_NcEnCours As Boolean        ' Vrai tant que le formulaire est ouvert (boucle d'attente)
-Public g_NcVerrouActif As Boolean    ' Vrai tant que Worksheet_Deactivate doit reactiver la feuille
+Public g_NcVerrouActif As Boolean    ' Vrai tant que Worksheet_Deactivate doit réactiver la feuille
 
-Private g_NcValide As Boolean        ' Vrai si l'operateur a clique sur "Valider"
+Private g_NcValide As Boolean        ' Vrai si l'opérateur a cliqué sur "Valider"
 Private g_NcCatResultat As String
 Private g_NcSousResultat As String
 Private g_NcNomFeuillePrec As String
@@ -38,12 +39,12 @@ Private g_NcNomFeuillePrec As String
 ' =====================================================================================
 ' FONCTION PRINCIPALE
 ' =====================================================================================
-' Parametres :
-'   catInitiale, sousInitiale : valeurs proposees au depart (peuvent etre vides).
-'   catResultat, sousResultat : (en sortie, uniquement si la fonction renvoie True)
-'                                la categorie et la sous-categorie validees par
-'                                l'operateur, DEJA enregistrees dans TblCategories.
-' Renvoie True si l'operateur a clique sur "Valider", False s'il a annule.
+' Paramètres :
+'   catInitiale, sousInitiale : valeurs proposées au départ (éventuellement vides).
+'   catResultat, sousResultat : en sortie, uniquement si la fonction renvoie True,
+'                                catégorie et sous-catégorie validées par l'opérateur
+'                                et déjà enregistrées dans TblCategories.
+' Renvoie True si l'opérateur a cliqué sur "Valider", False s'il a annulé.
 Public Function OuvrirNouvelleCategorie(ByVal catInitiale As String, ByVal sousInitiale As String, _
                                         ByRef catResultat As String, ByRef sousResultat As String) As Boolean
 
@@ -67,9 +68,9 @@ Public Function OuvrirNouvelleCategorie(ByVal catInitiale As String, ByVal sousI
     ws.Activate
     ws.Range(NC_ADR_CAT).Select
 
-    ' CORRECTIF PREVENTIF (voir mod_ControleCategories.OuvrirFormulaireEtAttendre pour le
-    ' detail) : ce formulaire repose lui aussi entierement sur Worksheet_Change pendant
-    ' sa boucle d'attente ; on garantit donc que les evenements sont actifs a ce stade.
+    ' CORRECTIF PRÉVENTIF (voir mod_ControleCategories.OuvrirFormulaireEtAttendre pour
+    ' le détail) : ce formulaire repose lui aussi sur Worksheet_Change pendant sa boucle
+    ' d'attente; on garantit donc que les événements sont actifs à ce stade.
     Application.EnableEvents = True
     g_NcEnCours = True
     g_NcVerrouActif = True
@@ -77,8 +78,8 @@ Public Function OuvrirNouvelleCategorie(ByVal catInitiale As String, ByVal sousI
         DoEvents
     Loop
 
-    ' A ce stade, NcValider ou NcAnnuler a deja masque la feuille (voir FermerFeuilleNc).
-    ' On revient sur la feuille qui etait active avant l'ouverture.
+    ' À ce stade, NcValider ou NcAnnuler a déjà masqué la feuille (voir FermerFeuilleNc).
+    ' On revient sur la feuille qui était active avant l'ouverture.
     On Error Resume Next
     ThisWorkbook.Worksheets(g_NcNomFeuillePrec).Activate
     On Error GoTo 0
@@ -102,7 +103,7 @@ End Function
 
 
 ' =====================================================================================
-' Remplit les champs avec les valeurs de depart, et pose les 2 listes deroulantes
+' Remplit les champs avec les valeurs de départ et configure les deux listes déroulantes.
 ' =====================================================================================
 Private Sub RemplirChamps(ByVal ws As Worksheet, ByVal catInitiale As String, ByVal sousInitiale As String)
 
@@ -117,26 +118,25 @@ Private Sub RemplirChamps(ByVal ws As Worksheet, ByVal catInitiale As String, By
     ws.Range(NC_ADR_SOUS).value = sousInitiale
     ws.Range(NC_ADR_MESSAGE).value = ""
 
-    ' Liste "Categorie" : le nom "ListeCategories" est cree en Phase 1
+    ' Liste "Categorie" : le nom "ListeCategories" est créé en phase 1
     ' (mod_Categories.RafraichirListesCategories).
     '
-    ' PAS D'ALERTE ICI (ni Warning, ni Stop) : saisir une valeur HORS liste est le but
-    ' meme de cet ecran (creer une nouvelle categorie), donc interrompre l'operateur a
-    ' CHAQUE fois qu'il tape un nom nouveau serait n'importe quoi -- sans compter que le
-    ' clic sur "Valider" declenche deja un controle plus intelligent (garde-fou
-    ' orthographique : "Vouliez-vous dire...?" si le texte ressemble beaucoup a une
-    ' categorie existante). Mettre une alerte ICI EN PLUS obligeait l'operateur a
-    ' confirmer DEUX FOIS la meme chose (Oui sur l'alerte Excel, puis reclic sur
-    ' Valider) -- retour d'un operateur apres test, corrige ainsi plutot qu'en
-    ' chainant les deux confirmations.
-    ' Le menu deroulant (InCellDropdown) reste actif : on peut toujours choisir une
-    ' categorie existante en un clic, seule l'ALERTE de saisie libre est retiree.
+    ' PAS D'ALERTE ICI (ni Warning ni Stop) : saisir une valeur HORS liste est
+    ' précisément le but de cet écran (créer une catégorie). Interrompre l'opérateur
+    ' CHAQUE fois qu'il saisit un nouveau nom serait contre-productif, d'autant que le
+    ' clic sur "Valider" déclenche déjà un contrôle plus pertinent (garde-fou
+    ' orthographique : "Vouliez-vous dire...?" si le texte ressemble à une catégorie
+    ' existante). Une alerte supplémentaire obligeait l'opérateur à confirmer DEUX FOIS
+    ' (clic sur Oui dans l'alerte Excel, puis nouveau clic sur Valider); ce comportement
+    ' a été corrigé à la suite des essais.
+    ' Le menu déroulant (InCellDropdown) reste actif : une catégorie existante peut
+    ' toujours être choisie en un clic; seule l'alerte de saisie libre est désactivée.
     With ws.Range(NC_ADR_CAT).Validation
         .Delete
         .Add Type:=xlValidateList, AlertStyle:=xlValidAlertWarning, Formula1:="=ListeCategories"
         .IgnoreBlank = True
         .InCellDropdown = True
-        .ShowError = False    ' AlertStyle ci-dessus n'a alors aucun effet : c'est voulu, voir l'explication au-dessus.
+        .ShowError = False    ' AlertStyle n'a alors aucun effet : c'est voulu (voir l'explication ci-dessus).
     End With
 
     RemplirListeSousCatNc ws, catInitiale
@@ -150,12 +150,12 @@ End Sub
 
 
 ' =====================================================================================
-' Liste deroulante des sous-categories DEJA CONNUES de la categorie donnee
+' Liste déroulante des sous-catégories DÉJÀ CONNUES de la catégorie sélectionnée
 ' =====================================================================================
-' Meme principe qu'en Phase 2 (mod_ControleCategories.RemplirListeSousCategories) :
-' les valeurs sont ecrites dans une colonne technique cachee, et le menu pointe vers
-' cette plage via un nom dynamique. AlertStyle Warning : une sous-categorie NOUVELLE
-' peut etre tapee librement.
+' Même principe qu'en phase 2 (mod_ControleCategories.RemplirListeSousCategories) :
+' les valeurs sont écrites dans une colonne technique masquée et le menu pointe vers
+' cette plage via un nom dynamique. AlertStyle Warning : une NOUVELLE sous-catégorie
+' peut être saisie librement.
 Private Sub RemplirListeSousCatNc(ByVal ws As Worksheet, ByVal categorie As String)
 
     Dim liste() As String
@@ -184,9 +184,9 @@ Private Sub RemplirListeSousCatNc(ByVal ws As Worksheet, ByVal categorie As Stri
         RefersTo:="=OFFSET(" & NC_NOM_FEUILLE & "!$" & colLettre & "$2,0,0," & _
                   "MAX(1,COUNTA(" & NC_NOM_FEUILLE & "!$" & colLettre & "$2:$" & colLettre & "$" & NC_LIGNE_AIDE_MAX & ")),1)"
 
-    ' Meme raisonnement que pour Categorie ci-dessus : pas d'alerte de saisie ici, le
-    ' menu deroulant reste disponible, et le garde-fou orthographique intelligent
-    ' (Valider) reste le seul controle -- plus besoin de confirmer deux fois.
+    ' Même principe que pour Categorie ci-dessus : aucune alerte de saisie ici;
+    ' le menu déroulant reste disponible et le garde-fou orthographique intelligent
+    ' (Valider) reste le seul contrôle. Il n'est donc pas nécessaire de confirmer deux fois.
     With ws.Range(NC_ADR_SOUS).Validation
         .Delete
         .Add Type:=xlValidateList, AlertStyle:=xlValidAlertWarning, Formula1:="=ListeSousCatNouvelle"
@@ -199,14 +199,14 @@ End Sub
 
 
 ' =====================================================================================
-' EVENEMENTS DE LA FEUILLE (appeles par le code-behind de frm_NouvelleCategorie)
+' ÉVÉNEMENTS DE LA FEUILLE (appelés par le code-behind de frm_NouvelleCategorie)
 ' =====================================================================================
-' Comme en Phase 2, les evenements d'une feuille doivent vivre dans le module de CETTE
-' feuille (voir CodeBehind_frm_NouvelleCategorie.txt). Ils ne font qu'appeler ces deux
-' procedures : toute la logique reste ici, dans un module normal.
+' Comme en phase 2, les événements d'une feuille doivent se trouver dans le module de CETTE
+' feuille (voir CodeBehind_frm_NouvelleCategorie.txt). Ils ne font qu'appeler les deux
+' procédures ci-dessous : toute la logique reste dans ce module standard.
 
-' Si la CATEGORIE change, l'ancienne sous-categorie n'a plus de sens : on l'efface et
-' on recharge la liste des sous-categories de la nouvelle categorie.
+' Si la CATEGORIE change, l'ancienne sous-catégorie n'est plus pertinente : on l'efface
+' et on recharge la liste des sous-catégories de la nouvelle catégorie.
 Public Sub NcTraiterChangement(ByVal ws As Worksheet, ByVal Target As Range)
 
     Dim numErr As Long
@@ -227,8 +227,8 @@ Sortie:
 
 End Sub
 
-' Verrou "modal" : tant que le formulaire est ouvert, on empeche l'operateur de le quitter
-' en changeant d'onglet (Worksheet_Deactivate le ramene de force dessus).
+' Verrou "modal" : tant que le formulaire est ouvert, on empêche l'opérateur de le quitter
+' en changeant d'onglet (Worksheet_Deactivate le ramène de force sur cette feuille).
 Public Sub NcVerrouiller(ByVal ws As Worksheet)
     If g_NcVerrouActif Then ws.Activate
 End Sub
@@ -259,11 +259,11 @@ Public Sub NcValider()
         Exit Sub
     End If
 
-    ' --- Garde-fou orthographique (Niveau 2) : Categorie -----------------------------
-    ' Le Niveau 1 (accents, espaces, majuscules) est deja gere silencieusement par
-    ' AjouterCategoriePersonnalisee plus bas. Ici, on detecte une simple FAUTE DE FRAPPE
-    ' (jusqu'a 2 lettres de difference, texte d'au moins 4 lettres) et on propose la
-    ' categorie existante la plus proche avant de creer un doublon.
+    ' --- Garde-fou orthographique (niveau 2) : catégorie -----------------------------
+    ' Le niveau 1 (accents, espaces, majuscules) est déjà géré silencieusement par
+    ' AjouterCategoriePersonnalisee. Ici, on détecte une simple FAUTE DE FRAPPE
+    ' (jusqu'à deux lettres de différence, texte d'au moins quatre lettres) et on propose
+    ' la catégorie existante la plus proche avant de créer un doublon.
     listeCat = mod_Categories.ObtenirCategories()
     If mod_Categories.TrouverCorrespondanceProche(cat, listeCat, 2, 4, procheCat) Then
         reponse = MsgBox(mod_Display.FR("Vous avez saisi '") & cat & "'." & vbCrLf & _
@@ -274,10 +274,9 @@ Public Sub NcValider()
         If reponse = vbYes Then cat = procheCat
     End If
 
-    ' --- Garde-fou orthographique (Niveau 2) : Sous-categorie -------------------------
-    ' On compare uniquement aux sous-categories DEJA CONNUES DE LA CATEGORIE choisie
-    ' ci-dessus (et non a toutes les sous-categories du classeur, qui n'auraient pas de
-    ' sens dans une autre categorie).
+    ' --- Garde-fou orthographique (niveau 2) : sous-catégorie -------------------------
+    ' On compare uniquement aux sous-catégories DÉJÀ CONNUES DE LA CATÉGORIE choisie
+    ' ci-dessus, et non à toutes celles du classeur, qui pourraient appartenir à une autre catégorie.
     If sous <> "" Then
         listeSous = mod_Categories.ObtenirSousCategories(cat)
         If mod_Categories.TrouverCorrespondanceProche(sous, listeSous, 2, 4, procheSous) Then
@@ -290,9 +289,9 @@ Public Sub NcValider()
         End If
     End If
 
-    ' AjouterCategoriePersonnalisee enregistre la paire dans TblCategories (si elle n'y
-    ' est pas deja) et renvoie, par ByRef, la forme EXACTE a utiliser ensuite (par
-    ' exemple si "sante" existait deja sous la forme "Sante").
+    ' AjouterCategoriePersonnalisee enregistre la paire dans TblCategories si elle n'y
+    ' figure pas déjà et renvoie, par ByRef, la graphie EXACTE à utiliser ensuite
+    ' (par exemple, si "sante" existe déjà sous la forme "Sante").
     If Not mod_Categories.AjouterCategoriePersonnalisee(cat, sous) Then
         ws.Range(NC_ADR_MESSAGE).value = mod_Display.FR("Le tableau de correspondance (feuille Param) est introuvable.") & _
                                           " " & mod_Display.FR("Ex{e2}cutez d'abord PreparerPhase1Categories.")
@@ -338,8 +337,8 @@ End Sub
 ' =====================================================================================
 ' FERMETURE DU FORMULAIRE
 ' =====================================================================================
-' IMPORTANT : g_NcEnCours doit passer a False AVANT de masquer la feuille, sinon le
-' verrou (NcVerrouiller) ramenerait immediatement l'operateur dessus.
+' IMPORTANT : g_NcEnCours doit passer à False AVANT de masquer la feuille, sinon le
+' verrou (NcVerrouiller) ramènerait immédiatement l'opérateur sur cette feuille.
 Private Sub FermerFeuilleNc(ByVal ws As Worksheet)
 
     g_NcEnCours = False
@@ -352,10 +351,10 @@ End Sub
 
 
 ' =====================================================================================
-' MACRO DE TEST (sans risque : n'ecrit que dans TblCategories, jamais dans les operations)
+' MACRO DE TEST (sans risque : n'écrit que dans TblCategories, jamais dans les opérations)
 ' =====================================================================================
-' Ouvre le formulaire seul, pre-rempli avec des valeurs d'exemple modifiables, et affiche
-' le resultat. Ctrl+G, taper :  TesterNouvelleCategorie
+' Ouvre le formulaire seul, prérempli avec des exemples modifiables, puis affiche
+' le résultat. Ctrl+G, taper : TesterNouvelleCategorie
 Public Sub TesterNouvelleCategorie()
 
     Dim catRes As String, sousRes As String
@@ -384,8 +383,8 @@ Private Function FeuilleSansErreur(ByVal nomFeuille As String) As Worksheet
     Set FeuilleSansErreur = ws
 End Function
 
-' Teste si un tableau dynamique a ete alloue (UBound plante sinon : c'est l'idiome VBA
-' standard pour distinguer "tableau vide" de "tableau jamais rempli").
+' Vérifie si un tableau dynamique a été alloué (UBound provoque une erreur sinon; c'est
+' l'usage standard en VBA pour distinguer un tableau vide d'un tableau jamais rempli).
 Private Function EstTableauAlloue(ByRef arr As Variant) As Boolean
     Dim n As Long
     On Error Resume Next

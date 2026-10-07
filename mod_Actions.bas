@@ -2,7 +2,7 @@
 ' MODULE : mod_Actions
 
 Option Explicit
-' Module stockant les macros d'action (attachée à un bouton ou déclenché sur événements dans la feuille) des formulaire
+' Module regroupant les macros d'action associées aux boutons ou déclenchées par les événements des feuilles de formulaire.
 
 Public Sub Sortir()
     ActionSortir True
@@ -20,10 +20,10 @@ Public Sub RchErreursSante()
   mod_RechercheOperations.RechercherOperations "ErreursSante"
 End Sub
 
-' AJOUT 03/10/2026 (demande operateur) : recherche "generale", sans aucun
-' prefiltre - affiche TOUTES les operations de TblOperations (et de
-' TblVentilations). Correspond a l'appel sans argument de
-' RechercherOperations, son parametre "prefiltre" valant "" par defaut.
+' AJOUT 03/10/2026 (demande opérateur) : recherche "générale", sans aucun
+' préfiltre; affiche TOUTES les opérations de TblOperations et de
+' TblVentilations. Correspond à l'appel sans argument de
+' RechercherOperations, dont le paramètre "prefiltre" vaut "" par défaut.
 Public Sub RchGenerale()
   mod_RechercheOperations.RechercherOperations
 End Sub
@@ -36,9 +36,9 @@ Private Sub ActionSortir(Suppr As Boolean)
 
     ' On crée un pointeur vers la feuille à supprimer
     Set ws = ThisWorkbook.Worksheets(ActiveFeuille)
-    ' PHASE 6 : l'appel à AppliquerLignesMarquees lié à RecherOperations est
-    ' supprimé, il appartenait à l'ancien mod_SyntheseRechercheOperations
-    ' (supprimé). RecherOperations n'est désormais plus jamais mis à True.
+    ' PHASE 6 : l'ancien appel à AppliquerLignesMarquees depuis l'écran de
+    ' recherche a été supprimé avec mod_SyntheseRechercheOperations. Ce mécanisme
+    ' n'est donc plus utilisé.
     If Suppr Then
         ' Désactiver les messages d'avertissement d'Excel ("Voulez-vous vraiment supprimer...")
         Application.DisplayAlerts = False
@@ -61,7 +61,8 @@ Private Sub ActionSortir(Suppr As Boolean)
             wsSynthese.Activate
             
             ' Arrêt complet du programme on est revenu au départ
-            ' End réinitialise les variable en mémoire si on l'exécute trop tot l'exécution suivant s'arrête sur erreur
+            ' End réinitialise les variables en mémoire. S'il est exécuté trop tôt,
+            ' l'exécution suivante s'arrête sur une erreur.
             End
         End If
     Else
@@ -78,14 +79,14 @@ Private Sub ActionSortir(Suppr As Boolean)
 End Sub
 
 ' PHASE 6 : DoubleClick / frm_Resultat_Double_Click (appelées depuis
-' ThisWorkbook.Workbook_SheetBeforeDoubleClick, supprimé) ainsi que leurs deux
-' fonctions utilitaires IsValidDetailSortField et ResolveDetailSortOrder sont
-' supprimées ici. Elles ne servaient qu'à l'ancien mécanisme de double-clic sur
-' les totaux du Bilan Mensuel, remplacé par les 2 boutons explicites
-' "VoirDetailEntreesRO"/"VoirDetailDepensesRO" (mod_SyntheseBudgetBilanMensuel.bas)
-' qui ouvrent directement frm_RechercheOperations (prefiltre "DetailTotal").
-' Le tri automatique par champ choisi n'est pas repris : l'opérateur trie
-' désormais lui-même avec les flèches de filtre natives du nouvel écran.
+' ThisWorkbook.Workbook_SheetBeforeDoubleClick, désormais supprimé), ainsi que
+' leurs fonctions utilitaires IsValidDetailSortField et ResolveDetailSortOrder,
+' ont été supprimées. Elles ne servaient qu'à l'ancien mécanisme de double-clic
+' sur les totaux du Bilan mensuel, remplacé par les deux boutons explicites
+' "VoirDetailEntreesRO" / "VoirDetailDepensesRO" (mod_SyntheseBudgetBilanMensuel.bas),
+' qui ouvrent directement frm_RechercheOperations (préfiltre "DetailTotal").
+' Le tri automatique par champ n'a pas été repris : l'opérateur trie désormais
+' lui-même avec les flèches de filtre natives du nouvel écran.
 
 Sub AfficherFeuilleNotesPourEdition(ByVal nomFeuille As String)
     Dim ws As Worksheet
@@ -112,7 +113,7 @@ Sub MasquerFeuilleNotesApresEdition(ByVal nomFeuille As String)
 End Sub
 
 ' =====================================================================================
-' FONCTIONS UTILITAIRES (creation/suppression feuille, noms, formes)
+' FONCTIONS UTILITAIRES (création/suppression de feuilles, noms et formes)
 ' =====================================================================================
 Private Function ObtenirFeuilleSansErreurFN(ByVal nomFeuille As String) As Worksheet
     Dim ws As Worksheet

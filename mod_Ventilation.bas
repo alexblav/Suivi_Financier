@@ -3,74 +3,75 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_Ventilation
 '
-' PHASE 4 du chantier "Categorie / Sous-categorie / Ventilation" - PARTIE 2/2
-' (Version 2 : nouvelle ergonomie, a la demande de l'operateur apres tests)
+' PHASE 4 du chantier "Catégorie / Sous-catégorie / Ventilation" - PARTIE 2/2
+' (Version 2 : nouvelle ergonomie, à la demande de l'opérateur après les tests)
 '
-' ROLE (a lire en premier, meme si vous debutez) :
-'   Ce module contient toute la LOGIQUE du formulaire de ventilation.
+' RÔLE (à lire en premier, même si vous débutez) :
+'   Ce module contient toute la logique du formulaire de ventilation.
 '
 '   FONCTIONNEMENT D'ENSEMBLE :
-'   Les lignes ajoutees a la ventilation sont gardees EN MEMOIRE pendant que le
+'   Les lignes ajoutées à la ventilation sont gardées EN MÉMOIRE pendant que le
 '   formulaire est ouvert (tableaux g_VenLigneCat / g_VenLigneSous / g_VenLigneMontant),
-'   et simplement AFFICHEES dans le tableau du haut (lignes 17 a 26 de la feuille) a
-'   chaque changement. La feuille elle-meme ne sert que de VITRINE pour ce tableau : ce
-'   ne sont plus ses cellules qui sont lues a la validation finale, contrairement a la
-'   version precedente.
+'   et simplement AFFICHÉES dans le tableau du haut (lignes 17 à 26 de la feuille) à
+'   chaque changement. La feuille elle-même ne sert que de vitrine pour ce tableau : ce
+'   ne sont plus ses cellules qui sont lues lors de la validation finale, contrairement
+'   à la version précédente.
 '
 '   Le formulaire de SAISIE (bas de la feuille) sert a la fois a AJOUTER une nouvelle
-'   ligne et a MODIFIER une ligne existante :
-'     - g_VenIndexEdition = 0  -> le bouton "Ajouter la ligne" cree une ligne de plus.
+'   ligne et à MODIFIER une ligne existante :
+'     - g_VenIndexEdition = 0  -> le bouton "Ajouter la ligne" crée une ligne de plus.
 '     - g_VenIndexEdition = N  -> le bouton "Ajouter la ligne" REMPLACE la ligne N
-'       (celle qu'on est en train de corriger, chargee via son bouton "Editer").
+'       (celle qu'on corrige, chargée via son bouton "Éditer").
 '
-'   "Editer" une ligne la RETIRE IMMEDIATEMENT du tableau et la place dans le
-'   formulaire de saisie. Consequence volontaire et pratique : si l'operateur clique
-'   sur "Editer" puis change d'avis sans cliquer sur "Ajouter la ligne" (par exemple en
-'   cliquant sur "Editer" d'une AUTRE ligne, ou sur "Terminer"), la ligne reste
-'   supprimee. C'est le seul moyen de supprimer une ligne pour l'instant : simple, et
-'   explicitement signale a l'operateur par un message a chaque fois que cela se produit.
+'   "Éditer" une ligne la RETIRE IMMÉDIATEMENT du tableau et la place dans le
+'   formulaire de saisie. Conséquence volontaire : si l'opérateur clique sur
+'   "Éditer" puis change d'avis sans cliquer sur "Ajouter la ligne" (par exemple en
+'   cliquant sur "Éditer" une AUTRE ligne ou sur "Terminer"), la ligne reste
+'   supprimée. C'est le seul moyen de supprimer une ligne pour l'instant; un message
+'   en informe explicitement l'opérateur à chaque fois.
 '
-'   R?OUVERTURE D'UNE VENTILATION D?J? VALID?E (ajout suite ? un test op?rateur) :
-'   OuvrirVentilation() commence d?sormais par regarder si TblVentilations contient
-'   d?j? des lignes pour l'ID_Transaction demand? (fonction ChargerLignesExistantes
-'   plus bas). Si oui, elles sont charg?es dans g_VenLigneCat/Sous/Montant AVANT
-'   l'affichage : l'op?rateur retrouve donc ses donn?es au lieu d'un formulaire vide,
-'   que ce soit en revenant en arri?re PENDANT le m?me import (bouton "Pr?c?dent" de
-'   frm_ControleCategories) ou en rouvrant plus tard depuis frm_RechercheOperations.
-'   En cons?quence, VenTerminer() ne se contente plus d'AJOUTER des lignes ? la fin :
-'   il supprime d'abord les anciennes lignes de cet ID_Transaction (SupprimerLignesExistantes)
-'   avant de r??crire la liste actuelle, pour ?viter les doublons dans TblVentilations.
-'   ATTENTION - LIMITE CONNUE : la suppression/r??criture r?initialise TOUJOURS les
-'   colonnes de suivi sant? (StatutSante, Notes, etc.) d'une ligne "Frais, remb sant?" ?
-'   leur ?tat initial (KO/sentinelle), m?me si l'op?rateur avait d?j? trait? cette ligne
-'   dans le suivi sant?. Modifier une ventilation d?j? rapproch?e c?t? sant? fera donc
-'   perdre ce rapprochement, qu'il faudra refaire. Signal? ? l'op?rateur, pas encore
-'   trait? plus finement (? discuter si ?a devient g?nant en pratique).
+'   RÉOUVERTURE D'UNE VENTILATION DÉJÀ VALIDÉE (ajout après un test opérateur) :
+'   OuvrirVentilation() vérifie désormais si TblVentilations contient déjà des lignes
+'   pour l'ID_Transaction demandé (fonction ChargerLignesExistantes, plus bas). Si oui,
+'   elles sont chargées dans g_VenLigneCat/Sous/Montant AVANT l'affichage : l'opérateur
+'   retrouve ses données au lieu d'un formulaire vide, que ce soit en revenant en
+'   arrière PENDANT le même import (bouton "Précédent" de frm_ControleCategories) ou
+'   en rouvrant plus tard depuis frm_RechercheOperations.
+'   En conséquence, VenTerminer() ne se contente plus d'ajouter des lignes à la fin :
+'   il supprime d'abord les anciennes lignes de cet ID_Transaction
+'   (SupprimerLignesExistantes), puis réécrit la liste actuelle pour éviter les doublons.
+'   ATTENTION - LIMITE CONNUE : cette suppression/réécriture réinitialise TOUJOURS les
+'   colonnes de suivi santé (StatutSante, Notes, etc.) d'une ligne "Frais, remb santé"
+'   à leur état initial (KO/sentinelle), même si l'opérateur l'avait déjà traitée dans
+'   le suivi santé. Modifier une ventilation déjà rapprochée côté santé fait donc
+'   perdre ce rapprochement, qu'il faudra refaire. Cette limite est signalée à
+'   l'opérateur, mais pas encore traitée plus finement (à discuter si elle devient
+'   gênante en pratique).
 '
 '   Ajout du 01/10/2026 (points 3, 4 et 6 du suivi des besoins) :
-'     - Chaque ligne de la ventilation a desormais un champ "Notes" libre (identique
-'       dans l'esprit au champ Notes de TblOperations). Il est ecrit pour TOUTES les
-'       lignes, et mod_FormulairesNotes.VerifierNotesSante le remplace automatiquement
-'       par la cle de rapprochement si la ligne est une depense de sante non traitee.
-'     - Le montant est desormais ecrit SIGNE dans TblVentilations.Montant (negatif pour
-'       une depense, positif pour un remboursement), comme TblOperations.Montant. La
-'       saisie et l'affichage en memoire restent POSITIFS : seule l'ecriture finale
-'       (AjouterLigneVentilation) et la relecture (ChargerLignesExistantes) appliquent
-'       le signe / la valeur absolue.
-'     - Un nouveau bouton "Supprimer cette ventilation" (visible uniquement si la
-'       ventilation existait deja) permet d'effacer completement les lignes de
-'       TblVentilations pour cette operation. L'appelant (mod_ControleCategories pendant
-'       un import, ou RevoirVentilationRO depuis la recherche) est prevenu via le nouveau
-'       parametre de sortie de OuvrirVentilation et doit restaurer l'ancienne categorie/
-'       sous-categorie de l'operation (colonnes CategorieAvantVentilation /
-'       SousCategorieAvantVentilation, ajoutees a TblOperations par mod_InstallVentilation).
+'     - Chaque ligne de la ventilation a désormais un champ "Notes" libre, similaire
+'       au champ Notes de TblOperations. Il est écrit pour toutes les lignes, et
+'       mod_FormulairesNotes.VerifierNotesSante le remplace automatiquement par la clé
+'       de rapprochement si la ligne est une dépense de santé non traitée.
+'     - Le montant est désormais écrit avec son signe dans TblVentilations.Montant
+'       (négatif pour une dépense, positif pour un remboursement), comme dans
+'       TblOperations.Montant. La saisie et l'affichage en mémoire restent positifs :
+'       seules l'écriture finale (AjouterLigneVentilation) et la relecture
+'       (ChargerLignesExistantes) appliquent le signe ou la valeur absolue.
+'     - Un nouveau bouton "Supprimer cette ventilation", visible uniquement si elle
+'       existait déjà, permet d'effacer complètement les lignes de TblVentilations
+'       pour cette opération. L'appelant (mod_ControleCategories pendant un import ou
+'       RevoirVentilationRO depuis la recherche) est averti via le nouveau paramètre
+'       de sortie de OuvrirVentilation et doit restaurer l'ancienne catégorie et
+'       sous-catégorie de l'opération (colonnes CategorieAvantVentilation et
+'       SousCategorieAvantVentilation, ajoutées à TblOperations par mod_InstallVentilation).
 '
-' ? PROPOS DES ACCENTS : tout ce qui s'affiche dans Excel (messages, valeurs de
-' cellules) continue ? passer par la fonction mod_Display.FR() pour rester 100% s?r ? l'import
-' VBA. Les commentaires que j'ajoute ? partir de maintenant utilisent de vrais
-' caract?res accentu?s pour rester lisibles (convention valid?e avec l'op?rateur) ;
-' les anciens commentaires du fichier restent tels quels pour l'instant (le grand
-' nettoyage g?n?ral est volontairement report? ? apr?s la mise en production).
+' À PROPOS DES ACCENTS : tout ce qui s'affiche dans Excel (messages et valeurs de
+' cellules) continue à passer par mod_Display.FR() pour rester fiable à l'import
+' VBA. Les commentaires ajoutés à partir de maintenant utilisent de vrais caractères
+' accentués pour rester lisibles (convention validée avec l'opérateur). Les anciens
+' commentaires du fichier restent tels quels pour l'instant; le nettoyage général
+' est volontairement reporté à après la mise en production.
 ' =====================================================================================
 
 ' --- Etat du formulaire ------------------------------------------------------------------
@@ -155,10 +156,10 @@ Public Function OuvrirVentilation(ByVal idTransaction As String, ByVal dateOp As
     g_VenNbLignes = 0
     g_VenIndexEdition = 0
 
-    ' Si cette op?ration a d?j? ?t? ventil?e auparavant (TblVentilations contient
-    ' d?j? des lignes pour cet ID_Transaction), on les recharge ici AVANT d'afficher
-    ' la feuille, pour que l'op?rateur retrouve son d?tail au lieu d'un formulaire
-    ' vide. Voir l'explication compl?te en t?te de module.
+    ' Si cette opération a déjà été ventilée (TblVentilations contient déjà des
+    ' lignes pour cet ID_Transaction), on les recharge AVANT d'afficher la feuille,
+    ' afin que l'opérateur retrouve son détail au lieu d'un formulaire vide.
+    ' Voir l'explication complète en tête de module.
     ChargerLignesExistantes idTransaction
 
     ' Ajout 01/10/2026 : le bouton "Supprimer cette ventilation" n'a de sens que s'il y
@@ -667,9 +668,9 @@ Public Sub VenTerminer()
     End If
 
     ' On repart d'une TblVentilations "propre" pour cet ID_Transaction avant de
-    ' r??crire la liste actuelle : sans ?a, rouvrir une ventilation d?j? existante
-    ' pour la corriger empilerait des lignes en double (voir l'explication compl?te
-    ' en t?te de module, y compris sa limite connue c?t? suivi sant?).
+    ' réécrire la liste actuelle : sinon, rouvrir une ventilation existante pour
+    ' la corriger ajouterait des lignes en double (voir l'explication complète
+    ' en tête de module, y compris sa limite connue côté suivi santé).
     SupprimerLignesExistantes g_VenIdTransaction
 
     For i = 1 To g_VenNbLignes
@@ -837,12 +838,12 @@ Private Sub AjouterLigneVentilation(ByVal idTransaction As String, ByVal categor
 End Sub
 
 ' =====================================================================================
-' R?OUVERTURE D'UNE VENTILATION EXISTANTE (ajout suite ? un test op?rateur)
+' RÉOUVERTURE D'UNE VENTILATION EXISTANTE (ajout après un test opérateur)
 ' =====================================================================================
 ' Relit TblVentilations et charge dans g_VenLigneCat/Sous/Montant toutes les lignes
-' d?j? enregistr?es pour cet ID_Transaction, dans l'ordre o? elles apparaissent dans
-' le tableau. Ne fait rien (g_VenNbLignes reste ? 0) si aucune ligne n'est trouv?e :
-' c'est le cas normal d'une PREMI?RE ventilation, qui doit bien d?marrer ? vide.
+' déjà enregistrées pour cet ID_Transaction, dans leur ordre d'apparition dans le
+' tableau. Ne fait rien (g_VenNbLignes reste à 0) si aucune ligne n'est trouvée :
+' c'est le cas normal d'une première ventilation, qui doit démarrer à vide.
 Private Sub ChargerLignesExistantes(ByVal idTransaction As String)
 
     Dim wsData As Worksheet
@@ -852,7 +853,7 @@ Private Sub ChargerLignesExistantes(ByVal idTransaction As String)
     Dim idLigne As String
 
     Set wsData = FeuilleSansErreur(VEN_NOM_FEUILLE_DONNEES)
-    If wsData Is Nothing Then Exit Sub          ' Phase 4 pas encore install?e : rien ? charger
+    If wsData Is Nothing Then Exit Sub          ' Phase 4 pas encore installée : rien à charger
 
     On Error Resume Next
     Set tbl = wsData.ListObjects(VEN_NOM_TABLE)
@@ -944,12 +945,12 @@ Private Function VentilationContientLigneSanteDejaTraitee(ByVal idTransaction As
 
 End Function
 
-' Supprime de TblVentilations toutes les lignes d?j? enregistr?es pour cet
-' ID_Transaction. Appel?e par VenTerminer juste avant de r??crire la liste actuelle,
-' pour que "modifier une ventilation" ne fasse jamais de doublons. Boucle ?
-' l'ENVERS (de la derni?re ligne vers la premi?re) : une r?gle de base en VBA quand
-' on supprime des lignes d'un tableau au fil d'une boucle, sinon les num?ros de ligne
-' restants se d?calent sous nos pieds et on saute des lignes sans s'en rendre compte.
+' Supprime de TblVentilations toutes les lignes déjà enregistrées pour cet
+' ID_Transaction. Appelée par VenTerminer juste avant de réécrire la liste actuelle,
+' afin que "modifier une ventilation" ne crée pas de doublons. La boucle parcourt
+' les lignes à l'ENVERS (de la dernière à la première) : c'est une règle de base
+' en VBA lorsqu'on supprime les lignes d'un tableau dans une boucle; sinon, les
+' numéros des lignes restantes se décalent et certaines lignes sont ignorées.
 Private Sub SupprimerLignesExistantes(ByVal idTransaction As String)
 
     Dim wsData As Worksheet

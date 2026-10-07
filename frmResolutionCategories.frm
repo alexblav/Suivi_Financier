@@ -63,22 +63,22 @@ Option Explicit
 
 ' ============================================================================
 '  FORMULAIRE : frmResolutionCategories
-'  ROLE : Permettre a l'operateur de choisir, pour chaque operation dont la
-'         categorie est ambigue (plusieurs valeurs possibles trouvees dans le
-'         CSV), la bonne valeur a retenir -- sans jamais avoir a ouvrir ou
-'         modifier le tableau data_import lui-meme.
+'  RÔLE : Permettre à l'opérateur de choisir, pour chaque opération dont la
+'         catégorie est ambiguë (plusieurs valeurs possibles trouvées dans le
+'         CSV), la bonne valeur à retenir, sans jamais avoir à ouvrir ou
+'         modifier le tableau data_import lui-même.
 '
-'  Ce formulaire lit et remplit les variables PUBLIQUES declarees dans le
+'  Ce formulaire lit et remplit les variables PUBLIQUES déclarées dans le
 '  module mod_ImportOFX (g_NbCasAmbigus, g_CasTexte, g_CasCandidats, g_CasChoix).
-'  C'est la macro principale qui les prepare avant d'ouvrir ce formulaire,
-'  et qui relit g_CasChoix() une fois le formulaire ferme.
+'  C'est la macro principale qui les prépare avant d'ouvrir ce formulaire,
+'  et qui relit g_CasChoix() une fois le formulaire fermé.
 ' ============================================================================
 
-' Suivi local (dans le formulaire) de l'etat "traite / pas traite" de chaque cas
+' Suivi local (dans le formulaire) de l'état "traité / pas traité" de chaque cas
 Private m_Resolus() As Boolean
 
 
-' Au chargement du formulaire : on affiche la liste des cas ambigus
+' Au chargement du formulaire : affichage de la liste des cas ambigus
 Private Sub UserForm_Initialize()
     Dim i As Long
 
@@ -96,15 +96,15 @@ Private Sub UserForm_Initialize()
     AfficherCompteur
 End Sub
 
-' Quand l'operateur clique sur un cas dans la liste : on propose ses
-' categories candidates dans la liste deroulante
+' Quand l'opérateur clique sur un cas dans la liste : ses catégories
+' candidates sont proposées dans la liste déroulante.
 Private Sub lstCas_Click()
     Dim indexCas As Long
     Dim candidats() As String
     Dim i As Long
 
     If lstCas.ListIndex < 0 Then Exit Sub
-    indexCas = lstCas.ListIndex + 1   ' les tableaux g_Cas* commencent a l'indice 1
+    indexCas = lstCas.ListIndex + 1   ' les tableaux g_Cas* commencent à l'indice 1
 
     candidats = Split(g_CasCandidats(indexCas), ";")
     cboCategorie.Clear
@@ -112,7 +112,7 @@ Private Sub lstCas_Click()
         cboCategorie.AddItem candidats(i)
     Next i
 
-    ' Si ce cas a deja ete resolu precedemment, on reaffiche le choix fait
+    ' Si ce cas a déjà été résolu, on réaffiche le choix effectué.
     If g_CasChoix(indexCas) <> "" Then
         cboCategorie.Value = g_CasChoix(indexCas)
     Else
@@ -120,7 +120,7 @@ Private Sub lstCas_Click()
     End If
 End Sub
 
-' Bouton "Valider ce cas" : enregistre le choix pour le cas selectionne
+' Bouton "Valider ce cas" : enregistre le choix pour le cas sélectionné.
 Private Sub btnValider_Click()
     Dim indexCas As Long
 
@@ -141,8 +141,8 @@ Private Sub btnValider_Click()
     AfficherCompteur
 End Sub
 
-' Bouton "Terminer et appliquer" : ferme le formulaire. Les cas non traites
-' resteront avec une categorie vide (modifiable plus tard a la main).
+' Bouton "Terminer et appliquer" : ferme le formulaire. Les cas non traités
+' conserveront une catégorie vide (modifiable ultérieurement).
 Private Sub btnTerminer_Click()
     Dim nbRestants As Long, i As Long
     Dim reponse As VbMsgBoxResult
@@ -161,7 +161,7 @@ Private Sub btnTerminer_Click()
     Unload Me
 End Sub
 
-' Met a jour le titre de la fenetre avec le nombre de cas restant a traiter
+' Met à jour le titre de la fenêtre avec le nombre de cas restant à traiter.
 Private Sub AfficherCompteur()
     Dim nbRestants As Long, i As Long
     nbRestants = 0

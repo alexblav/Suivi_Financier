@@ -5,11 +5,11 @@ Option Explicit
 '
 ' ROLE (PHASE 5a) :
 '   Construit la mise en page STATIQUE (aucune logique de clic pour l'instant)
-'   de la feuille masquee "frm_RechercheOperations" : un ecran de recherche
-'   et de correction en masse pour TblOperations, base sur un TABLEAU EXCEL
-'   CLASSIQUE avec filtre automatique natif (les fleches de filtre dans
-'   l'entete font tout le travail de filtrage croise Date/Tiers/Montant/
-'   Catégorie/Notes, sans code personnalise).
+'   de la feuille masquée "frm_RechercheOperations" : un écran de recherche
+'   et de correction en masse pour TblOperations, basé sur un TABLEAU EXCEL
+'   CLASSIQUE avec filtre automatique natif (les flèches de filtre dans
+'   l'en-tête font tout le travail de filtrage croisé Date/Tiers/Montant/
+'   Catégorie/Notes, sans code personnalisé).
 '
 '   Colonnes du tableau (dans cet ordre) :
 '     A - Valider       : l'opérateur y inscrit "Oui" sur les lignes finies
@@ -19,35 +19,35 @@ Option Explicit
 '     E - Catégorie     : liste déroulante (avertissement, pas de blocage :
 '                         on peut taper une nouvelle catégorie qui n'existe
 '                         pas encore)
-'     F - SousCategorie : idem, PHASE 5 (catégories a 2 niveaux)
+'     F - SousCategorie : idem, PHASE 5 (catégories à 2 niveaux)
 '     G - Notes         : texte libre, SAUF si la valeur est déjà une clé
-'                         santé valide (grisee dans ce cas - voir Phase 5b)
+'                         santé valide (grisée dans ce cas - voir Phase 5b)
 '     H - Ventile        : colonne INFORMATIVE (non modifiable), PHASE 5.
-'                         "Oui" si la ligne représente une PART VENTILEE
+'                         "Oui" si la ligne représente une PART VENTILÉE
 '                         d'une opération bancaire (elle vient alors de
 '                         TblVentilations, pas de TblOperations), ou si
-'                         l'opération PARENTE d'une ligne normale a ete
-'                         ventilee (Catégorie = "Ventile"). C'est le "tag"
-'                         de tracabilite demandé par l'opérateur : "on peut
-'                         prevenir un tag indiquant que cette opération fait
+'                         l'opération PARENTE d'une ligne normale a été
+'                         ventilée (Catégorie = "Ventile"). C'est le "tag"
+'                         de traçabilité demandé par l'opérateur : "on peut
+'                         prévenir un tag indiquant que cette opération fait
 '                         partie d'une ventilation, pour information". Une
-'                         opération ventilee reste ainsi accessible ICI de 2
-'                         facons : via sa ligne parente (Catégorie="Ventile"),
+'                         opération ventilée reste ainsi accessible ICI de 2
+'                         façons : via sa ligne parente (Catégorie="Ventile"),
 '                         ou directement via chacune de ses parts (une ligne
 '                         par sous-catégorie de la ventilation).
-'     I - ID_Transaction : colonne technique MASQUEE (ID de l'opération, ou
-'                         de l'opération PARENTE pour une part ventilee)
-'     J - SourceLigne    : colonne technique MASQUEE, PHASE 5 : "O" (ligne de
+'     I - ID_Transaction : colonne technique MASQUÉE (ID de l'opération, ou
+'                         de l'opération PARENTE pour une part ventilée)
+'     J - SourceLigne    : colonne technique MASQUÉE, PHASE 5 : "O" (ligne de
 '                         TblOperations) ou "V" (part de TblVentilations),
-'                         sert a savoir OU ecrire au moment d'appliquer
-'     K - LigneVentilation : colonne technique MASQUEE, PHASE 5 : pour une
+'                         sert à savoir où écrire au moment d'appliquer
+'     K - LigneVentilation : colonne technique MASQUÉE, PHASE 5 : pour une
 '                         ligne "V", position de la part DANS TblVentilations
 '                         (DataBodyRange). Vide/non utilisée pour une ligne "O".
 '
 '   La Phase 5b (mod_RechercheOperations) remplira le tableau depuis
 '   TblOperations ET TblVentilations (bouton "Rechercher") et appliquera les
-'   lignes marquees (bouton "Appliquer les lignes marquees") dans la bonne
-'   table source, colonne par colonne, jamais par un tri/decoupage de texte.
+'   lignes marquées (bouton "Appliquer les lignes marquées") dans la bonne
+'   table source, colonne par colonne, jamais par un tri/découpage de texte.
 '
 '   Ajout suite à un test opérateur : un 3e bouton "Revoir la ventilation"
 '   permet, sur une ligne dont la colonne Ventilé vaut "Oui", de rouvrir le
@@ -57,34 +57,34 @@ Option Explicit
 '   tête de mod_Ventilation).
 '
 ' =====================================================================================
-' REFONTE "ECRAN CENTRAL" (PHASE 6, apres discussion avec l'operateur) :
-'   Ce tableau absorbe desormais les anciens ecrans "Synthese_*" en lecture
-'   seule (Budget mensuel, Erreurs sante, Dernier import, Detail d'un total),
-'   qui n'offraient aucune correction. 5 colonnes REELLES supplementaires ont
-'   ete ajoutees a la table pour cela :
+' REFONTE "ÉCRAN CENTRAL" (PHASE 6, après discussion avec l'opérateur) :
+'   Ce tableau absorbe désormais les anciens écrans "Synthese_*" en lecture
+'   seule (Budget mensuel, Erreurs santé, Dernier import, Détail d'un total),
+'   qui n'offraient aucune correction. 5 colonnes RÉELLES supplémentaires ont
+'   été ajoutées à la table pour cela :
 '
-'     L - Budget         : la date de "mois budgetaire" de l'operation (deja
+'     L - Budget         : la date de "mois budgétaire" de l'opération (déjà
 '                         une vraie colonne de TblOperations, voir mod_ImportOFX)
-'     M - StatutSante     : statut du suivi sante (deja une vraie colonne)
-'     N - SoldeSante      : solde du suivi sante (deja une vraie colonne)
-'     O - Date_consult    : date de consultation extraite des Notes sante
-'     P - Spe_consult     : specialite extraite des Notes sante
+'     M - StatutSante     : statut du suivi santé (déjà une vraie colonne)
+'     N - SoldeSante      : solde du suivi santé (déjà une vraie colonne)
+'     O - Date_consult    : date de consultation extraite des Notes santé
+'     P - Spe_consult     : spécialité extraite des Notes santé
 '
 '   Ces 5 colonnes ne sont PAS toujours utiles (par exemple Budget n'a pas de
 '   sens en recherche libre) : mod_RechercheOperations les affiche/masque
-'   dynamiquement selon le "prefiltre" demande, via DefinirColonnesVisibles()
-'   ci-dessous. Elles restent neanmoins TOUJOURS PRESENTES dans le tableau
-'   (juste masquees) : c'est le moyen le plus simple et le plus fiable de
-'   garder un seul ListObject a colonnes fixes plutot que de le reconstruire
-'   a chaque appel.
+'   dynamiquement selon le "préfiltre" demandé, via DefinirColonnesVisibles()
+'   ci-dessous. Elles restent néanmoins TOUJOURS PRÉSENTES dans le tableau
+'   (juste masquées) : c'est le moyen le plus simple et le plus fiable de
+'   garder un seul ListObject à colonnes fixes plutôt que de le reconstruire
+'   à chaque appel.
 '
 ' À PROPOS DES ACCENTS : tout ce qui s'affiche dans Excel continue à passer par
-' la fonction FR() pour rester 100% sûr à l'import VBA. Les commentaires que
+' la fonction FR() pour rester 100 % sûr à l'import VBA. Les commentaires que
 ' j'ajoute à partir de maintenant utilisent de vrais caractères accentués pour
 ' rester lisibles (convention validée avec l'opérateur) ; les anciens
 ' commentaires du fichier restent tels quels pour l'instant.
 '
-' A FAIRE POUR INSTALLER CE MODULE :
+' À FAIRE POUR INSTALLER CE MODULE :
 '   1. Alt+F11, Fichier > Importer un fichier..., choisir ce fichier .bas
 '   2. Ctrl+G : CreerFeuilleRechercheOperations (ATTENTION : reconstruit toute la
 '      feuille, y compris ses boutons – c'est le seul moyen de faire apparaître
@@ -93,51 +93,51 @@ Option Explicit
 '   3. Pour revoir la feuille : AfficherFeuilleRecherchePourEdition
 '      Pour la remasquer : MasquerFeuilleRechercheApresEdition
 '
-' MISE A JOUR 01/10/2026 (ergonomie, retours operateur) :
-'   - 4e bouton "Sortir" ajoute (appelle mod_RechercheOperations.
-'     SortirRechercheOperations, qui existait deja mais n'etait relie a rien).
-'   - Bouton "Rechercher" renomme "Recherche globale" (plus explicite : il
+' MISE À JOUR 01/10/2026 (ergonomie, retours opérateur) :
+'   - 4e bouton "Sortir" ajouté (appelle mod_RechercheOperations.
+'     SortirRechercheOperations, qui existait déjà mais n'était relié à rien).
+'   - Bouton "Rechercher" renommé "Recherche globale" (plus explicite : il
 '     relance une recherche SANS filtre, par opposition aux recherches
-'     filtrees lancees depuis d'autres ecrans).
-'   - La zone de commentaire explicatif, qui etait ecrite par erreur sur la
-'     MEME ligne que les boutons (donc invisible, cachee dessous), a sa
-'     propre ligne maintenant (RO_LIGNE_ENTETES passe de 4 a 5).
-'   - Un double-clic sur "Oui" dans la colonne Ventile ouvre desormais
-'     directement le detail de la ventilation (voir ThisWorkbook.bas,
+'     filtrées lancées depuis d'autres écrans).
+'   - La zone de commentaire explicatif, qui était écrite par erreur sur la
+'     MÊME ligne que les boutons (donc invisible, cachée dessous), a sa
+'     propre ligne maintenant (RO_LIGNE_ENTETES passe de 4 à 5).
+'   - Un double-clic sur "Oui" dans la colonne Ventile ouvre désormais
+'     directement le détail de la ventilation (voir ThisWorkbook.bas,
 '     Workbook_SheetBeforeDoubleClick), en plus du bouton "Revoir la
 '     ventilation" qui reste disponible.
 '
-' MISE A JOUR 02/10/2026 (apres discussion avec l'operateur) :
-'   - Le bouton "Revoir la ventilation" ci-dessus est SUPPRIME (devenu inutile) :
-'     double-cliquer sur une cellule de la colonne Ventile fait desormais TOUT le
-'     travail, que la ligne soit deja ventilee (revoir le detail) ou non (demarrer
+' MISE À JOUR 02/10/2026 (après discussion avec l'opérateur) :
+'   - Le bouton "Revoir la ventilation" ci-dessus est SUPPRIMÉ (devenu inutile) :
+'     double-cliquer sur une cellule de la colonne Ventile fait désormais TOUT le
+'     travail, que la ligne soit déjà ventilée (revoir le détail) ou non (démarrer
 '     une nouvelle ventilation) -- voir mod_RechercheOperations.RevoirVentilationRO.
-'   - Nouveau : double-cliquer sur une cellule de la colonne Categorie (hors ligne
-'     ventilee) ouvre le MEME formulaire que le controle des categories a l'import,
-'     en mode "une seule operation" -- voir mod_RechercheOperations.EditerCategorieRO
-'     et mod_ControleCategories.ControlerCategories (parametre uneSeuleOperation).
-'   - Le bouton "Appliquer les lignes marquees" (et la colonne Valider) ne gere plus
-'     que la colonne Notes : Categorie et SousCategorie se modifient desormais par
-'     double-clic (ci-dessus), qui ecrit immediatement, sans "Valider" ni ce bouton.
-'   - Nouvelle ligne RO_LIGNE_FILTRE (voir plus bas) : phrase recalculee a chaque
-'     recherche, qui rappelle a l'operateur sur quel sous-ensemble d'operations il
-'     travaille (recherche globale, dernier import, mois precis...).
+'   - Nouveau : double-cliquer sur une cellule de la colonne Catégorie (hors ligne
+'     ventilée) ouvre le MÊME formulaire que le contrôle des catégories à l'import,
+'     en mode "une seule opération" -- voir mod_RechercheOperations.EditerCategorieRO
+'     et mod_ControleCategories.ControlerCategories (paramètre uneSeuleOperation).
+'   - Le bouton "Appliquer les lignes marquées" (et la colonne Valider) ne gère plus
+'     que la colonne Notes : Catégorie et SousCategorie se modifient désormais par
+'     double-clic (ci-dessus), qui écrit immédiatement, sans "Valider" ni ce bouton.
+'   - Nouvelle ligne RO_LIGNE_FILTRE (voir plus bas) : phrase recalculée à chaque
+'     recherche, qui rappelle à l'opérateur sur quel sous-ensemble d'opérations il
+'     travaille (recherche globale, dernier import, mois précis...).
 ' =====================================================================================
 
 Public Const RO_LIGNE_BOUTONS As Long = 2
-' RO_LIGNE_ENTETES = 5 (et non 4) : la ligne 3, laissee libre entre les
-' boutons (ligne 2) et l'entete du tableau, accueille desormais la zone de
+' RO_LIGNE_ENTETES = 5 (et non 4) : la ligne 3, laissée libre entre les
+' boutons (ligne 2) et l'en-tête du tableau, accueille désormais la zone de
 ' commentaire explicatif ci-dessous. Avant ce changement, ce commentaire
-' etait ecrit sur la MEME ligne que les boutons (RO_LIGNE_ENTETES - 2 = 2) :
-' invisible, cache sous les boutons eux-memes (constat operateur du 01/10/2026).
+' était écrit sur la MÊME ligne que les boutons (RO_LIGNE_ENTETES - 2 = 2) :
+' invisible, caché sous les boutons eux-mêmes (constat opérateur du 01/10/2026).
 Public Const RO_LIGNE_ENTETES As Long = 7
 
-' RO_LIGNE_FILTRE = 4 (ajout 02/10/2026) : ligne restee vide entre le texte d'aide
-' (RO_LIGNE_ENTETES - 2 = 3) et l'entete du tableau (RO_LIGNE_ENTETES = 5). Accueille
-' desormais une phrase courte, recalculee a chaque recherche (voir
-' mod_RechercheOperations.DecrireFiltreActifRO), qui dit a l'operateur sur quel
-' sous-ensemble d'operations il travaille actuellement (recherche globale, dernier
-' import, mois precis, etc.).
+' RO_LIGNE_FILTRE = 4 (ajout 02/10/2026) : ligne restée vide entre le texte d'aide
+' (RO_LIGNE_ENTETES - 2 = 3) et l'en-tête du tableau (RO_LIGNE_ENTETES = 5). Accueille
+' désormais une phrase courte, recalculée à chaque recherche (voir
+' mod_RechercheOperations.DecrireFiltreActifRO), qui dit à l'opérateur sur quel
+' sous-ensemble d'opérations il travaille actuellement (recherche globale, dernier
+' import, mois précis, etc.).
 Public Const RO_LIGNE_FILTRE As Long = RO_LIGNE_ENTETES - 1
 
 ' Position des colonnes DANS LE TABLEAU (1 = première colonne du tableau, A)
@@ -150,11 +150,11 @@ Public Const RO_COL_SOUSCATEGORIE As Long = 6   ' PHASE 5
 Public Const RO_COL_NOTES As Long = 7
 Public Const RO_COL_VENTILE As Long = 8         ' PHASE 5 (informatif, non modifiable)
 Public Const RO_COL_ID As Long = 9
-Public Const RO_COL_SOURCE As Long = 10         ' PHASE 5 : "O" ou "V" (technique, masquee)
-Public Const RO_COL_LIGNEVEN As Long = 11       ' PHASE 5 : ligne dans TblVentilations si SourceLigne="V" (technique, masquee)
+Public Const RO_COL_SOURCE As Long = 10         ' PHASE 5 : "O" ou "V" (technique, masquée)
+Public Const RO_COL_LIGNEVEN As Long = 11       ' PHASE 5 : ligne dans TblVentilations si SourceLigne="V" (technique, masquée)
 
-' PHASE 6 : colonnes issues des anciens ecrans "Synthese_*", visibles ou non
-' selon le prefiltre demande (voir DefinirColonnesVisibles plus bas)
+' PHASE 6 : colonnes issues des anciens écrans "Synthese_*", visibles ou non
+' selon le préfiltre demandé (voir DefinirColonnesVisibles plus bas)
 Public Const RO_COL_BUDGET As Long = 12
 Public Const RO_COL_STATUTSANTE As Long = 13
 Public Const RO_COL_SOLDESANTE As Long = 14
@@ -236,9 +236,9 @@ Sub CreerFeuilleRechercheOperations()
         .Name = "btnAppliquerLignesMarquees"
     End With
 
-    ' Ajout 02/10/2026 : le bouton "Revoir la ventilation" qui etait ici est supprime,
+    ' Ajout 02/10/2026 : le bouton "Revoir la ventilation" qui était ici est supprimé,
     ' devenu inutile -- le double-clic sur la colonne Ventile (voir ThisWorkbook.bas)
-    ' couvre desormais les 2 cas (revoir une ventilation existante, ou en demarrer une
+    ' couvre désormais les 2 cas (revoir une ventilation existante, ou en démarrer une
     ' nouvelle), voir mod_RechercheOperations.RevoirVentilationRO. Le bouton "Sortir"
     ' reprend sa place (F:G) pour ne pas laisser un espace vide.
     Dim zoneBtn4 As Range
@@ -250,18 +250,18 @@ Sub CreerFeuilleRechercheOperations()
         .Name = "btnSortirRechercheOperations"
     End With
 
-    ' AJOUT 03/10/2026 (demande operateur) : 2 nouveaux boutons "decalage de budget",
-    ' places a droite des 3 boutons existants (colonnes H a M de la ligne des boutons,
-    ' inoccupees jusqu'ici). Factorises dans AjouterBoutonsDecalageRO ci-dessous (voir
-    ' ce Sub pour le detail), pour pouvoir aussi les ajouter sans tout reconstruire si
-    ' la feuille existe deja (c'est d'ailleurs ce Sub qui les cree ici).
+    ' AJOUT 03/10/2026 (demande opérateur) : 2 nouveaux boutons "décalage de budget",
+    ' placés à droite des 3 boutons existants (colonnes H à M de la ligne des boutons,
+    ' inoccupées jusqu'ici). Factorisés dans AjouterBoutonsDecalageRO ci-dessous (voir
+    ' ce Sub pour le détail), pour pouvoir aussi les ajouter sans tout reconstruire si
+    ' la feuille existe déjà (c'est d'ailleurs ce Sub qui les crée ici).
     AjouterBoutonsDecalageRO ws
 
     ' --- Petit rappel du fonctionnement, au-dessus du tableau ---
-    ' Refonte 02/10/2026 (apres discussion avec l'operateur) : mode operatoire en
-    ' liste a puces (plus lisible qu'un paragraphe), avec les noms de colonnes mis en
-    ' evidence (gras + vert) via SurlignerMotsRO ci-dessous -- aucun precedent de ce
-    ' genre de mise en forme (Characters) dans ce classeur, a verifier visuellement a
+    ' Refonte 02/10/2026 (après discussion avec l'opérateur) : mode opératoire en
+    ' liste à puces (plus lisible qu'un paragraphe), avec les noms de colonnes mis en
+    ' évidence (gras + vert) via SurlignerMotsRO ci-dessous -- aucun précédent de ce
+    ' genre de mise en forme (Characters) dans ce classeur, à vérifier visuellement à
     ' l'import.
     Dim texteAide As String
     texteAide = "- " & FR("Utilise les fl{e2}ches de filtre dans l'en-t{ea}te de chaque colonne pour restreindre la liste affich{e2}e.") & Chr(10) & _
@@ -282,11 +282,11 @@ Sub CreerFeuilleRechercheOperations()
                     Array("SousCategorie", "Categorie", "Notes", "Valider", "Ventile")
     ws.rows(RO_LIGNE_ENTETES - 2).RowHeight = 56
 
-    ' --- Zone "filtre actif" (ajout 02/10/2026) : phrase courte, recalculee par
-    ' mod_RechercheOperations.RechercherOperations a chaque recherche (voir
-    ' DecrireFiltreActifRO), qui rappelle sur quel sous-ensemble d'operations
-    ' l'operateur travaille actuellement. Vide au tout premier affichage de
-    ' l'ecran (avant la toute premiere recherche).
+    ' --- Zone "filtre actif" (ajout 02/10/2026) : phrase courte, recalculée par
+    ' mod_RechercheOperations.RechercherOperations à chaque recherche (voir
+    ' DecrireFiltreActifRO), qui rappelle sur quel sous-ensemble d'opérations
+    ' l'opérateur travaille actuellement. Vide au tout premier affichage de
+    ' l'écran (avant la toute première recherche).
     With ws.Range("A" & RO_LIGNE_FILTRE & ":G" & RO_LIGNE_FILTRE)
         .Merge
         .value = ""
@@ -299,7 +299,7 @@ Sub CreerFeuilleRechercheOperations()
     End With
     ws.rows(RO_LIGNE_FILTRE).RowHeight = 16
 
-    ' --- Tableau (headers + 1 ligne vide de depart, indispensable pour créer un ListObject) ---
+    ' --- Tableau (headers + 1 ligne vide de départ, indispensable pour créer un ListObject) ---
     ws.Range("A" & RO_LIGNE_ENTETES).value = "Valider"
     ws.Range("B" & RO_LIGNE_ENTETES).value = "Date"
     ws.Range("C" & RO_LIGNE_ENTETES).value = "Tiers"
@@ -322,17 +322,17 @@ Sub CreerFeuilleRechercheOperations()
     tbl.Name = NOM_TABLE_RECHERCHE
     tbl.TableStyle = "TableStyleMedium2"
 
-    ' Colonnes techniques masquees (PHASE 5 : Ventile reste VISIBLE, c'est le
+    ' Colonnes techniques masquées (PHASE 5 : Ventile reste VISIBLE, c'est le
     ' tag informatif demandé par l'opérateur -- seules I/J/K, qui ne servent
-    ' qu'au code, sont masquees)
+    ' qu'au code, sont masquées)
     ws.Columns("I").Hidden = True
     ws.Columns("J").Hidden = True
     ws.Columns("K").Hidden = True
 
-    ' PHASE 6 : les 5 colonnes issues des anciens ecrans "Synthese_*" sont
-    ' masquees par defaut a l'installation ; mod_RechercheOperations les
-    ' affiche/masque ensuite dynamiquement a chaque appel, selon le prefiltre
-    ' demande (voir DefinirColonnesVisibles ci-dessous).
+    ' PHASE 6 : les 5 colonnes issues des anciens écrans "Synthese_*" sont
+    ' masquées par défaut à l'installation ; mod_RechercheOperations les
+    ' affiche/masque ensuite dynamiquement à chaque appel, selon le préfiltre
+    ' demandé (voir DefinirColonnesVisibles ci-dessous).
     ws.Columns("L").Hidden = True
     ws.Columns("M").Hidden = True
     ws.Columns("N").Hidden = True
@@ -341,20 +341,20 @@ Sub CreerFeuilleRechercheOperations()
 
     ws.Visible = xlSheetVeryHidden
 
-    MsgBox "La feuille '" & NOM_FEUILLE_RECHERCHE & "' a ete creee et masquee." & vbCrLf & _
-           "Pour la revoir : AfficherFeuilleRecherchePourEdition", vbInformation, "Installation terminee"
+    MsgBox "La feuille '" & NOM_FEUILLE_RECHERCHE & "' a été créée et masquée." & vbCrLf & _
+           "Pour la revoir : AfficherFeuilleRecherchePourEdition", vbInformation, "Installation terminée"
 
 End Sub
 
 
 ' =====================================================================================
-' AJOUT 03/10/2026 (demande operateur) : ajoute les 2 boutons "decalage de budget" sur
-' la feuille de recherche SI ELLE EXISTE DEJA, sans la reconstruire entierement (donc
-' sans perdre les lignes/filtres en cours). Appelee automatiquement a la fin de
-' CreerFeuilleRechercheOperations ci-dessus (nouvelle installation complete), et peut
-' aussi etre relancee seule, par Ctrl+G, sur une feuille deja en place :
+' AJOUT 03/10/2026 (demande opérateur) : ajoute les 2 boutons "décalage de budget" sur
+' la feuille de recherche SI ELLE EXISTE DÉJÀ, sans la reconstruire entièrement (donc
+' sans perdre les lignes/filtres en cours). Appelée automatiquement à la fin de
+' CreerFeuilleRechercheOperations ci-dessus (nouvelle installation complète), et peut
+' aussi être relancée seule, par Ctrl+G, sur une feuille déjà en place :
 '   AjouterBoutonsDecalageRO ThisWorkbook.Worksheets("frm_RechercheOperations")
-' Idempotente : si les boutons existent deja (meme nom), ne fait rien.
+' Idempotente : si les boutons existent déjà (même nom), ne fait rien.
 ' =====================================================================================
 Public Sub AjouterBoutonsDecalageRO(ByVal ws As Worksheet)
 
@@ -362,8 +362,8 @@ Public Sub AjouterBoutonsDecalageRO(ByVal ws As Worksheet)
     Dim btn As Button
     Dim zoneBtn5 As Range, zoneBtn6 As Range
 
-    ' On verifie si l'un des 2 boutons existe deja (meme principe que les colonnes/
-    ' tableaux installes ailleurs dans le projet : ne jamais recreer en double).
+    ' On vérifie si l'un des 2 boutons existe déjà (même principe que les colonnes/
+    ' tableaux installés ailleurs dans le projet : ne jamais recréer en double).
     On Error Resume Next
     Set forme = ws.Shapes("btnAjouterDecalageRO")
     On Error GoTo 0
@@ -391,27 +391,27 @@ End Sub
 
 
 ' =====================================================================================
-' SurlignerMotsRO (ajout 02/10/2026) : met en GRAS + VERT, DANS UNE CELLULE DEJA
+' SurlignerMotsRO (ajout 02/10/2026) : met en GRAS + VERT, DANS UNE CELLULE DÉJÀ
 ' REMPLIE, chaque occurrence exacte (respect de la casse) de chacun des mots de
-' la liste "mots". Sert a faire ressortir les noms de colonnes (Categorie,
+' la liste "mots". Sert à faire ressortir les noms de colonnes (Catégorie,
 ' SousCategorie, Notes, Valider, Ventile) dans le texte d'aide au-dessus du
-' tableau de recherche, pour que l'operateur les repere en un coup d'oeil.
+' tableau de recherche, pour que l'opérateur les repère en un coup d'œil.
 '
 ' ATTENTION (technique nouvelle dans ce classeur, aucun autre module n'utilise
 ' Range.Characters) : la recherche se fait avec vbBinaryCompare (respect de la
-' casse), PAS vbTextCompare, pour ne jamais accrocher un mot "generique" du
-' texte qui ressemblerait a un nom de colonne mais s'ecrirait differemment
-' (exemple : "controle des categories", en minuscules et au pluriel dans une
-' phrase normale, ne doit pas etre colore comme le nom de colonne "Categorie").
-' "texteComplet" DOIT etre exactement la chaine deja ecrite dans "cellule"
-' (apres toute substitution mod_Display.FR, {tag} compris) : Characters()
-' raisonne en position de caractere dans le texte final affiche, pas dans un
+' casse), PAS vbTextCompare, pour ne jamais accrocher un mot "générique" du
+' texte qui ressemblerait à un nom de colonne mais s'écrirait différemment
+' (exemple : "contrôle des catégories", en minuscules et au pluriel dans une
+' phrase normale, ne doit pas être coloré comme le nom de colonne "Categorie").
+' "texteComplet" DOIT être exactement la chaîne déjà écrite dans "cellule"
+' (après toute substitution mod_Display.FR, {tag} compris) : Characters()
+' raisonne en position de caractère dans le texte final affiché, pas dans un
 ' texte source avec des {tag}.
 '
 ' Remarque sur l'ordre des mots : "SousCategorie" contient "Categorie". Si
-' "SousCategorie" est traite APRES "Categorie" dans la liste, cela ne pose
-' aucun probleme : le passage sur "SousCategorie" recolore alors l'ensemble du
-' mot (y compris la partie deja coloree par "Categorie"), le resultat final
+' "SousCategorie" est traité APRÈS "Categorie" dans la liste, cela ne pose
+' aucun problème : le passage sur "SousCategorie" recolore alors l'ensemble du
+' mot (y compris la partie déjà colorée par "Categorie"), le résultat final
 ' est donc correct quel que soit l'ordre choisi.
 ' =====================================================================================
 Private Sub SurlignerMotsRO(ByVal cellule As Range, ByVal texteComplet As String, ByVal mots As Variant)
@@ -441,14 +441,14 @@ End Sub
 
 ' =====================================================================================
 ' DefinirColonnesVisibles (PHASE 6) : affiche/masque les 5 colonnes issues des
-' anciens ecrans "Synthese_*" selon le prefiltre demande par l'operateur.
-' Appelee par mod_RechercheOperations.RechercherOperations a chaque ouverture.
-' Les colonnes A a H (Valider...Ventile) et I/J/K (techniques) ne sont JAMAIS
-' concernees ici : elles restent gerees comme avant (I/J/K toujours masquees).
+' anciens écrans "Synthese_*" selon le préfiltre demandé par l'opérateur.
+' Appelée par mod_RechercheOperations.RechercherOperations à chaque ouverture.
+' Les colonnes A à H (Valider...Ventile) et I/J/K (techniques) ne sont JAMAIS
+' concernées ici : elles restent gérées comme avant (I/J/K toujours masquées).
 ' =====================================================================================
 Public Sub DefinirColonnesVisibles(ByVal ws As Worksheet, ByVal prefiltre As String)
 
-    ' On repart d'un etat neutre : les 5 colonnes "Synthese_*" masquees.
+    ' On repart d'un état neutre : les 5 colonnes "Synthese_*" masquées.
     ws.Columns("L").Hidden = True   ' Budget
     ws.Columns("M").Hidden = True   ' StatutSante
     ws.Columns("N").Hidden = True   ' SoldeSante
@@ -464,8 +464,8 @@ Public Sub DefinirColonnesVisibles(ByVal ws As Worksheet, ByVal prefiltre As Str
         Case "ErreursSante"
             ws.Columns("O").Hidden = False
             ws.Columns("P").Hidden = False
-        ' Case "" (recherche libre) : aucune des 5 colonnes n'a de sens generique,
-        ' on les laisse toutes masquees (etat neutre defini plus haut).
+        ' Case "" (recherche libre) : aucune des 5 colonnes n'a de sens générique,
+        ' on les laisse toutes masquées (état neutre défini plus haut).
     End Select
 
 End Sub

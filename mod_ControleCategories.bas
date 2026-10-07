@@ -3,48 +3,49 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_ControleCategories
 '
-' PHASE 2 du chantier "Categorie / Sous-categorie / Ventilation" - PARTIE 2/2
+' PHASE 2 du chantier « Catégorie / Sous-catégorie / Ventilation » - PARTIE 2/2
 '
-' ROLE (a lire en premier, meme si vous debutez) :
-'   Ce module contient toute la LOGIQUE du controle des categories des operations
-'   importees. Il s'appuie sur :
+' RÔLE (à lire en premier, même si vous débutez) :
+'   Ce module contient toute la logique du contrôle des catégories des opérations
+'   importées. Il s'appuie sur :
 '     - le tableau de correspondance TblCategories (Phase 1, feuille Param),
 '     - la feuille-formulaire frm_ControleCategories (mod_InstallControleCategories).
 '
-'   DEROULEMENT (fonction ControlerCategories) :
-'     1. Pour chaque operation, on cherche sa categorie SOURCE (celle de la banque)
-'        dans TblCategories -> on en deduit Categorie + Sous-categorie proposees.
-'     2. On demande a l'operateur :
-'          "Les categories ont-elles ete correctement renseignees dans la source ?"
+'   DÉROULEMENT (fonction ControlerCategories) :
+'     1. Pour chaque opération, on cherche sa catégorie SOURCE (celle de la banque)
+'        dans TblCategories -> on en déduit les catégories et sous-catégories proposées.
+'     2. On demande à l'opérateur :
+'          "Les catégories ont-elles été correctement renseignées dans la source ?"
 '            OUI -> on garde les propositions telles quelles (voir remarque ci-dessous).
-'            NON -> le formulaire presente les operations une par une.
+'            NON -> le formulaire présente les opérations une par une.
 '            ANNULER -> on abandonne, rien n'est applique.
-'     3. Dans le formulaire, l'operateur peut changer la Categorie et la
-'        Sous-categorie de chaque operation, avec Precedent / Suivant.
-'     4. "Terminer et continuer" renvoie les valeurs finales a l'appelant.
+'     3. Dans le formulaire, l'opérateur peut changer la catégorie et la
+'        sous-catégorie de chaque opération avec Précédent / Suivant.
+'     4. "Terminer et continuer" renvoie les valeurs finales à l'appelant.
 '
-'   REMARQUE IMPORTANTE (choix de conception a valider) :
-'     Meme si l'operateur repond OUI, les operations dont la categorie source est
-'     VIDE ou ABSENTE du tableau de correspondance sont quand meme presentees
-'     dans le formulaire : sans cela, on ne saurait pas dans quelle categorie les ranger.
-'     Ce comportement se coupe en passant CTRL_FORCER_NON_RANGEES a False (plus bas).
+'   REMARQUE IMPORTANTE (choix de conception à valider) :
+'     Même si l'opérateur répond OUI, les opérations dont la catégorie source est
+'     VIDE ou ABSENTE du tableau de correspondance sont tout de même présentées
+'     dans le formulaire : sans cela, on ne saurait pas dans quelle catégorie les ranger.
+'     Ce comportement peut être désactivé en passant CTRL_FORCER_NON_RANGEES à False (plus bas).
 '
-'   CE MODULE N'ECRIT RIEN dans TblOperations. Il RENVOIE des resultats ; c'est
-'   l'appelant (plus tard : l'import, Phase 5) qui decidera de les ecrire.
+'   CE MODULE N'ÉCRIT RIEN dans TblOperations. Il RENVOIE des résultats; c'est
+'   l'appelant (plus tard : l'import, phase 5) qui décidera de les écrire.
 '   Pour le tester sans risque, utilisez la macro TesterControleCategories.
 '
-' A PROPOS DES ACCENTS : fichier 100% ASCII, accents fabriques par la fonction mod_Display.FR().
+' À PROPOS DES ACCENTS : les textes affichés sont construits par la fonction mod_Display.FR();
+' les commentaires, eux, sont encodés en UTF-8.
 ' =====================================================================================
 
 ' --- Positions des colonnes du tableau "ops" que l'appelant doit fournir ---------------
-' ops(i, CTRL_OP_DATE)      = date de l'operation (Date ou nombre serie Excel)
+' ops(i, CTRL_OP_DATE)      = date de l'opération (Date ou nombre série Excel)
 ' ops(i, CTRL_OP_TIERS)     = tiers (texte)
-' ops(i, CTRL_OP_LIBELLE)   = libelle / notes (texte)
-' ops(i, CTRL_OP_MONTANT)   = montant (nombre, negatif pour une depense)
-' ops(i, CTRL_OP_CATSOURCE) = categorie envoyee par la banque (texte, peut etre vide)
-' ops(i, CTRL_OP_ID)        = ID_Transaction de l'operation (texte). NOUVEAU (Phase 4) :
-'                             necessaire pour relier une ventilation (TblVentilations) a
-'                             l'operation d'origine dans TblOperations.
+' ops(i, CTRL_OP_LIBELLE)   = libellé / notes (texte)
+' ops(i, CTRL_OP_MONTANT)   = montant (nombre, négatif pour une dépense)
+' ops(i, CTRL_OP_CATSOURCE) = catégorie envoyée par la banque (texte, éventuellement vide)
+' ops(i, CTRL_OP_ID)        = ID_Transaction de l'opération (texte). NOUVEAU (phase 4) :
+'                             nécessaire pour relier une ventilation (TblVentilations) à
+'                             l'opération d'origine dans TblOperations.
 Public Const CTRL_OP_DATE As Long = 1
 Public Const CTRL_OP_TIERS As Long = 2
 Public Const CTRL_OP_LIBELLE As Long = 3
@@ -53,73 +54,73 @@ Public Const CTRL_OP_CATSOURCE As Long = 5
 Public Const CTRL_OP_ID As Long = 6
 Public Const CTRL_OP_NBCOL As Long = 6
 
-' --- Reglage : presenter aussi les operations "non rangees" apres un OUI ? -------------
+' --- Réglage : présenter aussi les opérations "non rangées" après un OUI ? ------------
 Private Const CTRL_FORCER_NON_RANGEES As Boolean = True
 
 ' --- Nom (au niveau du classeur) de la liste des sous-categories du formulaire ---------
 Private Const CTRL_NOM_LISTE_SOUS As String = "ListeSousCatControle"
-Private Const CTRL_LIGNE_AIDE_MAX As Long = 300   ' derniere ligne de la zone technique
+Private Const CTRL_LIGNE_AIDE_MAX As Long = 300   ' dernière ligne de la zone technique
 
-' --- Etat du formulaire ------------------------------------------------------------------
-' Vrai tant que le formulaire est ouvert. Public car lu par le verrou de la feuille.
+' --- État du formulaire ------------------------------------------------------------------
+' Vrai tant que le formulaire est ouvert. Public, car lu par le verrou de la feuille.
 Public g_CtrlEnCours As Boolean
 
 ' --- Verrou d'ACTIVATION, distinct de g_CtrlEnCours (Phase 3) -----------------------
-' g_CtrlEnCours pilote la boucle d'attente (DoEvents) : elle NE DOIT PAS repasser a
-' False tant que le formulaire de controle n'est pas termine.
-' g_CtrlVerrouActif pilote uniquement le "reflexe" qui ramene de force l'operateur sur
+' g_CtrlEnCours pilote la boucle d'attente (DoEvents) : elle NE DOIT PAS repasser à
+' False tant que le formulaire de contrôle n'est pas terminé.
+' g_CtrlVerrouActif pilote uniquement le réflexe qui ramène de force l'opérateur sur
 ' la feuille (Worksheet_Deactivate). Sans cette distinction, ouvrir le formulaire de
-' creation de categorie (bouton "+") serait impossible : des qu'on quitterait la feuille
-' de controle pour afficher celui de creation, Worksheet_Deactivate nous y ramenerait
-' aussitot de force, empechant le second formulaire de s'afficher.
-' ControleNouvelleCategorie desactive ce verrou juste le temps d'ouvrir le formulaire de
-' creation, puis le reactive des qu'il se referme.
+' création de catégorie (bouton "+") serait impossible : dès qu'on quitterait la feuille
+' de contrôle pour afficher celle de création, Worksheet_Deactivate nous y ramènerait
+' aussitôt de force, empêchant le second formulaire de s'afficher.
+' ControleNouvelleCategorie désactive ce verrou juste le temps d'ouvrir le formulaire de
+' création, puis le réactive dès qu'il se referme.
 Public g_CtrlVerrouActif As Boolean
 
-Private g_CtrlValide As Boolean          ' Vrai si l'operateur a valide (Terminer)
+Private g_CtrlValide As Boolean          ' Vrai si l'opérateur a validé (Terminer)
 Private g_CtrlNomFeuillePrec As String   ' feuille active avant l'ouverture (pour y revenir)
 
-Private g_CtrlOps As Variant             ' copie des operations fournies
+Private g_CtrlOps As Variant             ' copie des opérations fournies
 Private g_CtrlNbOps As Long
-Private g_CtrlCat() As String            ' categorie courante de chaque operation
-Private g_CtrlSous() As String           ' sous-categorie courante de chaque operation
-' Ajout 01/10/2026 (point 4 : annuler une ventilation) : categorie/sous-categorie
-' TELLES QU'ELLES ETAIENT avant la toute premiere ventilation de l'operation (vide tant
-' que l'operation n'a jamais ete ventilee). Memorisees par ControleVentiler juste avant
-' d'ecraser g_CtrlCat/g_CtrlSous par "Ventile", et restituees a l'appelant (import) via
-' ControlerCategories pour etre ecrites dans les 2 colonnes techniques de TblOperations
-' (CategorieAvantVentilation / SousCategorieAvantVentilation -- voir mod_InstallVentilation).
+Private g_CtrlCat() As String            ' catégorie courante de chaque opération
+Private g_CtrlSous() As String           ' sous-catégorie courante de chaque opération
+' Ajout 01/10/2026 (point 4 : annuler une ventilation) : catégorie/sous-catégorie
+' telles qu'elles étaient avant la toute première ventilation de l'opération (vides tant
+' que l'opération n'a jamais été ventilée). Mémorisées par ControleVentiler avant
+' d'écraser g_CtrlCat/g_CtrlSous par "Ventile", puis renvoyées à l'appelant (import) via
+' ControlerCategories pour être écrites dans les deux colonnes techniques de TblOperations
+' (CategorieAvantVentilation / SousCategorieAvantVentilation; voir mod_InstallVentilation).
 Private g_CtrlCatAvantVen() As String
 Private g_CtrlSousAvantVen() As String
-' AJOUT 03/10/2026 (demande operateur : pouvoir corriger Tiers/Notes a l'import) :
-' valeur COURANTE du Tiers et de la Notes de chaque operation. Initialisees avec la
-' valeur d'origine (celle fournie dans "ops"), puis mises a jour par
-' EnregistrerOperationAffichee chaque fois que l'operateur modifie la cellule
-' correspondante -- SAUF pour une operation de sante (sous-categorie
-' mod_VarGlobales.SOUS_CATEGORIE_SANTE), ou toute saisie est ignoree : voir
-' AfficherOperation et EnregistrerOperationAffichee pour le detail de cette regle.
+' AJOUT 03/10/2026 (demande opérateur : corriger Tiers/Notes à l'import) :
+' valeurs COURANTES du Tiers et des Notes de chaque opération. Initialisées avec la
+' valeur d'origine (fournie dans "ops"), puis mises à jour par
+' EnregistrerOperationAffichee chaque fois que l'opérateur modifie la cellule
+' correspondante, SAUF pour une opération de santé (sous-catégorie
+' mod_VarGlobales.SOUS_CATEGORIE_SANTE), où toute saisie est ignorée. Voir
+' AfficherOperation et EnregistrerOperationAffichee pour le détail de cette règle.
 Private g_CtrlTiers() As String
 Private g_CtrlLibelle() As String
-Private g_CtrlVu() As Boolean            ' operation deja affichee / enregistree
-Private g_CtrlARanger() As Boolean       ' correspondance introuvable (a ranger a la main)
+Private g_CtrlVu() As Boolean            ' opération déjà affichée / enregistrée
+Private g_CtrlARanger() As Boolean       ' correspondance introuvable (à ranger à la main)
 
-Private g_CtrlIndices() As Long          ' operations presentees : position -> numero d'operation
+Private g_CtrlIndices() As Long          ' opérations présentées : position -> numéro d'opération
 Private g_CtrlNbAffiches As Long
-Private g_CtrlPos As Long                ' position affichee actuellement (1..g_CtrlNbAffiches)
+Private g_CtrlPos As Long                ' position affichée actuellement (1..g_CtrlNbAffiches)
 
-' --- Ajout 02/10/2026 (edition directe depuis l'ecran de recherche) -------------------
-' Vrai uniquement quand ControlerCategories a ete appelee avec uneSeuleOperation:=True
+' --- Ajout 02/10/2026 (édition directe depuis l'écran de recherche) -------------------
+' Vrai uniquement quand ControlerCategories a été appelée avec uneSeuleOperation:=True
 ' (voir mod_RechercheOperations.EditerCategorieRO). Dans ce mode : on saute la question
-' "Oui/Non/Annuler" (sans objet pour une seule operation deja categorisee, pas en cours
-' d'import) et on affiche directement l'operation, avec sa categorie/sous-categorie
-' ACTUELLE preremplie (et non une proposition issue du tableau de correspondance) ; le
-' message d'aide du formulaire est adapte en consequence (voir AfficherOperation).
+' "Oui/Non/Annuler" (sans objet pour une seule opération déjà catégorisée, hors import)
+' et on affiche directement l'opération avec sa catégorie/sous-catégorie ACTUELLE
+' préremplie (et non une proposition issue du tableau de correspondance). Le message
+' d'aide du formulaire est adapté en conséquence (voir AfficherOperation).
 Private g_CtrlModeUnique As Boolean
 
-' --- Referentiel lu dans TblCategories (recharge a chaque appel) -----------------------
+' --- Référentiel lu dans TblCategories (rechargé à chaque appel) -----------------------
 Private g_CtrlMap As Object              ' source (minuscules) -> "categorie" & Tab & "sous-categorie"
 Private g_CtrlPaires As Object           ' "categorie" & Tab & "sous-categorie" -> sous-categorie
-Private g_CtrlCats As Object             ' categorie -> categorie (forme canonique)
+Private g_CtrlCats As Object             ' catégorie -> catégorie (forme canonique)
 Private g_CtrlRefCat() As String
 Private g_CtrlRefSous() As String
 Private g_CtrlRefN As Long
@@ -128,41 +129,39 @@ Private g_CtrlRefN As Long
 ' =====================================================================================
 ' FONCTION PRINCIPALE
 ' =====================================================================================
-' Parametres :
-'   ops        : tableau a 2 dimensions (1 To nbOps, 1 To CTRL_OP_NBCOL), voir plus haut
-'                (transmis par valeur : l'original n'est jamais modifie)
-'   nbOps      : nombre d'operations a controler
-'   catFinale  : (en sortie) categorie retenue pour chaque operation, indice 1..nbOps
-'   sousFinale : (en sortie) sous-categorie retenue pour chaque operation
-'   catAvantVentilation, sousAvantVentilation : (en sortie, ajout 01/10/2026, point 4)
-'                categorie/sous-categorie D'AVANT LA VENTILATION pour chaque operation
-'                (chaine vide si l'operation n'a jamais ete ventilee). A ecrire par
+' Paramètres :
+'   ops        : tableau à deux dimensions (1 To nbOps, 1 To CTRL_OP_NBCOL), voir plus haut
+'                (transmis par valeur : l'original n'est jamais modifié)
+'   nbOps      : nombre d'opérations à contrôler
+'   catFinale  : en sortie, catégorie retenue pour chaque opération, indice 1..nbOps
+'   sousFinale : en sortie, sous-catégorie retenue pour chaque opération
+'   catAvantVentilation, sousAvantVentilation : en sortie (ajout du 01/10/2026, point 4),
+'                catégories/sous-catégories d'AVANT LA VENTILATION pour chaque opération
+'                (chaîne vide si l'opération n'a jamais été ventilée). À écrire par
 '                l'appelant dans les colonnes CategorieAvantVentilation /
-'                SousCategorieAvantVentilation de TblOperations, pour pouvoir restaurer
-'                la categorie d'origine si la ventilation est supprimee plus tard.
-'   tiersFinale, libelleFinale : (en sortie, ajout 03/10/2026, demande operateur) --
-'                Tiers et Notes retenus pour chaque operation : la valeur d'origine
-'                (fournie dans ops) si l'operateur n'y a pas touche, ou sa correction
-'                sinon. EXCEPTION : pour une operation dont la sous-categorie est
+'                SousCategorieAvantVentilation de TblOperations afin de restaurer
+'                la catégorie d'origine si la ventilation est supprimée plus tard.
+'   tiersFinale, libelleFinale : en sortie (ajout du 03/10/2026, demande opérateur) :
+'                Tiers et Notes retenus pour chaque opération : valeur d'origine
+'                (fournie dans ops) si l'opérateur n'y a pas touché, ou sa correction
+'                sinon. EXCEPTION : pour une opération dont la sous-catégorie est
 '                mod_VarGlobales.SOUS_CATEGORIE_SANTE, ces 2 champs restent TOUJOURS
-'                figes sur leur valeur d'origine, meme si l'operateur a tape autre
-'                chose dans la cellule (son champ Notes encode une date de consultation
-'                lue par mod_ImportOFX juste apres -- voir AfficherOperation). Pour la
-'                MEME raison, en mode "une seule operation" (uneSeuleOperation:=True,
-'                voir plus bas -- c'est le cas de l'edition directe depuis l'ecran de
-'                recherche), ces 2 champs restent eux aussi toujours figes : cette
-'                possibilite de correction est pour l'instant reservee au seul import.
+'                figés sur leur valeur d'origine, même si l'opérateur saisit autre
+'                chose dans la cellule (le champ Notes encode une date de consultation
+'                lue ensuite par mod_ImportOFX; voir AfficherOperation). Pour la même
+'                raison, en mode "une seule opération" (uneSeuleOperation:=True; voir
+'                plus bas, pour l'édition directe depuis l'écran de recherche), ces deux
+'                champs restent également figés : cette correction est réservée à l'import.
 '   uneSeuleOperation, categorieActuelleUnique, sousCategorieActuelleUnique :
-'                (ajout 02/10/2026, edition directe depuis l'ecran de recherche) --
-'                parametres optionnels, NON utilises par l'import (valeur par defaut
-'                False/"" partout : comportement existant inchange pour tout appel qui
-'                ne les precise pas). Quand uneSeuleOperation:=True (nbOps doit alors
-'                valoir 1) : saute la question "Oui/Non/Annuler", et preremplit le
-'                formulaire avec categorieActuelleUnique / sousCategorieActuelleUnique
-'                (la vraie categorie actuelle de l'operation) plutot que de chercher une
-'                correspondance dans TblCategories a partir de CTRL_OP_CATSOURCE.
-' Renvoie True si l'operateur a valide (ou s'il n'y avait rien a controler),
-'         False s'il a annule ou si un pre-requis manque (un message est alors affiche).
+'                (ajout du 02/10/2026, édition directe depuis l'écran de recherche) :
+'                paramètres facultatifs, NON utilisés par l'import (valeurs par défaut
+'                False/"" : comportement inchangé pour tout appel qui ne les précise pas).
+'                Quand uneSeuleOperation:=True (nbOps doit alors valoir 1), la question
+'                "Oui/Non/Annuler" est ignorée et le formulaire est prérempli avec
+'                categorieActuelleUnique / sousCategorieActuelleUnique (catégorie actuelle
+'                de l'opération), plutôt qu'avec une correspondance de CTRL_OP_CATSOURCE.
+' Renvoie True si l'opérateur a validé (ou s'il n'y avait rien à contrôler),
+'         False s'il a annulé ou si un prérequis manque (un message est alors affiché).
 Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
                                     ByRef catFinale() As String, ByRef sousFinale() As String, _
                                     ByRef catAvantVentilation() As String, ByRef sousAvantVentilation() As String, _
@@ -183,11 +182,11 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
 
     ControlerCategories = False
     If nbOps <= 0 Then
-        ControlerCategories = True     ' rien a controler : on laisse continuer
+        ControlerCategories = True     ' rien à contrôler : on laisse continuer
         Exit Function
     End If
 
-    ' --- Pre-requis 1 : la feuille-formulaire doit exister -------------------------------
+    ' --- Prérequis 1 : la feuille-formulaire doit exister -------------------------------
     Set ws = FeuilleSansErreur(CTRL_NOM_FEUILLE)
     If ws Is Nothing Then
         MsgBox mod_Display.FR("La feuille '") & CTRL_NOM_FEUILLE & mod_Display.FR("' est introuvable.") & vbCrLf & _
@@ -195,14 +194,14 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
         Exit Function
     End If
 
-    ' --- Pre-requis 2 : le tableau de correspondance doit exister et contenir des lignes ---
+    ' --- Prérequis 2 : le tableau de correspondance doit exister et contenir des lignes ---
     If Not ChargerReferentiel() Then
         MsgBox mod_Display.FR("Le tableau de correspondance TblCategories est introuvable ou vide.") & vbCrLf & _
                mod_Display.FR("Ex{e2}cutez d'abord la macro PreparerPhase1Categories."), vbExclamation
         Exit Function
     End If
 
-    ' --- On travaille sur des COPIES : ops n'est jamais modifie ---------------------------
+    ' --- On travaille sur des COPIES : ops n'est jamais modifié ---------------------------
     g_CtrlOps = ops
     g_CtrlNbOps = nbOps
     ReDim g_CtrlCat(1 To nbOps)
@@ -214,11 +213,11 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
     ReDim g_CtrlTiers(1 To nbOps)
     ReDim g_CtrlLibelle(1 To nbOps)
 
-    ' --- ETAPE 1 : application automatique de la correspondance --------------------------
+    ' --- ÉTAPE 1 : application automatique de la correspondance --------------------------
     For i = 1 To nbOps
         Source = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_CATSOURCE))
         If Source <> "" And g_CtrlMap.Exists(Source) Then
-            ' Item = "categorie" & Tab & "sous-categorie" : on le redecoupe.
+            ' Item = "categorie" & Tab & "sous-categorie" : on le redécoupe.
             morceaux = Split(CStr(g_CtrlMap(Source)), vbTab)
             g_CtrlCat(i) = morceaux(0)
             g_CtrlSous(i) = morceaux(1)
@@ -228,29 +227,28 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
             g_CtrlARanger(i) = True
             nbARanger = nbARanger + 1
         End If
-        ' AJOUT 03/10/2026 : valeur de depart = la valeur fournie par l'appelant. Elle ne
-        ' changera que si l'operateur la modifie ET que c'est autorise (voir
+        ' AJOUT 03/10/2026 : valeur de départ = valeur fournie par l'appelant. Elle ne
+        ' change que si l'opérateur la modifie ET que cela est autorisé (voir
         ' EnregistrerOperationAffichee).
         g_CtrlTiers(i) = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_TIERS))
         g_CtrlLibelle(i) = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_LIBELLE))
     Next i
 
-    ' Ajout 02/10/2026 : en mode "edition directe" (uneSeuleOperation:=True), on ignore
-    ' le resultat de l'ETAPE 1 ci-dessus (il n'y a pas de "source banque" a faire
-    ' correspondre, CTRL_OP_CATSOURCE n'est meme pas renseigne par l'appelant dans ce
-    ' mode) : on preremplit directement avec la VRAIE categorie actuelle de l'operation,
-    ' et on la marque comme "pas a ranger" (g_CtrlARanger = False) puisqu'elle a deja
-    ' une categorie valide -- voir AfficherOperation pour le message adapte.
+    ' Ajout du 02/10/2026 : en mode "édition directe" (uneSeuleOperation:=True), on ignore
+    ' le résultat de l'ÉTAPE 1 (il n'y a pas de source bancaire à faire correspondre;
+    ' CTRL_OP_CATSOURCE n'est même pas renseigné dans ce mode). On préremplit le formulaire
+    ' avec la catégorie actuelle de l'opération et on la marque "pas à ranger"
+    ' (g_CtrlARanger = False), puisqu'elle est déjà valide. Voir AfficherOperation.
     If g_CtrlModeUnique Then
         g_CtrlCat(1) = categorieActuelleUnique
         g_CtrlSous(1) = sousCategorieActuelleUnique
         g_CtrlARanger(1) = False
     End If
 
-    ' --- ETAPE 2 : la question a l'operateur ------------------------------------------------
+    ' --- ÉTAPE 2 : la question à l'opérateur -----------------------------------------------
     ' En mode "edition directe", cette question n'a pas de sens (il n'y a qu'UNE
-    ' operation, deja categorisee, pas en cours d'import) : on saute directement a
-    ' "toutes les operations sont presentees" (meme resultat qu'une reponse "NON" ici).
+    ' opération déjà catégorisée, hors import) : on passe directement à la présentation
+    ' de l'opération (même résultat qu'une réponse "NON" ici).
     If g_CtrlModeUnique Then
         reponse = vbNo
     Else
@@ -265,18 +263,18 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
 
     If reponse = vbCancel Then Exit Function      ' False : abandon
 
-    ' --- Quelles operations presenter dans le formulaire ? ---------------------------------
+    ' --- Quelles opérations présenter dans le formulaire ? ---------------------------------
     ReDim g_CtrlIndices(1 To nbOps)
     g_CtrlNbAffiches = 0
 
     If reponse = vbNo Then
-        ' Lecture 1 - "NON" (ou mode "edition directe") : toutes les operations sont presentees.
+        ' Cas 1 - "NON" (ou mode "édition directe") : toutes les opérations sont présentées.
         For i = 1 To nbOps
             g_CtrlNbAffiches = g_CtrlNbAffiches + 1
             g_CtrlIndices(g_CtrlNbAffiches) = i
         Next i
     Else
-        ' "OUI" : on n'affiche que les operations impossibles a ranger automatiquement.
+        ' "OUI" : on n'affiche que les opérations impossibles à ranger automatiquement.
         If CTRL_FORCER_NON_RANGEES And nbARanger > 0 Then
             MsgBox nbARanger & mod_Display.FR(" op{e2}ration(s) ont une cat{e2}gorie source vide ou absente du tableau de correspondance.") & _
                    vbCrLf & mod_Display.FR("Elles vont vous {e2}tre pr{e2}sent{e2}es pour {e2}tre rang{e2}es."), _
@@ -290,14 +288,14 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
         End If
     End If
 
-    ' --- ETAPE 3 : le formulaire (uniquement s'il y a quelque chose a presenter) ------------
+    ' --- ÉTAPE 3 : formulaire (uniquement s'il y a quelque chose à présenter) ---------------
     If g_CtrlNbAffiches = 0 Then
         g_CtrlValide = True
     Else
         OuvrirFormulaireEtAttendre ws
     End If
 
-    ' --- ETAPE 4 : restitution des resultats -------------------------------------------------
+    ' --- ÉTAPE 4 : restitution des résultats -------------------------------------------------
     ControlerCategories = g_CtrlValide
     If g_CtrlValide Then
         ReDim catFinale(1 To nbOps)
@@ -318,7 +316,7 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
     Exit Function
 
 Erreur:
-    ' Erreur imprevue : on remet Excel en etat normal avant d'informer l'operateur.
+    ' Erreur imprévue : on remet Excel en état normal avant d'informer l'opérateur.
     Application.EnableEvents = True
     g_CtrlEnCours = False
     MsgBox mod_Display.FR("Erreur inattendue dans le contr{o2}le des cat{e2}gories :") & vbCrLf & _
@@ -331,34 +329,34 @@ End Function
 
 
 ' =====================================================================================
-' OUVERTURE DU FORMULAIRE ET ATTENTE ("modal" : le code reste bloque ici)
+' OUVERTURE DU FORMULAIRE ET ATTENTE ("modal" : le code reste bloqué ici)
 ' =====================================================================================
 Private Sub OuvrirFormulaireEtAttendre(ByVal ws As Worksheet)
 
-    ' On retient la feuille actuelle pour y revenir a la fermeture.
+    ' On retient la feuille actuelle pour y revenir à la fermeture.
     g_CtrlNomFeuillePrec = ActiveSheet.Name
 
-    ' On met a jour la liste des categories (Phase 1) : elle alimente le menu deroulant.
+    ' On met à jour la liste des catégories (phase 1) : elle alimente le menu déroulant.
     mod_Categories.RafraichirListesCategories
 
     g_CtrlValide = False
     g_CtrlPos = 1
-    AfficherOperation ws           ' on remplit AVANT d'afficher (pas de flash a l'ecran)
+    AfficherOperation ws           ' on remplit AVANT d'afficher (pas de flash à l'écran)
 
     ws.Visible = xlSheetVisible
     ws.Activate
     ws.Range(CTRL_ADR_CAT).Select
 
-    ' --- Verrou "modal" : la boucle ne se termine que lorsque g_CtrlEnCours repasse a
+    ' --- Verrou "modal" : la boucle ne se termine que lorsque g_CtrlEnCours repasse à
     ' False (bouton Terminer ou Annuler). DoEvents laisse Excel traiter les clics.
     '
-    ' CORRECTIF (constate par l'operateur le 2026-09-25) : sans cette ligne, les listes
-    ' deroulantes du formulaire restaient inertes (aucune reaction au changement de
-    ' categorie), car Application.EnableEvents se retrouvait a Faux a ce stade -- sans
-    ' qu'aucune erreur ne le signale. Toute la boucle qui suit repose entierement sur
+    ' CORRECTIF (constaté par l'opérateur le 2026-09-25) : sans cette ligne, les listes
+    ' déroulantes du formulaire restaient inertes (aucune réaction au changement de
+    ' catégorie), car Application.EnableEvents était à False à ce stade, sans qu'aucune
+    ' erreur ne le signale. Toute la boucle qui suit repose entièrement sur
     ' Worksheet_Change (voir CtrlTraiterChangement) : on GARANTIT donc ici que les
-    ' evenements sont actifs, plutot que de faire confiance a l'etat laisse par le reste
-    ' du classeur (dont l'origine exacte du probleme n'a pas ete formellement identifiee).
+    ' événements sont actifs, plutôt que de faire confiance à l'état laissé par le reste
+    ' du classeur (dont l'origine exacte du problème n'a pas été formellement identifiée).
     Application.EnableEvents = True
     g_CtrlEnCours = True
     g_CtrlVerrouActif = True
@@ -370,30 +368,29 @@ End Sub
 
 
 ' =====================================================================================
-' TIERS / NOTES MODIFIABLES ? (ajout 03/10/2026, demande operateur)
+' TIERS / NOTES MODIFIABLES ? (ajout du 03/10/2026, demande opérateur)
 ' =====================================================================================
-' Centralise ICI la regle, pour qu'AfficherOperation (affichage + couleur) et
-' EnregistrerOperationAffichee (lecture de la saisie) appliquent TOUJOURS exactement la
-' meme condition -- si on l'avait recopiee aux 2 endroits, un futur correctif fait a un
-' seul des deux aurait pu les desynchroniser (c'est deja arrive par le passe sur ce
-' chantier avec le message d'erreur de validation Categorie, voir PoserValidationCategorie
-' plus haut, d'ou le reflexe de centraliser).
-' i : indice de l'operation (1..nbOps, PAS la position affichee g_CtrlPos).
+' La règle est centralisée ici afin qu'AfficherOperation (affichage et couleur) et
+' EnregistrerOperationAffichee (lecture de la saisie) appliquent TOUJOURS la même
+' condition. Si elle était copiée aux deux endroits, un correctif ultérieur appliqué
+' à un seul d'entre eux pourrait les désynchroniser (cela s'est déjà produit dans ce
+' chantier avec le message de validation de Categorie; voir PoserValidationCategorie).
+' i : indice de l'opération (1..nbOps, PAS la position affichée g_CtrlPos).
 Private Function TiersNotesEditables(ByVal i As Long) As Boolean
-    ' Pas encore active pour l'edition directe depuis l'ecran de recherche (une seule
-    ' operation) : cette possibilite reste pour l'instant reservee a l'import.
+    ' Pas encore active pour l'édition directe depuis l'écran de recherche (une seule
+    ' opération) : cette possibilité reste pour l'instant réservée à l'import.
     If g_CtrlModeUnique Then
         TiersNotesEditables = False
         Exit Function
     End If
-    ' Jamais pour une operation de sante : la Notes y encode une date de consultation
-    ' lue par mod_ImportOFX juste apres (segment avant le premier ";").
+    ' Jamais pour une opération de santé : Notes y encode une date de consultation
+    ' lue ensuite par mod_ImportOFX (segment avant le premier ";").
     TiersNotesEditables = (g_CtrlSous(i) <> mod_VarGlobales.SOUS_CATEGORIE_SANTE)
 End Function
 
 
 ' =====================================================================================
-' AFFICHAGE DE L'OPERATION COURANTE (position g_CtrlPos)
+' AFFICHAGE DE L'OPÉRATION COURANTE (position g_CtrlPos)
 ' =====================================================================================
 Private Sub AfficherOperation(ByVal ws As Worksheet)
 
@@ -405,8 +402,8 @@ Private Sub AfficherOperation(ByVal ws As Worksheet)
     i = g_CtrlIndices(g_CtrlPos)
     Source = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_CATSOURCE))
 
-    ' On coupe les evenements pendant NOS ecritures : sans cela, ecrire dans la cellule
-    ' Categorie declencherait Worksheet_Change comme si l'operateur l'avait saisie.
+    ' On désactive les événements pendant NOS écritures : sinon, écrire dans la cellule
+    ' Categorie déclencherait Worksheet_Change comme si l'opérateur l'avait saisie.
     evenementsAvant = Application.EnableEvents
     Application.EnableEvents = False
     On Error GoTo Sortie
@@ -417,30 +414,30 @@ Private Sub AfficherOperation(ByVal ws As Worksheet)
     ws.Range(CTRL_ADR_MONTANT).value = Format(mod_DataStructure.ToDouble(g_CtrlOps(i, CTRL_OP_MONTANT)), "#,##0.00") & " " & ChrW(8364)
     ws.Range(CTRL_ADR_SOURCE).value = Source
 
-    ' --- Tiers / Notes : AJOUT 03/10/2026 (demande operateur) --------------------------
-    ' Ces 2 champs sont desormais MODIFIABLES par l'operateur, sauf dans les 2 cas ou on
-    ' ne veut surtout pas qu'une saisie libre vienne abimer les donnees (voir
-    ' TiersNotesEditables juste plus bas) : operation de sante (Notes encode une date de
-    ' consultation lue par mod_ImportOFX), ou edition directe depuis l'ecran de recherche
-    ' (pas encore prevue pour ce cas). On affiche TOUJOURS g_CtrlTiers/g_CtrlLibelle (la
-    ' valeur COURANTE, eventuellement deja corrigee par l'operateur sur une operation
-    ' precedemment affichee) et jamais g_CtrlOps (la valeur d'ORIGINE, figee), pour que la
-    ' correction survive quand on navigue avec Precedent/Suivant.
+    ' --- Tiers / Notes : AJOUT du 03/10/2026 (demande opérateur) -----------------------
+    ' Ces deux champs sont désormais MODIFIABLES par l'opérateur, sauf dans les deux cas
+    ' où une saisie libre risquerait d'altérer les données (voir TiersNotesEditables) :
+    ' opération de santé (Notes encode une date de consultation lue par mod_ImportOFX)
+    ' ou édition directe depuis l'écran de recherche (pas encore prévue pour ce cas).
+    ' On affiche TOUJOURS g_CtrlTiers/g_CtrlLibelle (la valeur COURANTE, éventuellement
+    ' déjà corrigée par l'opérateur sur une opération précédente), jamais g_CtrlOps
+    ' (la valeur d'ORIGINE, figée), afin que la correction soit conservée avec
+    ' Précédent/Suivant.
     ws.Range(CTRL_ADR_TIERS).value = g_CtrlTiers(i)
     ws.Range(CTRL_ADR_LIBELLE).value = g_CtrlLibelle(i)
     If TiersNotesEditables(i) Then
-        ' Modifiable : pas de fond special (meme aspect que Categorie/Sous-categorie
-        ' serait trop appuye ici, on garde simplement "sans couleur" = neutre).
+        ' Modifiable : pas de fond spécial (un aspect identique à Categorie/Sous-categorie
+        ' serait trop marqué ici; on garde simplement "sans couleur" = neutre).
         ws.Range(CTRL_ADR_TIERS & ":" & CTRL_ADR_LIBELLE).Interior.ColorIndex = xlColorIndexNone
     Else
-        ' Verrouille : MEME repere visuel (gris) que la colonne Notes verrouillee sur
-        ' l'ecran de recherche (voir mod_RechercheOperations.RechercherOperations,
-        ' RGB(240, 240, 240)) -- on reutilise exactement la meme couleur, a la demande de
-        ' l'operateur, pour que le meme code couleur signifie toujours la meme chose.
+        ' Verrouillé : MÊME repère visuel (gris) que pour la colonne Notes verrouillée sur
+        ' l'écran de recherche (voir mod_RechercheOperations.RechercherOperations,
+        ' RGB(240, 240, 240)). On réutilise exactement la même couleur, à la demande de
+        ' l'opérateur, pour que le code couleur conserve toujours la même signification.
         ws.Range(CTRL_ADR_TIERS & ":" & CTRL_ADR_LIBELLE).Interior.Color = RGB(240, 240, 240)
     End If
 
-    ' --- Zones de saisie : valeurs actuelles + listes deroulantes ---
+    ' --- Zones de saisie : valeurs actuelles et listes déroulantes ---
     ws.Range(CTRL_ADR_CAT).value = g_CtrlCat(i)
     ws.Range(CTRL_ADR_SOUS).value = g_CtrlSous(i)
 
@@ -448,10 +445,10 @@ Private Sub AfficherOperation(ByVal ws As Worksheet)
 
     RemplirListeSousCategories ws, g_CtrlCat(i)
 
-    ' --- Message d'aide adapte ---
-    ' Ajout 02/10/2026 : en mode "edition directe" (voir g_CtrlModeUnique), ni le message
-    ' "a ranger" ni celui de "correspondance" n'ont de sens (il n'y a pas de categorie
-    ' source banque ici) : message neutre dedie.
+    ' --- Message d'aide adapté ---
+    ' Ajout du 02/10/2026 : en mode "édition directe" (voir g_CtrlModeUnique), ni le message
+    ' "à ranger" ni celui de "correspondance" n'ont de sens (il n'y a pas de catégorie
+    ' source bancaire ici) : on affiche un message neutre dédié.
     If g_CtrlModeUnique Then
         ws.Range(CTRL_ADR_MESSAGE).value = mod_Display.FR("Cat{e2}gorie et sous-cat{e2}gorie actuelles de cette op{e2}ration. Vous pouvez les modifier ci-dessous.")
         ws.Range(CTRL_ADR_MESSAGE).Font.Color = RGB(90, 90, 90)
@@ -466,7 +463,7 @@ Private Sub AfficherOperation(ByVal ws As Worksheet)
     End If
 
 Sortie:
-    ' Ce bloc s'execute TOUJOURS (fin normale ou erreur) : on rend les evenements.
+    ' Ce bloc s'exécute TOUJOURS (fin normale ou erreur) : on réactive les événements.
     numErr = Err.Number
     descErr = Err.Description
     Application.EnableEvents = evenementsAvant
@@ -476,12 +473,12 @@ End Sub
 
 
 ' =====================================================================================
-' LISTE DEROULANTE DES SOUS-CATEGORIES (dependante de la categorie choisie)
+' LISTE DÉROULANTE DES SOUS-CATÉGORIES (dépendante de la catégorie choisie)
 ' =====================================================================================
-' Principe : on ecrit dans la colonne technique cachee (Z) les sous-categories de la
-' categorie choisie, puis on donne a la cellule Sous-categorie un menu qui pointe vers
-' cette plage (via un nom dynamique). Une plage de cellules ne peut pas etre mal
-' interpretee, contrairement a un texte separe par des virgules (voir Phase 1).
+' Principe : on écrit dans la colonne technique masquée (Z) les sous-catégories de la
+' catégorie choisie, puis on associe à la cellule Sous-categorie un menu pointant vers
+' cette plage (via un nom dynamique). Une plage de cellules ne peut pas être mal
+' interprétée, contrairement à un texte séparé par des virgules (voir phase 1).
 Private Sub RemplirListeSousCategories(ByVal ws As Worksheet, ByVal categorie As String)
 
     Dim liste() As String
@@ -490,12 +487,12 @@ Private Sub RemplirListeSousCategories(ByVal ws As Worksheet, ByVal categorie As
     Dim Sortie() As Variant
     Dim colLettre As String
 
-    ' Nettoyage de l'ancienne liste
+    ' Nettoyage de l'ancienne liste.
     ws.Range(ws.Cells(2, CTRL_COL_AIDE), ws.Cells(CTRL_LIGNE_AIDE_MAX, CTRL_COL_AIDE)).ClearContents
 
-    ' Recherche des sous-categories de cette categorie dans le referentiel
+    ' Recherche des sous-catégories de cette catégorie dans le référentiel.
     Set dejaVu = CreateObject("Scripting.Dictionary")
-    dejaVu.CompareMode = 1        ' insensible a la casse (a regler AVANT le 1er ajout)
+    dejaVu.CompareMode = 1        ' insensible à la casse (à régler AVANT le premier ajout)
     If g_CtrlRefN > 0 Then ReDim liste(1 To g_CtrlRefN)
 
     If categorie <> "" Then
@@ -522,7 +519,7 @@ Private Sub RemplirListeSousCategories(ByVal ws As Worksheet, ByVal categorie As
         End With
     End If
 
-    ' Nom dynamique : s'etend automatiquement au nombre de valeurs ecrites.
+    ' Nom dynamique : s'étend automatiquement au nombre de valeurs écrites.
     colLettre = Chr$(64 + CTRL_COL_AIDE)       ' 26 -> "Z"
     ThisWorkbook.Names.Add Name:=CTRL_NOM_LISTE_SOUS, _
         RefersTo:="=OFFSET(" & CTRL_NOM_FEUILLE & "!$" & colLettre & "$2,0,0," & _
@@ -542,16 +539,16 @@ Private Sub RemplirListeSousCategories(ByVal ws As Worksheet, ByVal categorie As
 
 End Sub
 
-' Pose la validation "Categorie" (liste stricte + message d'erreur explicite) sur une
-' cellule donnee. Regroupee ici en une seule fonction : ce message etait recopie a
-' 3 endroits differents (AfficherOperation, ControleNouvelleCategorie, ControleVentiler)
-' et avait fini par se desynchroniser (2 des 3 copies n'avaient plus de message du tout,
-' et la 3e annoncait encore une "phase ulterieure" devenue entre-temps la Phase 3, deja
-' livree). Passer par cette fonction unique evite que cela ne se reproduise.
+' Pose la validation "Categorie" (liste stricte et message d'erreur explicite) sur une
+' cellule donnée. La validation est regroupée ici en une fonction unique : le message
+' était recopié à trois endroits (AfficherOperation, ControleNouvelleCategorie,
+' ControleVentiler) et avait fini par se désynchroniser (deux copies sur trois n'avaient
+' plus de message, et la troisième annonçait encore une "phase ultérieure", devenue la
+' phase 3 et déjà livrée). Cette fonction évite que cela ne se reproduise.
 Private Sub PoserValidationCategorie(ByVal cellule As Range)
     With cellule.Validation
         .Delete
-        ' "ListeCategories" : nom cree en Phase 1 (RafraichirListesCategories).
+        ' "ListeCategories" : nom créé en phase 1 (RafraichirListesCategories).
         .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:="=ListeCategories"
         .IgnoreBlank = True
         .InCellDropdown = True
@@ -564,25 +561,25 @@ End Sub
 
 
 ' =====================================================================================
-' EVENEMENTS DE LA FEUILLE (appeles par le code-behind de frm_ControleCategories)
+' ÉVÉNEMENTS DE LA FEUILLE (appelés par le code-behind de frm_ControleCategories)
 ' =====================================================================================
-' Les evenements d'une feuille doivent obligatoirement etre ecrits dans le module de CETTE
+' Les événements d'une feuille doivent obligatoirement être écrits dans le module de CETTE
 ' feuille (voir CodeBehind_frm_ControleCategories.txt). Ils ne font qu'appeler les deux
-' procedures ci-dessous : toute la logique reste ici, dans un module normal.
+' procédures ci-dessous : toute la logique reste ici, dans un module standard.
 
-' Appelee a chaque modification d'une cellule de la feuille.
-' Si la CATEGORIE change : l'ancienne sous-categorie n'est plus valable -> on l'efface et
-' on recharge la liste des sous-categories de la nouvelle categorie.
+' Appelée à chaque modification d'une cellule de la feuille.
+' Si la CATEGORIE change, l'ancienne sous-catégorie n'est plus valable : on l'efface et
+' on recharge la liste des sous-catégories de la nouvelle catégorie.
 Public Sub CtrlTraiterChangement(ByVal ws As Worksheet, ByVal Target As Range)
 
     Dim numErr As Long
 
-    If Not g_CtrlEnCours Then Exit Sub                       ' formulaire ferme : on ignore
+    If Not g_CtrlEnCours Then Exit Sub                       ' formulaire fermé : on ignore
     If Target.Cells.count > 1 Then Exit Sub                  ' collage multiple : on ignore
     If Target.Address(False, False) <> CTRL_ADR_CAT Then Exit Sub   ' autre cellule : on ignore
 
     On Error GoTo Sortie
-    Application.EnableEvents = False        ' evite que nos ecritures relancent l'evenement
+    Application.EnableEvents = False        ' évite que nos écritures relancent l'événement
     ws.Range(CTRL_ADR_SOUS).ClearContents
     RemplirListeSousCategories ws, mod_DataStructure.CellText(Target.value)
 
@@ -593,19 +590,19 @@ Sortie:
 
 End Sub
 
-' Appelee quand l'operateur essaie de quitter la feuille (changement d'onglet...).
-' Tant que le formulaire est ouvert, on le ramene dessus : c'est le "verrou modal".
+' Appelée quand l'opérateur essaie de quitter la feuille (changement d'onglet...).
+' Tant que le formulaire est ouvert, on le ramène dessus : c'est le "verrou modal".
 Public Sub CtrlVerrouiller(ByVal ws As Worksheet)
     If g_CtrlVerrouActif Then ws.Activate
 End Sub
 
 
 ' =====================================================================================
-' ENREGISTREMENT DE L'OPERATION AFFICHEE (controle de la saisie)
+' ENREGISTREMENT DE L'OPÉRATION AFFICHÉE (contrôle de la saisie)
 ' =====================================================================================
-' Lit les deux cellules de saisie, verifie qu'elles sont coherentes avec le referentiel
-' et les memorise. Renvoie False (avec un message) si la saisie est invalide : l'operateur
-' reste alors sur l'operation courante.
+' Lit les deux cellules de saisie, vérifie leur cohérence avec le référentiel
+' et les mémorise. Renvoie False (avec un message) si la saisie est invalide :
+' l'opérateur reste alors sur l'opération courante.
 Private Function EnregistrerOperationAffichee(ByVal ws As Worksheet) As Boolean
 
     Dim i As Long
@@ -615,19 +612,19 @@ Private Function EnregistrerOperationAffichee(ByVal ws As Worksheet) As Boolean
     cat = mod_DataStructure.CellText(ws.Range(CTRL_ADR_CAT).value)
     sous = mod_DataStructure.CellText(ws.Range(CTRL_ADR_SOUS).value)
 
-    ' Une sous-categorie sans categorie n'a pas de sens.
+    ' Une sous-catégorie sans catégorie n'a pas de sens.
     If cat = "" And sous <> "" Then
         MsgBox mod_Display.FR("Une sous-cat{e2}gorie ne peut pas {e2}tre saisie sans cat{e2}gorie."), vbExclamation
         Exit Function
     End If
 
     If cat <> "" Then
-        ' La categorie doit exister dans le referentiel (un collage peut contourner le menu).
+        ' La catégorie doit exister dans le référentiel (un collage peut contourner le menu).
         If Not g_CtrlCats.Exists(cat) Then
             MsgBox mod_Display.FR("La cat{e2}gorie '") & cat & mod_Display.FR("' n'existe pas dans le tableau de correspondance."), vbExclamation
             Exit Function
         End If
-        cat = CStr(g_CtrlCats(cat))         ' forme canonique (bonnes majuscules)
+        cat = CStr(g_CtrlCats(cat))         ' forme canonique (majuscules correctes)
 
         If sous <> "" Then
             If Not g_CtrlPaires.Exists(cat & vbTab & sous) Then
@@ -641,12 +638,11 @@ Private Function EnregistrerOperationAffichee(ByVal ws As Worksheet) As Boolean
     g_CtrlCat(i) = cat
     g_CtrlSous(i) = sous
 
-    ' AJOUT 03/10/2026 (demande operateur) : on ne lit la cellule Tiers/Notes que si
-    ' c'est autorise pour la sous-categorie qu'on VIENT de retenir juste au-dessus (donc
-    ' TiersNotesEditables doit etre appele APRES g_CtrlSous(i) = sous, pas avant). Sinon,
-    ' on ignore purement et simplement ce qui a pu etre tape dans la cellule : g_CtrlTiers/
-    ' g_CtrlLibelle gardent leur valeur precedente (celle d'origine, ou une correction
-    ' faite plus tot alors que la sous-categorie le permettait encore).
+    ' AJOUT du 03/10/2026 (demande opérateur) : on ne lit les cellules Tiers/Notes que si
+    ' cela est autorisé pour la sous-catégorie retenue juste au-dessus (TiersNotesEditables
+    ' doit donc être appelée APRÈS g_CtrlSous(i) = sous, pas avant). Sinon, on ignore ce qui
+    ' a pu être saisi : g_CtrlTiers/g_CtrlLibelle conservent leur valeur précédente (valeur
+    ' d'origine ou correction faite plus tôt, lorsque la sous-catégorie le permettait).
     If TiersNotesEditables(i) Then
         g_CtrlTiers(i) = mod_DataStructure.CellText(ws.Range(CTRL_ADR_TIERS).value)
         g_CtrlLibelle(i) = mod_DataStructure.CellText(ws.Range(CTRL_ADR_LIBELLE).value)
@@ -662,7 +658,7 @@ End Function
 ' ACTIONS DES BOUTONS (macros appelees par les boutons de la feuille)
 ' =====================================================================================
 
-' --- Bouton "Precedent" ---
+' --- Bouton "Précédent" ---
 Public Sub ControleOperationPrecedente()
     Dim ws As Worksheet
     If Not g_CtrlEnCours Then Exit Sub
@@ -708,11 +704,11 @@ Public Sub ControleTerminer()
     On Error GoTo Erreur
     Set ws = ThisWorkbook.Worksheets(CTRL_NOM_FEUILLE)
 
-    ' 1. On enregistre d'abord l'operation actuellement affichee.
+    ' 1. On enregistre d'abord l'opération actuellement affichée.
     If Not EnregistrerOperationAffichee(ws) Then Exit Sub
 
-    ' 2. Bilan : combien d'operations presentees sont encore SANS categorie ?
-    '    Et combien n'ont jamais ete affichees ?
+    ' 2. Bilan : combien d'opérations présentées sont encore SANS catégorie ?
+    '    Et combien n'ont jamais été affichées ?
     For p = 1 To g_CtrlNbAffiches
         i = g_CtrlIndices(p)
         If g_CtrlCat(i) = "" Then
@@ -722,16 +718,14 @@ Public Sub ControleTerminer()
         If Not g_CtrlVu(i) Then nbNonVues = nbNonVues + 1
     Next p
 
-    ' 3. Aucune operation ne peut rester sans categorie : on renvoie l'operateur dessus.
-    ' MISE A JOUR 03/10/2026 (demande operateur) : la regle de gestion ne change
-    ' pas -- on ne peut pas terminer tant qu'il reste des operations sans
-    ' categorie, ce message reste donc bloquant dans tous les cas (Exit Sub a
-    ' la fin, que l'on clique OK ou Annuler). Ce qui change, c'est que
-    ' l'operateur a maintenant le choix de la suite :
-    '   - OK      : on l'emmene directement sur la premiere operation a
-    '               corriger (comportement d'origine, inchange).
-    '   - Annuler : on ne le deplace pas, il reste sur l'ecran actuel pour
-    '               reflechir ou corriger a son rythme.
+    ' 3. Aucune opération ne peut rester sans catégorie : on y ramène l'opérateur.
+    ' MISE À JOUR du 03/10/2026 (demande opérateur) : la règle de gestion ne change pas.
+    ' On ne peut pas terminer tant qu'il reste des opérations sans catégorie; ce message
+    ' reste donc bloquant dans tous les cas (Exit Sub à la fin, que l'on clique sur OK
+    ' ou Annuler). L'opérateur peut toutefois choisir la suite :
+    '   - OK      : aller directement à la première opération à corriger
+    '               (comportement d'origine, inchangé).
+    '   - Annuler : rester sur l'écran actuel pour réfléchir ou corriger à son rythme.
     If nbSans > 0 Then
         reponse = MsgBox(nbSans & mod_Display.FR(" op{e2}ration(s) n'ont pas de cat{e2}gorie.") & vbCrLf & _
                           mod_Display.FR("Choisissez une cat{e2}gorie pour chacune avant de terminer."), _
@@ -743,7 +737,7 @@ Public Sub ControleTerminer()
         Exit Sub
     End If
 
-    ' 4. Operations jamais affichees : elles gardent la categorie proposee. On demande confirmation.
+    ' 4. Les opérations jamais affichées gardent la catégorie proposée. On demande confirmation.
     If nbNonVues > 0 Then
         reponse = MsgBox(nbNonVues & mod_Display.FR(" op{e2}ration(s) n'ont pas {e2}t{e2} affich{e2}es.") & vbCrLf & _
                          mod_Display.FR("Elles garderont la cat{e2}gorie propos{e2}e par la correspondance.") & vbCrLf & vbCrLf & _
@@ -784,11 +778,11 @@ Erreur:
 End Sub
 
 
-' --- Bouton "+ Nouvelle categorie" (Phase 3) ---
-' Ouvre le formulaire de creation (frm_NouvelleCategorie), pre-rempli avec la
-' categorie/sous-categorie actuellement affichees. Si l'operateur valide, la nouvelle
-' paire est appliquee a l'operation en cours, et le referentiel est recharge pour que
-' la suite du formulaire (Suivant, Terminer...) la reconnaisse immediatement.
+' --- Bouton "+ Nouvelle catégorie" (phase 3) ---
+' Ouvre le formulaire de création (frm_NouvelleCategorie), prérempli avec la
+' catégorie/sous-catégorie actuellement affichée. Si l'opérateur valide, la nouvelle
+' paire est appliquée à l'opération en cours et le référentiel est rechargé afin que
+' la suite du formulaire (Suivant, Terminer...) la reconnaisse immédiatement.
 Public Sub ControleNouvelleCategorie()
 
     Dim ws As Worksheet
@@ -803,19 +797,19 @@ Public Sub ControleNouvelleCategorie()
     catActuelle = mod_DataStructure.CellText(ws.Range(CTRL_ADR_CAT).value)
     sousActuelle = mod_DataStructure.CellText(ws.Range(CTRL_ADR_SOUS).value)
 
-    ' On suspend le verrou d'ACTIVATION (pas g_CtrlEnCours, voir sa declaration en
-    ' tete de module) : sans cela, Worksheet_Deactivate ramenerait de force l'operateur
-    ' sur cette feuille des qu'on tenterait d'afficher celle de creation.
+    ' On suspend le verrou d'ACTIVATION (pas g_CtrlEnCours; voir sa déclaration en
+    ' tête de module) : sinon Worksheet_Deactivate ramènerait l'opérateur de force sur
+    ' cette feuille dès qu'on tenterait d'afficher celle de création.
     g_CtrlVerrouActif = False
 
     ok = mod_NouvelleCategorie.OuvrirNouvelleCategorie(catActuelle, sousActuelle, catRes, sousRes)
 
     g_CtrlVerrouActif = True
-    ws.Activate                          ' au cas ou le focus ne serait pas deja revenu ici
+    ws.Activate                          ' au cas où le focus ne serait pas déjà revenu ici
 
     If ok Then
-        ' Le tableau TblCategories vient de changer (Phase 1) : on recharge le
-        ' referentiel en memoire ET la liste deroulante des categories.
+        ' Le tableau TblCategories vient de changer (phase 1) : on recharge le
+        ' référentiel en mémoire ET la liste déroulante des catégories.
         ChargerReferentiel
         mod_Categories.RafraichirListesCategories
 
@@ -824,9 +818,9 @@ Public Sub ControleNouvelleCategorie()
         ws.Range(CTRL_ADR_CAT).value = catRes
         Application.EnableEvents = True
 
-        ' RemplirListeSousCategories pose aussi la liste deroulante de la sous-categorie ;
-        ' on l'appelle donc APRES avoir ecrit la sous-categorie, pour ne pas la voir
-        ' effacee par un declenchement de Worksheet_Change entre-temps.
+        ' RemplirListeSousCategories définit aussi la liste déroulante de la sous-catégorie;
+        ' on l'appelle donc APRÈS avoir écrit cette valeur, pour éviter qu'elle soit effacée
+        ' par un événement Worksheet_Change entre-temps.
         Application.EnableEvents = False
         ws.Range(CTRL_ADR_SOUS).value = sousRes
         RemplirListeSousCategories ws, catRes
@@ -842,15 +836,15 @@ Erreur:
 End Sub
 
 
-' --- Bouton "Ventiler" (Phase 4) ---
-' Ouvre le formulaire de ventilation (frm_Ventilation) pour l'operation actuellement
-' affichee. Si l'operateur valide une ventilation complete (somme exactement egale au
-' montant de l'operation), l'operation est marquee "Ventile" dans le formulaire de
-' controle -- exactement comme un changement de categorie normal, elle ne sera ecrite
-' dans TblOperations qu'a la Phase 5 (import). Les LIGNES de ventilation, elles, sont
-' deja enregistrees dans TblVentilations des la validation (voir mod_Ventilation) : cette
-' table est nouvelle et n'est utilisee par aucune autre partie du classeur, l'ecrire
-' immediatement ne presente donc aucun risque pour vos donnees existantes.
+' --- Bouton "Ventiler" (phase 4) ---
+' Ouvre le formulaire de ventilation (frm_Ventilation) pour l'opération actuellement
+' affichée. Si l'opérateur valide une ventilation complète (somme exactement égale au
+' montant de l'opération), celle-ci est marquée "Ventile" dans le formulaire de contrôle.
+' Comme un changement de catégorie normal, elle ne sera écrite dans TblOperations qu'en
+' phase 5 (import). Les lignes de ventilation, elles, sont déjà enregistrées dans
+' TblVentilations dès la validation (voir mod_Ventilation). Cette nouvelle table n'étant
+' utilisée par aucune autre partie du classeur, son écriture immédiate ne présente pas
+' de risque pour les données existantes.
 Public Sub ControleVentiler()
 
     Dim ws As Worksheet
@@ -871,13 +865,12 @@ Public Sub ControleVentiler()
         Exit Sub
     End If
 
-    ' Ajout 01/10/2026 (point 4 : annuler une ventilation) : on memorise la categorie/
-    ' sous-categorie ACTUELLE avant de risquer de l'ecraser par "Ventile" plus bas, mais
-    ' UNE SEULE FOIS par operation. Si l'operateur revient sur une operation DEJA
-    ' ventilee (bouton "Precedent" de ce meme import, puis de nouveau "Ventiler"),
-    ' g_CtrlCat(i) contient alors deja "Ventile" a cet instant : il ne faut surtout pas
-    ' ecraser la vraie valeur d'origine (deja memorisee la premiere fois) par "Ventile"
-    ' lui-meme, sinon elle serait perdue pour de bon.
+    ' Ajout du 01/10/2026 (point 4 : annuler une ventilation) : on mémorise la catégorie/
+    ' sous-catégorie ACTUELLE avant de risquer de l'écraser par "Ventile", mais UNE SEULE
+    ' FOIS par opération. Si l'opérateur revient sur une opération DÉJÀ ventilée (bouton
+    ' "Précédent" dans ce même import, puis de nouveau "Ventiler"), g_CtrlCat(i) contient
+    ' déjà "Ventile" : il ne faut pas écraser la vraie valeur d'origine, mémorisée la
+    ' première fois, par "Ventile", sinon elle serait définitivement perdue.
     If g_CtrlCat(i) <> CategorieVentile Then
         g_CtrlCatAvantVen(i) = g_CtrlCat(i)
         g_CtrlSousAvantVen(i) = g_CtrlSous(i)
@@ -895,8 +888,8 @@ Public Sub ControleVentiler()
     ws.Activate
 
     If ok Then
-        ' La categorie "Ventile" doit exister dans le referentiel pour que
-        ' EnregistrerOperationAffichee (Suivant/Precedent/Terminer) l'accepte.
+        ' La catégorie "Ventile" doit exister dans le référentiel pour qu'EnregistrerOperationAffichee
+        ' (Suivant/Précédent/Terminer) l'accepte.
         mod_Categories.AjouterCategoriePersonnalisee CategorieVentile, ""
         ChargerReferentiel
         mod_Categories.RafraichirListesCategories
@@ -916,12 +909,12 @@ Public Sub ControleVentiler()
         Application.EnableEvents = True
 
     ElseIf ventilationSupprimee Then
-        ' Ajout 01/10/2026 (point 4) : l'operateur a supprime une ventilation deja
-        ' existante (bouton "Supprimer cette ventilation" de frm_Ventilation), y compris
-        ' en plein milieu de cet import (bouton "Precedent" puis "Ventiler"). On restaure
-        ' la categorie/sous-categorie memorisee avant la toute premiere ventilation, puis
-        ' on l'efface : il n'y a plus rien a restaurer tant qu'une nouvelle ventilation
-        ' n'est pas recreee pour cette operation.
+        ' Ajout du 01/10/2026 (point 4) : l'opérateur a supprimé une ventilation déjà
+        ' existante (bouton "Supprimer cette ventilation" de frm_Ventilation), même au
+        ' milieu de l'import (bouton "Précédent", puis "Ventiler"). On restaure la
+        ' catégorie/sous-catégorie mémorisée avant la première ventilation, puis on
+        ' l'efface : il n'y aura rien à restaurer tant qu'une nouvelle ventilation
+        ' n'aura pas été créée pour cette opération.
         g_CtrlCat(i) = g_CtrlCatAvantVen(i)
         g_CtrlSous(i) = g_CtrlSousAvantVen(i)
         g_CtrlCatAvantVen(i) = ""
@@ -946,8 +939,8 @@ Erreur:
 
 End Sub
 
-' Categorie reservee qui marque une operation ventilee (voir la table TblVentilations
-' pour le detail des lignes). Orthographe : UN SEUL "l" (corrige avec l'operateur).
+' Catégorie réservée qui marque une opération ventilée (voir TblVentilations pour le
+' détail des lignes). Orthographe : UN SEUL "l" (corrigée avec l'opérateur).
 Private Function CategorieVentile() As String
     CategorieVentile = "Ventil" & ChrW(233)
 End Function
@@ -956,19 +949,19 @@ End Function
 ' =====================================================================================
 ' FERMETURE DU FORMULAIRE
 ' =====================================================================================
-' IMPORTANT : g_CtrlEnCours doit passer a False AVANT de masquer la feuille, sinon le
-' verrou (CtrlVerrouiller) ramenerait immediatement l'operateur dessus.
+' IMPORTANT : g_CtrlEnCours doit passer à False AVANT de masquer la feuille, sinon le
+' verrou (CtrlVerrouiller) ramènerait immédiatement l'opérateur dessus.
 Private Sub FermerFormulaire(ByVal ws As Worksheet)
 
     If ws Is Nothing Then Exit Sub
 
-    g_CtrlEnCours = False                     ' libere la boucle d'attente
+    g_CtrlEnCours = False                     ' libère la boucle d'attente
     g_CtrlVerrouActif = False
 
     ws.Range(ws.Cells(2, CTRL_COL_AIDE), ws.Cells(CTRL_LIGNE_AIDE_MAX, CTRL_COL_AIDE)).ClearContents
     ws.Visible = xlSheetVeryHidden
 
-    On Error Resume Next                      ' la feuille d'origine a pu etre renommee/supprimee
+    On Error Resume Next                      ' la feuille d'origine a pu être renommée/supprimée
     ThisWorkbook.Worksheets(g_CtrlNomFeuillePrec).Activate
     On Error GoTo 0
 
@@ -982,13 +975,13 @@ End Sub
 
 
 ' =====================================================================================
-' LECTURE DU REFERENTIEL (tableau TblCategories, feuille Param)
+' LECTURE DU RÉFÉRENTIEL (tableau TblCategories, feuille Param)
 ' =====================================================================================
 ' Remplit g_CtrlMap, g_CtrlPaires, g_CtrlCats et g_CtrlRefCat/g_CtrlRefSous.
 ' Renvoie False si le tableau est introuvable ou vide.
-' PUBLIC (depuis la Phase 3) : ControleNouvelleCategorie la rappelle apres la creation
-' d'une categorie, pour que le reste du formulaire (Suivant, Terminer...) la reconnaisse
-' aussitot sans attendre une reouverture complete du formulaire de controle.
+' PUBLIC (depuis la phase 3) : ControleNouvelleCategorie le recharge après la création
+' d'une catégorie, afin que le reste du formulaire (Suivant, Terminer...) la reconnaisse
+' immédiatement, sans attendre la réouverture complète du formulaire de contrôle.
 Public Function ChargerReferentiel() As Boolean
 
     Dim wsParam As Worksheet
@@ -1022,7 +1015,7 @@ Public Function ChargerReferentiel() As Boolean
         c = mod_DataStructure.CellText(cat(r, 1))
         u = mod_DataStructure.CellText(sous(r, 1))
 
-        If c <> "" Then                                   ' une ligne sans categorie est ignoree
+        If c <> "" Then                                   ' une ligne sans catégorie est ignorée
             g_CtrlRefN = g_CtrlRefN + 1
             g_CtrlRefCat(g_CtrlRefN) = c
             g_CtrlRefSous(g_CtrlRefN) = u
@@ -1031,7 +1024,7 @@ Public Function ChargerReferentiel() As Boolean
             If u <> "" Then
                 If Not g_CtrlPaires.Exists(c & vbTab & u) Then g_CtrlPaires.Add c & vbTab & u, u
             End If
-            ' Une source n'a qu'un rangement : en cas de doublon, la 1re ligne l'emporte.
+            ' Une source n'a qu'un rangement : en cas de doublon, la première ligne l'emporte.
             If s <> "" Then
                 If Not g_CtrlMap.Exists(s) Then g_CtrlMap.Add s, c & vbTab & u
             End If
@@ -1044,12 +1037,12 @@ End Function
 
 
 ' =====================================================================================
-' MACRO DE TEST (sans risque : n'ecrit RIEN dans vos donnees)
+' MACRO DE TEST (sans risque : n'écrit RIEN dans vos données)
 ' =====================================================================================
-' Prend les operations les plus hautes de TblOperations (les plus recentes si la table est
-' triee par date decroissante, comme apres un import), fait comme si elles venaient d'etre
-' importees, ouvre le formulaire, puis affiche ce que l'operateur a choisi.
-' Ctrl+G, taper :  TesterControleCategories
+' Prend les premières opérations de TblOperations (les plus récentes si la table est
+' triée par date décroissante, comme après un import), simule leur import, ouvre le
+' formulaire, puis affiche les choix de l'opérateur.
+' Ctrl+G, taper : TesterControleCategories
 Public Sub TesterControleCategories()
 
     Dim tblOps As ListObject
@@ -1059,8 +1052,8 @@ Public Sub TesterControleCategories()
     Dim indices() As Long
     Dim catF() As String, sousF() As String
     Dim catAvantF() As String, sousAvantF() As String
-    ' AJOUT 03/10/2026 : nouveaux parametres de sortie de ControlerCategories (Tiers/Notes
-    ' modifiables a l'import) ; ce test ne les affiche pas non plus, meme logique que
+    ' AJOUT du 03/10/2026 : nouveaux paramètres de sortie de ControlerCategories (Tiers/Notes
+    ' modifiables à l'import); ce test ne les affiche pas non plus, même logique que
     ' catAvantF/sousAvantF ci-dessus.
     Dim tiersF() As String, libelleF() As String
     Dim saisie As String
@@ -1083,7 +1076,7 @@ Public Sub TesterControleCategories()
     If nbDemande < 1 Then nbDemande = 1
     If nbDemande > 30 Then nbDemande = 30
 
-    ' On ne lit que les 300 premieres lignes de la table : largement suffisant pour un test.
+    ' On ne lit que les 300 premières lignes de la table : largement suffisant pour un test.
     nbLignesLues = tblOps.ListRows.count
     If nbLignesLues > 300 Then nbLignesLues = 300
 
@@ -1102,7 +1095,7 @@ Public Sub TesterControleCategories()
     vCat = LireColonne(rgCat)
     vId = LireColonne(rgId)
 
-    ' Passe 1 : on repere les lignes qui ont une categorie (pour exercer la correspondance).
+    ' Étape 1 : on repère les lignes qui ont une catégorie (pour tester la correspondance).
     ReDim indices(1 To nbDemande)
     For i = 1 To UBound(vCat, 1)
         If nbTrouves < nbDemande Then
@@ -1117,7 +1110,7 @@ Public Sub TesterControleCategories()
         Exit Sub
     End If
 
-    ' Passe 2 : on construit le tableau "ops" exactement comme l'import le fera plus tard.
+    ' Étape 2 : on construit le tableau "ops" exactement comme le fera l'import.
     ReDim ops(1 To nbTrouves, 1 To CTRL_OP_NBCOL)
     For k = 1 To nbTrouves
         i = indices(k)
@@ -1126,28 +1119,28 @@ Public Sub TesterControleCategories()
         ops(k, CTRL_OP_LIBELLE) = vNotes(i, 1)
         ops(k, CTRL_OP_MONTANT) = vMontant(i, 1)
         ops(k, CTRL_OP_CATSOURCE) = vCat(i, 1)
-        ' PREFIXE "TEST-" volontaire : si vous testez le bouton "Ventiler", la ligne
-        ' creee dans TblVentilations sera ainsi immediatement reconnaissable comme une
-        ' donnee de test (facile a filtrer et supprimer), jamais confondue avec un vrai
+        ' Préfixe "TEST-" volontaire : si vous testez le bouton "Ventiler", la ligne
+        ' créée dans TblVentilations sera immédiatement identifiable comme donnée de test
+        ' (facile à filtrer et supprimer) et ne sera jamais confondue avec un véritable
         ' ID_Transaction de TblOperations.
         ops(k, CTRL_OP_ID) = "TEST-" & mod_DataStructure.CellText(vId(i, 1))
     Next k
 
-    ' Option pour tester le cas "categorie source inconnue".
+    ' Option pour tester le cas d'une "catégorie source inconnue".
     reponse = MsgBox(mod_Display.FR("Simuler une cat{e2}gorie source INCONNUE sur la 1{e1}re op{e2}ration (pour tester ce cas) ?"), _
                      vbYesNo + vbQuestion, "Test du formulaire")
     If reponse = vbYes Then ops(1, CTRL_OP_CATSOURCE) = mod_Display.FR("Cat{e2}gorie source inconnue (test)")
 
-    ' --- Appel du controle : c'est EXACTEMENT ce que fera l'import en Phase 5 ---
-    ' (catAvantF/sousAvantF : parametres de sortie ajoutes le 01/10/2026, point 4 ;
-    ' tiersF/libelleF : ajoutes le 03/10/2026 ; ce test ne les affiche pas, mais doit les
-    ' fournir comme n'importe quel appelant.)
+    ' --- Appel du contrôle : c'est EXACTEMENT ce que fera l'import en phase 5 ---
+    ' (catAvantF/sousAvantF : paramètres de sortie ajoutés le 01/10/2026, point 4;
+    ' tiersF/libelleF : ajoutés le 03/10/2026. Ce test ne les affiche pas, mais doit les
+    ' fournir comme le ferait n'importe quel appelant.)
     If Not ControlerCategories(ops, nbTrouves, catF, sousF, catAvantF, sousAvantF, tiersF, libelleF) Then
         MsgBox mod_Display.FR("Test termin{e2} : contr{o2}le annul{e2} ou impossible. Rien n'a {e2}t{e2} modifi{e2}."), vbInformation
         Exit Sub
     End If
 
-    ' --- Recapitulatif (affiche a l'ecran ET dans la fenetre Execution, Ctrl+G) ---
+    ' --- Récapitulatif (affiché à l'écran ET dans la fenêtre Exécution, Ctrl+G) ---
     For k = 1 To nbTrouves
         ligne = FormaterDate(ops(k, CTRL_OP_DATE)) & " | " & _
                 Format(mod_DataStructure.ToDouble(ops(k, CTRL_OP_MONTANT)), "0.00") & " | " & _
@@ -1168,7 +1161,7 @@ End Sub
 ' OUTILS INTERNES
 ' =====================================================================================
 
-' Dictionnaire insensible a la casse (regle avant tout ajout, sinon Excel refuse).
+' Dictionnaire insensible à la casse (réglé avant tout ajout, sinon Excel refuse).
 Private Function CreerDictionnaire() As Object
     Dim d As Object
     Set d = CreateObject("Scripting.Dictionary")
@@ -1184,7 +1177,7 @@ Private Function FeuilleSansErreur(ByVal nomFeuille As String) As Worksheet
     Set FeuilleSansErreur = ws
 End Function
 
-' Renvoie les nb premieres lignes d'une colonne de la table (ou Nothing si introuvable).
+' Renvoie les nb premières lignes d'une colonne de la table (ou Nothing si elle est introuvable).
 Private Function plageColonne(ByVal t As ListObject, ByVal nom As String, ByVal nb As Long) As Range
     Dim lc As ListColumn
     On Error Resume Next
@@ -1197,8 +1190,8 @@ Private Function plageColonne(ByVal t As ListObject, ByVal nom As String, ByVal 
     End If
 End Function
 
-' Lit une plage en memoire et renvoie TOUJOURS un tableau a 2 dimensions.
-' (Piege VBA : pour UNE seule cellule, .Value2 renvoie une valeur simple, pas un tableau.)
+' Lit une plage en mémoire et renvoie TOUJOURS un tableau à deux dimensions.
+' (Piège VBA : pour UNE seule cellule, .Value2 renvoie une valeur simple, pas un tableau.)
 Private Function LireColonne(ByVal plage As Range) As Variant
     Dim t() As Variant
     If plage.Cells.count = 1 Then
@@ -1210,7 +1203,7 @@ Private Function LireColonne(ByVal plage As Range) As Variant
     End If
 End Function
 
-' Tri alphabetique (insensible a la casse) des n premiers elements d'un tableau de textes.
+' Tri alphabétique (insensible à la casse) des n premiers éléments d'un tableau de textes.
 Private Sub TrierTextes(ByRef t() As String, ByVal n As Long)
     Dim i As Long, j As Long
     Dim cle As String
@@ -1226,7 +1219,7 @@ Private Sub TrierTextes(ByRef t() As String, ByVal n As Long)
     Next i
 End Sub
 
-' Met une date en texte "jj/mm/aaaa", qu'elle soit de type Date ou nombre serie Excel.
+' Convertit une date en texte "jj/mm/aaaa", qu'elle soit de type Date ou un numéro de série Excel.
 Private Function FormaterDate(ByVal v As Variant) As String
     If IsEmpty(v) Then
         FormaterDate = ""

@@ -3,32 +3,32 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_InstallResolutionSheet
 '
-' ROLE (PHASE 1 du chantier "UserForm -> feuille dediee") :
-'   Ce module ne contient QUE la construction de la mise en page statique de la
-'   feuille qui va remplacer le UserForm "frmResolutionCategories".
-'   Il ne contient ENCORE AUCUNE logique de remplissage des cas ambigus, ni de
-'   gestion des clics : cela viendra dans la Phase 2 (module mod_ResolutionCategories).
+' RÔLE (phase 1 du chantier "UserForm -> feuille dédiée") :
+'   Ce module contient UNIQUEMENT la construction de la mise en page statique de
+'   la feuille qui remplacera le UserForm "frmResolutionCategories".
+'   Il ne contient ENCORE AUCUNE logique de remplissage des cas ambigus ni de
+'   gestion des clics : cela viendra en phase 2 (module mod_ResolutionCategories).
 '
-'   Pourquoi separer ainsi ? Pour que tu puisses executer cette Phase 1 seule,
-'   verifier visuellement que la feuille correspond a la maquette validee,
-'   AVANT qu'on y ajoute le comportement (Phase 2). C'est le meme principe que
-'   "construire les murs avant de brancher l'electricite".
+'   Pourquoi séparer ainsi ? Pour que tu puisses exécuter cette phase 1 seule,
+'   vérifier visuellement que la feuille correspond à la maquette validée,
+'   AVANT d'y ajouter le comportement (phase 2). C'est le même principe que
+'   "construire les murs avant de brancher l'électricité".
 '
-' A FAIRE POUR INSTALLER CE MODULE :
-'   1. Alt+F11 pour ouvrir l'editeur VBA
-'   2. Fichier > Importer un fichier... > selectionner ce fichier .bas
-'   3. Dans la fenetre Execution immediate (Ctrl+G), taper :
+' À FAIRE POUR INSTALLER CE MODULE :
+'   1. Alt+F11 pour ouvrir l'éditeur VBA.
+'   2. Fichier > Importer un fichier... > sélectionner ce fichier .bas.
+'   3. Dans la fenêtre Exécution immédiate (Ctrl+G), taper :
 '        CreerFeuilleResolutionCategories
-'      puis appuyer sur Entree. La feuille est creee, mise en forme, puis masquee.
+'      puis appuyer sur Entrée. La feuille est créée, mise en forme, puis masquée.
 ' =====================================================================================
 
 ' -------------------------------------------------------------------------------------
 ' CONSTANTES DE MISE EN PAGE
 ' -------------------------------------------------------------------------------------
-' Regrouper ici toutes les positions de cellules evite d'avoir des "nombres magiques"
-' disperses dans le code. Si un jour tu veux deplacer une zone, tu changes UNE seule
-' ligne ici plutot que de chercher partout dans le code.
-' Ces constantes seront reutilisees telles quelles dans le module de la Phase 2.
+' Regrouper ici toutes les positions de cellules évite d'avoir des "nombres magiques"
+' dispersés dans le code. Si tu veux déplacer une zone, tu n'as qu'UNE ligne à modifier
+' ici au lieu de la chercher partout dans le code.
+' Ces constantes seront réutilisées telles quelles dans le module de la phase 2.
 
 Public Const NOM_FEUILLE_RESOLUTION As String = "frm_ResolutionCategories"
 
@@ -45,7 +45,7 @@ Public Const LIGNE_FIN_TEXTE_INSTRUCTIONS As Long = 9
 
 ' =====================================================================================
 ' MACRO PRINCIPALE D'INSTALLATION
-' A executer UNE SEULE FOIS (ou a nouveau si tu veux reinitialiser completement
+' À exécuter UNE SEULE FOIS (ou de nouveau si tu veux réinitialiser complètement
 ' la mise en forme de la feuille).
 ' =====================================================================================
 Sub CreerFeuilleResolutionCategories()
@@ -54,15 +54,15 @@ Sub CreerFeuilleResolutionCategories()
     Dim reponseUtilisateur As VbMsgBoxResult
 
     ' ---------------------------------------------------------------------------------
-    ' ETAPE A - Verifier si la feuille existe deja, pour eviter d'ecraser du travail
-    ' sans prevenir. On utilise une fonction utilitaire (definie plus bas) qui essaie
-    ' de recuperer la feuille par son nom sans provoquer d'erreur si elle n'existe pas.
+    ' ÉTAPE A - Vérifier si la feuille existe déjà, pour éviter d'écraser du travail
+    ' sans prévenir. On utilise une fonction utilitaire (définie plus bas) qui tente
+    ' de retrouver la feuille par son nom sans provoquer d'erreur si elle n'existe pas.
     ' ---------------------------------------------------------------------------------
     Set ws = ObtenirFeuilleSansErreur(NOM_FEUILLE_RESOLUTION)
 
     If Not ws Is Nothing Then
-        ' La feuille existe deja : on demande confirmation avant de tout reconstruire,
-        ' car cela va effacer sa mise en forme actuelle.
+        ' La feuille existe déjà : on demande confirmation avant de tout reconstruire,
+        ' car sa mise en forme actuelle sera effacée.
         reponseUtilisateur = MsgBox( _
             "La feuille '" & NOM_FEUILLE_RESOLUTION & "' existe deja." & vbCrLf & _
             "Veux-tu la reconstruire entierement (sa mise en forme actuelle sera perdue) ?", _
@@ -73,48 +73,48 @@ Sub CreerFeuilleResolutionCategories()
             Exit Sub
         End If
 
-        ' On la rend visible temporairement : impossible de la modifier/supprimer
-        ' proprement tant qu'elle est en xlSheetVeryHidden.
+        ' On la rend temporairement visible : impossible de la modifier ou de la supprimer
+        ' correctement tant qu'elle est en xlSheetVeryHidden.
         ws.Visible = xlSheetVisible
-        ws.Cells.Clear             ' on vide tout le contenu et toute la mise en forme
-        Call SupprimerFormesExistantes(ws)   ' on retire les anciens boutons s'il y en a
+        ws.Cells.Clear             ' on efface le contenu et la mise en forme
+        Call SupprimerFormesExistantes(ws)   ' on retire les anciens boutons, s'il y en a
     Else
-        ' La feuille n'existe pas encore : on la cree, positionnee en derniere position
+        ' La feuille n'existe pas encore : on la crée en dernière position
         ' pour ne pas perturber l'ordre des onglets existants (Accueil, Synthese...).
         Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.count))
         ws.Name = NOM_FEUILLE_RESOLUTION
     End If
 
     ' ---------------------------------------------------------------------------------
-    ' ETAPE B - Mise en forme generale de la feuille (aspect "formulaire")
+    ' ÉTAPE B - Mise en forme générale de la feuille (aspect "formulaire")
     ' ---------------------------------------------------------------------------------
     Call AppliquerMiseEnFormeGenerale(ws)
 
     ' ---------------------------------------------------------------------------------
-    ' ETAPE C - Construction de la zone des boutons
+    ' ÉTAPE C - Construction de la zone des boutons
     ' ---------------------------------------------------------------------------------
     Call ConstruireZoneBoutons(ws)
 
     ' ---------------------------------------------------------------------------------
-    ' ETAPE D - Construction de la zone des instructions
+    ' ÉTAPE D - Construction de la zone des instructions
     ' ---------------------------------------------------------------------------------
     Call ConstruireZoneInstructions(ws)
 
     ' ---------------------------------------------------------------------------------
-    ' ETAPE E - Construction des en-tetes et de la mise en forme du tableau des cas
+    ' ÉTAPE E - Construction des en-têtes et mise en forme du tableau des cas
     ' ---------------------------------------------------------------------------------
     Call ConstruireTableauCas(ws)
 
     ' ---------------------------------------------------------------------------------
-    ' ETAPE F - Figer les volets pour que boutons + instructions + en-tetes restent
-    ' visibles pendant que l'utilisateur fait defiler la liste des cas.
+    ' ÉTAPE F - Figer les volets pour que les boutons, les instructions et les en-têtes
+    ' restent visibles pendant que l'utilisateur fait défiler la liste des cas.
     ' ---------------------------------------------------------------------------------
     Call FigerVoletsSousEntetes(ws)
 
     ' ---------------------------------------------------------------------------------
-    ' ETAPE G - Masquer completement la feuille (invisible pour l'utilisateur final,
-    ' elle ne sera reveillee qu'au moment ou un cas ambigu doit etre resolu -
-    ' ce declenchement sera code en Phase 2).
+    ' ÉTAPE G - Masquer complètement la feuille (invisible pour l'utilisateur final,
+    ' elle ne sera affichée que lorsqu'un cas ambigu devra être résolu; ce déclenchement
+    ' sera codé en phase 2).
     ' ---------------------------------------------------------------------------------
     ws.Visible = xlSheetVeryHidden
 
@@ -128,35 +128,35 @@ End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCEDURE - Mise en forme generale (suppression du quadrillage, police, etc.)
+' SOUS-PROCÉDURE - Mise en forme générale (suppression du quadrillage, police, etc.)
 ' =====================================================================================
 Private Sub AppliquerMiseEnFormeGenerale(ws As Worksheet)
 
-    ' On doit activer la feuille pour pouvoir modifier certains reglages de la FENETRE
-    ' (comme l'affichage du quadrillage), car ces reglages sont attaches a la fenetre
-    ' au moment ou une feuille donnee est affichee, et non a la feuille elle-meme.
+    ' On doit activer la feuille pour modifier certains réglages de la FENÊTRE
+    ' (comme l'affichage du quadrillage), car ils sont associés à la fenêtre au
+    ' moment où une feuille est affichée, et non à la feuille elle-même.
     ws.Activate
 
     ' Supprime le quadrillage (les lignes grises entre les cellules) pour donner
-    ' un aspect "formulaire" plutot que "tableur classique", comme demande.
+    ' un aspect "formulaire" plutôt que "tableur classique", comme demandé.
     ActiveWindow.DisplayGridlines = False
 
-    ' On repart d'une largeur de colonnes coherente pour toute la zone utile.
-    ws.Columns("A").ColumnWidth = 2      ' petite marge a gauche
+    ' On repart d'une largeur de colonnes cohérente pour toute la zone utile.
+    ws.Columns("A").ColumnWidth = 2      ' petite marge à gauche
     ws.Columns("B").ColumnWidth = 8      ' colonne "Statut"
     ws.Columns("C").ColumnWidth = 12     ' colonne "Date"
     ws.Columns("D").ColumnWidth = 12     ' colonne "Montant"
     ws.Columns("E").ColumnWidth = 28     ' colonne "Tiers"
     ws.Columns("F").ColumnWidth = 24     ' colonne "Categorie(s)"
-    ws.Columns("G").ColumnWidth = 2      ' petite marge a droite
+    ws.Columns("G").ColumnWidth = 2      ' petite marge à droite
 
-    ' Police par defaut de toute la feuille, coherente avec un rendu "formulaire" sobre.
+    ' Police par défaut de toute la feuille, cohérente avec un rendu "formulaire" sobre.
     ws.Cells.Font.Name = "Calibri"
     ws.Cells.Font.Size = 10
 
-    ' On se replace en A1 et on desactive les barres de titres de lignes/colonnes
-    ' (references L1C1 grisees) pour un rendu plus epure. Optionnel, mais renforce
-    ' l'effet "formulaire" plutot que "feuille de calcul".
+    ' On se replace en A1 et on désactive les en-têtes de lignes et de colonnes
+    ' (références L1C1 grisées) pour un rendu plus épuré. Optionnel, mais cela renforce
+    ' l'effet "formulaire" plutôt que "feuille de calcul".
     ws.Range("A1").Select
     ActiveWindow.DisplayHeadings = False
 
@@ -164,7 +164,7 @@ End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCEDURE - Construction de la zone des boutons (ligne 2) + compteur
+' SOUS-PROCÉDURE - Construction de la zone des boutons (ligne 2) et du compteur
 ' =====================================================================================
 Private Sub ConstruireZoneBoutons(ws As Worksheet)
 
@@ -173,8 +173,8 @@ Private Sub ConstruireZoneBoutons(ws As Worksheet)
     Dim zoneBoutonValider As Range
     Dim zoneBoutonTerminer As Range
 
-    ' On definit la position de chaque bouton en s'appuyant sur une PLAGE DE CELLULES
-    ' (et non des coordonnees en pixels fixes) : ainsi, si jamais la largeur des
+    ' On définit la position de chaque bouton en s'appuyant sur une PLAGE DE CELLULES
+    ' (et non sur des coordonnées fixes en pixels) : ainsi, si la largeur des
     ' colonnes change, les boutons suivent automatiquement. C'est plus robuste qu'un
     ' positionnement en pixels pour un environnement qui doit rester stable.
     Set zoneBoutonValider = ws.Range(COL_STATUT & LIGNE_BOUTONS & ":" & COL_DATE & LIGNE_BOUTONS)
@@ -183,18 +183,18 @@ Private Sub ConstruireZoneBoutons(ws As Worksheet)
     zoneBoutonValider.RowHeight = 22
     zoneBoutonTerminer.RowHeight = 22
 
-    ' Ajout d'un bouton de type "Controle de formulaire" (PAS ActiveX), comme convenu :
-    ' plus leger, plus fiable vis-a-vis du probleme de DPI/multi-ecrans initial.
+    ' Ajout d'un bouton de type "Contrôle de formulaire" (PAS ActiveX), comme convenu :
+    ' plus léger et plus fiable face au problème initial de DPI et de multi-écrans.
     Set boutonValider = ws.Buttons.Add( _
         zoneBoutonValider.Left, zoneBoutonValider.Top, _
         zoneBoutonValider.Width, zoneBoutonValider.Height)
     With boutonValider
-        ' IMPORTANT : le texte affiche est deja son intitule FINAL valide avec toi,
-        ' a savoir sa fonction de reinitialisation (et non plus "Valider ce cas").
+        ' IMPORTANT : le texte affiché est déjà son intitulé FINAL, validé avec toi,
+        ' à savoir sa fonction de réinitialisation (et non plus "Valider ce cas").
         .Caption = "R?initialiser cette ligne"
-        ' Le nom de macro ci-dessous n'existe pas encore : il sera ecrit en Phase 2.
-        ' Cela ne provoque AUCUNE erreur maintenant ; l'erreur n'apparaitrait que si
-        ' quelqu'un cliquait sur le bouton avant que la Phase 2 soit installee.
+        ' Le nom de macro ci-dessous n'existe pas encore : il sera défini en phase 2.
+        ' Cela ne provoque AUCUNE erreur pour l'instant; une erreur ne surviendrait
+        ' que si quelqu'un cliquait sur le bouton avant l'installation de la phase 2.
         .OnAction = "ReinitialiserLigneSelectionnee"
         .Name = "btnReinitialiserLigne"
     End With
@@ -208,17 +208,17 @@ Private Sub ConstruireZoneBoutons(ws As Worksheet)
         .Name = "btnTerminerResolution"
     End With
 
-    ' Cellule du compteur ("X restant(s) sur Y"), a droite de la barre de boutons.
-    ' On lui donne un NOM DEFINI (plage nommee) plutot qu'une reference "F2" en dur :
-    ' cela rend le code de la Phase 2 plus lisible (Range("CompteurCasRestants") parle
-    ' de lui-meme, contrairement a Range("H2")).
+    ' Cellule du compteur ("X restant(s) sur Y"), à droite de la barre de boutons.
+    ' On lui attribue un NOM DÉFINI (plage nommée) plutôt qu'une référence codée en dur
+    ' comme "F2" : le code de la phase 2 est ainsi plus lisible
+    ' (Range("CompteurCasRestants") est plus explicite que Range("H2")).
     With ws.Range(COL_TIERS & LIGNE_BOUTONS & ":" & COL_CATEGORIE & LIGNE_BOUTONS)
         .Merge
         .HorizontalAlignment = xlRight
         .VerticalAlignment = xlCenter
         .Font.Size = 9
         .Font.Color = RGB(120, 120, 120)   ' gris discret, texte d'information secondaire
-        .value = ""   ' rempli dynamiquement en Phase 2
+        .value = ""   ' rempli dynamiquement en phase 2
     End With
     ws.Names.Add Name:="CompteurCasRestants", RefersTo:=ws.Range(COL_TIERS & LIGNE_BOUTONS)
 
@@ -226,7 +226,7 @@ End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCEDURE - Construction de la zone des instructions
+' SOUS-PROCÉDURE - Construction de la zone des instructions
 ' =====================================================================================
 Private Sub ConstruireZoneInstructions(ws As Worksheet)
 
@@ -237,8 +237,8 @@ Private Sub ConstruireZoneInstructions(ws As Worksheet)
         .Font.Size = 11
     End With
 
-    ' --- Bloc de texte des 4 etapes, sur une plage fusionnee pour ressembler a un
-    ' encadre de note plutot qu'a des cellules de tableur classiques. ---
+    ' --- Bloc de texte des quatre étapes, sur une plage fusionnée pour ressembler à un
+    ' encadré de note plutôt qu'à des cellules de tableur classiques. ---
     Dim zoneTexte As Range
     Set zoneTexte = ws.Range( _
         COL_STATUT & LIGNE_DEBUT_TEXTE_INSTRUCTIONS & ":" & _
@@ -247,44 +247,44 @@ Private Sub ConstruireZoneInstructions(ws As Worksheet)
     With zoneTexte
         .Merge
         ' Le texte exact que tu m'as fourni, avec des sauts de ligne internes
-        ' (Chr(10) est le caractere "retour a la ligne" a l'interieur d'une cellule).
+        ' (Chr(10) est le caractère "retour à la ligne" à l'intérieur d'une cellule).
         .value = "Les op?rations list?es n'ont pas pu ?tre cat?goris?es de fa?on automatique." & Chr(10) & _
                  "Il faut donc le faire manuellement. Pour ce faire suivre les ?tapes suivantes :" & Chr(10) & _
                  "1. S?lectionner une cat?gorie dans la liste d?roulante en face de l'op?ration concern?e" & Chr(10) & _
                  "2. Le statut de la ligne passe automatiquement ? "" OK "" une fois la cat?gorie choisie" & Chr(10) & _
                  "3. Recommencer pour chaque op?ration puis cliquer sur ""Terminer et appliquer"""
-        .WrapText = True                     ' le texte revient a la ligne dans la cellule
+        .WrapText = True                     ' le texte revient à la ligne dans la cellule
         .VerticalAlignment = xlTop
         .HorizontalAlignment = xlLeft
         .Font.Size = 9
         .Font.Color = RGB(80, 80, 80)
-        .Interior.Color = RGB(245, 245, 242) ' fond gris tres clair, type "encadre note"
+        .Interior.Color = RGB(245, 245, 242) ' fond gris très clair, type "encadré note"
         .Borders.LineStyle = xlContinuous
         .Borders.Color = RGB(210, 210, 205)
         .Locked = True                       ' cellule non modifiable par l'utilisateur final
     End With
 
-    ' Remarque : le texte des instructions ci-dessus a ete legerement adapte par
-    ' rapport a l'original du UserForm, car les etapes 1 a 3 de l'ancien texte
-    ' decrivaient le fonctionnement de l'Option A (clic sur une ligne puis liste
-    ' partagee puis bouton Valider). Comme on est passe a l'Option B (liste
-    ' deroulante directement sur chaque ligne, statut automatique), le texte des
-    ' etapes a ete adapte pour rester exact vis-a-vis du nouveau fonctionnement.
-    ' Dis-moi si tu preferes une autre formulation, c'est une simple modification
-    ' de texte, sans impact sur le reste du code.
+    ' Remarque : le texte des instructions ci-dessus a été légèrement adapté par
+    ' rapport à l'original du UserForm, car les étapes 1 à 3 de l'ancien texte
+    ' décrivaient le fonctionnement de l'option A (clic sur une ligne, puis liste
+    ' partagée et bouton Valider). Comme nous sommes passés à l'option B (liste
+    ' déroulante directement sur chaque ligne et statut automatique), le texte a
+    ' été adapté pour rester conforme au nouveau fonctionnement.
+    ' Dis-moi si tu préfères une autre formulation : il s'agit d'une simple
+    ' modification de texte, sans impact sur le reste du code.
 
-    ' Ajuste la hauteur des lignes du bloc pour laisser de la place au texte
+    ' Ajuste la hauteur des lignes du bloc pour laisser de la place au texte.
     ws.rows(LIGNE_DEBUT_TEXTE_INSTRUCTIONS & ":" & LIGNE_FIN_TEXTE_INSTRUCTIONS).RowHeight = 16
 
 End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCEDURE - Construction des en-tetes et de la mise en forme du tableau
+' SOUS-PROCÉDURE - Construction des en-têtes et mise en forme du tableau
 ' =====================================================================================
 Private Sub ConstruireTableauCas(ws As Worksheet)
 
-    ' --- Ligne d'en-tetes (row LIGNE_ENTETES_TABLEAU) ---
+    ' --- Ligne d'en-têtes (row LIGNE_ENTETES_TABLEAU) ---
     With ws.Range(COL_STATUT & LIGNE_ENTETES_TABLEAU & ":" & COL_CATEGORIE & LIGNE_ENTETES_TABLEAU)
         .Font.Bold = True
         .Font.Size = 9.5
@@ -302,11 +302,11 @@ Private Sub ConstruireTableauCas(ws As Worksheet)
     ws.Range(COL_CATEGORIE & LIGNE_ENTETES_TABLEAU).value = "Cat?gorie(s)"
     ws.rows(LIGNE_ENTETES_TABLEAU).RowHeight = 20
 
-    ' --- Mise en forme "a blanc" des lignes de donnees preparees a l'avance ---
-    ' On ne remplit PAS encore de vraies donnees ici (ce sera fait dynamiquement en
-    ' Phase 2, a chaque ouverture, selon le nombre reel de cas ambigus). On prepare
-    ' seulement l'apparence (bordures legeres, alternance de fond, alignement),
-    ' pour que la feuille ait deja fiere allure des cette Phase 1.
+    ' --- Mise en forme "à blanc" des lignes de données préparées à l'avance ---
+    ' On ne remplit PAS encore de données réelles ici (ce sera fait dynamiquement en
+    ' phase 2, à chaque ouverture, selon le nombre réel de cas ambigus). On prépare
+    ' uniquement l'apparence (bordures légères, alternance de fond, alignement),
+    ' afin que la feuille soit déjà présentable dès cette phase 1.
     Dim ligneCourante As Long
     Dim derniereLigne As Long
     derniereLigne = LIGNE_PREMIERE_DONNEE + NB_LIGNES_PREPAREES - 1
@@ -315,7 +315,7 @@ Private Sub ConstruireTableauCas(ws As Worksheet)
         .Font.Size = 9.5
         .VerticalAlignment = xlCenter
         .Borders(xlEdgeBottom).LineStyle = xlContinuous
-        .Borders(xlEdgeBottom).Color = RGB(230, 230, 226)   ' lisere tres discret entre lignes
+        .Borders(xlEdgeBottom).Color = RGB(230, 230, 226)   ' liseré très discret entre les lignes
     End With
 
     ws.Range(COL_STATUT & LIGNE_PREMIERE_DONNEE & ":" & COL_STATUT & derniereLigne).HorizontalAlignment = xlCenter
@@ -331,32 +331,32 @@ End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCEDURE - Figer les volets sous la ligne d'en-tetes du tableau
+' SOUS-PROCÉDURE - Figer les volets sous la ligne d'en-têtes du tableau
 ' =====================================================================================
 Private Sub FigerVoletsSousEntetes(ws As Worksheet)
 
     ws.Activate
 
-    ' On selectionne la premiere cellule de donnees : Excel fige tout ce qui est
-    ' AU-DESSUS et A GAUCHE de la cellule active au moment de l'appel a FreezePanes.
-    ' Ici on veut figer les lignes 1 a LIGNE_ENTETES_TABLEAU (boutons, instructions,
-    ' en-tetes du tableau), donc on selectionne la ligne juste en dessous.
+    ' On sélectionne la première cellule de données : Excel fige tout ce qui se trouve
+    ' AU-DESSUS et À GAUCHE de la cellule active au moment de l'appel à FreezePanes.
+    ' On veut figer les lignes 1 à LIGNE_ENTETES_TABLEAU (boutons, instructions et
+    ' en-têtes du tableau); on sélectionne donc la ligne juste en dessous.
     ws.Range(COL_STATUT & LIGNE_PREMIERE_DONNEE).Select
 
-    ' On s'assure qu'aucun figement anterieur ne reste actif avant d'en reappliquer un.
+    ' On s'assure qu'aucun gel antérieur ne reste actif avant d'en appliquer un nouveau.
     ActiveWindow.FreezePanes = False
     ActiveWindow.FreezePanes = True
 
-    ' On revient en haut de la feuille pour un affichage propre a la prochaine ouverture.
+    ' On revient en haut de la feuille pour un affichage propre à la prochaine ouverture.
     ws.Range("A1").Select
 
 End Sub
 
 
 ' =====================================================================================
-' FONCTION UTILITAIRE - Recuperer une feuille par son nom sans provoquer d'erreur
-' si elle n'existe pas (au lieu d'un "On Error Resume Next" disperse dans le code,
-' on centralise cette petite mecanique ici, ce qui est plus lisible et plus sur).
+' FONCTION UTILITAIRE - Récupérer une feuille par son nom sans provoquer d'erreur
+' si elle n'existe pas. Au lieu de disperser "On Error Resume Next" dans le code,
+' on centralise cette mécanique ici, ce qui est plus lisible et plus sûr.
 ' =====================================================================================
 Private Function ObtenirFeuilleSansErreur(nomFeuille As String) As Worksheet
     Dim ws As Worksheet
@@ -368,13 +368,13 @@ End Function
 
 
 ' =====================================================================================
-' SOUS-PROCEDURE UTILITAIRE - Supprimer les anciens boutons avant une reconstruction
-' (evite d'avoir des boutons en double si on relance l'installation plusieurs fois)
+' SOUS-PROCÉDURE UTILITAIRE - Supprimer les anciens boutons avant une reconstruction
+' (évite les doublons si l'installation est relancée).
 ' =====================================================================================
 Private Sub SupprimerFormesExistantes(ws As Worksheet)
     Dim uneForme As Shape
-    ' On parcourt a l'envers car supprimer un element d'une collection pendant qu'on
-    ' la parcourt "vers l'avant" peut sauter des elements - une precaution classique.
+    ' On parcourt la collection à l'envers : supprimer un élément pendant un parcours
+    ' vers l'avant peut en faire sauter d'autres. C'est une précaution classique.
     Dim i As Long
     For i = ws.Shapes.count To 1 Step -1
         ws.Shapes(i).Delete
@@ -383,9 +383,9 @@ End Sub
 
 
 ' =====================================================================================
-' OUTIL DEVELOPPEUR (reserve a toi, jamais accessible depuis l'interface utilisateur
-' normale) : bascule la visibilite de la feuille pour pouvoir la retoucher a la main.
-' A executer depuis la fenetre Execution immediate (Ctrl+G) en tapant :
+' OUTIL DÉVELOPPEUR (réservé à toi, inaccessible depuis l'interface utilisateur
+' normale) : bascule la visibilité de la feuille pour permettre de la retoucher.
+' À exécuter depuis la fenêtre Exécution immédiate (Ctrl+G) en tapant :
 '     AfficherFeuilleResolutionPourEdition
 ' =====================================================================================
 Sub AfficherFeuilleResolutionPourEdition()
@@ -405,7 +405,7 @@ Sub AfficherFeuilleResolutionPourEdition()
            "une fois tes retouches terminees.", vbInformation
 End Sub
 
-' Pendant symetrique de la macro ci-dessus : remasque la feuille apres retouche.
+' Pendant symétrique de la macro ci-dessus : masque de nouveau la feuille après retouche.
 Sub MasquerFeuilleResolutionApresEdition()
     Dim ws As Worksheet
     Set ws = ObtenirFeuilleSansErreur(NOM_FEUILLE_RESOLUTION)

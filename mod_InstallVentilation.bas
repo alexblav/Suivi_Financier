@@ -3,50 +3,49 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_InstallVentilation
 '
-' PHASE 4 du chantier "Categorie / Sous-categorie / Ventilation" - PARTIE 1/2
-' (Version 2 : nouvelle ergonomie, a la demande de l'operateur apres tests)
+' PHASE 4 du chantier « Catégorie / Sous-catégorie / Ventilation » - PARTIE 1/2
+' (Version 2 : nouvelle ergonomie, à la demande de l'opérateur après les tests)
 '
-' ROLE (a lire en premier, meme si vous debutez) :
-'   Ce module met en place les DEUX briques necessaires a la ventilation d'une
-'   operation entre plusieurs sous-categories :
+' RÔLE (à lire en premier, même si vous débutez) :
+'   Ce module met en place les DEUX éléments nécessaires à la ventilation d'une
+'   opération entre plusieurs sous-catégories :
 '
 '     1. La feuille de DONNEES "Ventilations", qui contient le tableau
-'        "TblVentilations" : une ligne par sous-categorie ventilee, reliee a
-'        l'operation d'origine par son ID_Transaction. Cette feuille reste
-'        simplement CACHEE (pas tres cachee) : comme Param ou Import_data, vous
-'        pouvez l'afficher si besoin pour verifier son contenu.
+'        "TblVentilations" : une ligne par sous-catégorie ventilée, reliée à
+'        l'opération d'origine par son ID_Transaction. Cette feuille reste
+'        simplement MASQUÉE (pas très masquée) : comme Param ou Import_data, vous
+'        pouvez l'afficher si besoin pour vérifier son contenu.
 '
 '     2. La feuille-FORMULAIRE "frm_Ventilation".
 '
-'   ERGONOMIE (changee suite a vos remarques de test) : la feuille est coupee en
+'   ERGONOMIE (modifiée à la suite de vos remarques) : la feuille est divisée en
 '   deux zones bien distinctes :
-'     - EN HAUT (lignes 16 a 26) : un TABLEAU D'AFFICHAGE des lignes deja ajoutees
-'       a cette ventilation (categorie, sous-categorie, montant), avec un petit
-'       bouton "Editer" en face de chacune.
-'     - EN BAS (lignes 28 et suivantes) : un PETIT FORMULAIRE DE SAISIE, TOUJOURS LE
-'       MEME, utilise pour AJOUTER une nouvelle ligne ou MODIFIER une ligne existante
-'       (via son bouton Editer). Il reprend exactement le principe du formulaire de
-'       controle des categories (Phase 2) : un champ Categorie avec un bouton "+"
-'       pour en creer une nouvelle, et un champ Sous-categorie dont la liste se
-'       filtre automatiquement selon la categorie choisie.
+'     - EN HAUT (lignes 16 à 26) : un TABLEAU D'AFFICHAGE des lignes déjà ajoutées
+'       à cette ventilation (catégorie, sous-catégorie, montant), avec un bouton
+'       "Éditer" en face de chaque ligne.
+'     - EN BAS (lignes 28 et suivantes) : un PETIT FORMULAIRE DE SAISIE, TOUJOURS
+'       IDENTIQUE, pour AJOUTER une ligne ou MODIFIER une ligne existante (via son
+'       bouton "Éditer"). Il reprend le principe du formulaire de contrôle des
+'       catégories (phase 2) : un champ Categorie avec un bouton "+" pour en créer
+'       une nouvelle, et un champ Sous-categorie dont la liste dépend de la catégorie choisie.
 '
-'   Ce module ne contient AUCUNE logique de calcul ou de validation : elle se trouve
-'   dans mod_Ventilation (partie 2/2).
+'   Ce module ne contient AUCUNE logique de calcul ou de validation : celle-ci se
+'   trouve dans mod_Ventilation (partie 2/2).
 '
 ' INSTALLATION :
 '   1. Alt+F11, Fichier > Importer un fichier... : importer CE fichier.
 '   2. Importer aussi mod_Ventilation.bas.
-'   3. Ctrl+G (fenetre Execution), taper :  PreparerPhase4Ventilation  puis Entree.
-'      (cree TblVentilations, la met a jour si elle existe deja, ET reconstruit
+'   3. Ctrl+G (fenêtre Exécution), taper : PreparerPhase4Ventilation, puis Entrée.
+'      (crée TblVentilations, la met à jour si elle existe déjà et reconstruit
 '      frm_Ventilation)
 '   4. Le message de fin vous donne le CodeName de frm_Ventilation. Collez-y le
-'      contenu de CodeBehind_frm_Ventilation.txt (INCHANGE depuis la version
-'      precedente : si vous l'aviez deja fait, rien a refaire).
-'   5. IMPORTANT, deja rencontre : apres toute mise a jour de mod_InstallControleCategories,
-'      il faut RELANCER CreerFeuilleControleCategories (Oui a la reconstruction) pour
-'      que les boutons apparaissent reellement sur la feuille. Le simple import du
-'      fichier .bas ne suffit pas : c'est l'execution de la macro d'installation qui
-'      construit la feuille.
+'      contenu de CodeBehind_frm_Ventilation.txt (INCHANGÉ depuis la version
+'      précédente : si vous l'avez déjà collé, inutile de recommencer).
+'   5. IMPORTANT, problème déjà rencontré : après toute mise à jour de
+'      mod_InstallControleCategories, il faut RELANCER CreerFeuilleControleCategories
+'      (répondre Oui à la reconstruction) pour que les boutons apparaissent réellement
+'      sur la feuille. Importer le fichier .bas ne suffit pas : il faut exécuter la
+'      macro d'installation pour reconstruire la feuille.
 ' =====================================================================================
 
 Public Const VEN_NOM_FEUILLE_DONNEES As String = "Ventilations"
@@ -67,9 +66,9 @@ Public Const VEN_ADR_MONTANT_A_VENTILER As String = "C12"
 Public Const VEN_ADR_TOTAL_SAISI As String = "C13"
 Public Const VEN_ADR_RESTE As String = "C14"
 
-' --- Tableau D'AFFICHAGE des lignes deja ajoutees (lecture seule pour l'operateur :
-' on ne modifie une ligne qu'en passant par le formulaire de saisie du bas, via le
-' bouton "Editer") ---
+' --- Tableau D'AFFICHAGE des lignes déjà ajoutées (lecture seule pour l'opérateur :
+' une ligne se modifie uniquement via le formulaire de saisie du bas et son bouton
+' "Éditer") ---
 Public Const VEN_LIGNE_GRILLE_ENTETE As Long = 16
 Public Const VEN_LIGNE_GRILLE_DEBUT As Long = 17
 Public Const VEN_NB_LIGNES As Long = 10
@@ -79,42 +78,42 @@ Public Const VEN_COL_CAT As Long = 2      ' colonne B
 Public Const VEN_COL_SOUS As Long = 3     ' colonne C
 Public Const VEN_COL_MONTANT As Long = 4  ' colonne D
 Public Const VEN_COL_NOTES As Long = 5    ' colonne E (ajout 01/10/2026, point 3)
-Public Const VEN_COL_EDITER As Long = 6   ' colonne F : bouton "Editer" de chaque ligne (decalee de E a F)
+Public Const VEN_COL_EDITER As Long = 6   ' colonne F : bouton "Éditer" de chaque ligne (déplacé de E à F)
 
-' --- Formulaire de SAISIE (une seule ligne a la fois : ajout ou edition) ---
+' --- Formulaire de SAISIE (une seule ligne à la fois : ajout ou édition) ---
 Public Const VEN_LIGNE_SAISIE_TITRE As Long = 28
 Public Const VEN_ADR_SAISIE_CAT As String = "C29"
 Public Const VEN_ADR_SAISIE_SOUS As String = "C30"
 Public Const VEN_ADR_SAISIE_MONTANT As String = "C31"
-' Ajout 01/10/2026 (point 3) : commentaire libre, disponible pour CHAQUE ligne.
-' IMPORTANT : volontairement une cellule SIMPLE, NON FUSIONNEE (meme principe que
-' Categorie/Sous-categorie/Montant juste au-dessus) -- une premiere version fusionnait
-' C32:F32, ce qui provoquait une erreur 1004 "Cette action ne peut pas etre appliquee a
-' une cellule fusionnee" des que le code essayait d'ecrire dans VEN_ADR_SAISIE_NOTES
-' (qui ne pointe pas forcement vers le coin haut-gauche d'une fusion). Une cellule simple
-' elimine ce risque, au prix d'une largeur de saisie un peu plus etroite (compensee par
-' un retour a la ligne automatique, voir ConstruireFormulaireSaisie).
+' Ajout du 01/10/2026 (point 3) : commentaire libre, disponible pour CHAQUE ligne.
+' IMPORTANT : cellule volontairement SIMPLE, NON FUSIONNÉE (même principe que
+' Categorie/Sous-categorie/Montant ci-dessus). Une première version fusionnait C32:F32,
+' ce qui provoquait une erreur 1004 ("Cette action ne peut pas être appliquée à une
+' cellule fusionnée") lorsque le code écrivait dans VEN_ADR_SAISIE_NOTES, qui ne pointe
+' pas nécessairement vers le coin supérieur gauche de la fusion. Une cellule simple
+' élimine ce risque; sa largeur réduite est compensée par le retour automatique à la
+' ligne (voir ConstruireFormulaireSaisie).
 Public Const VEN_ADR_SAISIE_NOTES As String = "C32"
-Public Const VEN_ADR_SAISIE_MESSAGE As String = "B33"     ' decalee de B32 a B33
-Public Const VEN_LIGNE_BOUTON_AJOUTER As Long = 35        ' decalee de 34 a 35
+Public Const VEN_ADR_SAISIE_MESSAGE As String = "B33"     ' déplacée de B32 à B33
+Public Const VEN_LIGNE_BOUTON_AJOUTER As Long = 35        ' déplacée de 34 à 35
 
-' Zone technique cachee : sous-categories de la categorie choisie DANS LE FORMULAIRE
-' DE SAISIE (une seule liste a gerer maintenant, comme dans les formulaires precedents,
-' au lieu d'une liste par ligne de grille).
+' Zone technique masquée : sous-catégories de la catégorie choisie DANS LE FORMULAIRE
+' DE SAISIE (une seule liste à gérer, comme dans les formulaires précédents, au lieu
+' d'une liste par ligne de la grille).
 Public Const VEN_COL_AIDE As Long = 26         ' colonne Z
 Public Const VEN_LIGNE_AIDE_MAX As Long = 300
 
-' Ajout 01/10/2026 (point 4 : annuler une ventilation) : 2 colonnes techniques ajoutees
-' a TblOperations pour memoriser la categorie/sous-categorie d'AVANT la toute premiere
-' ventilation d'une operation, afin de pouvoir les restaurer si la ventilation est
-' supprimee plus tard (voir mod_ControleCategories.ControleVentiler et
+' Ajout du 01/10/2026 (point 4 : annuler une ventilation) : deux colonnes techniques
+' ajoutées à TblOperations pour mémoriser la catégorie/sous-catégorie d'AVANT la
+' première ventilation d'une opération, afin de pouvoir les restaurer si elle est
+' supprimée plus tard (voir mod_ControleCategories.ControleVentiler et
 ' mod_RechercheOperations.RevoirVentilationRO).
 Public Const NOM_COL_CAT_AVANT_VENTILATION As String = "CategorieAvantVentilation"
 Public Const NOM_COL_SOUS_AVANT_VENTILATION As String = "SousCategorieAvantVentilation"
 
 
 ' =====================================================================================
-' MACRO D'ENSEMBLE : cree/met a jour la table de stockage PUIS le formulaire
+' MACRO D'ENSEMBLE : crée ou met à jour la table de stockage, puis le formulaire.
 ' =====================================================================================
 Public Sub PreparerPhase4Ventilation()
     PreparerTableVentilations
@@ -124,11 +123,11 @@ End Sub
 
 
 ' =====================================================================================
-' ETAPE 1 : feuille de donnees "Ventilations" + tableau "TblVentilations"
+' ÉTAPE 1 : feuille de données "Ventilations" et tableau "TblVentilations"
 ' =====================================================================================
-' Sans danger a relancer : les colonnes deja presentes ne sont jamais touchees, seules
-' les colonnes manquantes sont ajoutees (utile si vous avez installe une version
-' anterieure de ce module).
+' Sans danger à relancer : les colonnes déjà présentes ne sont jamais modifiées;
+' seules les colonnes manquantes sont ajoutées (utile si une version antérieure
+' de ce module a été installée).
 Public Sub PreparerTableVentilations()
 
     Dim ws As Worksheet
@@ -154,13 +153,13 @@ Public Sub PreparerTableVentilations()
         ws.Range("A1:E1").value = Array("ID_Transaction", "Categorie", "SousCategorie", "Montant", "DateVentilation")
         Set tbl = ws.ListObjects.Add(xlSrcRange, ws.Range("A1:E1"), , xlYes)
         tbl.Name = VEN_NOM_TABLE
-        ' Pas de mise en forme ici : juste apres sa creation, le tableau n'a AUCUNE
-        ' ligne de donnees (DataBodyRange est vide), lui appliquer un format plante.
-        ' Chaque ligne recoit deja son propre format au moment ou elle est ecrite
+        ' Pas de mise en forme ici : juste après sa création, le tableau n'a AUCUNE
+        ' ligne de données (DataBodyRange est vide); lui appliquer un format provoquerait
+        ' une erreur. Chaque ligne reçoit son format au moment où elle est écrite
         ' (voir mod_Ventilation.AjouterLigneVentilation).
     End If
 
-    ' --- Colonnes de suivi sante (memes noms que dans TblOperations) -------------------
+    ' --- Colonnes de suivi santé (mêmes noms que dans TblOperations) -------------------
     colonnesSante = Array("Notes", "Date_consult", "Spe_Consult", "StatutSante", "SoldeSante", _
                           "DepassementHoraires", "CommentaireSante", "Franchise", "Beneficiaire")
 
@@ -182,12 +181,12 @@ Private Function ColonneExisteDansTable(ByVal tbl As ListObject, ByVal nom As St
     ColonneExisteDansTable = Not (lc Is Nothing)
 End Function
 
-' Ajout 01/10/2026 (point 4 : annuler une ventilation) -----------------------------------
-' Ajoute a TblOperations (PAS TblVentilations) les 2 colonnes techniques qui memorisent la
-' categorie/sous-categorie d'avant la toute premiere ventilation d'une operation. Sans
-' danger a relancer : ne touche a rien si les colonnes existent deja. Toujours ajoutees A
-' LA FIN du tableau (jamais au milieu), pour ne decaler aucune colonne existante -- meme
-' principe que mod_Categories.AjouterColonneSousCategorie.
+' Ajout du 01/10/2026 (point 4 : annuler une ventilation) -------------------------------
+' Ajoute à TblOperations (PAS à TblVentilations) les deux colonnes techniques qui
+' mémorisent la catégorie/sous-catégorie d'avant la première ventilation d'une opération.
+' Sans danger à relancer : ne fait rien si les colonnes existent déjà. Elles sont toujours
+' ajoutées À LA FIN du tableau (jamais au milieu), afin de ne déplacer aucune colonne
+' existante; même principe que mod_Categories.AjouterColonneSousCategorie.
 Public Sub AjouterColonnesAnnulationVentilation()
 
     Dim tblOps As ListObject
@@ -206,7 +205,7 @@ End Sub
 
 
 ' =====================================================================================
-' ETAPE 2 : feuille-formulaire "frm_Ventilation"
+' ÉTAPE 2 : feuille-formulaire "frm_Ventilation"
 ' =====================================================================================
 Public Sub CreerFeuilleVentilation()
 
@@ -261,7 +260,7 @@ End Sub
 
 
 ' =====================================================================================
-' Mise en forme generale
+' Mise en forme générale
 ' =====================================================================================
 Private Sub MettreEnFormeGenerale(ByVal ws As Worksheet)
 
@@ -286,7 +285,7 @@ End Sub
 
 
 ' =====================================================================================
-' Boutons globaux : "Terminer" (finalise TOUTE la ventilation) et "Annuler"
+' Boutons globaux : "Terminer" (finalise TOUTE la ventilation) et "Annuler".
 ' =====================================================================================
 Private Sub ConstruireBoutonsGlobaux(ByVal ws As Worksheet)
 
@@ -301,12 +300,12 @@ Private Sub ConstruireBoutonsGlobaux(ByVal ws As Worksheet)
     Set zone = ws.Cells(VEN_LIGNE_BOUTONS, 3)
     AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, "Annuler", "VenAnnuler", "btnVenAnnuler"
 
-    ' Ajout 01/10/2026 (point 4) : bouton de suppression d'une ventilation EXISTANTE.
-    ' Masque par defaut a la construction : c'est mod_Ventilation.OuvrirVentilation qui le
-    ' rend visible, et seulement quand la ventilation ouverte existait deja AVANT l'ouverture
-    ' du formulaire (rien a supprimer pour une ventilation toute neuve). Un bouton (objet
-    ' Button/Shape) flotte AU-DESSUS des cellules : lui donner la largeur de 3 cellules ne
-    ' les fusionne pas, aucun risque d'erreur "cellule fusionnee" ici.
+    ' Ajout du 01/10/2026 (point 4) : bouton de suppression d'une ventilation EXISTANTE.
+    ' Masqué par défaut à la construction : mod_Ventilation.OuvrirVentilation le rend
+    ' visible uniquement si la ventilation existait déjà AVANT l'ouverture du formulaire
+    ' (rien à supprimer pour une nouvelle ventilation). Un bouton (objet Button/Shape)
+    ' flotte AU-DESSUS des cellules : lui donner la largeur de trois cellules ne les
+    ' fusionne pas; il n'y a donc aucun risque d'erreur liée aux cellules fusionnées.
     Set zone = ws.Range(ws.Cells(VEN_LIGNE_BOUTONS, 4), ws.Cells(VEN_LIGNE_BOUTONS, 6))
     AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, _
                   mod_Display.FR("Supprimer cette ventilation"), "VenSupprimerVentilation", "btnVenSupprimerVentilation"
@@ -326,7 +325,7 @@ End Sub
 
 
 ' =====================================================================================
-' En-tete : informations (lecture seule) de l'operation a ventiler -- INCHANGE
+' En-tête : informations (lecture seule) de l'opération à ventiler -- INCHANGÉ
 ' =====================================================================================
 Private Sub ConstruireEntete(ByVal ws As Worksheet)
 
@@ -369,7 +368,7 @@ End Sub
 
 
 ' =====================================================================================
-' Bloc des totaux -- INCHANGE
+' Bloc des totaux -- INCHANGÉ
 ' =====================================================================================
 Private Sub ConstruireTotaux(ByVal ws As Worksheet)
 
@@ -378,8 +377,8 @@ Private Sub ConstruireTotaux(ByVal ws As Worksheet)
     EcrireEtiquette ws, "B14", mod_Display.FR("Reste {a2} ventiler")
 
     With ws.Range("C12:C14")
-        ' Format numerique avec le symbole Euro en suffixe (voir mod_Ventilation pour
-        ' le detail de la construction de cette chaine).
+        ' Format numérique avec le symbole euro en suffixe (voir mod_Ventilation pour
+        ' le détail de la construction de cette chaîne).
         .NumberFormat = "#,##0.00" & Chr(34) & " " & ChrW(8364) & Chr(34)
         .Font.Bold = True
         .VerticalAlignment = xlCenter
@@ -390,12 +389,12 @@ End Sub
 
 
 ' =====================================================================================
-' Tableau D'AFFICHAGE des lignes deja ajoutees (lignes 16 a 26)
+' Tableau D'AFFICHAGE des lignes déjà ajoutées (lignes 16 à 26).
 ' =====================================================================================
-' Ces cellules ne sont PAS destinees a etre tapees directement par l'operateur : elles
-' sont remplies par le programme (mod_Ventilation) au fur et a mesure des ajouts, et se
-' modifient uniquement via le formulaire de saisie du bas (bouton "Editer"). Un fond
-' gris leger les distingue visuellement des zones de saisie (jaune pale).
+' Ces cellules ne sont PAS destinées à être modifiées directement par l'opérateur : elles
+' sont remplies par le programme (mod_Ventilation) au fil des ajouts et se modifient
+' uniquement via le formulaire de saisie du bas (bouton "Éditer"). Un fond gris léger
+' les distingue des zones de saisie (jaune pâle).
 Private Sub ConstruireGrilleAffichage(ByVal ws As Worksheet)
 
     Dim ligne As Long
@@ -421,7 +420,7 @@ Private Sub ConstruireGrilleAffichage(ByVal ws As Worksheet)
 
     For ligne = VEN_LIGNE_GRILLE_DEBUT To VEN_LIGNE_GRILLE_FIN
         With ws.Range(ws.Cells(ligne, VEN_COL_CAT), ws.Cells(ligne, VEN_COL_NOTES))
-            .Interior.Color = RGB(242, 242, 240)          ' gris tres pale = affichage, pas saisie
+            .Interior.Color = RGB(242, 242, 240)          ' gris très pâle = affichage, pas saisie
             .Borders(xlEdgeBottom).LineStyle = xlContinuous
             .Borders(xlEdgeBottom).Color = RGB(220, 220, 215)
         End With
@@ -431,9 +430,9 @@ Private Sub ConstruireGrilleAffichage(ByVal ws As Worksheet)
         ws.Cells(ligne, VEN_COL_NOTES).NumberFormat = "@"
         ws.rows(ligne).RowHeight = 18
 
-        ' Bouton "Editer" de cette ligne. Toutes les lignes ont leur bouton des la
-        ' construction (que la ligne soit remplie ou non) : cliquer sur une ligne vide
-        ' affiche simplement un message, voir mod_Ventilation.VenEditerLigne.
+        ' Bouton "Éditer" de cette ligne. Toutes les lignes ont leur bouton dès la
+        ' construction, qu'elles soient remplies ou non : cliquer sur une ligne vide
+        ' affiche simplement un message (voir mod_Ventilation.VenEditerLigne).
         AjouterBoutonEditer ws, ligne
     Next ligne
 
@@ -450,7 +449,7 @@ End Sub
 
 
 ' =====================================================================================
-' Formulaire de SAISIE (ajout ou edition d'UNE ligne a la fois)
+' Formulaire de SAISIE (ajout ou édition d'UNE ligne à la fois)
 ' =====================================================================================
 Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
 
@@ -464,7 +463,7 @@ Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
     End With
     ws.rows(VEN_LIGNE_SAISIE_TITRE).RowHeight = 20
 
-    ' --- Categorie + bouton "+" (meme principe que le formulaire de controle) ---
+    ' --- Catégorie et bouton "+" (même principe que le formulaire de contrôle) ---
     EcrireEtiquette ws, "B29", mod_Display.FR("Cat{e2}gorie")
     ws.Range("B29").Font.Color = RGB(31, 78, 121)
     With ws.Range(VEN_ADR_SAISIE_CAT)
@@ -482,7 +481,7 @@ Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
     AjouterBouton ws, zoneBoutonNouvelle.Left, zoneBoutonNouvelle.Top, zoneBoutonNouvelle.Width, zoneBoutonNouvelle.Height, _
                   "+ " & mod_Display.FR("Nouvelle cat{e2}gorie"), "VenNouvelleCategorie", "btnVenNouvelleCategorie"
 
-    ' --- Sous-categorie (liste dependante de la Categorie ci-dessus) ---
+    ' --- Sous-catégorie (liste dépendante de la catégorie ci-dessus) ---
     EcrireEtiquette ws, "B30", mod_Display.FR("Sous-cat{e2}gorie")
     ws.Range("B30").Font.Color = RGB(31, 78, 121)
     With ws.Range(VEN_ADR_SAISIE_SOUS)
@@ -510,12 +509,12 @@ Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
     End With
     ws.rows(31).RowHeight = 22
 
-    ' --- Notes (commentaire libre, ajout 01/10/2026, point 3) ---------------------------
-    ' Volontairement une cellule SIMPLE, NON FUSIONNEE (comme Categorie/Sous-categorie/
-    ' Montant ci-dessus) : voir le commentaire sur la constante VEN_ADR_SAISIE_NOTES, qui
-    ' explique l'erreur 1004 provoquee par une premiere version fusionnee. La largeur un
-    ' peu juste d'une seule cellule est compensee par le retour a la ligne automatique
-    ' (WrapText) et une rangee plus haute.
+    ' --- Notes (commentaire libre, ajout du 01/10/2026, point 3) ------------------------
+    ' Cellule volontairement SIMPLE, NON FUSIONNÉE (comme Categorie/Sous-categorie/
+    ' Montant ci-dessus). Voir le commentaire de VEN_ADR_SAISIE_NOTES, qui explique
+    ' l'erreur 1004 provoquée par la première version fusionnée. La largeur réduite
+    ' de cette cellule est compensée par le retour automatique à la ligne (WrapText)
+    ' et par une hauteur de ligne supérieure.
     EcrireEtiquette ws, "B32", "Notes"
     ws.Range("B32").Font.Color = RGB(31, 78, 121)
     With ws.Range(VEN_ADR_SAISIE_NOTES)
@@ -553,7 +552,7 @@ End Sub
 
 
 ' =====================================================================================
-' OUTILS DEVELOPPEUR (Ctrl+G)
+' OUTILS DÉVELOPPEUR (Ctrl+G)
 ' =====================================================================================
 Public Sub AfficherFeuilleVentilationPourEdition()
     Dim ws As Worksheet

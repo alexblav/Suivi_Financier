@@ -3,20 +3,20 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_ResolutionCategories
 '
-' ROLE (PHASE 2 du chantier "UserForm -> feuille dediee") :
-'   Ce module contient toute la LOGIQUE de la feuille frm_ResolutionCategories :
-'     - remplissage du tableau a partir des variables g_CasTexte/g_CasCandidats,
-'     - affichage "bloquant" qui remplace l'ancien frmResolutionCategories.Show vbModal,
-'     - actions des deux boutons (Reinitialiser cette ligne / Terminer et appliquer).
+' RÔLE (phase 2 du chantier "UserForm -> feuille dédiée") :
+'   Ce module contient toute la logique de la feuille frm_ResolutionCategories :
+'     - remplissage du tableau à partir des variables g_CasTexte/g_CasCandidats;
+'     - affichage bloquant remplaçant l'ancien frmResolutionCategories.Show vbModal;
+'     - actions des deux boutons (Réinitialiser cette ligne / Terminer et appliquer).
 '
-'   Il s'appuie sur la mise en page deja construite par mod_InstallResolutionSheet
-'   (meme constantes de position de cellules, reutilisees telles quelles).
+'   Il s'appuie sur la mise en page déjà construite par mod_InstallResolutionSheet
+'   (mêmes constantes de position des cellules, réutilisées telles quelles).
 '
-'   ATTENTION : la gestion des evenements Worksheet_Change et Worksheet_Deactivate
-'   ne peut PAS etre placee dans ce module. En VBA, les evenements d'une feuille
-'   doivent obligatoirement vivre dans le module de code de LA FEUILLE ELLE-MEME
-'   (le "code-behind"). Ce code est fourni a part, avec des instructions precises
-'   pour le coller au bon endroit (section correspondante plus bas dans ma reponse).
+'   ATTENTION : la gestion des événements Worksheet_Change et Worksheet_Deactivate
+'   ne peut PAS être placée dans ce module. En VBA, les événements d'une feuille
+'   doivent obligatoirement se trouver dans le module de code de LA FEUILLE ELLE-MÊME
+'   (le "code-behind"). Ce code est fourni à part, avec des instructions précises
+'   pour le coller au bon endroit (voir la section correspondante plus bas).
 ' =====================================================================================
 
 ' --- Variable de synchronisation pour le comportement "modal" -----------------------
@@ -227,7 +227,7 @@ End Sub
 
 
 ' =====================================================================================
-' ACTION DU BOUTON "RÃ©initialiser cette ligne"
+' ACTION DU BOUTON "Réinitialiser cette ligne"
 ' Efface le choix de categorie de la ligne actuellement selectionnee. L'effacement
 ' de la cellule declenche automatiquement Worksheet_Change (code-behind), qui se
 ' charge lui-meme de remettre le statut a "?" et de mettre a jour g_CasChoix et

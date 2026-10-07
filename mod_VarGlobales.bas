@@ -22,12 +22,12 @@ Public colType As Long, colBudget As Long, colTiers As Long, colMoisBud As Long,
 Public colID As Long, colStatutSante As Long, colSoldeSante As Long, colDepassementHoraires As Long, colCommentaireSante As Long, colFranchise As Long
 Public colBeneficiaire As Long
 
-' Decalage manuel d'une operation precise (ajout 03/10/2026, demande operateur) : vaut
-' 0 (ou vide) pour la grande majorite des operations, qui suivent la regle generale
-' lue dans TblDecalagesBudget. Quand l'operateur force un decalage pour UNE operation
-' en particulier (ecran de recherche, bouton "Decaler le budget de cette operation"),
+' Décalage manuel d'une operation précise (ajout 03/10/2026, demande opérateur) : vaut
+' 0 (ou vide) pour la grande majorité des operations, qui suivent la règle générale
+' lue dans TblDecalagesBudget. Quand l'opérateur force un décalage pour UNE opération
+' en particulier (écran de recherche, bouton "Décaler le budget de cette operation"),
 ' cette colonne garde la valeur choisie : elle MARQUE la ligne, pour qu'un futur
-' recalcul automatique ne vienne jamais l'ecraser silencieusement (voir
+' recalcul automatique ne vienne jamais l'écraser silencieusement (voir
 ' mod_DecalagesBudget.AppliquerDecalageManuel).
 Public colDecalageManuel As Long
 
@@ -51,7 +51,7 @@ Public colSousCategorie As Long
 ' dur) pour rester surs de comparer exactement la meme chaine.
 Public Const SOUS_CATEGORIE_SANTE As String = "Frais, remb santé"
 
-' Stoque l'index d'une colonne, calculé à partir d'un des champ de l'ARRAY, sur toute la feuille de sortie
+' Stocke l'index d'une colonne, calculé à partir d'un des champs de l'ARRAY, pour toute la feuille de sortie.
 ' EXEMPLE Si on veut poser les entêtes à partir de E1 dans synthese,
 ' Array("Date", "Tiers", "Montant"): posDate=5,posTiers=6,posMontant=7
 Public posSortieCategorie As Long, posSortieMontant As Long, posSortieNotes As Long, posSortieDate As Long, posSortieLibelle As Long, posSortieDateConsult As Long, posSortieSpeConsult As Long
@@ -65,7 +65,7 @@ Public posCategorie As Long, posMontant As Long, posNotes As Long, posDate As Lo
 Public posCheque As Long, posMoisBudget As Long, posAnneeBudget As Long, posType As Long, posBudget As Long, posTiers As Long, posMoisBud As Long, posAnneeBud As Long
 Public posStatutSante As Long, posSoldeSante As Long, posID As Long, posValider As Long
 
-' Stoque les valeurs des critères de recherche dans la feuille Synthese
+' Stocke les valeurs des critères de recherche dans la feuille Synthese.
 Public critAnnee As String, critMois As String, critNbOperations As Long, critMontantMin As Double, critTriChamps As String, critTriOrdre As String
 
 ' En vu de faciliter la relecture de nombreuses variables sont déclarées au niveau global

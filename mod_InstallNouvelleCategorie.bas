@@ -3,32 +3,32 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_InstallNouvelleCategorie
 '
-' PHASE 3 du chantier "Categorie / Sous-categorie / Ventilation" - PARTIE 1/2
+' PHASE 3 du chantier « Catégorie / Sous-catégorie / Ventilation » - PARTIE 1/2
 '
-' ROLE (a lire en premier, meme si vous debutez) :
-'   Ce module CONSTRUIT la feuille-formulaire qui permet de creer une nouvelle
-'   categorie (ou une nouvelle sous-categorie d'une categorie existante).
-'   Elle s'ouvre par-dessus le formulaire de controle des categories (Phase 2), quand
-'   l'operateur clique sur le bouton "+ Nouvelle categorie".
+' RÔLE (à lire en premier, même si vous débutez) :
+'   Ce module CONSTRUIT la feuille-formulaire qui permet de créer une nouvelle
+'   catégorie (ou une nouvelle sous-catégorie d'une catégorie existante).
+'   Elle s'ouvre par-dessus le formulaire de contrôle des catégories (phase 2), quand
+'   l'opérateur clique sur le bouton "+ Nouvelle catégorie".
 '   Ce module ne contient AUCUNE logique : elle se trouve dans mod_NouvelleCategorie
 '   (partie 2/2), exactement comme pour la Phase 2.
 '
-'   Deux "listes modifiables" (menus deroulants qui acceptent aussi une saisie libre,
+'   Deux "listes modifiables" (menus déroulants qui acceptent aussi une saisie libre,
 '   avec un simple avertissement) :
-'     - Categorie      : liste des categories existantes, ou saisie d'une nouvelle.
-'     - Sous-categorie : liste des sous-categories DEJA CONNUES de la categorie
+'     - Categorie      : liste des catégories existantes, ou saisie d'une nouvelle.
+'     - Sous-categorie : liste des sous-catégories DÉJÀ CONNUES de la catégorie
 '                        choisie, ou saisie d'une nouvelle.
 '
 ' INSTALLATION (une seule fois) :
 '   1. Alt+F11, Fichier > Importer un fichier... : importer CE fichier.
 '   2. Importer aussi mod_NouvelleCategorie.bas.
-'   3. Ctrl+G, taper :  CreerFeuilleNouvelleCategorie  puis Entree.
-'   4. Coller dans le module de code de la feuille creee les 2 procedures du fichier
-'      "CodeBehind_frm_NouvelleCategorie.txt" (memes explications qu'en Phase 2).
-'   5. Reimporter mod_InstallControleCategories.bas et mod_ControleCategories.bas
-'      (mis a jour pour cette Phase 3 : bouton "+" ajoute, voir la note fournie).
+'   3. Ctrl+G, taper : CreerFeuilleNouvelleCategorie, puis Entrée.
+'   4. Coller dans le module de code de la feuille créée les deux procédures du fichier
+'      "CodeBehind_frm_NouvelleCategorie.txt" (mêmes explications qu'en phase 2).
+'   5. Réimporter mod_InstallControleCategories.bas et mod_ControleCategories.bas
+'      (mis à jour pour cette phase 3 : bouton "+" ajouté; voir la note fournie).
 '
-' Ce module ne modifie AUCUNE donnee : il ajoute seulement une feuille cachee.
+' Ce module ne modifie AUCUNE donnée : il ajoute seulement une feuille masquée.
 ' =====================================================================================
 
 Public Const NC_NOM_FEUILLE As String = "frm_NouvelleCategorie"
@@ -40,7 +40,7 @@ Public Const NC_ADR_CAT As String = "C6"
 Public Const NC_ADR_SOUS As String = "C9"
 Public Const NC_ADR_MESSAGE As String = "B11"
 
-' Zone technique cachee : sous-categories de la categorie choisie (colonne Z).
+' Zone technique masquée : sous-catégories de la catégorie choisie (colonne Z).
 Public Const NC_COL_AIDE As Long = 26
 Public Const NC_LIGNE_AIDE_MAX As Long = 300
 
@@ -101,7 +101,7 @@ End Sub
 
 
 ' =====================================================================================
-' Mise en forme generale (memes principes qu'en Phase 2, pour un rendu coherent)
+' Mise en forme générale (mêmes principes qu'en phase 2, pour un rendu cohérent).
 ' =====================================================================================
 Private Sub MettreEnFormeGenerale(ByVal ws As Worksheet)
 
@@ -153,7 +153,7 @@ End Sub
 
 
 ' =====================================================================================
-' Titre, champs de saisie et message d'aide
+' Titre, champs de saisie et message d'aide.
 ' =====================================================================================
 Private Sub ConstruireChamps(ByVal ws As Worksheet)
 
@@ -166,7 +166,7 @@ Private Sub ConstruireChamps(ByVal ws As Worksheet)
     End With
     ws.Range(NC_ADR_TITRE).value = mod_Display.FR("Nouvelle cat{e2}gorie / sous-cat{e2}gorie")
 
-    ' --- Categorie ---
+    ' --- Catégorie ---
     With ws.Range("B6")
         .value = mod_Display.FR("Cat{e2}gorie")
         .Font.Bold = True
@@ -192,7 +192,7 @@ Private Sub ConstruireChamps(ByVal ws As Worksheet)
         .Font.Color = RGB(120, 120, 120)
     End With
 
-    ' --- Sous-categorie ---
+    ' --- Sous-catégorie ---
     With ws.Range("B9")
         .value = mod_Display.FR("Sous-cat{e2}gorie")
         .Font.Bold = True
@@ -235,7 +235,7 @@ End Sub
 
 
 ' =====================================================================================
-' OUTILS DEVELOPPEUR (Ctrl+G)
+' OUTILS DÉVELOPPEUR (Ctrl+G)
 ' =====================================================================================
 Public Sub AfficherFeuilleNouvelleCategoriePourEdition()
     Dim ws As Worksheet

@@ -3,43 +3,40 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_InstallSuiviSanteSheet
 '
-' ROLE (PHASE 2a du chantier "Suivi Sante") :
-'   Ce module ne contient QUE la construction de la mise en page statique de la
-'   feuille masquee qui servira de formulaire operateur pour valider les depenses
-'   de sante ("Frais, remb sante") qui necessitent une intervention manuelle.
-'   Il ne contient ENCORE AUCUNE logique de remplissage des cas, ni de gestion des
-'   clics : cela viendra en Phase 2b (module mod_SuiviSanteFormulaire), une fois que
-'   la mise en page ci-dessous aura ete validee visuellement.
+' RÔLE (phase 2a du chantier "Suivi Santé") :
+'   Ce module contient UNIQUEMENT la construction de la mise en page statique de la
+'   feuille masquée qui servira de formulaire opérateur pour valider les dépenses
+'   de santé ("Frais, remb santé") nécessitant une intervention manuelle.
+'   Il ne contient ENCORE AUCUNE logique de remplissage des cas ni de gestion des
+'   clics : cela viendra en phase 2b (module mod_SuiviSanteFormulaire), une fois la
+'   mise en page ci-dessous validée visuellement.
 '
-'   Ce module reprend exactement les memes principes que mod_InstallResolutionSheet
-'   (deja utilise pour la resolution des categories ambigues) : construire les murs
-'   avant de brancher l'electricite.
+'   Ce module reprend exactement les mêmes principes que mod_InstallResolutionSheet
+'   (déjà utilisé pour la résolution des catégories ambiguës) : construire les murs
+'   avant de brancher l'électricité.
 '
-' A FAIRE POUR INSTALLER CE MODULE :
-'   1. Alt+F11 pour ouvrir l'editeur VBA
-'   2. Fichier > Importer un fichier... > selectionner ce fichier .bas
-'   3. Dans la fenetre Execution immediate (Ctrl+G), taper :
+' À FAIRE POUR INSTALLER CE MODULE :
+'   1. Alt+F11 pour ouvrir l'éditeur VBA.
+'   2. Fichier > Importer un fichier... > sélectionner ce fichier .bas.
+'   3. Dans la fenêtre Exécution immédiate (Ctrl+G), taper :
 '        CreerFeuilleSuiviSante
-'      puis appuyer sur Entree. La feuille est creee, mise en forme, puis masquee.
-'   4. Pour la revoir a l'ecran : taper AfficherFeuilleSuiviSantePourEdition
-'      Pour la remasquer ensuite : taper MasquerFeuilleSuiviSanteApresEdition
+'      puis appuyer sur Entrée. La feuille est créée, mise en forme, puis masquée.
+'   4. Pour la revoir à l'écran : taper AfficherFeuilleSuiviSantePourEdition.
+'      Pour la masquer de nouveau : taper MasquerFeuilleSuiviSanteApresEdition.
 '
-' A PROPOS DES ACCENTS DANS CE FICHIER :
-'   Comme pour les autres modules de ce classeur, ce fichier ne contient VOLONTAIREMENT
-'   aucun caractere accentue (probleme d'encodage deja rencontre et corrige sur ce
-'   projet). Tous les textes affiches a l'ecran (titres, libelles, instructions) sont
-'   construits par la petite fonction FR() ci-dessous, qui remplace des marqueurs
-'   ASCII simples ({e2}, {e1}, ...) par le bon caractere accentue via ChrW(). Cela
-'   permet de garder un code source lisible tout en restant 100% ASCII a l'import.
+' À PROPOS DES ACCENTS DANS CE FICHIER :
+'   Les textes affichés (titres, libellés et instructions) sont construits par
+'   la fonction FR() ci-dessous, qui remplace les marqueurs ASCII ({e2}, {e1}, ...)
+'   par les caractères accentués correspondants via ChrW(). Les commentaires du
+'   fichier sont encodés en UTF-8.
 ' =====================================================================================
 
 
 ' -------------------------------------------------------------------------------------
-' FR : petit traducteur de marqueurs ASCII vers caracteres accentues (voir note ci-dessus)
+' FR : petit traducteur de marqueurs ASCII vers caractères accentués (voir la note ci-dessus).
 ' -------------------------------------------------------------------------------------
-' Marqueurs disponibles : {e2}=e accent aigu (e), {e1}=e accent grave (e), {ea}=e accent
-' circonflexe (e), {a2}=a accent grave (a), {c2}=c cedille (c), {o2}=o accent circonflexe,
-' {i2}=i accent circonflexe, {E2}=E accent aigu majuscule.
+' Marqueurs disponibles : {e2}=é, {e1}=è, {ea}=ê, {a2}=à, {c2}=ç, {o2}=ô,
+' {i2}=î et {E2}=É.
 Public Const NOM_FEUILLE_SUIVI_SANTE As String = "frm_SuiviSante"
 
 ' --- Zone des boutons (ligne 2) ---
@@ -50,38 +47,38 @@ Public Const SS_LIGNE_TITRE_INSTRUCTIONS As Long = 5
 Public Const SS_LIGNE_DEBUT_INSTRUCTIONS As Long = 6
 Public Const SS_LIGNE_FIN_INSTRUCTIONS As Long = 9
 
-' --- Bloc "Depense a traiter" (lecture seule) ---
+' --- Bloc "Dépense à traiter" (lecture seule) ---
 Public Const SS_LIGNE_TITRE_DEPENSE As Long = 11
 Public Const SS_LIGNE_DEPENSE As Long = 12
 
-' --- Bloc "Remboursements lies" (lecture seule, jusqu'a 2 lignes) ---
+' --- Bloc "Remboursements liés" (lecture seule, jusqu'à deux lignes) ---
 Public Const SS_LIGNE_TITRE_REMBOURSEMENTS As Long = 14
 Public Const SS_LIGNE_REMBOURSEMENT_1 As Long = 15
 Public Const SS_LIGNE_REMBOURSEMENT_2 As Long = 16
 
-' --- Solde calcule (lecture seule, recalcule en direct via une formule) ---
+' --- Solde calculé (lecture seule, recalculé en direct par une formule) ---
 Public Const SS_LIGNE_SOLDE As Long = 18
 
-' --- Zone de saisie operateur ---
+' --- Zone de saisie opérateur ---
 Public Const SS_LIGNE_BENEFICIAIRE As Long = 20
 Public Const SS_LIGNE_TIERS_CORRIGE As Long = 21
 Public Const SS_LIGNE_FRANCHISE As Long = 22
 Public Const SS_LIGNE_DEPASSEMENT As Long = 23
 Public Const SS_LIGNE_COMMENTAIRE As Long = 24
 
-' --- Bloc "Informations complementaires" (lecture seule), ajoute apres coup ---
-' Demarre a la ligne 26 (2 lignes apres Commentaire) pour ne jamais avoir a
-' decaler les lignes existantes ci-dessus : tous les noms/boutons deja crees
-' restent valides, on ne fait qu'ajouter a la suite.
+' --- Bloc "Informations complémentaires" (lecture seule), ajouté ultérieurement ---
+' Démarre à la ligne 26 (deux lignes après Commentaire) pour ne pas décaler
+' les lignes existantes : tous les noms et boutons déjà créés restent valides;
+' le nouveau bloc est simplement ajouté à la suite.
 Public Const SS_LIGNE_TITRE_CONTEXTE As Long = 26
 Public Const SS_LIGNE_NUM_CHEQUE As Long = 27
 Public Const SS_LIGNE_SPE_CONSULT As Long = 28
 Public Const SS_LIGNE_NOTES As Long = 29
 
-' --- Colonnes (une lettre = une colonne Excel). Le formulaire est organise en
-'     3 paires "libelle / valeur" par ligne (B/C, D/E, F/G) pour les blocs qui
-'     affichent plusieurs informations sur une meme ligne (ex : Date, Tiers,
-'     Montant de la depense). ---
+' --- Colonnes (une lettre = une colonne Excel). Le formulaire est organisé en
+'     trois paires "libellé / valeur" par ligne (B/C, D/E, F/G) pour les blocs
+'     affichant plusieurs informations sur une même ligne (ex. : Date, Tiers,
+'     montant de la dépense). --------------------------------------------------
 Public Const SS_COL_LIBELLE_1 As String = "B"
 Public Const SS_COL_VALEUR_1 As String = "C"
 Public Const SS_COL_LIBELLE_2 As String = "D"
@@ -89,15 +86,15 @@ Public Const SS_COL_VALEUR_2 As String = "E"
 Public Const SS_COL_LIBELLE_3 As String = "F"
 Public Const SS_COL_VALEUR_3 As String = "G"
 
-' Colonne technique (masquee) ou l'on conserve les informations internes dont le
-' code de la Phase 2b aura besoin (numero de ligne de la depense en cours de
-' traitement dans TblOperations). Jamais visible pour l'operateur.
+' Colonne technique (masquée) où sont conservées les informations nécessaires au
+' code de la phase 2b (numéro de ligne de la dépense en cours de traitement dans
+' TblOperations). Elle n'est jamais visible par l'opérateur.
 Public Const SS_COL_TECHNIQUE As String = "J"
 
 
 ' =====================================================================================
 ' MACRO PRINCIPALE D'INSTALLATION
-' A executer UNE SEULE FOIS (ou a nouveau pour reinitialiser completement la mise
+' À exécuter UNE SEULE FOIS (ou de nouveau pour réinitialiser complètement la mise
 ' en forme de la feuille).
 ' =====================================================================================
 
@@ -149,7 +146,7 @@ End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCEDURE - Mise en forme generale
+' SOUS-PROCÉDURE - Mise en forme générale
 ' =====================================================================================
 Private Sub SS_AppliquerMiseEnFormeGenerale(ws As Worksheet)
 
@@ -165,7 +162,7 @@ Private Sub SS_AppliquerMiseEnFormeGenerale(ws As Worksheet)
     ws.Columns("G").ColumnWidth = 16
     ws.Columns("H").ColumnWidth = 2
 
-    ' Colonne technique : reduite au minimum et masquee, jamais vue par l'operateur.
+    ' Colonne technique : largeur minimale et masquée, jamais visible par l'opérateur.
     ws.Columns(SS_COL_TECHNIQUE).ColumnWidth = 10
     ws.Columns(SS_COL_TECHNIQUE).Hidden = True
 
@@ -179,7 +176,7 @@ End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCEDURE - Zone des boutons (ligne 2) + compteur
+' SOUS-PROCÉDURE - Zone des boutons (ligne 2) et compteur
 ' =====================================================================================
 Private Sub SS_ConstruireZoneBoutons(ws As Worksheet)
 
@@ -194,10 +191,10 @@ Private Sub SS_ConstruireZoneBoutons(ws As Worksheet)
     zoneBoutonSuivant.RowHeight = 22
     zoneBoutonValider.RowHeight = 22
 
-    ' Boutons de type "Controle de formulaire" (pas ActiveX), comme le reste du
-    ' classeur. Les macros referencees dans .OnAction n'existent pas encore : ce
-    ' sera le contenu de la Phase 2b. Cela ne genere aucune erreur tant que
-    ' personne ne clique sur les boutons.
+    ' Boutons de type "Contrôle de formulaire" (pas ActiveX), comme dans le reste
+    ' du classeur. Les macros référencées dans .OnAction n'existent pas encore : elles
+    ' seront ajoutées en phase 2b. Cela ne génère aucune erreur tant que personne
+    ' ne clique sur ces boutons.
     Set boutonSuivant = ws.Buttons.Add( _
         zoneBoutonSuivant.Left, zoneBoutonSuivant.Top, zoneBoutonSuivant.Width, zoneBoutonSuivant.Height)
     With boutonSuivant
@@ -214,9 +211,9 @@ Private Sub SS_ConstruireZoneBoutons(ws As Worksheet)
         .Name = "btnValiderCasSuiviSante"
     End With
 
-    ' Compteur "X restant(s) sur Y", meme principe que CompteurCasRestants deja
-    ' utilise pour la resolution des categories : un nom defini plutot qu'une
-    ' reference de cellule en dur.
+    ' Compteur "X restant(s) sur Y", même principe que CompteurCasRestants, déjà
+    ' utilisé pour la résolution des catégories : un nom défini plutôt qu'une
+    ' référence de cellule codée en dur.
     With ws.Range(SS_COL_LIBELLE_3 & SS_LIGNE_BOUTONS & ":" & SS_COL_VALEUR_3 & SS_LIGNE_BOUTONS)
         .Merge
         .HorizontalAlignment = xlRight
@@ -231,7 +228,7 @@ End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCEDURE - Zone des instructions
+' SOUS-PROCÉDURE - Zone des instructions
 ' =====================================================================================
 Private Sub SS_ConstruireZoneInstructions(ws As Worksheet)
 
@@ -272,7 +269,7 @@ End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCEDURE - Bloc "Depense a traiter" (lecture seule)
+' SOUS-PROCÉDURE - Bloc "Dépense à traiter" (lecture seule)
 ' =====================================================================================
 Private Sub SS_ConstruireBlocDepense(ws As Worksheet)
 
@@ -303,7 +300,7 @@ End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCEDURE - Bloc "Remboursements lies" (lecture seule, jusqu'a 2 lignes)
+' SOUS-PROCÉDURE - Bloc "Remboursements liés" (lecture seule, jusqu'à deux lignes)
 ' =====================================================================================
 Private Sub SS_ConstruireBlocRemboursements(ws As Worksheet)
 
@@ -341,15 +338,14 @@ End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCEDURE - Bloc "Solde actuel" (lecture seule, formule live)
+' SOUS-PROCÉDURE - Bloc "Solde actuel" (lecture seule, formule dynamique)
 ' =====================================================================================
-' Le solde est calcule PAR UNE FORMULE EXCEL CLASSIQUE (pas par du VBA) : il se
-' recalcule donc automatiquement et instantanement des que l'operateur modifie la
-' Franchise, sans qu'aucun code ne soit necessaire pour ca. La formule exacte sera
-' ecrite en Phase 2b (elle depend des cellules ssMontant/ssRemb1Montant/
-' ssRemb2Montant/ssFranchise, qui n'existent pas encore a ce stade de la Phase 2a
-' pour ssFranchise). Pour l'instant on ne fait que preparer la mise en forme de la
-' cellule qui recevra cette formule.
+' Le solde est calculé PAR UNE FORMULE EXCEL CLASSIQUE (pas par du VBA) : il est
+' recalculé automatiquement et instantanément dès que l'opérateur modifie la
+' Franchise, sans code supplémentaire. La formule exacte sera écrite en phase 2b
+' (elle dépend des cellules ssMontant/ssRemb1Montant/ssRemb2Montant/ssFranchise; cette
+' dernière n'existe pas encore en phase 2a). Pour l'instant, on prépare seulement
+' la mise en forme de la cellule qui recevra cette formule.
 Private Sub SS_ConstruireBlocSolde(ws As Worksheet)
 
     ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_SOLDE).value = mod_Display.FR("Solde actuel :")
@@ -368,8 +364,8 @@ End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCEDURE - Bloc de saisie operateur (Beneficiaire, Tiers corrige, Franchise,
-' Depassement, Commentaire)
+' SOUS-PROCÉDURE - Bloc de saisie opérateur (Bénéficiaire, Tiers corrigé, Franchise,
+' Dépassement, Commentaire)
 ' =====================================================================================
 Private Sub SS_ConstruireBlocSaisie(ws As Worksheet)
 
@@ -379,8 +375,8 @@ Private Sub SS_ConstruireBlocSaisie(ws As Worksheet)
     Dim rngDepassement As Range
     Dim rngCommentaire As Range
 
-    ' --- Beneficiaire (toujours demande : la colonne demarre vide sur toutes les
-    '     lignes existantes, elle n'est jamais renseignee par l'import OFX) ---
+    ' --- Bénéficiaire (toujours demandé : la colonne est vide sur toutes les
+    '     lignes existantes; elle n'est jamais renseignée par l'import OFX) ---
     ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_BENEFICIAIRE).value = mod_Display.FR("B{e2}n{e2}ficiaire :")
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_BENEFICIAIRE)
     Set rngBeneficiaire = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_BENEFICIAIRE & ":" & SS_COL_VALEUR_2 & SS_LIGNE_BENEFICIAIRE)
@@ -389,9 +385,9 @@ Private Sub SS_ConstruireBlocSaisie(ws As Worksheet)
     Call SS_AppliquerListeDeroulante(rngBeneficiaire, "Beneficiaires")
     Call CreerNomSiAbsentSS(ws, "ssBeneficiaire", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_BENEFICIAIRE))
 
-    ' --- Tiers corrige (demande seulement si le Tiers importe n'est pas deja une
-    '     valeur valide de la liste Praticiens - ce controle sera fait en Phase 2b,
-    '     ici on prepare seulement la cellule et sa liste deroulante) ---
+    ' --- Tiers corrigé (demandé uniquement si le Tiers importé ne figure pas déjà
+    '     dans la liste Praticiens; ce contrôle sera fait en phase 2b. Ici, on prépare
+    '     uniquement la cellule et sa liste déroulante) ---
     ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_TIERS_CORRIGE).value = mod_Display.FR("Tiers corrig{e2} :")
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_TIERS_CORRIGE)
     Set rngTiersCorrige = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_TIERS_CORRIGE & ":" & SS_COL_VALEUR_2 & SS_LIGNE_TIERS_CORRIGE)
@@ -400,7 +396,7 @@ Private Sub SS_ConstruireBlocSaisie(ws As Worksheet)
     Call SS_AppliquerListeDeroulante(rngTiersCorrige, "Praticiens")
     Call CreerNomSiAbsentSS(ws, "ssTiersCorrige", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_TIERS_CORRIGE))
 
-    ' --- Franchise (saisie numerique libre, defaut 0) ---
+    ' --- Franchise (saisie numérique libre, valeur par défaut : 0) ---
     ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_FRANCHISE).value = mod_Display.FR("Franchise :")
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_FRANCHISE)
     Set rngFranchise = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_FRANCHISE)
@@ -408,9 +404,9 @@ Private Sub SS_ConstruireBlocSaisie(ws As Worksheet)
     rngFranchise.NumberFormat = "#,##0.00 " & ChrW(8364)
     Call CreerNomSiAbsentSS(ws, "ssFranchise", rngFranchise)
 
-    ' --- Depassement d'honoraires (liste Oui/Non, pertinent seulement quand les 2
-    '     remboursements sont presents - la Phase 2b grisera/masquera ce champ le
-    '     cas echeant) ---
+    ' --- Dépassement d'honoraires (liste Oui/Non, pertinent seulement si les deux
+    '     remboursements sont présents; la phase 2b grisera ou masquera ce champ
+    '     le cas échéant) ---
     ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_DEPASSEMENT).value = mod_Display.FR("D{e2}passement d'honoraires ? :")
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_DEPASSEMENT)
     Set rngDepassement = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_DEPASSEMENT)
@@ -435,7 +431,7 @@ End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCEDURE - Zone technique masquee (memorise la ligne TblOperations en cours)
+' SOUS-PROCÉDURE - Zone technique masquée (mémorise la ligne TblOperations en cours)
 ' =====================================================================================
 Private Sub SS_ConstruireZoneTechnique(ws As Worksheet)
     ws.Range(SS_COL_TECHNIQUE & SS_LIGNE_BOUTONS).value = 0
@@ -444,14 +440,14 @@ End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCEDURES UTILITAIRES DE MISE EN FORME (evitent de repeter le meme code de
-' style a chaque champ)
+' SOUS-PROCÉDURES UTILITAIRES DE MISE EN FORME (évitent de répéter le même code de
+' style pour chaque champ)
 ' =====================================================================================
 Private Sub SS_MettreEnFormeLibelles(ws As Worksheet, ByVal ligne As Long)
-    ' On formate chaque cellule de libelle individuellement (B, D, F) plutot que
-    ' la plage entiere B:F, car certaines lignes n'utilisent que la colonne B
-    ' comme libelle (les colonnes D/F servant alors a une valeur fusionnee, par
-    ' exemple pour le champ Beneficiaire).
+    ' On formate chaque cellule de libellé individuellement (B, D, F) plutôt que
+    ' toute la plage B:F, car certaines lignes n'utilisent que la colonne B
+    ' comme libellé (les colonnes D/F servent alors à une valeur fusionnée, par
+    ' exemple pour le champ Bénéficiaire).
     ws.Range(SS_COL_LIBELLE_1 & ligne).Font.Bold = False
     ws.Range(SS_COL_LIBELLE_1 & ligne).Font.Color = RGB(90, 90, 90)
     ws.Range(SS_COL_LIBELLE_2 & ligne).Font.Color = RGB(90, 90, 90)
@@ -510,8 +506,8 @@ Private Sub SupprimerFormesExistantesSS(ws As Worksheet)
     Next i
 End Sub
 
-' Supprime les noms definis qui pointent vers cette feuille avant une reconstruction,
-' pour eviter les erreurs "nom deja utilise" si on relance l'installation.
+' Supprime les noms définis qui pointent vers cette feuille avant sa reconstruction,
+' afin d'éviter les erreurs "nom déjà utilisé" si l'installation est relancée.
 Private Sub SupprimerNomsExistantsSS(ws As Worksheet)
     Dim n As Name
     Dim i As Long
@@ -525,8 +521,8 @@ Private Sub SupprimerNomsExistantsSS(ws As Worksheet)
     Next i
 End Sub
 
-' Cree un nom defini seulement s'il n'existe pas deja (evite une erreur si la
-' macro d'installation est relancee plusieurs fois sans etre passee par
+' Crée un nom défini uniquement s'il n'existe pas déjà (évite une erreur si la
+' macro d'installation est relancée plusieurs fois sans appeler
 ' SupprimerNomsExistantsSS, par exemple lors de tests manuels).
 Private Sub CreerNomSiAbsentSS(ws As Worksheet, ByVal nomCellule As String, ByVal rng As Range)
     On Error Resume Next
@@ -537,15 +533,15 @@ End Sub
 
 
 ' =====================================================================================
-' OUTILS DEVELOPPEUR (reserves a toi, jamais accessibles depuis l'usage normal du
-' classeur) : basculent la visibilite de la feuille pour pouvoir la retoucher.
+' OUTILS DÉVELOPPEUR (réservés à toi, jamais accessibles dans l'utilisation normale
+' du classeur) : basculent la visibilité de la feuille pour permettre de la retoucher.
 ' =====================================================================================
 ' =====================================================================================
-' AjouterBoutonsAjoutListe : ajoute (ou remplace si deja presents) UNIQUEMENT
-' les 2 boutons "+" a cote de Beneficiaire et Tiers corrige, sans reconstruire
-' le reste de la feuille (contrairement a CreerFeuilleSuiviSante qui, elle,
-' repart de zero et perdrait tes eventuels reglages manuels).
-' A executer UNE SEULE FOIS, dans la fenetre Execution immediate (Ctrl+G) :
+' AjouterBoutonsAjoutListe : ajoute (ou remplace s'ils sont déjà présents) UNIQUEMENT
+' les deux boutons "+" à côté des champs Bénéficiaire et Tiers corrigé, sans reconstruire
+' le reste de la feuille (contrairement à CreerFeuilleSuiviSante, qui repartirait de zéro
+' et supprimerait tes éventuels réglages manuels).
+' À exécuter UNE SEULE FOIS dans la fenêtre Exécution immédiate (Ctrl+G) :
 '      AjouterBoutonsAjoutListe
 ' =====================================================================================
 Sub AjouterBoutonsAjoutListe()
@@ -562,9 +558,9 @@ Sub AjouterBoutonsAjoutListe()
         Exit Sub
     End If
 
-    ' On doit rendre la feuille visible le temps de placer les boutons
-    ' (Shapes.Add echoue parfois sur une feuille tres masquee), puis on la
-    ' remasque si elle etait masquee au depart.
+    ' On rend temporairement la feuille visible pour placer les boutons
+    ' (Shapes.Add échoue parfois sur une feuille très masquée), puis on la
+    ' masque de nouveau si elle l'était au départ.
     etaitMasquee = (ws.Visible <> xlSheetVisible)
     ws.Visible = xlSheetVisible
 
@@ -601,10 +597,10 @@ End Sub
 
 
 ' =====================================================================================
-' AjouterChampsContexteSuiviSante : ajoute le bloc "Informations complementaires"
-' (Num_Cheque, Date_consult, Spe_Consult, Notes bruts, tous en lecture seule)
-' SANS reconstruire le reste de la feuille. A executer UNE SEULE FOIS, dans la
-' fenetre Execution immediate (Ctrl+G) :
+' AjouterChampsContexteSuiviSante : ajoute le bloc "Informations complémentaires"
+' (Num_Cheque, Date_consult, Spe_Consult, Notes brutes, toutes en lecture seule)
+' SANS reconstruire le reste de la feuille. À exécuter UNE SEULE FOIS dans la
+' fenêtre Exécution immédiate (Ctrl+G) :
 '      AjouterChampsContexteSuiviSante
 ' =====================================================================================
 Sub AjouterChampsContexteSuiviSante()
@@ -631,7 +627,7 @@ Sub AjouterChampsContexteSuiviSante()
         .Interior.Color = RGB(250, 250, 248)
     End With
 
-    ' --- Ligne Num_Cheque + Date_consult (2 paires sur la meme ligne) ---
+    ' --- Ligne Num_Cheque + Date_consult (deux paires sur la même ligne) ---
     ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_NUM_CHEQUE).value = "Num_Cheque :"
     ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_NUM_CHEQUE).value = mod_Display.FR("Date_consult :")
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_NUM_CHEQUE)
@@ -649,7 +645,7 @@ Sub AjouterChampsContexteSuiviSante()
     Call SS_MettreEnFormeValeursLectureSeule(ws, SS_LIGNE_SPE_CONSULT)
     Call CreerNomSiAbsentSS(ws, "ssSpeConsult", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_SPE_CONSULT))
 
-    ' --- Ligne Notes (texte brut, potentiellement long -> renvoi a la ligne) ---
+    ' --- Ligne Notes (texte brut, potentiellement long -> renvoi à la ligne) ---
     ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_NOTES).value = "Notes :"
     Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_NOTES)
     With ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_NOTES & ":" & SS_COL_VALEUR_3 & SS_LIGNE_NOTES)

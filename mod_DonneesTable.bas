@@ -4,7 +4,7 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_DonneesTable
 
-' Ce module regroupe tout ce qui concerne l'ACCES BRUT à la table Excel
+' Ce module regroupe tout ce qui concerne l'ACCÈS BRUT à la table Excel
 ' "TblOperations" (feuille Données) : la retrouver, lire une colonne
 ' par son nom, et vérifier si une ligne correspond à une période ou un filtre.
 '
@@ -16,7 +16,7 @@ Option Explicit
 ' l'historique des opérations bancaires.
 ' ----------------------------------------------------------------------
 ' On utilise "On Error Resume Next" pour éviter un plantage si la feuille
-' "Données" ou le tableau "OperationsImport2__2" a été renommé ou supprimé.
+' "Données" ou le tableau "TblOperations" a été renommé ou supprimé.
 ' Dans ce cas, la fonction retourne Nothing, et affiche un message clair
 ' plutôt que de laisser Excel afficher une erreur technique incompréhensible.
 Public Function GetOperationsTable() As ListObject
@@ -42,13 +42,13 @@ Public Function RowMatchesPeriod(ByVal Mois As Long, ByVal Annee As Long) As Boo
 End Function
 
 ' ----------------------------------------------------------------------
-' RowMatchesFilter : vérifie si une ligne correspond à la période DEMANDEE
+' RowMatchesFilter : vérifie si une ligne correspond à la période DEMANDÉE
 ' (voir RowMatchesPeriod ci-dessus) ET, si demandé, à un montant minimum.
 ' ----------------------------------------------------------------------
 ' Paramètre useMinimum : si False, on ne teste QUE la période (le seuil de
 ' montant est ignoré). Si True, on applique en plus le filtre de montant.
 '
-' Point important : pour une dépense (montant négatif, ex : -300), on compare
+' Point important : pour une dépense (montant négatif, ex. : -300), on compare
 ' la VALEUR ABSOLUE du montant au seuil. En effet, -300 représente une
 ' dépense de 300 € : comparer "-300 >= seuil" donnerait un résultat faux
 ' pour n'importe quel seuil positif, ce qui ne correspond pas à l'intention
@@ -77,7 +77,7 @@ End Function
 '' TableValue : lit la valeur d'UNE colonne (identifiée par son NOM, pas son
 '' numéro) pour UNE ligne donnée du tableau structuré.
 '' ----------------------------------------------------------------------
-'' Pourquoi chercher par nom de colonne plutôt que par numéro fixe (ex: colonne 4) ?
+'' Pourquoi chercher par nom de colonne plutôt que par numéro fixe (ex. : colonne 4) ?
 '' Si un jour une colonne est ajoutée ou déplacée dans le tableau "Données",
 '' ce code continuera de fonctionner correctement, car il retrouve toujours
 '' "Montant" ou "Date" par leur intitulé, où qu'ils se trouvent désormais.

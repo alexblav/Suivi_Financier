@@ -4,7 +4,7 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_Criteres
 
-' Ce module regroupe tout ce qui concerne la LECTURE DES CRITERES saisis par
+' Ce module regroupe tout ce qui concerne la LECTURE DES CRITÈRES saisis par
 ' l'utilisateur dans les cellules B1 à B6 de la feuille "Synthese"
 ' (année, mois, nombre d'opérations à surligner, seuil minimum, champ de tri,
 ' ordre de tri) — ainsi que la récupération de la feuille "Synthese" elle-même.
