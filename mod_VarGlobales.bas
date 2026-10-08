@@ -11,7 +11,17 @@ Public Const coulEntete As Long = &H794E1F     ' Bleu principal (en-tête)
 Public Const coulClair1 As Long = &HF8F2EE  ' Nuance 1 (très claire)
 Public Const coulClair2 As Long = &HF8E3DA   ' Nuance 2 (légèrement plus soutenue)
 Public Const coulBloc As Long = &H868878 ' Couleur des cellules de blocage
-
+ 
+' --- Couleurs communes des MONTANTS (ajout 08/10/2026, décision opérateur) ----------
+' Une seule définition pour tout le classeur, utilisée par la fonction commune
+' mod_Display.AppliquerCouleurMontant. Changer une couleur ici la change partout.
+' RAPPEL : une couleur VBA s'écrit &HBBVVRR& (Bleu, Vert, Rouge, dans cet ordre),
+' c'est-à-dire l'inverse de l'écriture RGB habituelle ; le "&" final force le type
+' Long (sans lui, &H8000 serait lu comme un nombre NÉGATIF de type Integer).
+Public Const coulMontantPositif As Long = &H8000&   ' vert foncé = RGB(0, 128, 0)   : entrée d'argent
+Public Const coulMontantNegatif As Long = &H0&      ' noir       = RGB(0, 0, 0)     : dépense
+Public Const coulMontantAlerte As Long = &HFF&      ' rouge      = RGB(255, 0, 0)   : dépense à surveiller
+ 
 ' Défini si l'obtion double click doit être activé ou non sur un feuille
 Public AllowDetailDoubleClick As Boolean
 Public RecherOperations As Boolean
@@ -91,14 +101,6 @@ Public Const NOM_FEUILLE_RECHERCHE As String = "frm_RechercheOperations"
 Public Const NOM_FEUILLE_TECH As String = "TechDernierImport"
 Public Const NOM_FEUILLE_SUIVI_SANTE As String = "frm_SuiviSante"
 Public Const NOM_FEUILLE_RESOLUTION As String = "frm_ResolutionCategories"
- 
-' Nom défini (portée CLASSEUR, masqué dans le Gestionnaire de noms) qui mémorise le
-' préfiltre affiché par frm_RechercheOperations ("", "SuiviSante"...). Ajout
-' 08/10/2026 : contrairement à une variable VBA, un nom défini SURVIT à une
-' réinitialisation du projet (modification du code, instruction End, bouton
-' "Réinitialiser"...). Écrit par mod_RechercheOperations.RechercherOperations,
-' relu par mod_RechercheOperations.PrefiltreActifRO.
-Public Const NOM_PREFILTRE_ACTIF_RO As String = "RO_PrefiltreActif"
  
 ' Variables de construction d'une zone de texte
 Public PositionTitre As Range, debutZone As Range, finZone As Range

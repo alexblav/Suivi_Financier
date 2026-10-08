@@ -70,40 +70,6 @@ Private Function CategorieVentileRO() As String
 End Function
 
 ' =====================================================================================
-' PrefiltreActifRO (ajout 07/10/2026) : renvoie le préfiltre actuellement affiché
-' ("", "DernierImport", "SuiviSante"...).
-' La variable g_ROPrefiltreActif reste Private : personne ne doit pouvoir la
-' MODIFIER depuis un autre module. Cette fonction en donne seulement une LECTURE,
-' utilisée par ThisWorkbook.Workbook_SheetBeforeDoubleClick pour n'activer le
-' double-clic sur SousCategorie qu'en mode suivi santé.
-' Si le projet VBA a été réinitialisé entre-temps (bouton "Sortir" qui exécute
-' End, erreur non gérée...), les variables sont effacées et la fonction renvoie "" :
-' le double-clic reprend alors simplement son comportement normal d'Excel.
-' =====================================================================================
-Public Function PrefiltreActifRO() As String
- 
-    ' Correctif du 08/10/2026 : la variable g_ROPrefiltreActif est EFFACÉE dès que le
-    ' projet VBA est réinitialisé (code modifié dans l'éditeur, instruction End,
-    ' erreur arrêtée par "Fin"...), alors que l'écran, lui, reste affiché. Le
-    ' double-clic sur SousCategorie ne reconnaissait alors plus le mode suivi santé.
-    ' On lit donc d'abord le NOM DÉFINI écrit par RechercherOperations, qui survit à
-    ' ces réinitialisations ; la variable ne sert plus que de solution de repli.
-    ' Evaluate transforme la référence du nom (="SuiviSante") en sa valeur (SuiviSante).
-    Dim valeur As Variant
- 
-    On Error Resume Next
-    valeur = ThisWorkbook.Evaluate(ThisWorkbook.Names(mod_VarGlobales.NOM_PREFILTRE_ACTIF_RO).RefersTo)
-    On Error GoTo 0
- 
-    If IsEmpty(valeur) Or IsError(valeur) Then
-        PrefiltreActifRO = g_ROPrefiltreActif
-    Else
-        PrefiltreActifRO = CStr(valeur)
-    End If
- 
-End Function
-
-' =====================================================================================
 ' HELPERS PHASE 5 : accès à TblVentilations, dupliqués comme dans les autres
 ' modules du chantier (mod_SuiviSante, mod_FormulairesNotes, ...).
 ' =====================================================================================
@@ -236,7 +202,40 @@ End Sub
 '   Appliquer); seules les LIGNES chargées et les COLONNES visibles changent
 '   (voir mod_InstallRechercheOperations.DefinirColonnesVisibles).
 ' =====================================================================================
+ 
 Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optional ByVal param As Variant)
+ 
+    ' AJOUT 08/10/2026 (décision opérateur) : « enveloppe » de sécurité autour du
+    ' traitement réel, RechercherOperationsCoeur (juste en dessous, inchangé).
+    '   1. Pendant la reconstruction de l'écran, les événements Excel sont COUPÉS :
+    '      les nombreuses écritures dans la feuille ne doivent déclencher aucun code
+    '      d'événement (piste principale de l'erreur rencontrée sur Names.Add, apparue
+    '      précisément le jour où les événements étaient actifs pendant le rechargement).
+    '   2. À la fin, ils sont TOUJOURS remis à Vrai, y compris en cas d'erreur : cet
+    '      écran a besoin des événements (double-clics sur Categorie, SousCategorie,
+    '      Ventile). Un réglage resté à Faux par une autre macro est ainsi réparé à
+    '      chaque ouverture de l'écran.
+    ' Le nom public ne change pas : les boutons et tous les appels existants
+    ' (RechercherOperations "SuiviSante", etc.) continuent de fonctionner tels quels.
+    ' POUR DÉBOGUER une erreur à sa ligne exacte : mettre provisoirement une
+    ' apostrophe devant "On Error GoTo Erreur" ci-dessous.
+    On Error GoTo Erreur
+    Application.EnableEvents = False
+    RechercherOperationsCoeur prefiltre, param
+    Application.EnableEvents = True
+    Exit Sub
+ 
+Erreur:
+    Application.EnableEvents = True
+    MsgBox mod_Display.FR("Erreur pendant l'affichage des op{e2}rations.") & vbLf & _
+           "Erreur " & Err.Number & " : " & Err.Description, vbExclamation, _
+           mod_Display.FR("Recherche des op{e2}rations")
+ 
+End Sub
+ 
+' Traitement réel de l'écran de recherche (ex-RechercherOperations, contenu inchangé
+' hormis les ajouts datés du 08/10/2026). Toujours appelé via l'enveloppe ci-dessus.
+Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", Optional ByVal param As Variant)
 
     Dim ws As Worksheet
     Dim tblRecherche As ListObject
@@ -270,21 +269,18 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
     Dim indicesVen() As Long, nbIndicesVen As Long
     Dim nbTotal As Long
 
+    ' Ajout 08/10/2026 : couleur commune des montants et résumé du suivi santé
+    ' affiché en ligne RO_LIGNE_FILTRE (voir la boucle de mise en forme plus bas).
+    Dim montantEnAlerte As Boolean      ' Vrai = afficher ce montant comme une alerte
+    Dim statutLigne As String           ' StatutSante de la ligne ("OK", "KO" ou vide)
+    Dim nbOK As Long, nbKO As Long      ' nombre de lignes OK / KO en suivi santé
+    Dim ecartKO As Double               ' somme des SoldeSante des dépenses KO
+    Dim complementSante As String       ' fin de phrase de la ligne RO_LIGNE_FILTRE
+
     ' Mémorise le préfiltre actif : RevoirVentilationRO le réutilise pour
     ' recharger l'écran dans le MÊME contexte après une modification.
     g_ROPrefiltreActif = prefiltre
     g_ROParamActif = param
- 
-    ' Correctif du 08/10/2026 : copie du préfiltre dans un nom défini masqué, qui
-    ' survit à une réinitialisation du projet VBA (voir PrefiltreActifRO). Names.Add
-    ' remplace le nom s'il existe déjà. Portée CLASSEUR (ThisWorkbook.Names) : c'est
-    ' la même portée qu'à la lecture, pour éviter le piège déjà rencontré entre
-    ' ws.Names et ThisWorkbook.Names. Une erreur ici ne doit jamais empêcher la
-    ' recherche : elle est ignorée (la variable g_ROPrefiltreActif prend le relais).
-    On Error Resume Next
-    ThisWorkbook.Names.Add Name:=mod_VarGlobales.NOM_PREFILTRE_ACTIF_RO, _
-                           RefersTo:="=""" & prefiltre & """", Visible:=False
-    On Error GoTo 0
  
     Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RECHERCHE)
     Set tblRecherche = ws.ListObjects(mod_VarGlobales.NOM_TABLE_RECHERCHE)
@@ -623,35 +619,45 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
             tblRecherche.ListColumns("Notes").DataBodyRange.Cells(i).Interior.ColorIndex = xlColorIndexNone
         End If
 
-        tblRecherche.ListColumns("Montant").DataBodyRange.Cells(i).Font.Color = RGB(0, 0, 0)
-
-        ' Ajout 07/10/2026 : on retire aussi le GRAS, posé sur les montants "KO"
-        ' par le préfiltre "SuiviSante" (bloc suivant). Sans cette ligne, le gras
-        ' pourrait rester visible si l'opérateur relance ensuite un autre préfiltre.
-        tblRecherche.ListColumns("Montant").DataBodyRange.Cells(i).Font.Bold = False
-
-        If mod_DataStructure.ToDouble(tblRecherche.ListColumns("Montant").DataBodyRange.Cells(i).value) > 0 Then
-            tblRecherche.ListColumns("Montant").DataBodyRange.Cells(i).Font.Color = RGB(0, 128, 0)
-        End If
-    Next i
-
-    ' --- Ajout 07/10/2026 (préfiltre "SuiviSante", demande opérateur) : reprise de
-    ' l'atout visuel de l'ancien écran Synthese_Care. Le montant des lignes dont
-    ' StatutSante vaut "KO" passe en ROUGE et GRAS. Ce bloc est placé APRÈS la
-    ' boucle ci-dessus (qui remet tout en noir puis colore en vert les montants
-    ' positifs) pour que le rouge l'emporte aussi sur un remboursement "KO".
-    ' Le statut est relu dans le tableau mémoire "resultat", écrit dans le MÊME
-    ' ordre que les lignes de l'écran : la ligne i de "resultat" correspond donc
-    ' bien à la ligne i du tableau affiché.
-    If prefiltre = "SuiviSante" Then
-        For i = 1 To nbTotal
-            If mod_DataStructure.CellText(resultat(i, mod_InstallRechercheOperations.RO_COL_STATUTSANTE)) = "KO" Then
-                With tblRecherche.ListColumns("Montant").DataBodyRange.Cells(i).Font
-                    .Color = RGB(255, 0, 0)
-                    .Bold = True
-                End With
+        ' Ajout 08/10/2026 (décision opérateur) : la couleur du montant est confiée à
+        ' la fonction COMMUNE du classeur (mod_Display.AppliquerCouleurMontant) : vert
+        ' si positif, noir si négatif, rouge + gras pour une dépense en alerte. Elle
+        ' remplace le noir/vert écrit ici en dur ET l'ancien bloc séparé qui
+        ' recolorait APRÈS cette boucle tous les montants KO en rouge, remboursements
+        ' compris (ce qui cassait la norme "positif = vert").
+        ' En suivi santé, une ligne est "en alerte" si son StatutSante vaut "KO". Le
+        ' statut est relu dans le tableau mémoire "resultat", rempli dans le MÊME
+        ' ordre que les lignes affichées (ligne i de resultat = ligne i de l'écran).
+        ' Au passage, on compte les OK/KO et on cumule l'écart des dépenses KO, pour
+        ' la phrase de résumé de la ligne RO_LIGNE_FILTRE. Le SoldeSante n'est écrit
+        ' par mod_SuiviSante que sur la ligne de DÉPENSE d'un groupe : on ne cumule
+        ' donc que les montants négatifs, pour ne jamais compter un solde deux fois.
+        montantEnAlerte = False
+        If prefiltre = "SuiviSante" Then
+            statutLigne = mod_DataStructure.CellText(resultat(i, mod_InstallRechercheOperations.RO_COL_STATUTSANTE))
+            If statutLigne = "OK" Then nbOK = nbOK + 1
+            If statutLigne = "KO" Then
+                nbKO = nbKO + 1
+                montantEnAlerte = True
+                If mod_DataStructure.ToDouble(resultat(i, mod_InstallRechercheOperations.RO_COL_MONTANT)) < 0 Then
+                    ecartKO = ecartKO + mod_DataStructure.ToDouble(resultat(i, mod_InstallRechercheOperations.RO_COL_SOLDESANTE))
+                End If
             End If
-        Next i
+        End If
+        mod_Display.AppliquerCouleurMontant tblRecherche.ListColumns("Montant").DataBodyRange.Cells(i), montantEnAlerte
+ 
+    Next i
+ 
+    ' --- Ajout 08/10/2026 : fin de la phrase de résumé du suivi santé (ligne
+    ' RO_LIGNE_FILTRE), à partir des compteurs remplis dans la boucle ci-dessus.
+    ' Exemple : " dont 1 part(s) ventilée(s) : 3 OK, 2 KO -- écart cumulé des
+    ' dépenses KO : 45,00 €". Format() applique les réglages régionaux du poste
+    ' (virgule décimale) ; ChrW(8364) est le symbole euro.
+    If prefiltre = "SuiviSante" Then
+        complementSante = mod_Display.FR(" dont ") & nbIndicesVen & _
+                          mod_Display.FR(" part(s) ventil{e2}e(s) : ") & nbOK & " OK, " & nbKO & " KO -- " & _
+                          mod_Display.FR("{e2}cart cumul{e2} des d{e2}penses KO : ") & _
+                          Format(ecartKO, "#,##0.00") & " " & ChrW(8364)
     End If
 
     ' --- PHASE 6 : surlignage des N plus grosses dépenses, UNIQUEMENT pour le
@@ -677,7 +683,7 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
     ' avoir quitte puis rouvert cet ecran, ou apres un "Revoir la ventilation"
     ' qui relance cette meme procedure avec le meme prefiltre (g_ROPrefiltreActif).
     ws.Range("A" & mod_InstallRechercheOperations.RO_LIGNE_FILTRE).value = _
-        DecrireFiltreActifRO(prefiltre, param, nbTotal)
+        DecrireFiltreActifRO(prefiltre, param, nbTotal, complementSante)
 
     ' On remet en place le(s) filtre(s) que l'operateur avait poses avant cette
     ' recherche (voir RestaurerFiltresRO plus haut) -- sans ca, un filtre de colonne
@@ -699,7 +705,10 @@ End Sub
 ' ici sans les recalculer, comme le fait mod_SyntheseBudgetBilanMensuel ailleurs
 ' dans ce classeur.
 ' =====================================================================================
-Private Function DecrireFiltreActifRO(ByVal prefiltre As String, ByVal param As Variant, ByVal nbTotal As Long) As String
+' Ajout 08/10/2026 : complementSante (facultatif) = fin de phrase calculée par
+' RechercherOperationsCoeur pour le préfiltre "SuiviSante" (OK/KO, écart cumulé).
+Private Function DecrireFiltreActifRO(ByVal prefiltre As String, ByVal param As Variant, ByVal nbTotal As Long, _
+                                      Optional ByVal complementSante As String = "") As String
 
     Dim texte As String
 
@@ -729,12 +738,11 @@ Private Function DecrireFiltreActifRO(ByVal prefiltre As String, ByVal param As 
             texte = texte & FR(" -- ") & nbTotal & FR(" op{e2}ration(s).")
 
         Case "SuiviSante"
-            ' Ajout 07/10/2026. La phrase rappelle aussi le double-clic de recalcul,
-            ' car le texte d'aide général de l'écran ne peut pas être modifié sans
-            ' réinstaller la feuille (voir la réponse du 07/10 sur le décalage entre
-            ' le dépôt et le classeur).
-            texte = FR("Suivi sant{e2} (parts ventil{e2}es comprises) -- ") & nbTotal & _
-                    FR(" ligne(s). Double-clic sur SousCategorie = recalcul des statuts.")
+            ' Ajout 07/10/2026, revu le 08/10/2026 (demande opérateur : phrase trop
+            ' courte). Résultat : "Suivi santé -- 5 ligne(s) dont 1 part(s)
+            ' ventilée(s) : 3 OK, 2 KO -- écart cumulé des dépenses KO : 45,00 €."
+            ' La mention du double-clic de recalcul est retirée (fonction supprimée).
+            texte = FR("Suivi sant{e2} -- ") & nbTotal & FR(" ligne(s)") & complementSante & "."
         Case Else
             ' Sécurité : un préfiltre non prévu ici ne doit pas faire échouer
             ' l'affichage; on reste simplement discret.
@@ -886,7 +894,8 @@ Private Sub SurlignerTopDepensesRO(ByVal tblRecherche As ListObject, ByVal nbLig
     Next jj
 
     For jj = 1 To nombreSurligne
-        tblRecherche.ListColumns("Montant").DataBodyRange.Cells(indicesDepenses(jj)).Font.Color = RGB(255, 0, 0)
+        ' 08/10/2026 : couleur commune du classeur (rouge + gras pour une alerte).
+        mod_Display.AppliquerCouleurMontant tblRecherche.ListColumns("Montant").DataBodyRange.Cells(indicesDepenses(jj)), True
     Next jj
 
 End Sub
@@ -1386,41 +1395,6 @@ Public Sub EditerCategorieRO()
         RechercherOperations g_ROPrefiltreActif, g_ROParamActif
     End If
 
-End Sub
-
-' =====================================================================================
-' RecalculerSuiviSanteRO (ajout 07/10/2026, demande opérateur) : relance le calcul
-' officiel des statuts santé, puis recharge l'écran dans le MÊME contexte, pour que
-' l'opérateur voie immédiatement les StatutSante/SoldeSante à jour (par exemple
-' après avoir saisi une Franchise).
-' RÉUTILISATION : mod_SuiviSante.CalculerSuiviSante est appelée telle quelle,
-' sans aucune modification.
-' APPEL : par un double-clic sur une cellule SousCategorie, UNIQUEMENT quand
-' l'écran affiche le préfiltre "SuiviSante" (voir ThisWorkbook).
-' RAPPEL (règle inchangée de mod_SuiviSante) : un groupe déjà "OK", ou "KO" avec
-' DepassementHoraires = Vrai, n'est PAS recalculé. Ce double-clic ne remet donc
-' jamais en cause un statut déjà accepté par l'opérateur.
-' =====================================================================================
-Public Sub RecalculerSuiviSanteRO()
- 
-    Dim reponse As VbMsgBoxResult
- 
-    ' Garde-fou contre un double-clic accidentel : le calcul ÉCRIT dans
-    ' TblOperations et TblVentilations (StatutSante, SoldeSante, DepassementHoraires).
-    reponse = MsgBox(FR("Recalculer les statuts de suivi sant{e2} de toutes les op{e2}rations ?"), _
-                     vbYesNo + vbQuestion, FR("Suivi sant{e2}"))
-    If reponse <> vbYes Then Exit Sub
- 
-    ' True = afficher le résumé habituel du calcul (nombre de groupes recalculés).
-    mod_SuiviSante.CalculerSuiviSante True
-  
-    ' CalculerSuiviSante modifie les variables globales tbl et colXxx : on recharge
-    ' l'écran, qui les réinitialise proprement, avec le même préfiltre qu'avant.
-    ' Correctif du 08/10/2026 : PrefiltreActifRO() au lieu de g_ROPrefiltreActif,
-    ' sinon, après une réinitialisation du projet, l'écran se rechargeait en
-    ' recherche globale au lieu du suivi santé.
-    RechercherOperations PrefiltreActifRO(), g_ROParamActif
-  
 End Sub
 
 ' PHASE 6 : retourne sur la feuille "Resultat" (bilan mensuel) si l'écran a été

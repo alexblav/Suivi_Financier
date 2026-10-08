@@ -279,6 +279,38 @@ Public Sub MiseEnPage(ws As Worksheet, totalLignes As Long, Optional Filter As B
     
 End Sub
 
+' =====================================================================================
+' AppliquerCouleurMontant (ajout 08/10/2026, décision opérateur) : RÈGLE UNIQUE de
+' couleur des montants pour TOUT le classeur, afin que tous les écrans parlent le
+' même langage visuel :
+'   - montant positif (entrée d'argent)           -> VERT  (coulMontantPositif)
+'   - montant négatif ou nul (dépense)            -> NOIR  (coulMontantNegatif)
+'   - montant "en alerte" (enAlerte = Vrai)       -> en GRAS, et en ROUGE
+'     (coulMontantAlerte) s'il s'agit d'une dépense. Une entrée d'argent en alerte
+'     reste VERTE (la norme est respectée) mais passe en gras.
+' C'est l'écran appelant qui décide de ce qu'est une "alerte" (statut santé KO,
+' plus grosses dépenses du mois...) : cette fonction ne fait que l'afficher.
+' La cellule doit contenir le montant SIGNÉ (négatif = dépense), comme TblOperations.
+' Le gras est TOUJOURS repositionné (Vrai ou Faux) : une cellule réutilisée d'un
+' affichage précédent ne garde donc jamais un gras périmé.
+' =====================================================================================
+Public Sub AppliquerCouleurMontant(ByVal cellule As Range, Optional ByVal enAlerte As Boolean = False)
+ 
+    Dim valeurMontant As Double
+    valeurMontant = mod_DataStructure.ToDouble(cellule.Value2)
+ 
+    With cellule.Font
+        If enAlerte And valeurMontant < 0 Then
+            .Color = coulMontantAlerte
+        ElseIf valeurMontant > 0 Then
+            .Color = coulMontantPositif
+        Else
+            .Color = coulMontantNegatif
+        End If
+        .Bold = enAlerte
+    End With
+ 
+End Sub
 
 ' =====================================================================================
 ' Garantie la bonne transcription des caractères accentués dans les affichages

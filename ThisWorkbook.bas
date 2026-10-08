@@ -73,12 +73,14 @@ Private Sub Workbook_SheetBeforeDoubleClick(ByVal Sh As Object, ByVal Target As 
         Exit Sub
     End If
  
-    ' AJOUT 07/10/2026 (demande opérateur) : en mode suivi santé UNIQUEMENT (écran
-    ' ouvert par Synthese_Care, préfiltre "SuiviSante"), un double-clic sur une
-    ' cellule SousCategorie relance le calcul des statuts santé, puis recharge
-    ' l'écran (mod_RechercheOperations.RecalculerSuiviSanteRO).
-    ' Dans tous les autres préfiltres, rien ne change : le double-clic garde son
-    ' comportement normal d'Excel (passer la cellule en mode édition).
+    ' AJOUT 07/10/2026, REVU 08/10/2026 (décision opérateur) : un double-clic sur une
+    ' cellule SousCategorie se comporte EXACTEMENT comme sur Categorie, dans tous les
+    ' préfiltres : il ouvre le formulaire habituel de contrôle des catégories
+    ' (mod_RechercheOperations.EditerCategorieRO), qui modifie la catégorie ET la
+    ' sous-catégorie ensemble. Après validation, EditerCategorieRO recalcule déjà les
+    ' statuts santé EN SILENCE (CalculerSuiviSante AfficherResume:=False) puis recharge
+    ' l'écran dans le même préfiltre : l'ancien double-clic de "recalcul" devient
+    ' donc inutile et a été supprimé (RecalculerSuiviSanteRO, PrefiltreActifRO).
     ' La variable locale s'appelle colSousCat (et non colSousCategorie) pour ne pas
     ' masquer la variable publique du même nom déclarée dans mod_VarGlobales.
     Dim colSousCat As Long
@@ -86,11 +88,14 @@ Private Sub Workbook_SheetBeforeDoubleClick(ByVal Sh As Object, ByVal Target As 
     colSousCat = tbl.ListColumns("SousCategorie").index
     On Error GoTo 0
  
-    If colSousCat <> 0 And Target.Column = tbl.Range.Columns(colSousCat).Column Then
-        If mod_RechercheOperations.PrefiltreActifRO() = "SuiviSante" Then
+    ' Deux "If" imbriqués, et non un seul "If ... And ...". En VBA, un "And" évalue
+    ' TOUJOURS ses deux côtés : si colSousCat valait 0, tbl.Range.Columns(0)
+    ' provoquerait une erreur, même avec colSousCat <> 0 déjà faux.
+    If colSousCat <> 0 Then
+        If Target.Column = tbl.Range.Columns(colSousCat).Column Then
             Cancel = True
             Target.Select
-            mod_RechercheOperations.RecalculerSuiviSanteRO
+            mod_RechercheOperations.EditerCategorieRO
             Exit Sub
         End If
     End If
