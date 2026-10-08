@@ -72,5 +72,27 @@ Private Sub Workbook_SheetBeforeDoubleClick(ByVal Sh As Object, ByVal Target As 
         mod_RechercheOperations.EditerCategorieRO
         Exit Sub
     End If
-
+ 
+    ' AJOUT 07/10/2026 (demande opérateur) : en mode suivi santé UNIQUEMENT (écran
+    ' ouvert par Synthese_Care, préfiltre "SuiviSante"), un double-clic sur une
+    ' cellule SousCategorie relance le calcul des statuts santé, puis recharge
+    ' l'écran (mod_RechercheOperations.RecalculerSuiviSanteRO).
+    ' Dans tous les autres préfiltres, rien ne change : le double-clic garde son
+    ' comportement normal d'Excel (passer la cellule en mode édition).
+    ' La variable locale s'appelle colSousCat (et non colSousCategorie) pour ne pas
+    ' masquer la variable publique du même nom déclarée dans mod_VarGlobales.
+    Dim colSousCat As Long
+    On Error Resume Next
+    colSousCat = tbl.ListColumns("SousCategorie").index
+    On Error GoTo 0
+ 
+    If colSousCat <> 0 And Target.Column = tbl.Range.Columns(colSousCat).Column Then
+        If mod_RechercheOperations.PrefiltreActifRO() = "SuiviSante" Then
+            Cancel = True
+            Target.Select
+            mod_RechercheOperations.RecalculerSuiviSanteRO
+            Exit Sub
+        End If
+    End If
+ 
 End Sub

@@ -138,7 +138,7 @@ Public Const RO_LIGNE_ENTETES As Long = 7
 ' mod_RechercheOperations.DecrireFiltreActifRO), qui dit à l'opérateur sur quel
 ' sous-ensemble d'opérations il travaille actuellement (recherche globale, dernier
 ' import, mois précis, etc.).
-Public Const RO_LIGNE_FILTRE As Long = RO_LIGNE_ENTETES - 1
+Public Const RO_LIGNE_FILTRE As Long = 4
 
 ' Position des colonnes DANS LE TABLEAU (1 = première colonne du tableau, A)
 Public Const RO_COL_VALIDER As Long = 1

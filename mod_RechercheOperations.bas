@@ -61,13 +61,28 @@ Private Const CATEGORIE_VENTILE As String = "Ventil" ' + « é » accentué, voi
 Private g_ROPrefiltreActif As String
 Private g_ROParamActif As Variant
 
-' Nom de la sous-catégorie "santé", mentionnée ici uniquement à titre de référence
-' dans les commentaires; ce module ne teste jamais directement cette valeur.
+' Sous-catégorie "santé" : depuis le 07/10/2026 (préfiltre "SuiviSante"), ce module
+' la teste directement, toujours via la constante centralisée
+' mod_VarGlobales.SOUS_CATEGORIE_SANTE (jamais un texte recopié en dur ici).
 
 Private Function CategorieVentileRO() As String
     CategorieVentileRO = CATEGORIE_VENTILE & ChrW(233)   ' "Ventile"
 End Function
 
+' =====================================================================================
+' PrefiltreActifRO (ajout 07/10/2026) : renvoie le préfiltre actuellement affiché
+' ("", "DernierImport", "SuiviSante"...).
+' La variable g_ROPrefiltreActif reste Private : personne ne doit pouvoir la
+' MODIFIER depuis un autre module. Cette fonction en donne seulement une LECTURE,
+' utilisée par ThisWorkbook.Workbook_SheetBeforeDoubleClick pour n'activer le
+' double-clic sur SousCategorie qu'en mode suivi santé.
+' Si le projet VBA a été réinitialisé entre-temps (bouton "Sortir" qui exécute
+' End, erreur non gérée...), les variables sont effacées et la fonction renvoie "" :
+' le double-clic reprend alors simplement son comportement normal d'Excel.
+' =====================================================================================
+Public Function PrefiltreActifRO() As String
+    PrefiltreActifRO = g_ROPrefiltreActif
+End Function
 
 ' =====================================================================================
 ' HELPERS PHASE 5 : accès à TblVentilations, dupliqués comme dans les autres
@@ -195,6 +210,9 @@ End Sub
 '     "DetailTotal"     : détail d'un total du bilan mensuel; "param" vaut alors
 '                         "Positif" ou "Negatif" (remplace
 '                         mod_SyntheseBudgetBilanMensuel.ShowDetailForTotal)
+'     "SuiviSante"      : uniquement les lignes de sous-catégorie « Frais, remb
+'                         santé », parts ventilées comprises (remplace l'ancien
+'                         écran Mod_SyntheseCare.Synthese_Care, refonte du 07/10/2026)
 '   Dans tous les cas, le tableau reste le MÊME (mêmes colonnes, même bouton
 '   Appliquer); seules les LIGNES chargées et les COLONNES visibles changent
 '   (voir mod_InstallRechercheOperations.DefinirColonnesVisibles).
@@ -220,6 +238,10 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
     Dim nbLignesVen As Long
     Dim venDisponible As Boolean
     Dim colVenID As Long, colVenCat As Long, colVenSousCat As Long, colVenMontant As Long, colVenNotes As Long
+    ' Ajout 07/10/2026 (préfiltre "SuiviSante") : colonnes de suivi santé de
+    ' TblVentilations. Elles valent 0 si la colonne n'existe pas (installation
+    ' ancienne) : la valeur correspondante reste alors simplement vide à l'écran.
+    Dim colVenStatut As Long, colVenSolde As Long, colVenDateConsult As Long, colVenSpeConsult As Long
 
     ' --- PHASE 6 : préparation spécifique au préfiltre demandé ---
     Dim inclureVentilations As Boolean
@@ -270,7 +292,10 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
     ' Les lignes de TblVentilations n'ont pas de mois/année budgétaire ni de
     ' colonnes de suivi santé qui leur soient propres : elles ne sont pertinentes
     ' qu'en recherche libre ou pour le dernier import (comme avant cette refonte).
-    inclureVentilations = (prefiltre = "" Or prefiltre = "DernierImport")
+    ' Ajout 07/10/2026 : le préfiltre "SuiviSante" inclut lui aussi les parts
+    ' ventilées (décision opérateur : pour le suivi santé, une part ventilée est
+    ' une opération comme une autre).
+    inclureVentilations = (prefiltre = "" Or prefiltre = "DernierImport" Or prefiltre = "SuiviSante")
 
     ' --- PHASE 5 : chargement de TblVentilations, si pertinent ---
     venDisponible = False
@@ -283,6 +308,14 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
                 colVenSousCat = IndexColRO(tblVen, "SousCategorie")
                 colVenMontant = IndexColRO(tblVen, "Montant")
                 colVenNotes = IndexColRO(tblVen, "Notes")
+                ' Ajout 07/10/2026 : colonnes santé, FACULTATIVES (0 si absentes).
+                ' Elles ne sont donc volontairement PAS ajoutées au test
+                ' "toutes présentes" juste en dessous : leur absence ne doit pas
+                ' empêcher d'afficher les parts ventilées.
+                colVenStatut = IndexColRO(tblVen, "StatutSante")
+                colVenSolde = IndexColRO(tblVen, "SoldeSante")
+                colVenDateConsult = IndexColRO(tblVen, "Date_consult")
+                colVenSpeConsult = IndexColRO(tblVen, "Spe_Consult")
                 If colVenID <> 0 And colVenCat <> 0 And colVenSousCat <> 0 And colVenMontant <> 0 And colVenNotes <> 0 Then
                     tblDataVen = tblVen.DataBodyRange.value
                     nbLignesVen = UBound(tblDataVen, 1)
@@ -304,7 +337,17 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
     ' depuis la position actuelle et non depuis la ligne 1, donnant l'impression
     ' que les premières lignes étaient masquées. Le problème passait inaperçu avec
     ' RO_LIGNE_ENTETES=5 (écart trop petit), mais devenait visible avec RO_LIGNE_ENTETES=7.
+    ' CORRECTIF du 07/10/2026 (constat opérateur, intermittent) : on force aussi
+    ' Split à False avant de regeler. FreezePanes et Split sont deux états
+    ' distincts dans Excel ; si un fractionnement (Split) restait actif en
+    ' mémoire sur la fenêtre (par exemple si elle n'avait pas fini de se
+    ' redessiner juste après ws.Activate), remettre FreezePanes à True pouvait
+    ' geler les volets à l'ANCIENNE position du split plutôt qu'à la cellule
+    ' sélectionnée juste après : la barre de séparation restait visible, mais
+    ' l'en-tête n'était pas forcément dans la zone figée. D'où le caractère
+    ' intermittent du symptôme (ça dépendait de l'état de la fenêtre à l'instant T).
     ActiveWindow.FreezePanes = False
+    ActiveWindow.Split = False
     ActiveWindow.ScrollRow = 1
     ActiveWindow.ScrollColumn = 1
     ws.Range("A" & (mod_InstallRechercheOperations.RO_LIGNE_ENTETES + 1)).Select
@@ -362,6 +405,14 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
                     ReDim Preserve indicesVen(1 To nbIndicesVen)
                     indicesVen(nbIndicesVen) = i
                 End If
+            ElseIf prefiltre = "SuiviSante" Then
+                ' Ajout 07/10/2026 : seules les parts affectées à la sous-catégorie
+                ' santé (même test que pour TblOperations, même constante centralisée).
+                If mod_DataStructure.CellText(tblDataVen(i, colVenSousCat)) = mod_VarGlobales.SOUS_CATEGORIE_SANTE Then
+                    nbIndicesVen = nbIndicesVen + 1
+                    ReDim Preserve indicesVen(1 To nbIndicesVen)
+                    indicesVen(nbIndicesVen) = i
+                End If            
             End If
         Next i
     End If
@@ -455,7 +506,19 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
             End If
 
             resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_VALIDER) = ""
-            resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_DATE) = Empty   ' pas de date propre à une part ventilée
+            ' Une part ventilée n'a pas de date propre : la date reste vide pour
+            ' les autres préfiltres (convention d'origine). Ajout 07/10/2026 (demande
+            ' opérateur) : pour le préfiltre "SuiviSante" UNIQUEMENT, on reprend la
+            ' date de l'opération PARENTE, pour qu'une dépense ventilée se lise et se
+            ' trie comme une dépense ordinaire. indexParIDPourTiers (construit juste
+            ' au-dessus pour le Tiers) donne déjà la ligne parente : on le réutilise.
+            resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_DATE) = Empty
+            If prefiltre = "SuiviSante" Then
+                If indexParIDPourTiers.Exists(idParentVen) Then
+                    resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_DATE) = _
+                        tblData(indexParIDPourTiers(idParentVen), colDate)
+                End If
+            End If
             resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_TIERS) = tiersParentVen & mod_Display.FR(" [ventilation]")
             resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_MONTANT) = tblDataVen(i, colVenMontant)
 
@@ -471,6 +534,18 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
             resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_ID) = idParentVen
             resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_SOURCE) = "V"
             resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_LIGNEVEN) = i
+
+            ' Ajout 07/10/2026 : en mode suivi santé, on affiche aussi les colonnes
+            ' santé de la part ventilée, lues dans TblVentilations (qui porte les
+            ' mêmes colonnes que TblOperations depuis l'extension de la Phase 4).
+            ' Limité volontairement au préfiltre "SuiviSante" : les autres
+            ' préfiltres gardent leur comportement actuel.
+            If prefiltre = "SuiviSante" Then
+                If colVenStatut <> 0 Then resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_STATUTSANTE) = mod_DataStructure.CellText(tblDataVen(i, colVenStatut))
+                If colVenSolde <> 0 Then resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_SOLDESANTE) = tblDataVen(i, colVenSolde)
+                If colVenDateConsult <> 0 Then resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_DATECONSULT) = tblDataVen(i, colVenDateConsult)
+                If colVenSpeConsult <> 0 Then resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_SPECONSULT) = mod_DataStructure.CellText(tblDataVen(i, colVenSpeConsult))
+            End If
 
             seg0 = mod_ImportOFX.SegmentTexte(notesTexte, ";", 0)
             cleVerrouillee(ligneEcran) = mod_ImportOFX.EstDateValide(seg0)
@@ -519,10 +594,35 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
         End If
 
         tblRecherche.ListColumns("Montant").DataBodyRange.Cells(i).Font.Color = RGB(0, 0, 0)
+
+        ' Ajout 07/10/2026 : on retire aussi le GRAS, posé sur les montants "KO"
+        ' par le préfiltre "SuiviSante" (bloc suivant). Sans cette ligne, le gras
+        ' pourrait rester visible si l'opérateur relance ensuite un autre préfiltre.
+        tblRecherche.ListColumns("Montant").DataBodyRange.Cells(i).Font.Bold = False
+
         If mod_DataStructure.ToDouble(tblRecherche.ListColumns("Montant").DataBodyRange.Cells(i).value) > 0 Then
             tblRecherche.ListColumns("Montant").DataBodyRange.Cells(i).Font.Color = RGB(0, 128, 0)
         End If
     Next i
+
+    ' --- Ajout 07/10/2026 (préfiltre "SuiviSante", demande opérateur) : reprise de
+    ' l'atout visuel de l'ancien écran Synthese_Care. Le montant des lignes dont
+    ' StatutSante vaut "KO" passe en ROUGE et GRAS. Ce bloc est placé APRÈS la
+    ' boucle ci-dessus (qui remet tout en noir puis colore en vert les montants
+    ' positifs) pour que le rouge l'emporte aussi sur un remboursement "KO".
+    ' Le statut est relu dans le tableau mémoire "resultat", écrit dans le MÊME
+    ' ordre que les lignes de l'écran : la ligne i de "resultat" correspond donc
+    ' bien à la ligne i du tableau affiché.
+    If prefiltre = "SuiviSante" Then
+        For i = 1 To nbTotal
+            If mod_DataStructure.CellText(resultat(i, mod_InstallRechercheOperations.RO_COL_STATUTSANTE)) = "KO" Then
+                With tblRecherche.ListColumns("Montant").DataBodyRange.Cells(i).Font
+                    .Color = RGB(255, 0, 0)
+                    .Bold = True
+                End With
+            End If
+        Next i
+    End If
 
     ' --- PHASE 6 : surlignage des N plus grosses dépenses, UNIQUEMENT pour le
     ' préfiltre "OperationsDuMois" (comportement de l'ancien mod_SyntheseBugetMensuel;
@@ -598,6 +698,13 @@ Private Function DecrireFiltreActifRO(ByVal prefiltre As String, ByVal param As 
             End If
             texte = texte & FR(" -- ") & nbTotal & FR(" op{e2}ration(s).")
 
+        Case "SuiviSante"
+            ' Ajout 07/10/2026. La phrase rappelle aussi le double-clic de recalcul,
+            ' car le texte d'aide général de l'écran ne peut pas être modifié sans
+            ' réinstaller la feuille (voir la réponse du 07/10 sur le décalage entre
+            ' le dépôt et le classeur).
+            texte = FR("Suivi sant{e2} (parts ventil{e2}es comprises) -- ") & nbTotal & _
+                    FR(" ligne(s). Double-clic sur SousCategorie = recalcul des statuts.")
         Case Else
             ' Sécurité : un préfiltre non prévu ici ne doit pas faire échouer
             ' l'affichage; on reste simplement discret.
@@ -644,7 +751,15 @@ Private Function LigneOpRetenuePourPrefiltre(ByVal i As Long, ByVal prefiltre As
                     LigneOpRetenuePourPrefiltre = (Montant < 0)
                 End If
             End If
-
+        Case "SuiviSante"
+            ' Ajout 07/10/2026 (remplace l'ancien Synthese_Care). Le test porte sur
+            ' SousCategorie : depuis la Phase 1, la colonne Categorie contient la
+            ' catégorie PARENTE ("Santé, prévoyance"), c'était justement la panne
+            ' de l'ancien écran.
+            If colSousCategorie <> 0 Then
+                LigneOpRetenuePourPrefiltre = _
+                    (mod_DataStructure.CellText(tblData(i, colSousCategorie)) = mod_VarGlobales.SOUS_CATEGORIE_SANTE)
+            End If
         Case Else
             LigneOpRetenuePourPrefiltre = True
 
@@ -1241,6 +1356,38 @@ Public Sub EditerCategorieRO()
         RechercherOperations g_ROPrefiltreActif, g_ROParamActif
     End If
 
+End Sub
+
+' =====================================================================================
+' RecalculerSuiviSanteRO (ajout 07/10/2026, demande opérateur) : relance le calcul
+' officiel des statuts santé, puis recharge l'écran dans le MÊME contexte, pour que
+' l'opérateur voie immédiatement les StatutSante/SoldeSante à jour (par exemple
+' après avoir saisi une Franchise).
+' RÉUTILISATION : mod_SuiviSante.CalculerSuiviSante est appelée telle quelle,
+' sans aucune modification.
+' APPEL : par un double-clic sur une cellule SousCategorie, UNIQUEMENT quand
+' l'écran affiche le préfiltre "SuiviSante" (voir ThisWorkbook).
+' RAPPEL (règle inchangée de mod_SuiviSante) : un groupe déjà "OK", ou "KO" avec
+' DepassementHoraires = Vrai, n'est PAS recalculé. Ce double-clic ne remet donc
+' jamais en cause un statut déjà accepté par l'opérateur.
+' =====================================================================================
+Public Sub RecalculerSuiviSanteRO()
+ 
+    Dim reponse As VbMsgBoxResult
+ 
+    ' Garde-fou contre un double-clic accidentel : le calcul ÉCRIT dans
+    ' TblOperations et TblVentilations (StatutSante, SoldeSante, DepassementHoraires).
+    reponse = MsgBox(FR("Recalculer les statuts de suivi sant{e2} de toutes les op{e2}rations ?"), _
+                     vbYesNo + vbQuestion, FR("Suivi sant{e2}"))
+    If reponse <> vbYes Then Exit Sub
+ 
+    ' True = afficher le résumé habituel du calcul (nombre de groupes recalculés).
+    mod_SuiviSante.CalculerSuiviSante True
+ 
+    ' CalculerSuiviSante modifie les variables globales tbl et colXxx : on recharge
+    ' l'écran, qui les réinitialise proprement, avec le même préfiltre qu'avant.
+    RechercherOperations g_ROPrefiltreActif, g_ROParamActif
+ 
 End Sub
 
 ' PHASE 6 : retourne sur la feuille "Resultat" (bilan mensuel) si l'écran a été
