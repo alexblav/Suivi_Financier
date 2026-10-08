@@ -60,6 +60,16 @@ Public colSousCategorie As Long
 ' Les 2 modules DOIVENT utiliser cette meme constante (jamais leur propre texte en
 ' dur) pour rester surs de comparer exactement la meme chaine.
 Public Const SOUS_CATEGORIE_SANTE As String = "Frais, remb santé"
+' --- Catégorie PARENTE de la sous-catégorie santé (ajout 08/10/2026) -------------
+' Utilisée par le préfiltre "SuiviSante" de frm_RechercheOperations (écran ouvert par
+' Synthese_Care) pour remonter AUSSI les opérations rangées dans cette catégorie
+' mais sous une autre sous-catégorie : une dépense de santé mal sous-catégorisée se
+' retrouve ainsi facilement. Même règle d'écriture que SOUS_CATEGORIE_SANTE : un seul
+' endroit pour ce texte, jamais recopié en dur ailleurs.
+' NOTE : mod_Categories contient encore une fonction privée CategorieSanteNouvelle()
+' qui renvoie le même texte ; elle pourra être raccordée à cette constante lors du
+' prochain passage de nettoyage (non fait ici, faute de validation).
+Public Const CATEGORIE_SANTE As String = "Santé, prévoyance"
 
 ' Stocke l'index d'une colonne, calculé à partir d'un des champs de l'ARRAY, pour toute la feuille de sortie.
 ' EXEMPLE Si on veut poser les entêtes à partir de E1 dans synthese,

@@ -70,6 +70,22 @@ Private Function CategorieVentileRO() As String
 End Function
 
 ' =====================================================================================
+' EstLigneSanteRO (ajout 08/10/2026, demande opérateur) : RÈGLE UNIQUE du préfiltre
+' "SuiviSante", utilisée à l'identique pour les lignes de TblOperations ET pour les
+' parts de TblVentilations. Une ligne est retenue si :
+'   - sa SOUS-catégorie est "Frais, remb santé" (cas normal, suivi des remboursements),
+'   - OU sa catégorie PARENTE est "Santé, prévoyance", quelle que soit sa
+'     sous-catégorie (cas d'une opération de santé mal sous-catégorisée, qu'on veut
+'     pouvoir repérer et corriger depuis cet écran par un double-clic).
+' Les paramètres sont des Variant, car ils viennent directement d'un tableau mémoire
+' (cellule vide, erreur...) : CellText les transforme en texte sans jamais planter.
+' =====================================================================================
+Private Function EstLigneSanteRO(ByVal categorie As Variant, ByVal sousCategorie As Variant) As Boolean
+    EstLigneSanteRO = (mod_DataStructure.CellText(sousCategorie) = mod_VarGlobales.SOUS_CATEGORIE_SANTE) _
+                      Or (mod_DataStructure.CellText(categorie) = mod_VarGlobales.CATEGORIE_SANTE)
+End Function
+
+' =====================================================================================
 ' HELPERS PHASE 5 : accès à TblVentilations, dupliqués comme dans les autres
 ' modules du chantier (mod_SuiviSante, mod_FormulairesNotes, ...).
 ' =====================================================================================
@@ -432,9 +448,9 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
                     indicesVen(nbIndicesVen) = i
                 End If
             ElseIf prefiltre = "SuiviSante" Then
-                ' Ajout 07/10/2026 : seules les parts affectées à la sous-catégorie
-                ' santé (même test que pour TblOperations, même constante centralisée).
-                If mod_DataStructure.CellText(tblDataVen(i, colVenSousCat)) = mod_VarGlobales.SOUS_CATEGORIE_SANTE Then
+                ' Ajout 07/10/2026, élargi le 08/10/2026 : même règle que pour
+                ' TblOperations (voir EstLigneSanteRO).
+                If EstLigneSanteRO(tblDataVen(i, colVenCat), tblDataVen(i, colVenSousCat)) Then
                     nbIndicesVen = nbIndicesVen + 1
                     ReDim Preserve indicesVen(1 To nbIndicesVen)
                     indicesVen(nbIndicesVen) = i
@@ -738,11 +754,15 @@ Private Function DecrireFiltreActifRO(ByVal prefiltre As String, ByVal param As 
             texte = texte & FR(" -- ") & nbTotal & FR(" op{e2}ration(s).")
 
         Case "SuiviSante"
-            ' Ajout 07/10/2026, revu le 08/10/2026 (demande opérateur : phrase trop
-            ' courte). Résultat : "Suivi santé -- 5 ligne(s) dont 1 part(s)
+            ' Ajout 07/10/2026, revu le 08/10/2026 (phrase enrichie, puis périmètre
+            ' élargi à la catégorie "Santé, prévoyance"). Exemple de résultat :
+            ' "Suivi santé (catégorie Santé, prévoyance) -- 7 ligne(s) dont 1 part(s)
             ' ventilée(s) : 3 OK, 2 KO -- écart cumulé des dépenses KO : 45,00 €."
-            ' La mention du double-clic de recalcul est retirée (fonction supprimée).
-            texte = FR("Suivi sant{e2} -- ") & nbTotal & FR(" ligne(s)") & complementSante & "."
+            ' Les lignes "Santé, prévoyance" d'une autre sous-catégorie n'ont pas de
+            ' statut santé : elles ne sont comptées ni en OK ni en KO (ici 7 - 3 - 2 = 2
+            ' lignes à vérifier).
+            texte = FR("Suivi sant{e2} (cat{e2}gorie ") & mod_VarGlobales.CATEGORIE_SANTE & ") -- " & _
+                    nbTotal & FR(" ligne(s)") & complementSante & "."
         Case Else
             ' Sécurité : un préfiltre non prévu ici ne doit pas faire échouer
             ' l'affichage; on reste simplement discret.
@@ -790,13 +810,16 @@ Private Function LigneOpRetenuePourPrefiltre(ByVal i As Long, ByVal prefiltre As
                 End If
             End If
         Case "SuiviSante"
-            ' Ajout 07/10/2026 (remplace l'ancien Synthese_Care). Le test porte sur
-            ' SousCategorie : depuis la Phase 1, la colonne Categorie contient la
-            ' catégorie PARENTE ("Santé, prévoyance"), c'était justement la panne
-            ' de l'ancien écran.
+            ' Ajout 07/10/2026 (remplace l'ancien Synthese_Care), élargi le 08/10/2026
+            ' (demande opérateur) : voir EstLigneSanteRO. La colonne Categorie contient
+            ' la catégorie PARENTE ("Santé, prévoyance") depuis la Phase 1.
+            ' Deux appels distincts plutôt qu'un IIf : IIf évalue TOUJOURS ses deux
+            ' branches, et tblData(i, 0) provoquerait une erreur si la colonne
+            ' SousCategorie n'existait pas (colSousCategorie = 0).
             If colSousCategorie <> 0 Then
-                LigneOpRetenuePourPrefiltre = _
-                    (mod_DataStructure.CellText(tblData(i, colSousCategorie)) = mod_VarGlobales.SOUS_CATEGORIE_SANTE)
+                LigneOpRetenuePourPrefiltre = EstLigneSanteRO(tblData(i, colCategorie), tblData(i, colSousCategorie))
+            Else
+                LigneOpRetenuePourPrefiltre = EstLigneSanteRO(tblData(i, colCategorie), "")
             End If
         Case Else
             LigneOpRetenuePourPrefiltre = True
