@@ -1232,8 +1232,12 @@ End Sub
 ' il n'y a plus rien à restaurer tant qu'une nouvelle ventilation n'a pas été créée.
 ' ligneParent : numéro de ligne DANS LE TABLEAU (1 = première ligne de données), tel que
 ' calculé plus haut par RevoirVentilationRO; ce n'est PAS un numéro de ligne de la feuille.
-Private Sub RestaurerCategorieAvantVentilation(ByVal tblOp As ListObject, ByVal ligneParent As Long)
 
+' MODIFIÉ le 07/10/2026 : passée de Private à Public pour être réutilisée par
+' mod_FormulairesNotes (bouton "Changer la catégorie" de frm_RapprochementNotes,
+' cas d'une ventilation supprimée depuis cet écran). Rien d'autre ne change.
+' L'appelant doit avoir lancé mod_Display.RecupIndexCol auparavant (colCategorie).
+Public Sub RestaurerCategorieAvantVentilation(ByVal tblOp As ListObject, ByVal ligneParent As Long)
     Dim colCatAvant As Long, colSousAvant As Long
     Dim catAvant As String, sousAvant As String
 
@@ -1354,7 +1358,7 @@ Public Sub EditerCategorieRO()
     Dim tblOp As ListObject
     Dim donneesOp As Variant
     Dim i As Long, ligneParent As Long
-    Dim categorieActuelleTbl As String, sousCategorieActuelleTbl As String
+    Dim ok As Boolean
 
     Set tblOp = mod_DonneesTable.GetOperationsTable()
     If tblOp Is Nothing Or tblOp.DataBodyRange Is Nothing Then
@@ -1378,42 +1382,23 @@ Public Sub EditerCategorieRO()
         Exit Sub
     End If
 
-    categorieActuelleTbl = mod_DataStructure.CellText(donneesOp(ligneParent, colCategorie))
-    sousCategorieActuelleTbl = ""
-    If colSousCategorie <> 0 Then sousCategorieActuelleTbl = mod_DataStructure.CellText(donneesOp(ligneParent, colSousCategorie))
-
-    ' --- Formulaire de contrôle des catégories, en mode "une seule opération" :
-    ' CTRL_OP_CATSOURCE est volontairement laissé vide (pas de source bancaire ici; voir
-    ' ControlerCategories). Ce sont categorieActuelleUnique/sousCategorieActuelleUnique
-    ' ci-dessous qui préremplissent le formulaire avec la catégorie actuelle. ------------
-    Dim ops(1 To 1, 1 To mod_ControleCategories.CTRL_OP_NBCOL) As Variant
-    Dim catFinale() As String, sousFinale() As String
-    Dim catAvantVen() As String, sousAvantVen() As String
-    ' AJOUT du 03/10/2026 : ControlerCategories exige maintenant ces deux tableaux de
-    ' sortie supplémentaires (Tiers/Notes modifiables à l'import; voir ce module). Ils ne
-    ' sont pas utilisés ici (TiersNotesEditables les garde figés en mode "une seule
-    ' opération"; voir mod_ControleCategories); on les déclare uniquement pour l'appel.
-    Dim tiersFinaleInutilise() As String, libelleFinaleInutilise() As String
-    Dim ok As Boolean
-
-    ops(1, mod_ControleCategories.CTRL_OP_DATE) = donneesOp(ligneParent, colDate)
-    ops(1, mod_ControleCategories.CTRL_OP_TIERS) = mod_DataStructure.CellText(donneesOp(ligneParent, colTiers))
-    ops(1, mod_ControleCategories.CTRL_OP_LIBELLE) = ""
-    ops(1, mod_ControleCategories.CTRL_OP_MONTANT) = mod_DataStructure.ToDouble(donneesOp(ligneParent, colMontant))
-    ops(1, mod_ControleCategories.CTRL_OP_CATSOURCE) = ""
-    ops(1, mod_ControleCategories.CTRL_OP_ID) = idTransaction
-
-    ok = mod_ControleCategories.ControlerCategories(ops, 1, catFinale, sousFinale, catAvantVen, sousAvantVen, _
-                                                     tiersFinaleInutilise, libelleFinaleInutilise, _
-                                                     uneSeuleOperation:=True, _
-                                                     categorieActuelleUnique:=categorieActuelleTbl, _
-                                                     sousCategorieActuelleUnique:=sousCategorieActuelleTbl)
+    ' --- MODIFIÉ le 07/10/2026 : l'ouverture du formulaire de contrôle des catégories
+    ' (mode "une seule opération") et l'écriture du résultat dans TblOperations sont
+    ' désormais faites par une fonction PARTAGÉE, mod_ControleCategories.
+    ' ModifierCategorieOperation, également utilisée par le bouton "Changer la
+    ' catégorie" de frm_RapprochementNotes. Comportement inchangé pour cet écran, à
+    ' deux améliorations près (voir les commentaires de ModifierCategorieOperation) :
+    '   - si l'opérateur ventile l'opération depuis le formulaire, sa catégorie
+    '     d'avant ventilation est maintenant mémorisée ;
+    '   - AJOUT du 08/10/2026 (décision opérateur) : si la nouvelle sous-catégorie
+    '     n'est pas "Frais, remb santé", les colonnes de suivi santé de la ligne sont
+    '     vidées AVANT le recalcul ci-dessous. Un ancien "KO" ne reste donc plus
+    '     affiché (ni compté) dans le préfiltre "SuiviSante". -------------------------
+    ok = mod_ControleCategories.ModifierCategorieOperation(tblOp, ligneParent)
 
     ws.Activate
 
     If ok Then
-        tblOp.DataBodyRange.Cells(ligneParent, colCategorie).value = catFinale(1)
-        If colSousCategorie <> 0 Then tblOp.DataBodyRange.Cells(ligneParent, colSousCategorie).value = sousFinale(1)
         mod_SuiviSante.CalculerSuiviSante AfficherResume:=False
         RechercherOperations g_ROPrefiltreActif, g_ROParamActif
     End If

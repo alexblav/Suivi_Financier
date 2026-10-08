@@ -327,6 +327,147 @@ Erreur:
 
 End Function
 
+' =====================================================================================
+' ModifierCategorieOperation (ajout du 07/10/2026)
+' =====================================================================================
+' RÔLE : ouvrir le formulaire de contrôle des catégories pour UNE SEULE opération de
+' TblOperations (mode "une seule opération" de ControlerCategories, avec la catégorie
+' actuelle préremplie), puis écrire le résultat validé dans TblOperations.
+'
+' POURQUOI CETTE FONCTION : ce traitement existait déjà, mais il était écrit
+' directement dans mod_RechercheOperations.EditerCategorieRO (double-clic sur une
+' catégorie dans l'écran de recherche). Le nouveau bouton "Changer la catégorie" de
+' frm_RapprochementNotes a besoin EXACTEMENT du même traitement. Plutôt que de le
+' recopier, on l'a sorti ici dans une fonction partagée, appelée par les deux écrans :
+' un correctif futur ne sera ainsi à faire qu'à un seul endroit.
+'
+' Paramètres :
+'   tblOp   : le tableau TblOperations (déjà obtenu par l'appelant).
+'   ligneOp : numéro de ligne DANS LE TABLEAU (1 = première ligne de données),
+'             et non un numéro de ligne de la feuille Excel.
+' Renvoie True si l'opérateur a validé (Categorie/SousCategorie sont alors déjà
+' écrites dans TblOperations), False s'il a annulé (rien n'a été modifié).
+'
+' Ce que la fonction fait EN PLUS de l'écriture (ajout du 08/10/2026) : si la
+' nouvelle sous-catégorie n'est pas "Frais, remb santé", elle vide les colonnes de
+' suivi santé de la ligne (voir NettoyerColonnesSante, juste après cette fonction).
+'
+' Ce que la fonction NE fait PAS, volontairement (cela dépend de l'écran appelant) :
+' recalculer le suivi santé, rafraîchir un affichage, réactiver une feuille.
+'
+' NOUVEAUTÉ par rapport à l'ancien code d'EditerCategorieRO : si l'opérateur a utilisé
+' le bouton "Ventiler" du formulaire, la catégorie d'AVANT la ventilation (renvoyée
+' par ControlerCategories) est désormais mémorisée dans les colonnes
+' CategorieAvantVentilation / SousCategorieAvantVentilation, exactement comme le fait
+' déjà l'import (mod_ImportOFX). Sans cela, une suppression ultérieure de cette
+' ventilation ne pourrait pas restaurer la catégorie d'origine de l'opération.
+' =====================================================================================
+Public Function ModifierCategorieOperation(ByVal tblOp As ListObject, ByVal ligneOp As Long) As Boolean
+
+    Dim donneesLigne As Variant
+    Dim ops(1 To 1, 1 To CTRL_OP_NBCOL) As Variant
+    Dim catFinale() As String, sousFinale() As String
+    Dim catAvantVen() As String, sousAvantVen() As String
+    ' Tiers/Notes : non modifiables en mode "une seule opération" (voir
+    ' TiersNotesEditables). Déclarés uniquement parce que ControlerCategories les exige.
+    Dim tiersFinaleInutilise() As String, libelleFinaleInutilise() As String
+    Dim categorieActuelle As String, sousCategorieActuelle As String
+    Dim colCatAvant As Long, colSousAvant As Long
+
+    ModifierCategorieOperation = False
+    If tblOp Is Nothing Then Exit Function
+    If tblOp.DataBodyRange Is Nothing Then Exit Function
+    If ligneOp < 1 Or ligneOp > tblOp.DataBodyRange.rows.count Then Exit Function
+
+    ' Index des colonnes (colDate, colTiers...) retrouvés par leur nom d'en-tête.
+    ' ATTENTION : mod_Display.RecupIndexCol lit la variable GLOBALE "tbl"
+    ' (mod_VarGlobales) sans l'initialiser elle-même. On la renseigne donc d'abord
+    ' avec le tableau reçu : sinon, si aucun écran ne l'a fait avant, tous les index
+    ' vaudraient 0 sans aucun message (même type de dépendance cachée que celle de
+    ' wsSynthese, corrigée le 01/10/2026). Il s'agit du même tableau TblOperations :
+    ' ce n'est donc pas un changement pour le reste du classeur.
+    Set tbl = tblOp
+    mod_Display.RecupIndexCol
+
+    ' Lecture de la SEULE ligne concernée (tableau d'une ligne sur N colonnes).
+    donneesLigne = tblOp.DataBodyRange.rows(ligneOp).value
+
+    categorieActuelle = mod_DataStructure.CellText(donneesLigne(1, colCategorie))
+    sousCategorieActuelle = ""
+    If colSousCategorie <> 0 Then sousCategorieActuelle = mod_DataStructure.CellText(donneesLigne(1, colSousCategorie))
+
+    ' Préparation de l'opération au format attendu par ControlerCategories.
+    ' CTRL_OP_CATSOURCE reste vide : il n'y a pas de catégorie bancaire source hors import.
+    ops(1, CTRL_OP_DATE) = donneesLigne(1, colDate)
+    ops(1, CTRL_OP_TIERS) = mod_DataStructure.CellText(donneesLigne(1, colTiers))
+    ops(1, CTRL_OP_LIBELLE) = ""
+    ops(1, CTRL_OP_MONTANT) = mod_DataStructure.ToDouble(donneesLigne(1, colMontant))
+    ops(1, CTRL_OP_CATSOURCE) = ""
+    ops(1, CTRL_OP_ID) = mod_DataStructure.CellText(donneesLigne(1, colID))
+
+    If Not ControlerCategories(ops, 1, catFinale, sousFinale, catAvantVen, sousAvantVen, _
+                               tiersFinaleInutilise, libelleFinaleInutilise, _
+                               uneSeuleOperation:=True, _
+                               categorieActuelleUnique:=categorieActuelle, _
+                               sousCategorieActuelleUnique:=sousCategorieActuelle) Then
+        Exit Function    ' annulation : rien n'est écrit
+    End If
+
+    ' --- Écriture du résultat validé ---
+    tblOp.DataBodyRange.Cells(ligneOp, colCategorie).value = catFinale(1)
+    If colSousCategorie <> 0 Then tblOp.DataBodyRange.Cells(ligneOp, colSousCategorie).value = sousFinale(1)
+
+    ' Catégorie d'avant ventilation : ControlerCategories ne la renseigne QUE si
+    ' l'opérateur a cliqué sur "Ventiler" (chaîne vide sinon : on ne touche alors à rien).
+    If catAvantVen(1) <> "" Or sousAvantVen(1) <> "" Then
+        colCatAvant = mod_Display.GetColumnIndex(tblOp, mod_InstallVentilation.NOM_COL_CAT_AVANT_VENTILATION)
+        colSousAvant = mod_Display.GetColumnIndex(tblOp, mod_InstallVentilation.NOM_COL_SOUS_AVANT_VENTILATION)
+        If colCatAvant <> 0 And colSousAvant <> 0 Then
+            tblOp.DataBodyRange.Cells(ligneOp, colCatAvant).value = catAvantVen(1)
+            tblOp.DataBodyRange.Cells(ligneOp, colSousAvant).value = sousAvantVen(1)
+        End If
+    End If
+
+    ' AJOUT du 08/10/2026 (décision opérateur) : nettoyage des colonnes de suivi
+    ' santé. Si l'opération N'EST PLUS (ou n'est pas) en "Frais, remb santé" après
+    ' validation, ses colonnes santé n'ont plus de sens : on les vide. C'est fait ICI,
+    ' dans la fonction partagée, pour que les DEUX écrans appliquent la même règle :
+    '   - l'écran de recherche (double-clic sur Categorie ou SousCategorie) ;
+    '   - l'écran de rapprochement (bouton "Changer la catégorie").
+    ' Sans ce nettoyage, CalculerSuiviSante (qui ne réécrit QUE les lignes santé)
+    ' laissait un ancien "KO" sur la ligne, compté ensuite à tort dans le résumé du
+    ' préfiltre "SuiviSante" et affiché en rouge gras.
+    ' La règle porte sur la NOUVELLE sous-catégorie (et non sur "était-elle santé
+    ' avant ?") : rouvrir puis valider une ligne qui garde un "KO" périmé d'une
+    ' ancienne modification la corrige donc aussi. Pour une ligne qui n'a jamais été
+    ' de santé, ces colonnes sont déjà vides : le nettoyage ne change rien.
+    If sousFinale(1) <> mod_VarGlobales.SOUS_CATEGORIE_SANTE Then
+        NettoyerColonnesSante tblOp, ligneOp
+    End If
+
+    ModifierCategorieOperation = True
+
+End Function
+
+' Vide, pour UNE ligne de TblOperations, toutes les colonnes de suivi santé listées
+' dans mod_VarGlobales.COLONNES_SUIVI_SANTE (Notes exclue, voir ce module).
+' Une colonne absente du tableau est simplement ignorée (GetColumnIndex renvoie 0).
+'   ligneOp : numéro de ligne DANS LE TABLEAU (1 = première ligne de données).
+' (ajout du 08/10/2026 ; utilisée uniquement par ModifierCategorieOperation)
+Private Sub NettoyerColonnesSante(ByVal tblOp As ListObject, ByVal ligneOp As Long)
+
+    Dim nomsColonnes() As String
+    Dim i As Long
+    Dim indexColonne As Long
+
+    nomsColonnes = Split(mod_VarGlobales.COLONNES_SUIVI_SANTE, ";")
+    For i = LBound(nomsColonnes) To UBound(nomsColonnes)
+        indexColonne = mod_Display.GetColumnIndex(tblOp, nomsColonnes(i))
+        If indexColonne <> 0 Then tblOp.DataBodyRange.Cells(ligneOp, indexColonne).ClearContents
+    Next i
+
+End Sub
+
 
 ' =====================================================================================
 ' OUVERTURE DU FORMULAIRE ET ATTENTE ("modal" : le code reste bloqué ici)

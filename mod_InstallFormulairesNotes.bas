@@ -580,7 +580,38 @@ Sub AjouterBoutonPasserEtInstructions()
 
 End Sub
 
-Private Sub AjouterBoutonPasserSurFeuille(ByVal nomFeuille As String, ByVal ligneBoutons As Long, ByVal macroCible As String, ByVal nomBouton As String)
+' =====================================================================================
+' AjouterBoutonChangerCategorie (ajout du 07/10/2026)
+' =====================================================================================
+' Ajoute UNIQUEMENT le bouton "Changer la catégorie" sur frm_RapprochementNotes
+' (ligne 3, colonnes D:E, à côté du bouton "Passer") et met à jour le texte des
+' instructions, SANS reconstruire le reste de la feuille. À exécuter UNE SEULE FOIS
+' dans la fenêtre Exécution immédiate (Ctrl+G) :
+'      AjouterBoutonChangerCategorie
+' Peut être relancée sans risque : le bouton existant du même nom est d'abord supprimé.
+' =====================================================================================
+Sub AjouterBoutonChangerCategorie()
+
+    Call AjouterBoutonPasserSurFeuille(NOM_FEUILLE_RAPPROCHEMENT, RN_LIGNE_BOUTONS, _
+                                       "ChangerCategorieRapprochementNotes", "btnChangerCategorie", _
+                                       mod_Display.FR("Changer la cat{e2}gorie"), FN_COL_LIBELLE_2, FN_COL_VALEUR_2)
+    Call MettreAJourInstructionsRapprochement
+
+    MsgBox mod_Display.FR("Bouton 'Changer la cat{e2}gorie' et instructions mis {a2} jour sur frm_RapprochementNotes."), vbInformation
+
+End Sub
+
+' MODIFIÉ le 07/10/2026 : 3 paramètres FACULTATIFS ajoutés (libelleBouton,
+' colonneDebut, colonneFin) afin de réutiliser cette procédure pour poser le bouton
+' "Changer la catégorie" au lieu d'en écrire une copie. Leurs valeurs par défaut
+' reproduisent exactement l'ancien comportement (bouton "Passer" en colonnes B:C) :
+' les deux appels existants, dans AjouterBoutonPasserEtInstructions, ne changent pas.
+' (Le nom "AjouterBoutonPasser..." est conservé tel quel ; il pourra être renommé lors
+' du nettoyage général prévu après la mise en production.)
+Private Sub AjouterBoutonPasserSurFeuille(ByVal nomFeuille As String, ByVal ligneBoutons As Long, ByVal macroCible As String, ByVal nomBouton As String, _
+                                         Optional ByVal libelleBouton As String = "Passer", _
+                                         Optional ByVal colonneDebut As String = FN_COL_LIBELLE_1, _
+                                         Optional ByVal colonneFin As String = FN_COL_VALEUR_1)
 
     Dim ws As Worksheet
     Dim etaitMasquee As Boolean
@@ -600,11 +631,11 @@ Private Sub AjouterBoutonPasserSurFeuille(ByVal nomFeuille As String, ByVal lign
     ws.Buttons(nomBouton).Delete
     On Error GoTo 0
 
-    Set zoneBtn = ws.Range(FN_COL_LIBELLE_1 & (ligneBoutons + 1) & ":" & FN_COL_VALEUR_1 & (ligneBoutons + 1))
+    Set zoneBtn = ws.Range(colonneDebut & (ligneBoutons + 1) & ":" & colonneFin & (ligneBoutons + 1))
     zoneBtn.RowHeight = 22
     Set btn = ws.Buttons.Add(zoneBtn.Left, zoneBtn.Top, zoneBtn.Width, zoneBtn.Height)
     With btn
-        .Caption = "Passer"
+        .Caption = libelleBouton
         .OnAction = macroCible
         .Name = nomBouton
     End With
@@ -636,10 +667,18 @@ Private Sub MettreAJourInstructionsRapprochement()
                  mod_Display.FR("- 'Pas de correspondance' : ouvre un {e2}cran pour cr{e2}er une toute nouvelle cl{e2}") & Chr(10) & _
                  mod_Display.FR("  (aucune cl{e2} existante ne convient).") & Chr(10) & _
                  mod_Display.FR("- 'Passer' : ne modifie RIEN sur cette op{e2}ration. Elle sera automatiquement") & Chr(10) & _
-                 mod_Display.FR("  repropos{e2}e la prochaine fois que tu relanceras la v{e2}rification")
+                 mod_Display.FR("  repropos{e2}e la prochaine fois que tu relanceras la v{e2}rification") & Chr(10) & _
+                 mod_Display.FR("- 'Changer la cat{e2}gorie' : si ce n'est pas une d{e2}pense de sant{e2} (erreur {a2} l'import),") & Chr(10) & _
+                 mod_Display.FR("  corrige sa cat{e2}gorie : elle sort de l'analyse sant{e2} et ses colonnes sant{e2} sont vid{e2}es.") & Chr(10) & _
+                 mod_Display.FR("  Si elle reste en 'Frais, remb sant{e2}' (ou si tu annules), cet {e2}cran revient sur elle.") & Chr(10) & _
+                 mod_Display.FR("  ATTENTION, ligne de ventilation : c'est TOUTE la ventilation qui est rouverte et r{e2}{e2}crite.") & Chr(10) & _
+                 mod_Display.FR("  Les rapprochements sant{e2} d{e2}j{a2} faits sur ses AUTRES lignes sont perdus ({a2} refaire).")
     End With
 
-    ws.rows(RN_LIGNE_DEBUT_INSTRUCTIONS & ":" & RN_LIGNE_FIN_INSTRUCTIONS).RowHeight = 30
+    ' MODIFIÉ le 07/10/2026 : 30 -> 42 pour laisser la place aux 5 lignes ajoutées
+    ' (bouton "Changer la catégorie"). Valeur à ajuster à l'œil si besoin, comme
+    ' pour les autres hauteurs de ligne du projet.
+    ws.rows(RN_LIGNE_DEBUT_INSTRUCTIONS & ":" & RN_LIGNE_FIN_INSTRUCTIONS).RowHeight = 42
 
     If etaitMasquee Then ws.Visible = xlSheetVeryHidden
 

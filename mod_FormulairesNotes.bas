@@ -60,22 +60,6 @@ End Type
 ' ayant lancé la boucle d'attente sache quoi faire lorsqu'elle se termine.
 Private derniereAction As String
 
-
-'Private Function FR(ByVal texte As String) As String
-'    Dim r As String
-'    r = texte
-'    r = Replace(r, "{e2}", ChrW(233))
-'    r = Replace(r, "{e1}", ChrW(232))
-'    r = Replace(r, "{ea}", ChrW(234))
-'    r = Replace(r, "{a2}", ChrW(224))
-'    r = Replace(r, "{c2}", ChrW(231))
-'    r = Replace(r, "{o2}", ChrW(244))
-'    r = Replace(r, "{i2}", ChrW(238))
-'    r = Replace(r, "{E2}", ChrW(201))
-'    FR = r
-'End Function
-
-
 ' =====================================================================================
 ' MACRO PRINCIPALE - point d'entrée de la phase 4b
 ' =====================================================================================
@@ -101,6 +85,19 @@ Public Sub VerifierNotesSante()
     ' phase 4). Chaque liste est traitée séparément (numérotation continue
     ' dans le compteur affiché à l'opérateur), mais le mécanisme est
     ' rigoureusement identique dans les 2 cas.
+    '
+    ' MODIFIÉ le 07/10/2026 (bouton "Changer la catégorie") : la liste des lignes
+    ' de TblVentilations n'est plus calculée une seule fois au départ. Elle est
+    ' établie APRÈS le traitement des lignes de TblOperations, puis RELUE chaque
+    ' fois qu'une ventilation est réécrite ou supprimée depuis cet écran. Raison :
+    ' réécrire une ventilation (mod_Ventilation.VenTerminer) supprime ses lignes de
+    ' TblVentilations puis les recrée À LA FIN du tableau. Toutes les lignes situées
+    ' après se décalent donc d'un cran ou plus : une liste de numéros de lignes
+    ' calculée avant la réécriture désignerait ensuite les MAUVAISES lignes (le même
+    ' type de piège que la corruption d'ID_Transaction corrigée le 01/10).
+    ' Effet secondaire utile : une ligne santé créée en VENTILANT une opération de
+    ' TblOperations depuis ce même écran est proposée tout de suite, et non plus
+    ' seulement à la relance suivante.
     Dim donneesInitiales As Variant
     Dim nbLignesTable As Long
     Dim nbLigne As Long
@@ -110,13 +107,14 @@ Public Sub VerifierNotesSante()
     Dim pendingOp() As Long
     Dim nbPendingOp As Long
 
-    Dim tblVen As ListObject
-    Dim donneesVen As Variant
-    Dim nbLignesVen As Long
-    Dim pendingVen() As Long
+    ' --- Lignes de TblVentilations (voir ListerVentilationsEnAttente) ---
+    Dim pendingVen() As Long         ' numéros de ligne dans TblVentilations
+    Dim clesVen() As String          ' identifiant stable de chaque ligne (voir plus bas)
     Dim nbPendingVen As Long
-    Dim colVenSousCat As Long, colVenDateConsult As Long
-    Dim venDisponible As Boolean
+    Dim traitesVen As Object         ' lignes déjà présentées pendant CETTE vérification
+    Dim idVenModifie As String       ' ID_Transaction de la ventilation réécrite, ou ""
+    Dim relancerVen As Boolean
+    Dim k As Long
 
     Set tbl = mod_DonneesTable.GetOperationsTable()
     If tbl Is Nothing Then Exit Sub
@@ -147,40 +145,20 @@ Public Sub VerifierNotesSante()
         End If
     Next nbLigne
 
-    ' --- ÉTAPE 1b : lignes de TblVentilations en attente d'une clé (phase 6) -
-    ' TblVentilations est FACULTATIVE : si la phase 4 n'a pas été installée,
-    ' ou si ses colonnes SousCategorie/Date_consult n'existent pas encore, on
-    ' ignore simplement cette partie (aucune erreur).
-    nbPendingVen = 0
-    venDisponible = False
-    Set tblVen = ObtenirTableVentilationsFN()
-    If Not tblVen Is Nothing Then
-        If Not tblVen.DataBodyRange Is Nothing Then
-            colVenSousCat = IndexColSiExisteFN(tblVen, "SousCategorie")
-            colVenDateConsult = IndexColSiExisteFN(tblVen, "Date_consult")
-            If colVenSousCat <> 0 And colVenDateConsult <> 0 Then
-                venDisponible = True
-                donneesVen = tblVen.DataBodyRange.value
-                nbLignesVen = UBound(donneesVen, 1)
-                For nbLigne = 1 To nbLignesVen
-                    If mod_DataStructure.CellText(donneesVen(nbLigne, colVenSousCat)) = "Frais, remb sant" & ChrW(233) Then
-                        If EstLigneSentinelle(donneesVen(nbLigne, colVenDateConsult)) Then
-                            nbPendingVen = nbPendingVen + 1
-                            ReDim Preserve pendingVen(1 To nbPendingVen)
-                            pendingVen(nbPendingVen) = nbLigne
-                        End If
-                    End If
-                Next nbLigne
-            End If
-        End If
-    End If
+    ' --- ÉTAPE 1b : premier comptage des lignes de TblVentilations en attente,
+    '     UNIQUEMENT pour annoncer un total de départ à l'opérateur ("1 sur N").
+    '     La liste réellement traitée est recalculée à l'ÉTAPE 3. TblVentilations
+    '     est FACULTATIVE : si elle n'existe pas encore, nbPendingVen reste à 0. --
+    Set traitesVen = CreateObject("Scripting.Dictionary")
+    ListerVentilationsEnAttente traitesVen, "", pendingVen, clesVen, nbPendingVen
 
     totalATraiter = nbPendingOp + nbPendingVen
     If totalATraiter = 0 Then Exit Sub
 
-    ' --- ÉTAPE 2 : on propose chaque ligne, d'abord celles de TblOperations,
-    '     puis celles de TblVentilations (ordre arbitraire, sans conséquence :
-    '     seul le nombre total affiché à l'opérateur compte) -------------------
+    ' --- ÉTAPE 2 : lignes de TblOperations ------------------------------------
+    ' Ici, les numéros de ligne restent valables jusqu'au bout : changer la
+    ' catégorie d'une opération (ou la ventiler) ne déplace ni ne supprime aucune
+    ' ligne de TblOperations.
     numeroEnCours = 0
     For nbLigne = 1 To nbPendingOp
         numeroEnCours = numeroEnCours + 1
@@ -194,13 +172,139 @@ Public Sub VerifierNotesSante()
         AfficherRapprochementPourLigne pendingOp(nbLigne), "O", numeroEnCours, totalATraiter, donneesInitiales
     Next nbLigne
 
-    If venDisponible Then
-        For nbLigne = 1 To nbPendingVen
-            numeroEnCours = numeroEnCours + 1
-            AfficherRapprochementPourLigne pendingVen(nbLigne), "V", numeroEnCours, totalATraiter, donneesInitiales
-        Next nbLigne
-    End If
+    ' --- ÉTAPE 3 : lignes de TblVentilations, avec relecture après toute
+    '     réécriture d'une ventilation (voir l'explication en tête de procédure).
+    '
+    '     Pour ne pas reproposer, dans la MÊME vérification, une ligne déjà vue
+    '     (par exemple "Passer"), on la mémorise dans traitesVen. On ne peut pas
+    '     utiliser son numéro de ligne (il peut changer) : on utilise une clé
+    '     "ID_Transaction|rang", où le rang est la position de la ligne parmi les
+    '     lignes de la MÊME opération (1re part, 2e part...). Ce rang ne bouge pas
+    '     quand une AUTRE ventilation est réécrite.
+    '     Quand c'est la ventilation de la ligne en cours qui est réécrite, ses
+    '     clés sont oubliées (ses lignes santé ont été remises à zéro par la
+    '     réécriture et doivent être reproposées), et ses lignes passent EN TÊTE de
+    '     la nouvelle liste : l'opérateur revient ainsi sur la même opération,
+    '     conformément à son choix du 07/10/2026. ---------------------------------
+    idVenModifie = ""
+    Do
+        relancerVen = False
+        ListerVentilationsEnAttente traitesVen, idVenModifie, pendingVen, clesVen, nbPendingVen
+        totalATraiter = numeroEnCours + nbPendingVen
 
+        For k = 1 To nbPendingVen
+            numeroEnCours = numeroEnCours + 1
+            idVenModifie = AfficherRapprochementPourLigne(pendingVen(k), "V", numeroEnCours, totalATraiter, donneesInitiales)
+            If idVenModifie <> "" Then
+                ' Ventilation réécrite ou supprimée : les numéros de ligne restants
+                ' de pendingVen ne sont plus fiables. On arrête ce passage et on
+                ' relit TblVentilations. La ligne en cours n'est pas comptée comme
+                ' terminée (le compteur affiché reprend au même numéro).
+                numeroEnCours = numeroEnCours - 1
+                OublierClesVentilation traitesVen, idVenModifie
+                relancerVen = True
+                Exit For
+            End If
+            traitesVen(clesVen(k)) = True
+        Next k
+    Loop While relancerVen
+
+End Sub
+
+' =====================================================================================
+' ListerVentilationsEnAttente (ajout du 07/10/2026)
+' =====================================================================================
+' Relit TblVentilations et renvoie la liste des lignes "Frais, remb santé" encore en
+' attente de clé (Date_consult = sentinelle), en ignorant celles déjà présentées
+' pendant la vérification en cours (dictionnaire traitesVen).
+'   traitesVen    : clés "ID_Transaction|rang" des lignes déjà présentées.
+'   idPrioritaire : si non vide, les lignes de CETTE opération sont placées en tête
+'                   de liste (retour sur la même opération après une réécriture).
+'   pendingVen    : en sortie, numéros de ligne dans TblVentilations (1 = 1re ligne
+'                   de données).
+'   clesVen       : en sortie, clé "ID_Transaction|rang" de chaque ligne retenue.
+'   nbPendingVen  : en sortie, nombre de lignes retenues (0 si TblVentilations est
+'                   absente, vide, ou si ses colonnes nécessaires manquent).
+' Cette procédure reprend exactement les critères de l'ancienne ÉTAPE 1b de
+' VerifierNotesSante ; seuls la clé stable et l'ordre prioritaire sont nouveaux.
+Private Sub ListerVentilationsEnAttente(ByVal traitesVen As Object, ByVal idPrioritaire As String, _
+                                        ByRef pendingVen() As Long, ByRef clesVen() As String, _
+                                        ByRef nbPendingVen As Long)
+
+    Dim tblVen As ListObject
+    Dim donneesVen As Variant
+    Dim nbLignesVen As Long
+    Dim colVenID As Long, colVenSousCat As Long, colVenDateConsult As Long
+    Dim rangParOperation As Object
+    Dim cleLigne() As String
+    Dim idLigne As String
+    Dim r As Long, passe As Long
+    Dim estPrioritaire As Boolean
+
+    nbPendingVen = 0
+
+    Set tblVen = ObtenirTableVentilationsFN()
+    If tblVen Is Nothing Then Exit Sub
+    If tblVen.DataBodyRange Is Nothing Then Exit Sub
+
+    colVenID = IndexColSiExisteFN(tblVen, "ID_Transaction")
+    colVenSousCat = IndexColSiExisteFN(tblVen, "SousCategorie")
+    colVenDateConsult = IndexColSiExisteFN(tblVen, "Date_consult")
+    If colVenID = 0 Or colVenSousCat = 0 Or colVenDateConsult = 0 Then Exit Sub
+
+    donneesVen = tblVen.DataBodyRange.value
+    nbLignesVen = UBound(donneesVen, 1)
+
+    ' --- Calcul de la clé stable de chaque ligne : "ID_Transaction|rang". Le
+    '     dictionnaire compte, opération par opération, combien de lignes ont déjà
+    '     été rencontrées (une clé absente vaut "vide", et vide + 1 = 1). ---------
+    Set rangParOperation = CreateObject("Scripting.Dictionary")
+    ReDim cleLigne(1 To nbLignesVen)
+    For r = 1 To nbLignesVen
+        idLigne = mod_DataStructure.CellText(donneesVen(r, colVenID))
+        rangParOperation(idLigne) = rangParOperation(idLigne) + 1
+        cleLigne(r) = idLigne & "|" & rangParOperation(idLigne)
+    Next r
+
+    ' --- Deux passages : 1) lignes de l'opération prioritaire, 2) toutes les
+    '     autres. Sans opération prioritaire, le 1er passage ne retient rien. -----
+    For passe = 1 To 2
+        For r = 1 To nbLignesVen
+            idLigne = mod_DataStructure.CellText(donneesVen(r, colVenID))
+            estPrioritaire = (idPrioritaire <> "" And idLigne = idPrioritaire)
+            If (passe = 1) = estPrioritaire Then
+                If mod_DataStructure.CellText(donneesVen(r, colVenSousCat)) = mod_VarGlobales.SOUS_CATEGORIE_SANTE Then
+                    If EstLigneSentinelle(donneesVen(r, colVenDateConsult)) Then
+                        If Not traitesVen.Exists(cleLigne(r)) Then
+                            nbPendingVen = nbPendingVen + 1
+                            ReDim Preserve pendingVen(1 To nbPendingVen)
+                            ReDim Preserve clesVen(1 To nbPendingVen)
+                            pendingVen(nbPendingVen) = r
+                            clesVen(nbPendingVen) = cleLigne(r)
+                        End If
+                    End If
+                End If
+            End If
+        Next r
+    Next passe
+
+End Sub
+
+' Retire du dictionnaire traitesVen toutes les clés d'une opération donnée
+' ("ID_Transaction|1", "ID_Transaction|2"...). Utilisée après la réécriture d'une
+' ventilation : ses lignes ont été recréées, il faut pouvoir les reproposer.
+' (ajout du 07/10/2026)
+Private Sub OublierClesVentilation(ByVal traitesVen As Object, ByVal idTransaction As String)
+    Dim cle As Variant
+    Dim aRetirer As New Collection
+    ' On ne supprime pas une clé PENDANT qu'on parcourt le dictionnaire (cela peut
+    ' perturber le parcours) : on les note d'abord, puis on les retire ensuite.
+    For Each cle In traitesVen.Keys
+        If Left(CStr(cle), Len(idTransaction) + 1) = idTransaction & "|" Then aRetirer.Add CStr(cle)
+    Next cle
+    For Each cle In aRetirer
+        traitesVen.Remove cle
+    Next cle
 End Sub
 
 ' Vrai si Date_consult contient encore la valeur sentinelle (02/01/1900),
@@ -243,10 +347,17 @@ End Function
 ' ventilation ne représente qu'une partie d'une opération bancaire et n'a pas
 ' de date ni de tiers propres). Renvoie False si la ligne parente est introuvable
 ' (cas qui ne devrait pas se produire, mais on reste prudents).
+
+' (cas qui ne devrait pas se produire, mais on reste prudents).
+' MODIFIÉ le 07/10/2026 : nouveau paramètre de sortie FACULTATIF ligneParentTrouvee
+' (numéro de la ligne parente dans TblOperations, 0 si introuvable), utilisé par
+' ChangerCategorieVentilationSante. Les appels existants, qui ne le précisent pas,
+' fonctionnent exactement comme avant.
 Private Function TrouverContexteParentVentilation(ByVal ligneVen As Long, ByRef tblVen As ListObject, _
                                                    ByRef donneesVen As Variant, _
                                                    ByRef dateAff As Variant, ByRef tiersAff As String, _
-                                                   ByRef chequeAff As Variant) As Boolean
+                                                   ByRef chequeAff As Variant, _
+                                                   Optional ByRef ligneParentTrouvee As Long = 0) As Boolean
     Dim colVenID As Long
     Dim idCible As String
     Dim tblOp As ListObject
@@ -257,6 +368,7 @@ Private Function TrouverContexteParentVentilation(ByVal ligneVen As Long, ByRef 
     dateAff = ""
     tiersAff = ""
     chequeAff = ""
+    ligneParentTrouvee = 0     ' ajout du 07/10/2026
 
     colVenID = IndexColSiExisteFN(tblVen, "ID_Transaction")
     If colVenID = 0 Then Exit Function
@@ -274,6 +386,7 @@ Private Function TrouverContexteParentVentilation(ByVal ligneVen As Long, ByRef 
             dateAff = donneesOp(i, colDate)
             tiersAff = mod_DataStructure.CellText(donneesOp(i, colTiers))
             chequeAff = donneesOp(i, colCheque)
+            ligneParentTrouvee = i     ' ajout du 07/10/2026
             TrouverContexteParentVentilation = True
             Exit Function
         End If
@@ -287,8 +400,17 @@ End Function
 ' AfficherRapprochementPourLigne : ouvre frm_RapprochementNotes pour UNE ligne
 ' (position dans DataBodyRange), attend la decision de l'opérateur, puis
 ' applique le résultat.
+'
+' MODIFIÉ le 07/10/2026 : devient une FONCTION (au lieu d'une procédure Sub) afin
+' de pouvoir prévenir VerifierNotesSante qu'une ventilation a été réécrite ou
+' supprimée par le bouton "Changer la catégorie". Valeur renvoyée :
+'   - "" (chaîne vide) dans tous les cas habituels ;
+'   - l'ID_Transaction de l'opération dont la ventilation a été réécrite ou
+'     supprimée : VerifierNotesSante doit alors relire TblVentilations, car les
+'     lignes de ce tableau ont changé de position.
+' Les appels existants qui ignorent ce résultat restent valables tels quels.
 ' =====================================================================================
-Private Sub AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVal Source As String, ByVal numero As Long, ByVal total As Long, ByRef donneesOp As Variant)
+Private Function AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVal Source As String, ByVal numero As Long, ByVal total As Long, ByRef donneesOp As Variant) As String
 
     Dim ws As Worksheet
     Dim candidats() As TCandidatCle
@@ -445,11 +567,34 @@ Private Sub AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVal Sou
         Case "Passer"
             ' Aucune action volontaire : la ligne reste inchangée (KO,
             ' Date_consult toujours sentinelle) et sera reproposée au prochain passage.
+        Case "ChangerCategorie"
+            ' AJOUT du 07/10/2026 : l'opération a peut-être été mal catégorisée à
+            ' l'import (ce n'est pas une dépense de santé). Règle validée par
+            ' l'opérateur : si elle reste "Frais, remb santé" après le formulaire,
+            ' ou s'il annule, on REVIENT SUR LA MÊME LIGNE (nouvel appel de cette
+            ' même fonction, avec les mêmes paramètres).
+            If Source = "O" Then
+                If Not ChangerCategorieOperationSante(ligneDepense) Then
+                    AfficherRapprochementPourLigne = AfficherRapprochementPourLigne(ligneDepense, Source, numero, total, donneesOp)
+                End If
+            Else
+                ' Ligne de ventilation : c'est toute la ventilation de l'opération
+                ' parente qui est rouverte (option 1 validée par l'opérateur).
+                AfficherRapprochementPourLigne = ChangerCategorieVentilationSante(ligneDepense)
+                If AfficherRapprochementPourLigne = "" Then
+                    ' Annulation : rien n'a bougé dans TblVentilations, le numéro de
+                    ' ligne est donc toujours valable -> retour sur la même ligne.
+                    AfficherRapprochementPourLigne = AfficherRapprochementPourLigne(ligneDepense, Source, numero, total, donneesOp)
+                End If
+                ' Sinon, la ventilation a été réécrite ou supprimée : on renvoie son
+                ' ID_Transaction à VerifierNotesSante, qui relit TblVentilations et
+                ' repropose en tête de liste les lignes santé de cette opération.
+            End If
         Case "Sortir"
             End
     End Select
 
-End Sub
+End Function
 
 
 ' =====================================================================================
@@ -481,6 +626,134 @@ Public Sub PasserRapprochementNotes()
     derniereAction = "Passer"
     g_SaisieEnCours = False
 End Sub
+
+' "Changer la catégorie" (ajout du 07/10/2026) : ferme l'écran de rapprochement et
+' laisse AfficherRapprochementPourLigne ouvrir le formulaire de catégorie adapté
+' (opération normale ou ligne de ventilation). Voir la section
+' "CHANGER LA CATÉGORIE" plus bas pour le détail.
+Public Sub ChangerCategorieRapprochementNotes()
+    derniereAction = "ChangerCategorie"
+    g_SaisieEnCours = False
+End Sub
+
+
+' =====================================================================================
+' CHANGER LA CATÉGORIE DEPUIS frm_RapprochementNotes (ajout du 07/10/2026)
+' =====================================================================================
+' Demande opérateur : une opération mal catégorisée (ou oubliée) lors de l'import en
+' "Frais, remb santé" doit pouvoir être recatégorisée directement depuis l'écran de
+' rapprochement, afin qu'elle SORTE de l'analyse santé.
+'
+' Pourquoi cela suffit : tout le moteur santé (VerifierNotesSante, CalculerSuiviSante,
+' TraiterCasSuiviSante) sélectionne ses lignes UNIQUEMENT d'après la colonne
+' SousCategorie. Une fois celle-ci changée, la ligne n'est plus jamais reprise.
+'
+' Décisions de l'opérateur (07/10/2026) :
+'   - Ligne de TblOperations : formulaire de contrôle des catégories en mode
+'     "une seule opération" (fonction partagée avec l'écran de recherche).
+'   - Ligne de TblVentilations (option 1) : on rouvre la ventilation complète de
+'     l'opération parente, comme "Revoir la ventilation" depuis l'écran de recherche.
+'   - Les colonnes de suivi santé d'une opération qui sort de l'analyse sont vidées.
+'   - Si la ligne reste en santé, ou si l'opérateur annule : retour sur la même ligne.
+' =====================================================================================
+
+' Ligne de TblOperations. Renvoie True si l'opération est SORTIE de l'analyse santé
+' (nouvelle sous-catégorie différente de "Frais, remb santé", y compris si elle a été
+' ventilée), False si elle y est restée ou si l'opérateur a annulé.
+Private Function ChangerCategorieOperationSante(ByVal ligneOp As Long) As Boolean
+
+    Dim tblOp As ListObject
+    Dim nouvelleSousCategorie As String
+
+    ChangerCategorieOperationSante = False
+
+    Set tblOp = mod_DonneesTable.GetOperationsTable()
+    If tblOp Is Nothing Then Exit Function
+
+    ' Formulaire de contrôle des catégories + écriture du résultat (fonction
+    ' partagée avec mod_RechercheOperations.EditerCategorieRO). False = annulation.
+    ' Le nettoyage des colonnes de suivi santé (décision opérateur) est fait par
+    ' cette même fonction partagée : il n'y a donc rien à vider ici.
+    If Not mod_ControleCategories.ModifierCategorieOperation(tblOp, ligneOp) Then Exit Function
+
+    ' Relecture de la sous-catégorie RÉELLEMENT enregistrée (et non d'une copie en
+    ' mémoire, qui pourrait être périmée).
+    mod_Display.RecupIndexCol
+    nouvelleSousCategorie = mod_DataStructure.CellText(tblOp.DataBodyRange.Cells(ligneOp, colSousCategorie).value)
+
+    ' True uniquement si l'opération est bien SORTIE de l'analyse santé.
+    ChangerCategorieOperationSante = (nouvelleSousCategorie <> mod_VarGlobales.SOUS_CATEGORIE_SANTE)
+
+End Function
+
+' Ligne de TblVentilations (option 1 validée par l'opérateur) : rouvre la ventilation
+' COMPLÈTE de l'opération parente, avec le même formulaire et les mêmes règles que
+' "Revoir la ventilation" depuis l'écran de recherche (mod_Ventilation.OuvrirVentilation).
+'
+' Renvoie l'ID_Transaction de l'opération parente si sa ventilation a été RÉÉCRITE
+' (bouton "Terminer") ou SUPPRIMÉE (bouton "Supprimer cette ventilation"), ou une
+' chaîne vide si l'opérateur a annulé (rien n'a changé).
+'
+' À SAVOIR (signalé dans les instructions de l'écran) :
+'   - Réécrire une ventilation recrée TOUTES ses lignes : celles qui restent en
+'     "Frais, remb santé" repartent à zéro (KO / date sentinelle), même si elles
+'     avaient déjà été rapprochées. Limite connue de mod_Ventilation (voir son
+'     en-tête), non modifiée ici.
+'   - Une ligne qui n'est plus en santé est recréée SANS colonnes de suivi santé
+'     (voir mod_Ventilation.AjouterLigneVentilation) : le nettoyage demandé est donc
+'     automatique pour une ligne de ventilation, rien de plus à faire ici.
+'   - En cas de suppression, l'opération parente reprend sa catégorie d'avant
+'     ventilation (même traitement que depuis l'écran de recherche).
+Private Function ChangerCategorieVentilationSante(ByVal ligneVen As Long) As String
+
+    Dim tblVen As ListObject
+    Dim donneesVen As Variant
+    Dim tblOp As ListObject
+    Dim idTransaction As String
+    Dim dateParent As Variant, tiersParent As String, chequeParent As Variant
+    Dim ligneParent As Long
+    Dim montantParent As Double
+    Dim categorieParent As String, sousCategorieParent As String
+    Dim ventilationSupprimee As Boolean
+
+    ChangerCategorieVentilationSante = ""
+
+    Set tblVen = ObtenirTableVentilationsFN()
+    If tblVen Is Nothing Then Exit Function
+    If tblVen.DataBodyRange Is Nothing Then Exit Function
+    donneesVen = tblVen.DataBodyRange.value
+
+    ' Index des colonnes de TblOperations (colID, colDate...), nécessaires à
+    ' TrouverContexteParentVentilation et aux lectures ci-dessous.
+    mod_Display.RecupIndexCol
+
+    ' Fonction existante réutilisée : elle retrouve l'opération parente via
+    ' ID_Transaction (et renvoie maintenant aussi son numéro de ligne).
+    If Not TrouverContexteParentVentilation(ligneVen, tblVen, donneesVen, dateParent, tiersParent, chequeParent, ligneParent) Then
+        MsgBox FR("Op{e2}ration parente introuvable dans TblOperations : impossible de rouvrir cette ventilation."), vbExclamation
+        Exit Function
+    End If
+
+    idTransaction = mod_DataStructure.CellText(donneesVen(ligneVen, IndexColSiExisteFN(tblVen, "ID_Transaction")))
+
+    Set tblOp = mod_DonneesTable.GetOperationsTable()
+    montantParent = mod_DataStructure.ToDouble(tblOp.DataBodyRange.Cells(ligneParent, colMontant).value)
+    categorieParent = mod_DataStructure.CellText(tblOp.DataBodyRange.Cells(ligneParent, colCategorie).value)
+    sousCategorieParent = ""
+    If colSousCategorie <> 0 Then sousCategorieParent = mod_DataStructure.CellText(tblOp.DataBodyRange.Cells(ligneParent, colSousCategorie).value)
+
+    ' Même appel que mod_RechercheOperations.RevoirVentilationRO.
+    If Not mod_Ventilation.OuvrirVentilation(idTransaction, dateParent, tiersParent, "", montantParent, _
+                                             categorieParent, sousCategorieParent, ventilationSupprimee) Then
+        If Not ventilationSupprimee Then Exit Function    ' annulation : rien n'a changé
+        ' Ventilation supprimée : l'opération parente reprend sa catégorie d'avant
+        ' ventilation (procédure existante, rendue publique pour l'occasion).
+        mod_RechercheOperations.RestaurerCategorieAvantVentilation tblOp, ligneParent
+    End If
+
+    ChangerCategorieVentilationSante = idTransaction
+
+End Function
 
 ' "Sortir" : aucune modification. La ligne reste "KO" (StatutSante) et
 ' Date_consult conserve la valeur sentinelle; la ligne sera donc reproposée

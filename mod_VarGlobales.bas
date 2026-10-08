@@ -71,6 +71,22 @@ Public Const SOUS_CATEGORIE_SANTE As String = "Frais, remb santé"
 ' prochain passage de nettoyage (non fait ici, faute de validation).
 Public Const CATEGORIE_SANTE As String = "Santé, prévoyance"
 
+' --- Colonnes de suivi santé à vider quand une opération SORT de l'analyse santé ---
+' (ajout du 07/10/2026, bouton "Changer la catégorie" de frm_RapprochementNotes)
+' Liste des colonnes de TblOperations remplies UNIQUEMENT pour une ligne
+' "Frais, remb santé" (initialisées à l'import par mod_ImportOFX, puis par le
+' rapprochement et le suivi santé). Quand l'opérateur corrige la catégorie d'une
+' opération qui n'était pas une dépense de santé, ces colonnes n'ont plus de sens :
+' mod_ControleCategories.NettoyerColonnesSante les vide une par une (appelée par la
+' fonction partagée ModifierCategorieOperation, donc depuis l'écran de recherche ET
+' depuis l'écran de rapprochement).
+'   - Les noms sont séparés par ";" (découpés avec Split au moment de l'emploi).
+'   - La colonne "Notes" n'y figure VOLONTAIREMENT PAS : dans TblOperations, elle
+'     contient le libellé bancaire d'origine, qui reste une donnée utile.
+'   - Même liste (hors Notes) que celle utilisée par mod_InstallVentilation pour
+'     créer les colonnes santé de TblVentilations.
+Public Const COLONNES_SUIVI_SANTE As String = "Date_consult;Spe_Consult;StatutSante;SoldeSante;DepassementHoraires;CommentaireSante;Franchise;Beneficiaire"
+
 ' Stocke l'index d'une colonne, calculé à partir d'un des champs de l'ARRAY, pour toute la feuille de sortie.
 ' EXEMPLE Si on veut poser les entêtes à partir de E1 dans synthese,
 ' Array("Date", "Tiers", "Montant"): posDate=5,posTiers=6,posMontant=7
