@@ -464,6 +464,15 @@ Public Sub DefinirColonnesVisibles(ByVal ws As Worksheet, ByVal prefiltre As Str
         Case "ErreursSante"
             ws.Columns("O").Hidden = False
             ws.Columns("P").Hidden = False
+        Case "SuiviSante"
+            ' Ajout 07/10/2026 (refonte de Synthese_Care) : on affiche les 4
+            ' colonnes de suivi santé. L'ancien écran affichait Date_consult,
+            ' Spe_consult et un statut ; on y ajoute SoldeSante, déjà calculé par
+            ' mod_SuiviSante.CalculerSuiviSante.
+            ws.Columns("M").Hidden = False   ' StatutSante
+            ws.Columns("N").Hidden = False   ' SoldeSante
+            ws.Columns("O").Hidden = False   ' Date_consult
+            ws.Columns("P").Hidden = False   ' Spe_consult
         ' Case "" (recherche libre) : aucune des 5 colonnes n'a de sens générique,
         ' on les laisse toutes masquées (état neutre défini plus haut).
     End Select

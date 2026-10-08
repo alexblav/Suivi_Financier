@@ -91,7 +91,15 @@ Public Const NOM_FEUILLE_RECHERCHE As String = "frm_RechercheOperations"
 Public Const NOM_FEUILLE_TECH As String = "TechDernierImport"
 Public Const NOM_FEUILLE_SUIVI_SANTE As String = "frm_SuiviSante"
 Public Const NOM_FEUILLE_RESOLUTION As String = "frm_ResolutionCategories"
-
+ 
+' Nom défini (portée CLASSEUR, masqué dans le Gestionnaire de noms) qui mémorise le
+' préfiltre affiché par frm_RechercheOperations ("", "SuiviSante"...). Ajout
+' 08/10/2026 : contrairement à une variable VBA, un nom défini SURVIT à une
+' réinitialisation du projet (modification du code, instruction End, bouton
+' "Réinitialiser"...). Écrit par mod_RechercheOperations.RechercherOperations,
+' relu par mod_RechercheOperations.PrefiltreActifRO.
+Public Const NOM_PREFILTRE_ACTIF_RO As String = "RO_PrefiltreActif"
+ 
 ' Variables de construction d'une zone de texte
 Public PositionTitre As Range, debutZone As Range, finZone As Range
 Public Titre As String, Message As String
@@ -144,4 +152,18 @@ Public Const DECALAGES_BUDGET_NB_COL As Long = 4        ' S,T,U,V = Tiers/Catego
 ' marquer/memoriser le decalage manuel d'une operation precise - voir colDecalageManuel
 ' ci-dessus et mod_DecalagesBudget.AjouterColonneDecalageManuel/AppliquerDecalageManuel.
 Public Const NOM_COL_DECALAGE_MANUEL As String = "DecalageManuel"
+
+'' -------------------------------------------------------------------------------------
+'' EXPORT DE LA STRUCTURE DES FEUILLES (ajout 08/10/2026, voir mod_ExportStructure)
+'' -------------------------------------------------------------------------------------
+' Sous-dossier créé à côté du classeur pour recevoir les fichiers d'export (un
+' fichier "<NomFeuille>_structure.txt" par feuille exportée).
+Public Const EXPORT_SOUS_DOSSIER As String = "Export_Structure"
+' Nombre maximal de lignes analysées en détail (cellules, hauteurs de lignes). Les
+' feuilles-formulaires ont leur mise en page en haut de feuille ; au-delà, ce sont
+' des données, qu'on ne veut pas exporter. À augmenter si une mise en page descend
+' plus bas (ex. frm_ResolutionCategories prépare NB_LIGNES_PREPAREES = 200 lignes).
+Public Const EXPORT_NB_LIGNES_MAX As Long = 100
+' Garde-fou : nombre maximal de cellules décrites par feuille.
+Public Const EXPORT_NB_CELLULES_MAX As Long = 5000
 

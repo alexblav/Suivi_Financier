@@ -81,7 +81,26 @@ End Function
 ' le double-clic reprend alors simplement son comportement normal d'Excel.
 ' =====================================================================================
 Public Function PrefiltreActifRO() As String
-    PrefiltreActifRO = g_ROPrefiltreActif
+ 
+    ' Correctif du 08/10/2026 : la variable g_ROPrefiltreActif est EFFACÉE dès que le
+    ' projet VBA est réinitialisé (code modifié dans l'éditeur, instruction End,
+    ' erreur arrêtée par "Fin"...), alors que l'écran, lui, reste affiché. Le
+    ' double-clic sur SousCategorie ne reconnaissait alors plus le mode suivi santé.
+    ' On lit donc d'abord le NOM DÉFINI écrit par RechercherOperations, qui survit à
+    ' ces réinitialisations ; la variable ne sert plus que de solution de repli.
+    ' Evaluate transforme la référence du nom (="SuiviSante") en sa valeur (SuiviSante).
+    Dim valeur As Variant
+ 
+    On Error Resume Next
+    valeur = ThisWorkbook.Evaluate(ThisWorkbook.Names(mod_VarGlobales.NOM_PREFILTRE_ACTIF_RO).RefersTo)
+    On Error GoTo 0
+ 
+    If IsEmpty(valeur) Or IsError(valeur) Then
+        PrefiltreActifRO = g_ROPrefiltreActif
+    Else
+        PrefiltreActifRO = CStr(valeur)
+    End If
+ 
 End Function
 
 ' =====================================================================================
@@ -255,7 +274,18 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
     ' recharger l'écran dans le MÊME contexte après une modification.
     g_ROPrefiltreActif = prefiltre
     g_ROParamActif = param
-
+ 
+    ' Correctif du 08/10/2026 : copie du préfiltre dans un nom défini masqué, qui
+    ' survit à une réinitialisation du projet VBA (voir PrefiltreActifRO). Names.Add
+    ' remplace le nom s'il existe déjà. Portée CLASSEUR (ThisWorkbook.Names) : c'est
+    ' la même portée qu'à la lecture, pour éviter le piège déjà rencontré entre
+    ' ws.Names et ThisWorkbook.Names. Une erreur ici ne doit jamais empêcher la
+    ' recherche : elle est ignorée (la variable g_ROPrefiltreActif prend le relais).
+    On Error Resume Next
+    ThisWorkbook.Names.Add Name:=mod_VarGlobales.NOM_PREFILTRE_ACTIF_RO, _
+                           RefersTo:="=""" & prefiltre & """", Visible:=False
+    On Error GoTo 0
+ 
     Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RECHERCHE)
     Set tblRecherche = ws.ListObjects(mod_VarGlobales.NOM_TABLE_RECHERCHE)
 
@@ -1383,11 +1413,14 @@ Public Sub RecalculerSuiviSanteRO()
  
     ' True = afficher le résumé habituel du calcul (nombre de groupes recalculés).
     mod_SuiviSante.CalculerSuiviSante True
- 
+  
     ' CalculerSuiviSante modifie les variables globales tbl et colXxx : on recharge
     ' l'écran, qui les réinitialise proprement, avec le même préfiltre qu'avant.
-    RechercherOperations g_ROPrefiltreActif, g_ROParamActif
- 
+    ' Correctif du 08/10/2026 : PrefiltreActifRO() au lieu de g_ROPrefiltreActif,
+    ' sinon, après une réinitialisation du projet, l'écran se rechargeait en
+    ' recherche globale au lieu du suivi santé.
+    RechercherOperations PrefiltreActifRO(), g_ROParamActif
+  
 End Sub
 
 ' PHASE 6 : retourne sur la feuille "Resultat" (bilan mensuel) si l'écran a été
