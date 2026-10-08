@@ -1,0 +1,171 @@
+# STRUCTURE DE LA FEUILLE : frm_RapprochementNotes
+Classeur           = Test_Import_OFX.xlsm
+CodeName           = Feuil4
+Visibilite         = tres masquee (xlSheetVeryHidden)
+Exporte le         = 2026-10-08 18:16:37
+Version Excel      = 16.0
+Plage utilisee     = B1:P1001
+Zone detaillee     = A1:R100  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
+Largeur standard   = 10.13
+Hauteur standard   = 13.2
+Protection contenu = Non
+Nb tableaux        = 0
+Nb formes          = 5
+Contenu des tableaux NON exporte (confidentialite).
+
+## FENETRE
+Zoom             = 100
+FreezePanes      = Non
+SplitRow         = 0   (volets figes sous la ligne 0)
+SplitColumn      = 0
+ScrollRow        = 1
+ScrollColumn     = 1
+DisplayGridlines = Non
+DisplayHeadings  = Oui
+DisplayZeros     = Oui
+
+## COLONNES (lettre | largeur | masquee)
+A | 2
+B | 14.4
+C | 22.33
+D | 11.27
+E | 25.87
+F | 14
+G | 16
+H | 2
+I | 10.13
+J | 0 | MASQUEE
+K | 9.67
+L | 0 | MASQUEE
+M | 0 | MASQUEE
+N | 0 | MASQUEE
+O | 0 | MASQUEE
+P | 0 | MASQUEE
+Q | 10.13
+R | 10.13
+
+## LIGNES NON STANDARD (numero | hauteur | masquee) -- hauteur standard = 13.2
+2 | 22.2
+3 | 22.2
+5 | 14.3
+6 | 34.9
+7 | 34.9
+8 | 34.9
+9 | 79.9
+11 | 13.9
+12 | 18
+13 | 18
+16 | 18
+17 | 18
+18 | 18
+19 | 18
+21 | 18
+22 | 6.4
+
+## CELLULES DE LA ZONE (hors tableaux)
+## adresse | valeur ou formule | fusion | police | fond | format | alignement | autres
+L1 | "ListeDates" | police: taille=10
+M1 | "ListeSpecialites" | police: taille=10
+N1 | "ListeBeneficiaires" | police: taille=10
+O1 | "ListeMontants" | police: taille=10
+P1 | "ListeCles" | police: taille=10
+F2 | "1 sur 5" | fusion=F2:G2 | police: taille=9 couleur=RGB(120, 120, 120) | alignH=xlRight | alignV=xlCenter
+J2 | "32" | police: taille=10
+B5 | "Instructions" | police: gras | bordures
+C5 | "" | police: taille=10 | bordures
+D5 | "" | police: taille=10 | bordures
+E5 | "" | police: taille=10 | bordures
+F5 | "" | police: taille=10 | bordures
+G5 | "" | police: taille=10 | bordures
+A6 | "" | police: taille=10 | bordures
+B6 | "Cette opération de santé n'a pas pu être rapprochée automatiquement car le champs Notes n'a pas été correctement renseigné\nCe formulaire permet de vérifier si une autre opération est déjà enregistrée pour cette consultation.\nSélectionner la date de consultation dans la liste. \nSi absente cliquer sur 'Pas de correspondance' pour créer une nouvelle clé\nSi présente continuer à descendre: Spécialité, puis Bénéficiaire, puis Montant pour retrouver la clé parmi\ncelles déjà connues. \nConséquence de chaque bouton :\n- 'Valider' : applique la clé trouvée à cette opération. Elle ne sera PLUS JAMAIS reproposée (rapprochement considéré réglé définitivement).\n- 'Pas de correspondance' : ouvre un écran pour créer une toute nouvelle clé (aucune clé existante ne convient).\n- 'Passer' : ne modifie RIEN sur cette opération. Elle sera automatiquement reproposée la prochaine fois que la vérification sera relancée\n- 'Sortir': Ferme la fenêtre et revient sur la page Synthese. Il est possible de relancer le traitement avec le bouton: 'Retraiter suivi de santé'" | fusion=B6:G9 | police: taille=9 gras=mixte couleur=mixte (mise en forme partielle) | fond=RGB(245, 245, 242) | alignV=xlTop | retour_ligne | bordures
+H6 | "" | police: taille=10 | bordures
+A7 | "" | police: taille=10 | bordures
+H7 | "" | police: taille=10 | bordures
+A8 | "" | police: taille=10 | bordures
+H8 | "" | police: taille=10 | bordures
+A9 | "" | police: taille=10 | bordures
+H9 | "" | police: taille=10 | bordures
+B10 | "" | police: taille=10 | bordures
+C10 | "" | police: taille=10 | bordures
+D10 | "" | police: taille=10 | bordures
+E10 | "" | police: taille=10 | bordures
+F10 | "" | police: taille=10 | bordures
+G10 | "" | police: taille=10 | bordures
+B11 | "Opération concernée" | fusion=B11:G11 | police: taille=10.5 gras | fond=RGB(250, 250, 248)
+B12 | "Date opération :" | police: taille=10 gras couleur=RGB(31, 73, 125)
+C12 | "46283" | police: taille=10 | fond=RGB(248, 248, 246) | format="m/d/yyyy"
+D12 | "Chéque :" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignH=xlRight
+E12 | "" | police: taille=10 | fond=RGB(248, 248, 246) | format="#,#00"
+F12 | "Montant :" | police: taille=10 gras couleur=RGB(31, 73, 125) | fond=RGB(248, 248, 246)
+G12 | "-33,9" | police: taille=10 | fond=RGB(248, 248, 246) | format="#,##0.00 €"
+B13 | "Catégorie:" | police: taille=10 gras couleur=RGB(31, 73, 125)
+C13 | "" | police: taille=10 | fond=RGB(248, 248, 246) | format="m/d/yyyy"
+D13 | "Sous-Caégorie:" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignH=xlRight
+E13 | "" | police: taille=10 | fond=RGB(248, 248, 246) | format="#,#00"
+F13 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+G13 | "" | police: taille=10 | fond=RGB(248, 248, 246) | format="#,##0.00 €"
+B14 | "Notes :" | police: taille=10 gras couleur=RGB(31, 73, 125) | fond=RGB(248, 248, 246)
+C14 | "Frais, remb santé - CB PHARMACIE MAIRI FACT 160926 344133******1, non rbt lactibiane et préservatifs Alex dede" | fusion=C14:G14 | police: taille=10 | fond=RGB(248, 248, 246) | alignH=xlCenter | retour_ligne
+B15 | "Tiers :" | police: taille=10 gras couleur=RGB(31, 73, 125) | fond=RGB(248, 248, 246)
+C15 | "PHARMACIE MAIRI" | police: taille=10 | fond=RGB(248, 248, 246)
+D15 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+E15 | "" | police: taille=10 | fond=RGB(248, 248, 246)
+F15 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+G15 | "" | police: taille=10 | fond=RGB(248, 248, 246) | format="#,##0.00 €"
+B17 | "Recherche de la clé (filtres en cascade)" | fusion=B17:G17 | police: taille=10.5 gras | fond=RGB(250, 250, 248)
+B18 | "Date consultation :" | police: taille=10 gras couleur=RGB(31, 73, 125) | bordures
+C18 | "" | fusion=C18:F18 | police: taille=10 | fond=RGB(255, 255, 235) | format="@" | alignH=xlCenter | bordures | non_verrouillee
+G18 | "" | police: taille=10 | bordures
+B19 | "Spécialité :" | police: taille=10 gras couleur=RGB(31, 73, 125) | bordures
+C19 | "" | fusion=C19:F19 | police: taille=10 | fond=RGB(255, 255, 235) | format="@" | alignH=xlCenter | bordures | non_verrouillee
+G19 | "" | police: taille=10 | bordures
+B20 | "Bénéficiaire :" | police: taille=10 gras couleur=RGB(31, 73, 125) | bordures
+C20 | "" | fusion=C20:F20 | police: taille=10 | fond=RGB(255, 255, 235) | format="@" | alignH=xlCenter | bordures | non_verrouillee
+G20 | "" | police: taille=10 | bordures
+B21 | "Montant :" | police: taille=10 gras couleur=RGB(31, 73, 125) | bordures
+C21 | "" | fusion=C21:F21 | police: taille=10 | fond=RGB(255, 255, 235) | format="@" | alignH=xlCenter | bordures | non_verrouillee
+G21 | "" | police: taille=10 | bordures
+C22 | "" | police: taille=10 | bordures
+D22 | "" | police: taille=10 | bordures
+E22 | "" | police: taille=10 | bordures
+F22 | "" | police: taille=10 | bordures
+B23 | "Clé trouvée :" | police: taille=10 gras couleur=RGB(31, 73, 125)
+C23 | "" | fusion=C23:G23 | police: taille=10 gras | fond=RGB(248, 248, 246)
+
+## TABLEAUX
+(aucun)
+
+## VALIDATIONS HORS TABLEAUX (plage | description)
+C18:F21 | validation=xlValidateList Formula1="=rnListeDates" alerte=xlValidAlertStop
+
+## MISES EN FORME CONDITIONNELLES (plage | type | formule | effet)
+(aucune)
+
+## FORMES ET BOUTONS (nom | genre | ancrage | gauche,haut,largeur,hauteur | texte | macro | visible)
+btnPasDeCorrespondance | Bouton (controle de formulaire) | A1:C2 | 7.5,6.69999980926514,120,18.3999996185303 | "Pas de correspondance" | Test_Import_OFX.xlsm!PasDeCorrespondanceNotes | Oui
+btnValiderRapprochement | Bouton (controle de formulaire) | C1:D2 | 129,8.19999980926514,112.5,16.8999996185303 | "Valider" | Test_Import_OFX.xlsm!ValiderRapprochementNotes | Oui
+btnPasserRapprochement | Bouton (controle de formulaire) | A3:C4 | 7.5,36,118.5,22.1000003814697 | "Passer" | Test_Import_OFX.xlsm!PasserRapprochementNotes | Oui
+Button 12 | Bouton (controle de formulaire) | C3:D4 | 127.5,36,112.5,22.1000003814697 | "Sortir" | Test_Import_OFX.xlsm!SortirRapprochementNotes | Oui
+Button 13 | Bouton (controle de formulaire) | H13:K14 | 626.299987792969,319.5,120.699996948242,21 | "Changer la catégorie" | Test_Import_OFX.xlsm!ChangerCategorieRapprochementNotes | Oui
+
+## NOMS DEFINIS (nom | portee | fait reference a | visible)
+frm_RapprochementNotes!rnBeneficiaire | feuille frm_RapprochementNotes | =frm_RapprochementNotes!$C$20 | Oui
+frm_RapprochementNotes!rnCleTrouvee | feuille frm_RapprochementNotes | =frm_RapprochementNotes!$C$23 | Oui
+frm_RapprochementNotes!rnCompteurCas | feuille frm_RapprochementNotes | =frm_RapprochementNotes!$F$2 | Oui
+frm_RapprochementNotes!rnDate | feuille frm_RapprochementNotes | =frm_RapprochementNotes!$C$18 | Oui
+frm_RapprochementNotes!rnDateOp | feuille frm_RapprochementNotes | =frm_RapprochementNotes!$C$12 | Oui
+frm_RapprochementNotes!rnLigneEnCours | feuille frm_RapprochementNotes | =frm_RapprochementNotes!$J$2 | Oui
+frm_RapprochementNotes!rnListeBeneficiaires | feuille frm_RapprochementNotes | =frm_RapprochementNotes!$N$2 | Oui
+frm_RapprochementNotes!rnListeCles | feuille frm_RapprochementNotes | =frm_RapprochementNotes!$P$2 | Oui
+frm_RapprochementNotes!rnListeDates | feuille frm_RapprochementNotes | =frm_RapprochementNotes!$L$2 | Oui
+frm_RapprochementNotes!rnListeMontants | feuille frm_RapprochementNotes | =frm_RapprochementNotes!$O$2 | Oui
+frm_RapprochementNotes!rnListeSpecialites | feuille frm_RapprochementNotes | =frm_RapprochementNotes!$M$2 | Oui
+frm_RapprochementNotes!rnMontant | feuille frm_RapprochementNotes | =frm_RapprochementNotes!$C$21 | Oui
+frm_RapprochementNotes!rnMontantOp | feuille frm_RapprochementNotes | =frm_RapprochementNotes!$G$12 | Oui
+rnNotes | classeur | =frm_RapprochementNotes!$C$14 | Oui
+rnNumCheque | classeur | =frm_RapprochementNotes!$E$12 | Oui
+frm_RapprochementNotes!rnSpecialite | feuille frm_RapprochementNotes | =frm_RapprochementNotes!$C$19 | Oui
+frm_RapprochementNotes!rnTiersOp | feuille frm_RapprochementNotes | =frm_RapprochementNotes!$C$15 | Oui
+
+# FIN DE L'EXPORT
