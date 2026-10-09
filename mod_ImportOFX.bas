@@ -494,6 +494,18 @@ Public Sub ImporterOperationsOFX()
         mod_DernierImport.MemoriserDernierImport listeIDsImportes, nbAjoutees
     End If
 
+    ' --- ÉTAPE 9bis-1 (ajout du 09/10/2026) : échéancier ---------------------------
+    ' Complète les occurrences des règles de récurrence puis propose le rapprochement
+    ' des opérations qui viennent d'être importées avec les échéances à venir (voir
+    ' mod_Echeancier). Une échéance rapprochée et validée disparaît de la liste. Le
+    ' solde prévisionnel de la feuille Synthese est fait de formules : il se met à jour
+    ' tout seul. Sans effet tant que l'échéancier n'est pas installé.
+    If nbAjoutees > 0 Then
+        mod_Echeancier.TraiterApresImport listeIDsImportes, nbAjoutees
+    Else
+        mod_Echeancier.MettreAJourEcheancier
+    End If
+
     ' --- ÉTAPE 9bis : suivi santé (désormais À LA DEMANDE, et non automatique) ---
     ' AJOUT du 03/10/2026 (demande opérateur) : l'import ne doit plus enchaîner
     ' systématiquement le traitement de santé (potentiellement long, avec un

@@ -101,3 +101,10 @@ Private Sub Workbook_SheetBeforeDoubleClick(ByVal Sh As Object, ByVal Target As 
     End If
  
 End Sub
+
+' AJOUT 09/10/2026 (échéancier) : à l'ouverture du classeur, complète les occurrences des règles
+' de récurrence jusqu'à l'horizon, pour que le solde prévisionnel ne manque jamais d'échéances
+' même si aucun import n'a été fait depuis longtemps. Sans effet si l'échéancier n'est pas installé.
+Private Sub Workbook_Open()
+    mod_Echeancier.MettreAJourEcheancier
+End Sub

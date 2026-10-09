@@ -1447,6 +1447,25 @@ End Sub
 ' AjouterDecalageDepuisRO et DecalerBudgetOperationRO).
 ' =====================================================================================
 
+' =====================================================================================
+' BOUTON "Rendre récurrente" (ajout du 09/10/2026, échéancier) : ouvre le formulaire de
+' saisie d'une échéance préremplie avec la ligne sélectionnée (Tiers, Catégorie,
+' Montant...). Disponible dans tous les préfiltres, donc aussi sur l'écran "Dernier
+' import" : c'est ainsi qu'on déclare une opération récurrente juste après un import.
+' Voir mod_Echeancier.DeclarerRecurrenteDepuisOperation.
+' =====================================================================================
+Public Sub RendreRecurrenteRO()
+
+    Dim idTransaction As String, tiersSel As String, categorieSel As String, sousCategorieSel As String
+
+    LireSelectionRO idTransaction, tiersSel, categorieSel, sousCategorieSel
+    If idTransaction = "" Then Exit Sub
+
+    mod_Echeancier.DeclarerRecurrenteDepuisOperation idTransaction
+
+End Sub
+
+
 ' Relit la ligne SÉLECTIONNÉE dans les résultats de recherche et renvoie son
 ' ID_Transaction, Tiers, Categorie et SousCategorie tels qu'affichés à l'écran.
 ' Reprend le mécanisme de RevoirVentilationRO (ActiveCell.Row -> ligne relative ->

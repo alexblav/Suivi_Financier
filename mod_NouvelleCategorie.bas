@@ -13,7 +13,8 @@ Option Explicit
 '
 '   FONCTIONNEMENT "PAR-DESSUS" UN AUTRE FORMULAIRE :
 '   Ce formulaire est conçu pour s'ouvrir À PARTIR d'un autre formulaire-feuille déjà
-'   ouvert (le contrôle des catégories, phase 2), via son bouton "+ Nouvelle catégorie".
+'   ouvert (le contrôle des catégories, phase 2, la ventilation ou la saisie d'une échéance
+'   frm_Echeance), via son bouton "+".
 '   La fonction OuvrirNouvelleCategorie() ci-dessous gère ce cas : elle attend la
 '   fermeture de CE formulaire (Valider ou Annuler) et renvoie le résultat à l'appelant,
 '   sans jamais toucher aux données elles-mêmes : c'est l'appelant qui décide quoi faire

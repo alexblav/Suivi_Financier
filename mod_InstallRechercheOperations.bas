@@ -202,6 +202,8 @@ Private Function RO_TexteInstructions() As String
     t = t & Chr(10) & "- [b:Ajouter un d{e2}calage] : ajoute un d{e2}calage de budget r{e2}current au syst{e2}me."
     t = t & Chr(10) & "- [b:D{e2}caler cette op{e2}ration] : d{e2}calage ponctuel d'une op{e2}ration ; le calcul repart toujours de la date de l'op{e2}ration "
     t = t & "(pour revenir au mois d'origine, indiquez 0)."
+    t = t & Chr(10) & "- [b:Rendre r{e2}currente] : ouvre le formulaire d'{e2}ch{e2}ance pr{e2}rempli avec l'op{e2}ration s{e2}lectionn{e2}e (tiers, cat{e2}gorie, montant, "
+    t = t & "p{e2}riodicit{e2} mensuelle, prochaine date {a2} venir). Vous pouvez tout modifier avant de valider ; l'op{e2}ration elle-m{ea}me n'est pas modifi{e2}e."
 
     RO_TexteInstructions = t
 
@@ -261,6 +263,9 @@ Private Sub RO_ConstruireBoutons(ByVal ws As Worksheet)
         "AjouterDecalageDepuisRO", "btnAjouterDecalageRO", 104.2
     mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("D{e2}caler cette op{e2}ration"), _
         "DecalerBudgetOperationRO", "btnDecalerBudgetOperationRO", 117
+    ' Ajout 09/10/2026 (échéancier) : déclare l'opération sélectionnée comme récurrente.
+    mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Rendre r{e2}currente"), _
+        "RendreRecurrenteRO", "btnRendreRecurrenteRO", 105
 
 End Sub
 

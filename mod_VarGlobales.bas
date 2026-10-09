@@ -182,6 +182,18 @@ Public Const DECALAGES_BUDGET_NB_COL As Long = 4        ' S,T,U,V = Tiers/Catego
 Public Const NOM_COL_DECALAGE_MANUEL As String = "DecalageManuel"
 
 '' -------------------------------------------------------------------------------------
+'' ECHEANCIER / PREVISIONNEL DE TRESORERIE (ajout 09/10/2026, voir mod_Echeancier)
+'' -------------------------------------------------------------------------------------
+'' Trois feuilles masquees (ouvertes par des boutons, comme les autres ecrans frm_*) :
+'' la liste des echeances a venir, la liste des regles de recurrence et le formulaire
+'' de saisie. Les deux tableaux portent les noms ci-dessous.
+Public Const NOM_FEUILLE_ECHEANCIER As String = "frm_Echeancier"
+Public Const NOM_FEUILLE_RECURRENCES As String = "frm_Recurrences"
+Public Const NOM_FEUILLE_ECHEANCE As String = "frm_Echeance"
+Public Const NOM_TABLE_ECHEANCES As String = "TblEcheances"
+Public Const NOM_TABLE_RECURRENCES As String = "TblRecurrences"
+
+'' -------------------------------------------------------------------------------------
 '' EXPORT DE LA STRUCTURE DES FEUILLES (ajout 08/10/2026, voir mod_ExportStructure)
 '' -------------------------------------------------------------------------------------
 ' Sous-dossier créé à côté du classeur pour recevoir les fichiers d'export (un

@@ -8,8 +8,8 @@ Option Explicit
 ' RÔLE (à lire en premier, même si vous débutez) :
 '   Ce module CONSTRUIT la feuille-formulaire qui permet de créer une nouvelle
 '   catégorie (ou une nouvelle sous-catégorie d'une catégorie existante).
-'   Elle s'ouvre par-dessus un autre formulaire (contrôle des catégories ou
-'   ventilation), quand l'opérateur clique sur le bouton "+".
+'   Elle s'ouvre par-dessus un autre formulaire (contrôle des catégories,
+'   ventilation ou saisie d'une échéance), quand l'opérateur clique sur le bouton "+".
 '   Ce module ne contient AUCUNE logique : elle se trouve dans mod_NouvelleCategorie
 '   (partie 2/2), exactement comme pour la Phase 2.
 '
@@ -108,7 +108,7 @@ Private Function TexteInstructions() As String
     Dim t As String
 
     t = "Ce formulaire permet de cr{e2}er une nouvelle cat{e2}gorie, ou une nouvelle sous-cat{e2}gorie d'une cat{e2}gorie existante."
-    t = t & Chr(10) & "Il s'ouvre avec le bouton [b:+] de [f:frm_ControleCategories] ou de [f:frm_Ventilation]."
+    t = t & Chr(10) & "Il s'ouvre avec le bouton [b:+] de [f:frm_ControleCategories], de [f:frm_Ventilation] ou de [f:frm_Echeance]."
     t = t & Chr(10) & "Choisissez une [c:Cat{e2}gorie] existante dans la liste, ou tapez-en une nouvelle. Choisissez ensuite une "
     t = t & "[c:Sous-cat{e2}gorie] d{e2}j{a2} connue de cette cat{e2}gorie, ou tapez-en une nouvelle ; ce champ peut aussi rester vide."
     t = t & Chr(10) & "Boutons :"

@@ -1,0 +1,24 @@
+' =====================================================================================
+' CODE À COLLER DANS LE MODULE DE LA FEUILLE "frm_Echeance"
+' =====================================================================================
+' Même principe que pour frm_NouvelleCategorie (voir CodeBehind_frm_NouvelleCategorie.txt) :
+' les événements d'une feuille doivent obligatoirement être écrits dans le module de code
+' de LA FEUILLE ELLE-MÊME. Ce code ne fait qu'appeler mod_Echeancier.
+'
+' COMMENT FAIRE :
+'   1. Alt+F11 pour ouvrir l'éditeur VBA.
+'   2. Dans l'explorateur de projet (Ctrl+R si absent), repérez la ligne :
+'          <CodeName> (frm_Echeance)
+'      (le CodeName vous est indiqué dans le message de fin d'installation).
+'      Double-cliquez dessus.
+'   3. Collez-y LES LIGNES CI-DESSOUS, à partir de "Private Sub Worksheet_Change".
+'   4. Ne collez pas ce code dans une autre feuille : il s'y déclencherait à tort.
+' =====================================================================================
+
+Private Sub Worksheet_Change(ByVal Target As Range)
+    mod_Echeancier.EchTraiterChangement Me, Target
+End Sub
+
+Private Sub Worksheet_Deactivate()
+    mod_Echeancier.EchVerrouiller Me
+End Sub
