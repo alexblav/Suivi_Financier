@@ -5,51 +5,54 @@ Option Explicit
 '
 ' RÔLE (phase 2a du chantier "Suivi Santé") :
 '   Ce module contient UNIQUEMENT la construction de la mise en page statique de la
-'   feuille masquée qui servira de formulaire opérateur pour valider les dépenses
+'   feuille masquée qui sert de formulaire opérateur pour valider les dépenses
 '   de santé ("Frais, remb santé") nécessitant une intervention manuelle.
-'   Il ne contient ENCORE AUCUNE logique de remplissage des cas ni de gestion des
-'   clics : cela viendra en phase 2b (module mod_SuiviSanteFormulaire), une fois la
-'   mise en page ci-dessous validée visuellement.
+'   La logique de remplissage des cas et de gestion des clics se trouve dans
+'   mod_SuiviSanteFormulaire (phase 2b).
 '
-'   Ce module reprend exactement les mêmes principes que mod_InstallResolutionSheet
-'   (déjà utilisé pour la résolution des catégories ambiguës) : construire les murs
-'   avant de brancher l'électricité.
+'   Ce module reprend les mêmes principes que les autres mod_Install* : construire
+'   les murs avant de brancher l'électricité.
+'
+' REFONTE DU 09/10/2026 (harmonisation des formulaires) :
+'   La feuille est construite avec les outils COMMUNS de mod_InstallCommun et reproduit
+'   la feuille RÉELLE retouchée à la main (export frm_SuiviSante_structure.txt) :
+'   bloc "Informations complémentaires" (chèque, date et spécialité de consultation,
+'   notes) intégré au bloc "Dépense à traiter", boutons "+" à côté de Bénéficiaire et
+'   Tiers corrigé, champ "Dépassement validé ?". Les anciennes macros de rattrapage
+'   AjouterBoutonsAjoutListe et AjouterChampsContexteSuiviSante sont supprimées : la
+'   construction complète les inclut. Le compteur est sur sa propre ligne, au format
+'   commun "Opération: x/y" (voir mod_SuiviSanteFormulaire.MettreAJourCompteur).
+'   Tous les champs sont désignés par des NOMS DÉFINIS (ssDate, ssMontant, ...) : ce
+'   sont eux, et non les adresses de cellules, qu'utilise mod_SuiviSanteFormulaire.
 '
 ' À FAIRE POUR INSTALLER CE MODULE :
 '   1. Alt+F11 pour ouvrir l'éditeur VBA.
-'   2. Fichier > Importer un fichier... > sélectionner ce fichier .bas.
+'   2. Fichier > Importer un fichier... : mod_InstallCommun.bas puis ce fichier.
 '   3. Dans la fenêtre Exécution immédiate (Ctrl+G), taper :
 '        CreerFeuilleSuiviSante
 '      puis appuyer sur Entrée. La feuille est créée, mise en forme, puis masquée.
-'   4. Pour la revoir à l'écran : taper AfficherFeuilleSuiviSantePourEdition.
-'      Pour la masquer de nouveau : taper MasquerFeuilleSuiviSanteApresEdition.
+'   4. Pour la revoir à l'écran : AfficherFeuilleSuiviSantePourEdition.
+'      Pour la masquer de nouveau : MasquerFeuilleSuiviSanteApresEdition.
 '
-' À PROPOS DES ACCENTS DANS CE FICHIER :
-'   Les textes affichés (titres, libellés et instructions) sont construits par
-'   la fonction FR() ci-dessous, qui remplace les marqueurs ASCII ({e2}, {e1}, ...)
-'   par les caractères accentués correspondants via ChrW(). Les commentaires du
-'   fichier sont encodés en UTF-8.
+' À PROPOS DES ACCENTS : les textes affichés sont construits par mod_Display.FR().
 ' =====================================================================================
 
-
-' -------------------------------------------------------------------------------------
-' FR : petit traducteur de marqueurs ASCII vers caractères accentués (voir la note ci-dessus).
-' -------------------------------------------------------------------------------------
-' Marqueurs disponibles : {e2}=é, {e1}=è, {ea}=ê, {a2}=à, {c2}=ç, {o2}=ô,
-' {i2}=î et {E2}=É.
 Public Const NOM_FEUILLE_SUIVI_SANTE As String = "frm_SuiviSante"
 
-' --- Zone des boutons (ligne 2) ---
+' --- En-tête commun (voir mod_InstallCommun) : 1 ligne de boutons + compteur ---
+'   ligne 1 marge / 2 boutons / 3 fine ligne / 4 compteur / 5 fine ligne /
+'   6 Instructions / 7 fine ligne / 8 et suivantes : corps du formulaire
 Public Const SS_LIGNE_BOUTONS As Long = 2
-
-' --- Zone des instructions ---
-Public Const SS_LIGNE_TITRE_INSTRUCTIONS As Long = 5
-Public Const SS_LIGNE_DEBUT_INSTRUCTIONS As Long = 6
-Public Const SS_LIGNE_FIN_INSTRUCTIONS As Long = 9
+Private Const SS_LIGNE_COMPTEUR As Long = 4
+Private Const SS_LIGNE_INSTRUCTIONS As Long = 6
+Private Const SS_LIGNE_CORPS As Long = 8
 
 ' --- Bloc "Dépense à traiter" (lecture seule) ---
-Public Const SS_LIGNE_TITRE_DEPENSE As Long = 11
-Public Const SS_LIGNE_DEPENSE As Long = 12
+Public Const SS_LIGNE_TITRE_DEPENSE As Long = 8
+Public Const SS_LIGNE_DEPENSE As Long = 9            ' Date opération / Tiers importé / Montant
+Public Const SS_LIGNE_CHEQUE As Long = 10            ' N° de chèque / Date de consultation
+Public Const SS_LIGNE_SPE_CONSULT As Long = 11
+Public Const SS_LIGNE_NOTES As Long = 12
 
 ' --- Bloc "Remboursements liés" (lecture seule, jusqu'à deux lignes) ---
 Public Const SS_LIGNE_TITRE_REMBOURSEMENTS As Long = 14
@@ -66,19 +69,9 @@ Public Const SS_LIGNE_FRANCHISE As Long = 22
 Public Const SS_LIGNE_DEPASSEMENT As Long = 23
 Public Const SS_LIGNE_COMMENTAIRE As Long = 24
 
-' --- Bloc "Informations complémentaires" (lecture seule), ajouté ultérieurement ---
-' Démarre à la ligne 26 (deux lignes après Commentaire) pour ne pas décaler
-' les lignes existantes : tous les noms et boutons déjà créés restent valides;
-' le nouveau bloc est simplement ajouté à la suite.
-Public Const SS_LIGNE_TITRE_CONTEXTE As Long = 26
-Public Const SS_LIGNE_NUM_CHEQUE As Long = 27
-Public Const SS_LIGNE_SPE_CONSULT As Long = 28
-Public Const SS_LIGNE_NOTES As Long = 29
-
 ' --- Colonnes (une lettre = une colonne Excel). Le formulaire est organisé en
 '     trois paires "libellé / valeur" par ligne (B/C, D/E, F/G) pour les blocs
-'     affichant plusieurs informations sur une même ligne (ex. : Date, Tiers,
-'     montant de la dépense). --------------------------------------------------
+'     affichant plusieurs informations sur une même ligne. -------------------------
 Public Const SS_COL_LIBELLE_1 As String = "B"
 Public Const SS_COL_VALEUR_1 As String = "C"
 Public Const SS_COL_LIBELLE_2 As String = "D"
@@ -86,9 +79,8 @@ Public Const SS_COL_VALEUR_2 As String = "E"
 Public Const SS_COL_LIBELLE_3 As String = "F"
 Public Const SS_COL_VALEUR_3 As String = "G"
 
-' Colonne technique (masquée) où sont conservées les informations nécessaires au
-' code de la phase 2b (numéro de ligne de la dépense en cours de traitement dans
-' TblOperations). Elle n'est jamais visible par l'opérateur.
+' Colonne technique (masquée) où est conservé le numéro de ligne de la dépense en cours
+' de traitement dans sa table source (nom défini ssLigneEnCours). Jamais visible.
 Public Const SS_COL_TECHNIQUE As String = "J"
 
 
@@ -97,599 +89,280 @@ Public Const SS_COL_TECHNIQUE As String = "J"
 ' À exécuter UNE SEULE FOIS (ou de nouveau pour réinitialiser complètement la mise
 ' en forme de la feuille).
 ' =====================================================================================
-
 Sub CreerFeuilleSuiviSante()
 
     Dim ws As Worksheet
-    Dim reponseUtilisateur As VbMsgBoxResult
+    Dim wsPrecedente As Worksheet
 
-    Set ws = ObtenirFeuilleSansErreurSS(NOM_FEUILLE_SUIVI_SANTE)
+    Set wsPrecedente = ActiveSheet
 
-    If Not ws Is Nothing Then
-        reponseUtilisateur = MsgBox( _
-            "La feuille '" & NOM_FEUILLE_SUIVI_SANTE & "' existe deja." & vbCrLf & _
-            "Veux-tu la reconstruire entierement (sa mise en forme actuelle sera perdue) ?", _
-            vbYesNo + vbQuestion, "Confirmation de reconstruction")
+    Set ws = mod_InstallCommun.PreparerFeuille(NOM_FEUILLE_SUIVI_SANTE, True)
+    If ws Is Nothing Then Exit Sub
 
-        If reponseUtilisateur = vbNo Then
-            MsgBox "Installation annulee, aucune modification effectuee.", vbInformation
-            Exit Sub
-        End If
+    Application.ScreenUpdating = False
 
-        ws.Visible = xlSheetVisible
-        ws.Cells.Clear
-        Call SupprimerFormesExistantesSS(ws)
-        Call SupprimerNomsExistantsSS(ws)
-    Else
-        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.count))
-        ws.Name = NOM_FEUILLE_SUIVI_SANTE
-    End If
-
-    Call SS_AppliquerMiseEnFormeGenerale(ws)
-    Call SS_ConstruireZoneBoutons(ws)
-    Call SS_ConstruireZoneInstructions(ws)
-    Call SS_ConstruireBlocDepense(ws)
-    Call SS_ConstruireBlocRemboursements(ws)
-    Call SS_ConstruireBlocSolde(ws)
-    Call SS_ConstruireBlocSaisie(ws)
-    Call SS_ConstruireZoneTechnique(ws)
-
-    ws.Visible = xlSheetVeryHidden
-
-    MsgBox "La feuille '" & NOM_FEUILLE_SUIVI_SANTE & "' a ete creee et mise en forme," & vbCrLf & _
-           "puis masquee (xlSheetVeryHidden)." & vbCrLf & vbCrLf & _
-           "Pour la revoir a l'ecran et verifier le rendu, execute la macro :" & vbCrLf & _
-           "   AfficherFeuilleSuiviSantePourEdition", _
-           vbInformation, "Installation terminee"
-
-End Sub
-
-
-' =====================================================================================
-' SOUS-PROCÉDURE - Mise en forme générale
-' =====================================================================================
-Private Sub SS_AppliquerMiseEnFormeGenerale(ws As Worksheet)
-
-    ws.Activate
-    ActiveWindow.DisplayGridlines = False
-
-    ws.Columns("A").ColumnWidth = 2
-    ws.Columns("B").ColumnWidth = 20
-    ws.Columns("C").ColumnWidth = 16
-    ws.Columns("D").ColumnWidth = 16
-    ws.Columns("E").ColumnWidth = 16
-    ws.Columns("F").ColumnWidth = 14
-    ws.Columns("G").ColumnWidth = 16
-    ws.Columns("H").ColumnWidth = 2
-
-    ' Colonne technique : largeur minimale et masquée, jamais visible par l'opérateur.
-    ws.Columns(SS_COL_TECHNIQUE).ColumnWidth = 10
+    ' Colonnes : marge / 3 paires libellé-valeur / marge / (I) / technique masquée (J)
+    mod_InstallCommun.MettreEnForme ws, Array(2, 21.8, 16, 16, 16, 14, 16, 2, 10.13, 10)
     ws.Columns(SS_COL_TECHNIQUE).Hidden = True
 
-    ws.Cells.Font.Name = "Calibri"
-    ws.Cells.Font.Size = 10
+    SS_ConstruireEntete ws
+    SS_ConstruireBlocDepense ws
+    SS_ConstruireBlocRemboursements ws
+    SS_ConstruireBlocSolde ws
+    SS_ConstruireBlocSaisie ws
+    SS_ConstruireZoneTechnique ws
+    SS_ConstruireBoutons ws     ' en dernier : les boutons se placent d'après les hauteurs de lignes
 
-    ws.Range("A1").Select
-    ActiveWindow.DisplayHeadings = False
+    mod_InstallCommun.TerminerFeuille ws, wsPrecedente
+    Application.ScreenUpdating = True
 
-End Sub
-
-
-' =====================================================================================
-' SOUS-PROCÉDURE - Zone des boutons (ligne 2) et compteur
-' =====================================================================================
-Private Sub SS_ConstruireZoneBoutons(ws As Worksheet)
-
-    Dim boutonSuivant As Button
-    Dim boutonValider As Button
-    Dim zoneBoutonSuivant As Range
-    Dim zoneBoutonValider As Range
-
-    Set zoneBoutonSuivant = ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_BOUTONS & ":" & SS_COL_VALEUR_1 & SS_LIGNE_BOUTONS)
-    Set zoneBoutonValider = ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_BOUTONS & ":" & SS_COL_VALEUR_2 & SS_LIGNE_BOUTONS)
-
-    zoneBoutonSuivant.RowHeight = 22
-    zoneBoutonValider.RowHeight = 22
-
-    ' Boutons de type "Contrôle de formulaire" (pas ActiveX), comme dans le reste
-    ' du classeur. Les macros référencées dans .OnAction n'existent pas encore : elles
-    ' seront ajoutées en phase 2b. Cela ne génère aucune erreur tant que personne
-    ' ne clique sur ces boutons.
-    Set boutonSuivant = ws.Buttons.Add( _
-        zoneBoutonSuivant.Left, zoneBoutonSuivant.Top, zoneBoutonSuivant.Width, zoneBoutonSuivant.Height)
-    With boutonSuivant
-        .Caption = mod_Display.FR("Cas suivant")
-        .OnAction = "CasSuivantSuiviSante"
-        .Name = "btnCasSuivantSuiviSante"
-    End With
-
-    Set boutonValider = ws.Buttons.Add( _
-        zoneBoutonValider.Left, zoneBoutonValider.Top, zoneBoutonValider.Width, zoneBoutonValider.Height)
-    With boutonValider
-        .Caption = mod_Display.FR("Valider ce cas")
-        .OnAction = "ValiderCasSuiviSante"
-        .Name = "btnValiderCasSuiviSante"
-    End With
-
-    ' Compteur "X restant(s) sur Y", même principe que CompteurCasRestants, déjà
-    ' utilisé pour la résolution des catégories : un nom défini plutôt qu'une
-    ' référence de cellule codée en dur.
-    With ws.Range(SS_COL_LIBELLE_3 & SS_LIGNE_BOUTONS & ":" & SS_COL_VALEUR_3 & SS_LIGNE_BOUTONS)
-        .Merge
-        .HorizontalAlignment = xlRight
-        .VerticalAlignment = xlCenter
-        .Font.Size = 9
-        .Font.Color = RGB(120, 120, 120)
-        .value = ""
-    End With
-    Call CreerNomSiAbsentSS(ws, "CompteurCasSante", ws.Range(SS_COL_LIBELLE_3 & SS_LIGNE_BOUTONS))
+    MsgBox mod_Display.FR("La feuille '") & NOM_FEUILLE_SUIVI_SANTE & mod_Display.FR("' a {e2}t{e2} cr{e2}{e2}e et mise en forme,") & vbCrLf & _
+           mod_Display.FR("puis masqu{e2}e (xlSheetVeryHidden).") & vbCrLf & vbCrLf & _
+           mod_Display.FR("Pour la revoir {a2} l'{e2}cran et v{e2}rifier le rendu, ex{e2}cutez la macro :") & vbCrLf & _
+           "   AfficherFeuilleSuiviSantePourEdition", _
+           vbInformation, mod_Display.FR("Installation termin{e2}e")
 
 End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCÉDURE - Zone des instructions
+' En-tête commun : hauteurs, compteur et bloc Instructions
 ' =====================================================================================
-Private Sub SS_ConstruireZoneInstructions(ws As Worksheet)
+Private Sub SS_ConstruireEntete(ByVal ws As Worksheet)
 
-    With ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_TITRE_INSTRUCTIONS)
-        .value = mod_Display.FR("Instructions")
-        .Font.Bold = True
-        .Font.Size = 11
-    End With
+    If mod_InstallCommun.PremiereLigneCorps(1, True) <> SS_LIGNE_CORPS Or _
+       mod_InstallCommun.LigneInstructions(1, True) <> SS_LIGNE_INSTRUCTIONS Or _
+       mod_InstallCommun.LigneCompteur(1, True) <> SS_LIGNE_COMPTEUR Then
+        MsgBox "mod_InstallSuiviSanteSheet : constantes de lignes incoherentes avec mod_InstallCommun.", vbCritical
+    End If
 
-    Dim zoneTexte As Range
-    Set zoneTexte = ws.Range( _
-        SS_COL_LIBELLE_1 & SS_LIGNE_DEBUT_INSTRUCTIONS & ":" & _
-        SS_COL_VALEUR_3 & SS_LIGNE_FIN_INSTRUCTIONS)
+    mod_InstallCommun.PoserHauteursEntete ws, 1, True
 
-    With zoneTexte
-        .Merge
-        .value = mod_Display.FR("Cette d{e2}pense de sant{e2} n'est pas encore soldee ({e2}quilibre non atteint).") & Chr(10) & _
-                 mod_Display.FR("V{e2}rifie les informations ci-dessous puis renseigne les champs demand{e2}s :") & Chr(10) & _
-                 mod_Display.FR("1. Choisis le B{e2}n{e2}ficiaire dans la liste") & Chr(10) & _
-                 mod_Display.FR("2. Si le Tiers importe n'est pas correct, choisis la bonne valeur dans 'Tiers corrig{e2}'") & Chr(10) & _
-                 mod_Display.FR("3. Indique le montant de Franchise retenu par l'assurance (0 si aucun)") & Chr(10) & _
-                 mod_Display.FR("4. Si les 2 remboursements sont arriv{e2}s, indique s'il s'agit d'un d{e2}passement d'honoraires") & Chr(10) & _
-                 mod_Display.FR("5. Ajoute un commentaire si besoin, puis clique sur 'Valider ce cas'")
-        .WrapText = True
-        .VerticalAlignment = xlTop
-        .HorizontalAlignment = xlLeft
-        .Font.Size = 9
-        .Font.Color = RGB(80, 80, 80)
-        .Interior.Color = RGB(245, 245, 242)
-        .Borders.LineStyle = xlContinuous
-        .Borders.Color = RGB(210, 210, 205)
-        .Locked = True
-    End With
+    ' Compteur "Opération: x/y", rempli par mod_SuiviSanteFormulaire.MettreAJourCompteur;
+    ' même principe que CompteurCasRestants (résolution des catégories) : un nom défini.
+    mod_InstallCommun.PoserCompteur ws, SS_LIGNE_COMPTEUR, 2, 7
+    mod_InstallCommun.PoserNom ws, "CompteurCasSante", ws.Cells(SS_LIGNE_COMPTEUR, 2)
 
-    ws.rows(SS_LIGNE_DEBUT_INSTRUCTIONS & ":" & SS_LIGNE_FIN_INSTRUCTIONS).RowHeight = 15
+    mod_InstallCommun.EcrireInstructions ws, SS_LIGNE_INSTRUCTIONS, 2, 2, 3, 7, SS_TexteInstructions()
+
+End Sub
+
+Private Function SS_TexteInstructions() As String
+
+    Dim t As String
+
+    t = "Cette d{e2}pense de sant{e2} n'est pas encore sold{e2}e ({e2}quilibre non atteint) : ce formulaire permet de la compl{e2}ter."
+    t = t & Chr(10) & "Les cas sont pr{e2}sent{e2}s un par un. V{e2}rifiez le bloc D{e2}pense {a2} traiter et les remboursements li{e2}s, "
+    t = t & "puis renseignez les champs demand{e2}s :"
+    t = t & Chr(10) & "1. Choisissez le [c:B{e2}n{e2}ficiaire] dans la liste."
+    t = t & Chr(10) & "2. Si le [c:Tiers import{e2}] n'est pas correct, choisissez la bonne valeur dans [c:Tiers corrig{e2}]."
+    t = t & Chr(10) & "3. Indiquez le montant de [c:Franchise] retenu par l'assurance (0 si aucune)."
+    t = t & Chr(10) & "4. Le champ [c:D{e2}passement valid{e2} ?] est accessible d{e1}s que le [c:Solde actuel] n'est pas nul, que 1 ou 2 "
+    t = t & "remboursements soient arriv{e2}s. Si vous consid{e2}rez ce solde comme d{e2}finitif et normal ({a2} expliquer dans [c:Commentaire]), "
+    t = t & "r{e2}pondez Oui : la d{e2}pense ne sera plus jamais repropos{e2}e, m{ea}me si son statut reste affich{e2} KO. "
+    t = t & "Si un remboursement suppl{e2}mentaire doit encore arriver, laissez ce champ vide (ou r{e2}pondez Non) : la d{e2}pense sera repropos{e2}e au prochain passage."
+    t = t & Chr(10) & "5. Ajoutez un [c:Commentaire] si besoin, puis cliquez sur [b:Valider]."
+    t = t & Chr(10) & "Boutons :"
+    t = t & Chr(10) & "- [b:Valider] : contr{o2}le la saisie, l'enregistre et passe au cas suivant."
+    t = t & Chr(10) & "- [b:Passer] : passe au cas suivant sans rien enregistrer ; la d{e2}pense sera repropos{e2}e au prochain traitement."
+    t = t & Chr(10) & "- [b:Sortir] : ferme le formulaire et revient sur [f:Synthese]. Le traitement peut {ea}tre relanc{e2} avec le bouton [b:Retraiter suivi de sant{e2}]."
+    t = t & Chr(10) & "- [b:+] (en face de [c:B{e2}n{e2}ficiaire] et [c:Tiers corrig{e2}]) : ajoute une nouvelle valeur {a2} la liste."
+
+    SS_TexteInstructions = t
+
+End Function
+
+
+' =====================================================================================
+' Bloc "Dépense à traiter" (lecture seule)
+' =====================================================================================
+Private Sub SS_ConstruireBlocDepense(ByVal ws As Worksheet)
+
+    mod_InstallCommun.PoserTitreBloc ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_TITRE_DEPENSE & ":" & SS_COL_VALEUR_3 & SS_LIGNE_TITRE_DEPENSE), _
+                                     mod_Display.FR("D{e2}pense {a2} traiter")
+
+    ' Ligne 1 : Date opération / Tiers importé / Montant
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_DEPENSE), mod_Display.FR("Date op{e2}ration")
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_DEPENSE), mod_Display.FR("Tiers import{e2}")
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_3 & SS_LIGNE_DEPENSE), "Montant"
+    mod_InstallCommun.PoserChampLecture ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_DEPENSE), "dd/mm/yyyy"
+    mod_InstallCommun.PoserChampLecture ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_DEPENSE), "@"
+    mod_InstallCommun.PoserChampLecture ws.Range(SS_COL_VALEUR_3 & SS_LIGNE_DEPENSE), "#,##0.00 " & ChrW(8364)
+    mod_InstallCommun.PoserNom ws, "ssDate", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_DEPENSE)
+    mod_InstallCommun.PoserNom ws, "ssTiersImporte", ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_DEPENSE)
+    mod_InstallCommun.PoserNom ws, "ssMontant", ws.Range(SS_COL_VALEUR_3 & SS_LIGNE_DEPENSE)
+
+    ' Ligne 2 : N° de chèque / Date de consultation
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_CHEQUE), mod_Display.FR("Num_Cheque")
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_CHEQUE), "Date_consult"
+    mod_InstallCommun.PoserChampLecture ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_CHEQUE), "@"
+    mod_InstallCommun.PoserChampLecture ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_CHEQUE), "dd/mm/yyyy"
+    mod_InstallCommun.PoserNom ws, "ssNumCheque", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_CHEQUE)
+    mod_InstallCommun.PoserNom ws, "ssDateConsult", ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_CHEQUE)
+
+    ' Ligne 3 : Spécialité consultée
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_SPE_CONSULT), mod_Display.FR("Sp{e2}cialit{e2} consult{e2}e")
+    mod_InstallCommun.PoserChampLecture ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_SPE_CONSULT & ":" & SS_COL_VALEUR_2 & SS_LIGNE_SPE_CONSULT), "@"
+    mod_InstallCommun.PoserNom ws, "ssSpeConsult", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_SPE_CONSULT)
+
+    ' Ligne 4 : Notes (texte brut, potentiellement long -> retour à la ligne)
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_NOTES), "Notes"
+    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_NOTES).VerticalAlignment = xlTop
+    mod_InstallCommun.PoserChampLecture ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_NOTES & ":" & SS_COL_VALEUR_3 & SS_LIGNE_NOTES), "@", True
+    mod_InstallCommun.PoserNom ws, "ssNotes", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_NOTES)
+
+    ws.Rows(SS_LIGNE_NOTES + 1).RowHeight = mod_InstallCommun.FRM_H_SEP
 
 End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCÉDURE - Bloc "Dépense à traiter" (lecture seule)
+' Bloc "Remboursements liés" (lecture seule, jusqu'à deux lignes)
 ' =====================================================================================
-Private Sub SS_ConstruireBlocDepense(ws As Worksheet)
+Private Sub SS_ConstruireBlocRemboursements(ByVal ws As Worksheet)
 
-    With ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_TITRE_DEPENSE & ":" & SS_COL_VALEUR_3 & SS_LIGNE_TITRE_DEPENSE)
-        .Merge
-        .value = mod_Display.FR("D{e2}pense {a2} traiter")
-        .Font.Bold = True
-        .Font.Size = 10.5
-        .Interior.Color = RGB(250, 250, 248)
-    End With
+    mod_InstallCommun.PoserTitreBloc ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_TITRE_REMBOURSEMENTS & ":" & SS_COL_VALEUR_3 & SS_LIGNE_TITRE_REMBOURSEMENTS), _
+                                     mod_Display.FR("Remboursements li{e2}s (jusqu'{a2} 2)")
 
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_DEPENSE).value = mod_Display.FR("Date :")
-    ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_DEPENSE).value = mod_Display.FR("Tiers importe :")
-    ws.Range(SS_COL_LIBELLE_3 & SS_LIGNE_DEPENSE).value = mod_Display.FR("Montant :")
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_REMBOURSEMENT_1), "Remb. 1 - Date"
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_REMBOURSEMENT_1), "Montant"
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_REMBOURSEMENT_2), "Remb. 2 - Date"
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_REMBOURSEMENT_2), "Montant"
 
-    Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_DEPENSE)
+    mod_InstallCommun.PoserChampLecture ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_REMBOURSEMENT_1), "dd/mm/yyyy"
+    mod_InstallCommun.PoserChampLecture ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_REMBOURSEMENT_1), "#,##0.00 " & ChrW(8364)
+    mod_InstallCommun.PoserChampLecture ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_REMBOURSEMENT_2), "dd/mm/yyyy"
+    mod_InstallCommun.PoserChampLecture ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_REMBOURSEMENT_2), "#,##0.00 " & ChrW(8364)
 
-    ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_DEPENSE).NumberFormat = "dd/mm/yyyy"
-    ws.Range(SS_COL_VALEUR_3 & SS_LIGNE_DEPENSE).NumberFormat = "#,##0.00 " & ChrW(8364)
+    mod_InstallCommun.PoserNom ws, "ssRemb1Date", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_REMBOURSEMENT_1)
+    mod_InstallCommun.PoserNom ws, "ssRemb1Montant", ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_REMBOURSEMENT_1)
+    mod_InstallCommun.PoserNom ws, "ssRemb2Date", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_REMBOURSEMENT_2)
+    mod_InstallCommun.PoserNom ws, "ssRemb2Montant", ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_REMBOURSEMENT_2)
 
-    Call SS_MettreEnFormeValeursLectureSeule(ws, SS_LIGNE_DEPENSE)
-
-    Call CreerNomSiAbsentSS(ws, "ssDate", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_DEPENSE))
-    Call CreerNomSiAbsentSS(ws, "ssTiersImporte", ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_DEPENSE))
-    Call CreerNomSiAbsentSS(ws, "ssMontant", ws.Range(SS_COL_VALEUR_3 & SS_LIGNE_DEPENSE))
+    ws.Rows(SS_LIGNE_REMBOURSEMENT_2 + 1).RowHeight = mod_InstallCommun.FRM_H_SEP
 
 End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCÉDURE - Bloc "Remboursements liés" (lecture seule, jusqu'à deux lignes)
+' Solde actuel (lecture seule, formule dynamique)
 ' =====================================================================================
-Private Sub SS_ConstruireBlocRemboursements(ws As Worksheet)
+' Le solde est calculé PAR UNE FORMULE EXCEL CLASSIQUE (pas par du VBA) : il est recalculé
+' automatiquement et instantanément dès que l'opérateur modifie la Franchise. La formule
+' est posée en fin d'installation (SS_ConstruireZoneTechnique), quand tous les noms
+' qu'elle utilise existent; mod_SuiviSanteFormulaire la repose à chaque ouverture.
+Private Sub SS_ConstruireBlocSolde(ByVal ws As Worksheet)
 
-    With ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_TITRE_REMBOURSEMENTS & ":" & SS_COL_VALEUR_3 & SS_LIGNE_TITRE_REMBOURSEMENTS)
-        .Merge
-        .value = mod_Display.FR("Remboursements li{e2}s (jusqu'{a2} 2)")
-        .Font.Bold = True
-        .Font.Size = 10.5
-        .Interior.Color = RGB(250, 250, 248)
-    End With
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_SOLDE), "Solde actuel"
+    mod_InstallCommun.PoserChampLecture ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_SOLDE & ":" & SS_COL_VALEUR_2 & SS_LIGNE_SOLDE), _
+                                        "#,##0.00 " & ChrW(8364)
+    ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_SOLDE).Font.Bold = True
+    mod_InstallCommun.PoserNom ws, "ssSolde", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_SOLDE)
 
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_REMBOURSEMENT_1).value = mod_Display.FR("Remb. 1 - Date :")
-    ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_REMBOURSEMENT_1).value = mod_Display.FR("Montant :")
-
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_REMBOURSEMENT_2).value = mod_Display.FR("Remb. 2 - Date :")
-    ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_REMBOURSEMENT_2).value = mod_Display.FR("Montant :")
-
-    Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_REMBOURSEMENT_1)
-    Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_REMBOURSEMENT_2)
-
-    ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_REMBOURSEMENT_1).NumberFormat = "dd/mm/yyyy"
-    ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_REMBOURSEMENT_1).NumberFormat = "#,##0.00 " & ChrW(8364)
-    ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_REMBOURSEMENT_2).NumberFormat = "dd/mm/yyyy"
-    ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_REMBOURSEMENT_2).NumberFormat = "#,##0.00 " & ChrW(8364)
-
-    Call SS_MettreEnFormeValeursLectureSeule(ws, SS_LIGNE_REMBOURSEMENT_1)
-    Call SS_MettreEnFormeValeursLectureSeule(ws, SS_LIGNE_REMBOURSEMENT_2)
-
-    Call CreerNomSiAbsentSS(ws, "ssRemb1Date", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_REMBOURSEMENT_1))
-    Call CreerNomSiAbsentSS(ws, "ssRemb1Montant", ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_REMBOURSEMENT_1))
-    Call CreerNomSiAbsentSS(ws, "ssRemb2Date", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_REMBOURSEMENT_2))
-    Call CreerNomSiAbsentSS(ws, "ssRemb2Montant", ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_REMBOURSEMENT_2))
+    ws.Rows(SS_LIGNE_SOLDE + 1).RowHeight = mod_InstallCommun.FRM_H_SEP
 
 End Sub
 
 
 ' =====================================================================================
-' SOUS-PROCÉDURE - Bloc "Solde actuel" (lecture seule, formule dynamique)
+' Bloc de saisie opérateur (Bénéficiaire, Tiers corrigé, Franchise, Dépassement, Commentaire)
 ' =====================================================================================
-' Le solde est calculé PAR UNE FORMULE EXCEL CLASSIQUE (pas par du VBA) : il est
-' recalculé automatiquement et instantanément dès que l'opérateur modifie la
-' Franchise, sans code supplémentaire. La formule exacte sera écrite en phase 2b
-' (elle dépend des cellules ssMontant/ssRemb1Montant/ssRemb2Montant/ssFranchise; cette
-' dernière n'existe pas encore en phase 2a). Pour l'instant, on prépare seulement
-' la mise en forme de la cellule qui recevra cette formule.
-Private Sub SS_ConstruireBlocSolde(ws As Worksheet)
+Private Sub SS_ConstruireBlocSaisie(ByVal ws As Worksheet)
 
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_SOLDE).value = mod_Display.FR("Solde actuel :")
-    Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_SOLDE)
+    Dim rng As Range
 
-    With ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_SOLDE & ":" & SS_COL_VALEUR_2 & SS_LIGNE_SOLDE)
-        .Merge
-        .NumberFormat = "#,##0.00 " & ChrW(8364)
-        .Font.Bold = True
-    End With
-    Call SS_MettreEnFormeValeursLectureSeule(ws, SS_LIGNE_SOLDE)
+    ' --- Bénéficiaire (toujours demandé : la colonne est vide sur toutes les lignes
+    '     existantes; elle n'est jamais renseignée par l'import OFX) ---
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_BENEFICIAIRE), mod_Display.FR("B{e2}n{e2}ficiaire")
+    Set rng = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_BENEFICIAIRE & ":" & SS_COL_VALEUR_2 & SS_LIGNE_BENEFICIAIRE)
+    mod_InstallCommun.PoserChampSaisie rng, "@"
+    mod_InstallCommun.PoserListeDeroulante rng, "Beneficiaires"
+    mod_InstallCommun.PoserNom ws, "ssBeneficiaire", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_BENEFICIAIRE)
 
-    Call CreerNomSiAbsentSS(ws, "ssSolde", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_SOLDE))
-
-End Sub
-
-
-' =====================================================================================
-' SOUS-PROCÉDURE - Bloc de saisie opérateur (Bénéficiaire, Tiers corrigé, Franchise,
-' Dépassement, Commentaire)
-' =====================================================================================
-Private Sub SS_ConstruireBlocSaisie(ws As Worksheet)
-
-    Dim rngBeneficiaire As Range
-    Dim rngTiersCorrige As Range
-    Dim rngFranchise As Range
-    Dim rngDepassement As Range
-    Dim rngCommentaire As Range
-
-    ' --- Bénéficiaire (toujours demandé : la colonne est vide sur toutes les
-    '     lignes existantes; elle n'est jamais renseignée par l'import OFX) ---
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_BENEFICIAIRE).value = mod_Display.FR("B{e2}n{e2}ficiaire :")
-    Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_BENEFICIAIRE)
-    Set rngBeneficiaire = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_BENEFICIAIRE & ":" & SS_COL_VALEUR_2 & SS_LIGNE_BENEFICIAIRE)
-    rngBeneficiaire.Merge
-    Call SS_MettreEnFormeZoneSaisie(rngBeneficiaire)
-    Call SS_AppliquerListeDeroulante(rngBeneficiaire, "Beneficiaires")
-    Call CreerNomSiAbsentSS(ws, "ssBeneficiaire", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_BENEFICIAIRE))
-
-    ' --- Tiers corrigé (demandé uniquement si le Tiers importé ne figure pas déjà
-    '     dans la liste Praticiens; ce contrôle sera fait en phase 2b. Ici, on prépare
-    '     uniquement la cellule et sa liste déroulante) ---
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_TIERS_CORRIGE).value = mod_Display.FR("Tiers corrig{e2} :")
-    Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_TIERS_CORRIGE)
-    Set rngTiersCorrige = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_TIERS_CORRIGE & ":" & SS_COL_VALEUR_2 & SS_LIGNE_TIERS_CORRIGE)
-    rngTiersCorrige.Merge
-    Call SS_MettreEnFormeZoneSaisie(rngTiersCorrige)
-    Call SS_AppliquerListeDeroulante(rngTiersCorrige, "Praticiens")
-    Call CreerNomSiAbsentSS(ws, "ssTiersCorrige", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_TIERS_CORRIGE))
+    ' --- Tiers corrigé (demandé uniquement si le Tiers importé ne figure pas déjà dans
+    '     la liste Praticiens; ce contrôle est fait par mod_SuiviSanteFormulaire) ---
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_TIERS_CORRIGE), mod_Display.FR("Tiers corrig{e2}")
+    Set rng = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_TIERS_CORRIGE & ":" & SS_COL_VALEUR_2 & SS_LIGNE_TIERS_CORRIGE)
+    mod_InstallCommun.PoserChampSaisie rng, "@"
+    mod_InstallCommun.PoserListeDeroulante rng, "Praticiens"
+    mod_InstallCommun.PoserNom ws, "ssTiersCorrige", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_TIERS_CORRIGE)
 
     ' --- Franchise (saisie numérique libre, valeur par défaut : 0) ---
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_FRANCHISE).value = mod_Display.FR("Franchise :")
-    Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_FRANCHISE)
-    Set rngFranchise = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_FRANCHISE)
-    Call SS_MettreEnFormeZoneSaisie(rngFranchise)
-    rngFranchise.NumberFormat = "#,##0.00 " & ChrW(8364)
-    Call CreerNomSiAbsentSS(ws, "ssFranchise", rngFranchise)
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_FRANCHISE), "Franchise"
+    Set rng = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_FRANCHISE)
+    mod_InstallCommun.PoserChampSaisie rng, "#,##0.00 " & ChrW(8364)
+    mod_InstallCommun.PoserNom ws, "ssFranchise", rng
 
-    ' --- Dépassement d'honoraires (liste Oui/Non, pertinent seulement si les deux
-    '     remboursements sont présents; la phase 2b grisera ou masquera ce champ
-    '     le cas échéant) ---
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_DEPASSEMENT).value = mod_Display.FR("D{e2}passement d'honoraires ? :")
-    Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_DEPASSEMENT)
-    Set rngDepassement = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_DEPASSEMENT)
-    Call SS_MettreEnFormeZoneSaisie(rngDepassement)
-    Call SS_AppliquerListeDeroulanteTexte(rngDepassement, mod_Display.FR("Oui,Non"))
-    Call CreerNomSiAbsentSS(ws, "ssDepassement", rngDepassement)
+    ' --- Dépassement validé ? (liste Oui/Non, pertinent seulement si le solde n'est pas nul) ---
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_DEPASSEMENT), mod_Display.FR("D{e2}passement valid{e2} ?")
+    Set rng = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_DEPASSEMENT)
+    mod_InstallCommun.PoserChampSaisie rng
+    SS_AppliquerListeDeroulanteTexte rng, "Oui,Non"
+    mod_InstallCommun.PoserNom ws, "ssDepassement", rng
 
-    ' --- Commentaire (texte libre) ---
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_COMMENTAIRE).value = mod_Display.FR("Commentaire :")
-    Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_COMMENTAIRE)
-    Set rngCommentaire = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_COMMENTAIRE & ":" & SS_COL_VALEUR_3 & SS_LIGNE_COMMENTAIRE)
-    rngCommentaire.Merge
-    rngCommentaire.RowHeight = 32
-    With rngCommentaire
-        .WrapText = True
-        .VerticalAlignment = xlTop
-    End With
-    Call SS_MettreEnFormeZoneSaisie(rngCommentaire)
-    Call CreerNomSiAbsentSS(ws, "ssCommentaire", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_COMMENTAIRE))
+    ' --- Commentaire (texte libre, sur 2 lignes) ---
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_COMMENTAIRE), "Commentaire"
+    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_COMMENTAIRE).VerticalAlignment = xlTop
+    Set rng = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_COMMENTAIRE & ":" & SS_COL_VALEUR_3 & SS_LIGNE_COMMENTAIRE)
+    mod_InstallCommun.PoserChampSaisie rng, "@", True
+    mod_InstallCommun.PoserNom ws, "ssCommentaire", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_COMMENTAIRE)
 
-End Sub
-
-
-' =====================================================================================
-' SOUS-PROCÉDURE - Zone technique masquée (mémorise la ligne TblOperations en cours)
-' =====================================================================================
-Private Sub SS_ConstruireZoneTechnique(ws As Worksheet)
-    ws.Range(SS_COL_TECHNIQUE & SS_LIGNE_BOUTONS).value = 0
-    Call CreerNomSiAbsentSS(ws, "ssLigneEnCours", ws.Range(SS_COL_TECHNIQUE & SS_LIGNE_BOUTONS))
-End Sub
-
-
-' =====================================================================================
-' SOUS-PROCÉDURES UTILITAIRES DE MISE EN FORME (évitent de répéter le même code de
-' style pour chaque champ)
-' =====================================================================================
-Private Sub SS_MettreEnFormeLibelles(ws As Worksheet, ByVal ligne As Long)
-    ' On formate chaque cellule de libellé individuellement (B, D, F) plutôt que
-    ' toute la plage B:F, car certaines lignes n'utilisent que la colonne B
-    ' comme libellé (les colonnes D/F servent alors à une valeur fusionnée, par
-    ' exemple pour le champ Bénéficiaire).
-    ws.Range(SS_COL_LIBELLE_1 & ligne).Font.Bold = False
-    ws.Range(SS_COL_LIBELLE_1 & ligne).Font.Color = RGB(90, 90, 90)
-    ws.Range(SS_COL_LIBELLE_2 & ligne).Font.Color = RGB(90, 90, 90)
-    ws.Range(SS_COL_LIBELLE_3 & ligne).Font.Color = RGB(90, 90, 90)
-    ws.rows(ligne).RowHeight = 18
-End Sub
-
-Private Sub SS_MettreEnFormeValeursLectureSeule(ws As Worksheet, ByVal ligne As Long)
-    With ws.Range(SS_COL_VALEUR_1 & ligne & ":" & SS_COL_VALEUR_3 & ligne)
-        .Locked = True
-        .Interior.Color = RGB(248, 248, 246)
-    End With
-End Sub
-
-Private Sub SS_MettreEnFormeZoneSaisie(ByVal rng As Range)
-    With rng
-        .Locked = False
-        .Interior.Color = RGB(255, 255, 235)
-        .Borders.LineStyle = xlContinuous
-        .Borders.Color = RGB(200, 190, 140)
-    End With
-End Sub
-
-Private Sub SS_AppliquerListeDeroulante(ByVal rng As Range, ByVal nomPlage As String)
-    On Error Resume Next
-    rng.Validation.Delete
-    rng.Validation.Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
-        Formula1:="=" & nomPlage
-    On Error GoTo 0
 End Sub
 
 Private Sub SS_AppliquerListeDeroulanteTexte(ByVal rng As Range, ByVal listeVirgules As String)
     On Error Resume Next
     rng.Validation.Delete
-    rng.Validation.Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
-        Formula1:=listeVirgules
+    rng.Validation.Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:=listeVirgules
     On Error GoTo 0
 End Sub
 
 
 ' =====================================================================================
-' FONCTIONS UTILITAIRES
+' Zone technique masquée (mémorise la ligne en cours) et formule du solde
 ' =====================================================================================
-Private Function ObtenirFeuilleSansErreurSS(nomFeuille As String) As Worksheet
-    Dim ws As Worksheet
+Private Sub SS_ConstruireZoneTechnique(ByVal ws As Worksheet)
+    ws.Range(SS_COL_TECHNIQUE & SS_LIGNE_BOUTONS).Value = 0
+    mod_InstallCommun.PoserNom ws, "ssLigneEnCours", ws.Range(SS_COL_TECHNIQUE & SS_LIGNE_BOUTONS)
+
+    ' Tous les noms existent maintenant : on peut poser la formule du solde.
     On Error Resume Next
-    Set ws = ThisWorkbook.Worksheets(nomFeuille)
-    On Error GoTo 0
-    Set ObtenirFeuilleSansErreurSS = ws
-End Function
-
-Private Sub SupprimerFormesExistantesSS(ws As Worksheet)
-    Dim i As Long
-    For i = ws.Shapes.count To 1 Step -1
-        ws.Shapes(i).Delete
-    Next i
-End Sub
-
-' Supprime les noms définis qui pointent vers cette feuille avant sa reconstruction,
-' afin d'éviter les erreurs "nom déjà utilisé" si l'installation est relancée.
-Private Sub SupprimerNomsExistantsSS(ws As Worksheet)
-    Dim n As Name
-    Dim i As Long
-    For i = ThisWorkbook.Names.count To 1 Step -1
-        Set n = ThisWorkbook.Names(i)
-        On Error Resume Next
-        If InStr(1, n.RefersTo, "'" & NOM_FEUILLE_SUIVI_SANTE & "'", vbTextCompare) > 0 Then
-            n.Delete
-        End If
-        On Error GoTo 0
-    Next i
-End Sub
-
-' Crée un nom défini uniquement s'il n'existe pas déjà (évite une erreur si la
-' macro d'installation est relancée plusieurs fois sans appeler
-' SupprimerNomsExistantsSS, par exemple lors de tests manuels).
-Private Sub CreerNomSiAbsentSS(ws As Worksheet, ByVal nomCellule As String, ByVal rng As Range)
-    On Error Resume Next
-    ThisWorkbook.Names(nomCellule).Delete
-    On Error GoTo 0
-    ws.Names.Add Name:=nomCellule, RefersTo:=rng
-End Sub
-
-
-' =====================================================================================
-' OUTILS DÉVELOPPEUR (réservés à toi, jamais accessibles dans l'utilisation normale
-' du classeur) : basculent la visibilité de la feuille pour permettre de la retoucher.
-' =====================================================================================
-' =====================================================================================
-' AjouterBoutonsAjoutListe : ajoute (ou remplace s'ils sont déjà présents) UNIQUEMENT
-' les deux boutons "+" à côté des champs Bénéficiaire et Tiers corrigé, sans reconstruire
-' le reste de la feuille (contrairement à CreerFeuilleSuiviSante, qui repartirait de zéro
-' et supprimerait tes éventuels réglages manuels).
-' À exécuter UNE SEULE FOIS dans la fenêtre Exécution immédiate (Ctrl+G) :
-'      AjouterBoutonsAjoutListe
-' =====================================================================================
-Sub AjouterBoutonsAjoutListe()
-
-    Dim ws As Worksheet
-    Dim etaitMasquee As Boolean
-    Dim zoneBtn As Range
-    Dim btn As Button
-
-    Set ws = ObtenirFeuilleSansErreurSS(NOM_FEUILLE_SUIVI_SANTE)
-    If ws Is Nothing Then
-        MsgBox "La feuille '" & NOM_FEUILLE_SUIVI_SANTE & "' n'existe pas encore." & vbCrLf & _
-               "Execute d'abord CreerFeuilleSuiviSante.", vbExclamation
-        Exit Sub
-    End If
-
-    ' On rend temporairement la feuille visible pour placer les boutons
-    ' (Shapes.Add échoue parfois sur une feuille très masquée), puis on la
-    ' masque de nouveau si elle l'était au départ.
-    etaitMasquee = (ws.Visible <> xlSheetVisible)
-    ws.Visible = xlSheetVisible
-
-    SupprimerBoutonSiExisteSS ws, "btnAjouterBeneficiaire"
-    SupprimerBoutonSiExisteSS ws, "btnAjouterTiers"
-
-    Set zoneBtn = ws.Range(SS_COL_LIBELLE_3 & SS_LIGNE_BENEFICIAIRE)
-    Set btn = ws.Buttons.Add(zoneBtn.Left, zoneBtn.Top, 26, zoneBtn.Height)
-    With btn
-        .Caption = "+"
-        .OnAction = "AjouterBeneficiaire"
-        .Name = "btnAjouterBeneficiaire"
-    End With
-
-    Set zoneBtn = ws.Range(SS_COL_LIBELLE_3 & SS_LIGNE_TIERS_CORRIGE)
-    Set btn = ws.Buttons.Add(zoneBtn.Left, zoneBtn.Top, 26, zoneBtn.Height)
-    With btn
-        .Caption = "+"
-        .OnAction = "AjouterTiersPraticien"
-        .Name = "btnAjouterTiers"
-    End With
-
-    If etaitMasquee Then ws.Visible = xlSheetVeryHidden
-
-    MsgBox "Boutons ajoutes avec succes.", vbInformation
-
-End Sub
-
-Private Sub SupprimerBoutonSiExisteSS(ws As Worksheet, ByVal nomBouton As String)
-    On Error Resume Next
-    ws.Buttons(nomBouton).Delete
+    ws.Range("ssSolde").Formula = "=ssMontant-ssRemb1Montant-ssRemb2Montant-ssFranchise"
     On Error GoTo 0
 End Sub
 
 
 ' =====================================================================================
-' AjouterChampsContexteSuiviSante : ajoute le bloc "Informations complémentaires"
-' (Num_Cheque, Date_consult, Spe_Consult, Notes brutes, toutes en lecture seule)
-' SANS reconstruire le reste de la feuille. À exécuter UNE SEULE FOIS dans la
-' fenêtre Exécution immédiate (Ctrl+G) :
-'      AjouterChampsContexteSuiviSante
+' Boutons
 ' =====================================================================================
-Sub AjouterChampsContexteSuiviSante()
+Private Sub SS_ConstruireBoutons(ByVal ws As Worksheet)
 
-    Dim ws As Worksheet
-    Dim etaitMasquee As Boolean
+    Dim gauche As Double
 
-    Set ws = ObtenirFeuilleSansErreurSS(NOM_FEUILLE_SUIVI_SANTE)
-    If ws Is Nothing Then
-        MsgBox "La feuille '" & NOM_FEUILLE_SUIVI_SANTE & "' n'existe pas encore." & vbCrLf & _
-               "Execute d'abord CreerFeuilleSuiviSante.", vbExclamation
-        Exit Sub
-    End If
+    gauche = ws.Cells(1, 2).Left
 
-    etaitMasquee = (ws.Visible <> xlSheetVisible)
-    ws.Visible = xlSheetVisible
+    mod_InstallCommun.AjouterBoutonEntete ws, SS_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapPasser(), _
+        "CasSuivantSuiviSante", "btnCasSuivantSuiviSante", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonEntete ws, SS_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapValider(), _
+        "ValiderCasSuiviSante", "btnValiderCasSuiviSante", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonEntete ws, SS_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapSortir(), _
+        "SortirSuiviSante", "btnSortirSuiviSante", mod_InstallCommun.FRM_BTN_L
 
-    ' --- Titre du bloc ---
-    With ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_TITRE_CONTEXTE & ":" & SS_COL_VALEUR_3 & SS_LIGNE_TITRE_CONTEXTE)
-        .Merge
-        .value = mod_Display.FR("Informations compl{e2}mentaires")
-        .Font.Bold = True
-        .Font.Size = 10.5
-        .Interior.Color = RGB(250, 250, 248)
-    End With
-
-    ' --- Ligne Num_Cheque + Date_consult (deux paires sur la même ligne) ---
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_NUM_CHEQUE).value = "Num_Cheque :"
-    ws.Range(SS_COL_LIBELLE_2 & SS_LIGNE_NUM_CHEQUE).value = mod_Display.FR("Date_consult :")
-    Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_NUM_CHEQUE)
-    ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_NUM_CHEQUE).NumberFormat = "dd/mm/yyyy"
-    Call SS_MettreEnFormeValeursLectureSeule(ws, SS_LIGNE_NUM_CHEQUE)
-    Call CreerNomSiAbsentSS(ws, "ssNumCheque", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_NUM_CHEQUE))
-    Call CreerNomSiAbsentSS(ws, "ssDateConsult", ws.Range(SS_COL_VALEUR_2 & SS_LIGNE_NUM_CHEQUE))
-
-    ' --- Ligne Spe_Consult ---
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_SPE_CONSULT).value = mod_Display.FR("Sp{e2}cialit{e2} consult{e2}e :")
-    Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_SPE_CONSULT)
-    With ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_SPE_CONSULT & ":" & SS_COL_VALEUR_2 & SS_LIGNE_SPE_CONSULT)
-        .Merge
-    End With
-    Call SS_MettreEnFormeValeursLectureSeule(ws, SS_LIGNE_SPE_CONSULT)
-    Call CreerNomSiAbsentSS(ws, "ssSpeConsult", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_SPE_CONSULT))
-
-    ' --- Ligne Notes (texte brut, potentiellement long -> renvoi à la ligne) ---
-    ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_NOTES).value = "Notes :"
-    Call SS_MettreEnFormeLibelles(ws, SS_LIGNE_NOTES)
-    With ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_NOTES & ":" & SS_COL_VALEUR_3 & SS_LIGNE_NOTES)
-        .Merge
-        .WrapText = True
-        .VerticalAlignment = xlTop
-    End With
-    ws.rows(SS_LIGNE_NOTES).RowHeight = 28
-    Call SS_MettreEnFormeValeursLectureSeule(ws, SS_LIGNE_NOTES)
-    Call CreerNomSiAbsentSS(ws, "ssNotes", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_NOTES))
-
-    If etaitMasquee Then ws.Visible = xlSheetVeryHidden
-
-    MsgBox "Bloc 'Informations complementaires' ajoute avec succes.", vbInformation
+    ' --- Boutons "+" : ajoutent une valeur aux listes Bénéficiaires et Praticiens ---
+    mod_InstallCommun.AjouterBoutonCellule ws, ws.Range(SS_COL_LIBELLE_3 & SS_LIGNE_BENEFICIAIRE), mod_InstallCommun.CapAjouter(), _
+        "AjouterBeneficiaire", "btnAjouterBeneficiaire", mod_InstallCommun.FRM_BTN_PLUS
+    mod_InstallCommun.AjouterBoutonCellule ws, ws.Range(SS_COL_LIBELLE_3 & SS_LIGNE_TIERS_CORRIGE), mod_InstallCommun.CapAjouter(), _
+        "AjouterTiersPraticien", "btnAjouterTiers", mod_InstallCommun.FRM_BTN_PLUS
 
 End Sub
 
 
+' =====================================================================================
+' OUTILS DÉVELOPPEUR (Ctrl+G)
+' =====================================================================================
 Sub AfficherFeuilleSuiviSantePourEdition()
-    Dim ws As Worksheet
-    Set ws = ObtenirFeuilleSansErreurSS(NOM_FEUILLE_SUIVI_SANTE)
-
-    If ws Is Nothing Then
-        MsgBox "La feuille '" & NOM_FEUILLE_SUIVI_SANTE & "' n'existe pas encore." & vbCrLf & _
-               "Execute d'abord la macro CreerFeuilleSuiviSante.", vbExclamation
-        Exit Sub
-    End If
-
-    ws.Visible = xlSheetVisible
-    ws.Activate
-    MsgBox "La feuille est maintenant visible et modifiable." & vbCrLf & _
-           "Pense a la remasquer avec MasquerFeuilleSuiviSanteApresEdition" & vbCrLf & _
-           "une fois tes retouches terminees.", vbInformation
+    mod_InstallCommun.AfficherPourEdition NOM_FEUILLE_SUIVI_SANTE, "CreerFeuilleSuiviSante", "MasquerFeuilleSuiviSanteApresEdition"
 End Sub
 
 Sub MasquerFeuilleSuiviSanteApresEdition()
-    Dim ws As Worksheet
-    Set ws = ObtenirFeuilleSansErreurSS(NOM_FEUILLE_SUIVI_SANTE)
-
-    If ws Is Nothing Then
-        MsgBox "La feuille '" & NOM_FEUILLE_SUIVI_SANTE & "' n'existe pas.", vbExclamation
-        Exit Sub
-    End If
-
-    ws.Visible = xlSheetVeryHidden
-    MsgBox "La feuille est de nouveau masquee (xlSheetVeryHidden).", vbInformation
+    mod_InstallCommun.MasquerApresEdition NOM_FEUILLE_SUIVI_SANTE
 End Sub

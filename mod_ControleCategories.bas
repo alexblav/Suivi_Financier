@@ -243,6 +243,13 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
         g_CtrlCat(1) = categorieActuelleUnique
         g_CtrlSous(1) = sousCategorieActuelleUnique
         g_CtrlARanger(1) = False
+        ' Ajout 09/10/2026 : le champ "Categorie source" affiche alors la categorie et la
+        ' sous-categorie d'origine ("Categorie / Sous-categorie"), plutot que de rester vide.
+        If sousCategorieActuelleUnique <> "" Then
+            g_CtrlOps(1, CTRL_OP_CATSOURCE) = categorieActuelleUnique & " / " & sousCategorieActuelleUnique
+        Else
+            g_CtrlOps(1, CTRL_OP_CATSOURCE) = categorieActuelleUnique
+        End If
     End If
 
     ' --- ÉTAPE 2 : la question à l'opérateur -----------------------------------------------
@@ -486,6 +493,7 @@ Private Sub OuvrirFormulaireEtAttendre(ByVal ws As Worksheet)
 
     ws.Visible = xlSheetVisible
     ws.Activate
+    mod_InstallCommun.MasquerQuadrillage   ' quadrillage et en-tetes toujours masques (09/10/2026)
     ws.Range(CTRL_ADR_CAT).Select
 
     ' --- Verrou "modal" : la boucle ne se termine que lorsque g_CtrlEnCours repasse à
@@ -550,10 +558,17 @@ Private Sub AfficherOperation(ByVal ws As Worksheet)
     On Error GoTo Sortie
 
     ' --- Compteur et informations (lecture seule) ---
-    ws.Range(CTRL_ADR_COMPTEUR).value = mod_Display.FR("Op{e2}ration ") & g_CtrlPos & " / " & g_CtrlNbAffiches
+    ws.Range(CTRL_ADR_COMPTEUR).value = mod_InstallCommun.TexteCompteur(g_CtrlPos, g_CtrlNbAffiches)   ' format commun "Operation: x/y" (09/10/2026)
     ws.Range(CTRL_ADR_DATE).value = FormaterDate(g_CtrlOps(i, CTRL_OP_DATE))
     ws.Range(CTRL_ADR_MONTANT).value = Format(mod_DataStructure.ToDouble(g_CtrlOps(i, CTRL_OP_MONTANT)), "#,##0.00") & " " & ChrW(8364)
     ws.Range(CTRL_ADR_SOURCE).value = Source
+    ' Libelle du champ adapte au mode (09/10/2026) : categorie bancaire a l'import, categorie
+    ' d'origine en edition directe depuis l'ecran de recherche.
+    If g_CtrlModeUnique Then
+        ws.Cells(ws.Range(CTRL_ADR_SOURCE).Row, 2).value = mod_Display.FR("Cat{e2}gorie d'origine")
+    Else
+        ws.Cells(ws.Range(CTRL_ADR_SOURCE).Row, 2).value = mod_Display.FR("Cat{e2}gorie source (banque)")
+    End If
 
     ' --- Tiers / Notes : AJOUT du 03/10/2026 (demande opérateur) -----------------------
     ' Ces deux champs sont désormais MODIFIABLES par l'opérateur, sauf dans les deux cas
@@ -567,15 +582,14 @@ Private Sub AfficherOperation(ByVal ws As Worksheet)
     ws.Range(CTRL_ADR_TIERS).value = g_CtrlTiers(i)
     ws.Range(CTRL_ADR_LIBELLE).value = g_CtrlLibelle(i)
     If TiersNotesEditables(i) Then
-        ' Modifiable : pas de fond spécial (un aspect identique à Categorie/Sous-categorie
-        ' serait trop marqué ici; on garde simplement "sans couleur" = neutre).
-        ws.Range(CTRL_ADR_TIERS & ":" & CTRL_ADR_LIBELLE).Interior.ColorIndex = xlColorIndexNone
+        ' Modifiable : fond jaune pâle, comme tous les champs modifiables des formulaires
+        ' (charte commune, voir mod_InstallCommun.CoulFondSaisie - modifié le 09/10/2026).
+        ws.Range(CTRL_ADR_TIERS & ":" & CTRL_ADR_LIBELLE).Interior.Color = mod_InstallCommun.CoulFondSaisie()
     Else
-        ' Verrouillé : MÊME repère visuel (gris) que pour la colonne Notes verrouillée sur
-        ' l'écran de recherche (voir mod_RechercheOperations.RechercherOperations,
-        ' RGB(240, 240, 240)). On réutilise exactement la même couleur, à la demande de
-        ' l'opérateur, pour que le code couleur conserve toujours la même signification.
-        ws.Range(CTRL_ADR_TIERS & ":" & CTRL_ADR_LIBELLE).Interior.Color = RGB(240, 240, 240)
+        ' Verrouillé : gris, comme toutes les cellules non modifiables des formulaires
+        ' (charte commune, voir mod_InstallCommun.CoulFondLecture), notamment la colonne
+        ' Notes verrouillée de l'écran de recherche.
+        ws.Range(CTRL_ADR_TIERS & ":" & CTRL_ADR_LIBELLE).Interior.Color = mod_InstallCommun.CoulFondLecture()
     End If
 
     ' --- Zones de saisie : valeurs actuelles et listes déroulantes ---
@@ -675,7 +689,7 @@ Private Sub RemplirListeSousCategories(ByVal ws As Worksheet, ByVal categorie As
         .ErrorTitle = mod_Display.FR("Sous-cat{e2}gorie inconnue")
         .ErrorMessage = mod_Display.FR("Cette sous-cat{e2}gorie n'existe pas pour la cat{e2}gorie choisie.") & vbCrLf & _
                         mod_Display.FR("Choisissez-en une dans la liste, laissez le champ vide, ou utilisez le bouton") & _
-                        " '+ " & mod_Display.FR("Nouvelle cat{e2}gorie") & "' " & mod_Display.FR("pour en cr{e2}er une nouvelle.")
+                        " '+' " & mod_Display.FR("pour en cr{e2}er une nouvelle.")
     End With
 
 End Sub
@@ -696,7 +710,7 @@ Private Sub PoserValidationCategorie(ByVal cellule As Range)
         .ShowError = True
         .ErrorTitle = mod_Display.FR("Cat{e2}gorie inconnue")
         .ErrorMessage = mod_Display.FR("Choisissez une cat{e2}gorie dans la liste, ou laissez le champ vide.") & vbCrLf & _
-                        mod_Display.FR("Pour cr{e2}er une nouvelle cat{e2}gorie, utilisez le bouton '+ Nouvelle cat{e2}gorie'.")
+                        mod_Display.FR("Pour cr{e2}er une nouvelle cat{e2}gorie, utilisez le bouton '+'.")
     End With
 End Sub
 
@@ -826,7 +840,7 @@ Public Sub ControleOperationSuivante()
         g_CtrlPos = g_CtrlPos + 1
         AfficherOperation ws
     Else
-        MsgBox mod_Display.FR("C'est la derni{e1}re op{e2}ration. Cliquez sur 'Terminer et continuer' pour valider."), vbInformation
+        MsgBox mod_Display.FR("C'est la derni{e1}re op{e2}ration. Cliquez sur 'Enregistrer' pour valider."), vbInformation
     End If
     Exit Sub
 Erreur:

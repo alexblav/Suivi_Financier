@@ -200,6 +200,7 @@ Public Function OuvrirVentilation(ByVal idTransaction As String, ByVal dateOp As
 
     ws.Visible = xlSheetVisible
     ws.Activate
+    mod_InstallCommun.MasquerQuadrillage   ' quadrillage et en-tetes toujours masques (09/10/2026)
     ws.Range(VEN_ADR_SAISIE_CAT).Select
 
     ' Voir mod_ControleCategories.OuvrirFormulaireEtAttendre pour le detail de ce
@@ -337,7 +338,7 @@ Private Sub PoserValidationSaisieCategorie(ByVal ws As Worksheet)
         .InCellDropdown = True
         .ErrorTitle = mod_Display.FR("Cat{e2}gorie inconnue")
         .ErrorMessage = mod_Display.FR("Choisissez une cat{e2}gorie dans la liste, ou laissez le champ vide.") & vbCrLf & _
-                        mod_Display.FR("Pour cr{e2}er une nouvelle cat{e2}gorie, utilisez le bouton '+ Nouvelle cat{e2}gorie'.")
+                        mod_Display.FR("Pour cr{e2}er une nouvelle cat{e2}gorie, utilisez le bouton '+'.")
     End With
 End Sub
 
@@ -378,7 +379,7 @@ Private Sub RemplirListeSousCatSaisie(ByVal ws As Worksheet, ByVal categorie As 
         .ErrorTitle = mod_Display.FR("Sous-cat{e2}gorie inconnue")
         .ErrorMessage = mod_Display.FR("Cette sous-cat{e2}gorie n'existe pas pour la cat{e2}gorie choisie.") & vbCrLf & _
                         mod_Display.FR("Choisissez-en une dans la liste, laissez le champ vide, ou utilisez le bouton") & _
-                        " '+ " & mod_Display.FR("Nouvelle cat{e2}gorie") & "' " & mod_Display.FR("pour en cr{e2}er une nouvelle.")
+                        " '+' " & mod_Display.FR("pour en cr{e2}er une nouvelle.")
     End With
 
 End Sub

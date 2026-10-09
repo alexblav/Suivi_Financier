@@ -66,6 +66,7 @@ Public Function OuvrirNouvelleCategorie(ByVal catInitiale As String, ByVal sousI
 
     ws.Visible = xlSheetVisible
     ws.Activate
+    mod_InstallCommun.MasquerQuadrillage   ' quadrillage et en-tetes toujours masques (09/10/2026)
     ws.Range(NC_ADR_CAT).Select
 
     ' CORRECTIF PRÉVENTIF (voir mod_ControleCategories.OuvrirFormulaireEtAttendre pour

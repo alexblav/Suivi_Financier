@@ -1,0 +1,91 @@
+# STRUCTURE DE LA FEUILLE : Synthese
+Classeur           = Test_Import_OFX.xlsm
+CodeName           = Feuil2
+Visibilite         = visible
+Exporte le         = 2026-10-09 05:29:33
+Version Excel      = 16.0
+Plage utilisee     = A1:B8
+Zone detaillee     = A1:D8  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
+Largeur standard   = 10.07
+Hauteur standard   = 14.3
+Protection contenu = Non
+Nb tableaux        = 0
+Nb formes          = 14
+Contenu des tableaux NON exporte (confidentialite).
+
+## FENETRE
+Zoom             = 100
+FreezePanes      = Non
+SplitRow         = 0   (volets figes sous la ligne 0)
+SplitColumn      = 0
+ScrollRow        = 1
+ScrollColumn     = 1
+DisplayGridlines = Oui
+DisplayHeadings  = Oui
+DisplayZeros     = Oui
+
+## COLONNES (lettre | largeur | masquee)
+A | 15
+B | 16.4
+C | 9.27
+D | 9.53
+
+## LIGNES NON STANDARD (numero | hauteur | masquee) -- hauteur standard = 14.3
+1 | 18
+
+## CELLULES DE LA ZONE (hors tableaux)
+## adresse | valeur ou formule | fusion | police | fond | format | alignement | autres
+A1 | "Les paramètres de recherche" | police: taille=14 | fond=RGB(141, 180, 226)
+B1 | "" | fond=RGB(141, 180, 226)
+A2 | "" | fond=RGB(141, 180, 226)
+B2 | "" | fond=RGB(141, 180, 226)
+A3 | "Années Budget" | fond=RGB(141, 180, 226)
+B3 | "2026" | fond=RGB(141, 180, 226)
+A4 | "Mois Bubget" | fond=RGB(141, 180, 226)
+B4 | "9" | fond=RGB(141, 180, 226)
+A5 | "Nb ligne" | fond=RGB(141, 180, 226)
+B5 | "15" | fond=RGB(141, 180, 226)
+A6 | "Valeur Min" | fond=RGB(141, 180, 226)
+B6 | "" | fond=RGB(141, 180, 226)
+A7 | "Champ de tri" | fond=RGB(141, 180, 226)
+B7 | "Montant" | fond=RGB(141, 180, 226)
+A8 | "Ordre de tri" | fond=RGB(141, 180, 226)
+B8 | "Décroissant" | fond=RGB(141, 180, 226)
+
+## TABLEAUX
+(aucun)
+
+## VALIDATIONS HORS TABLEAUX (plage | description)
+B7:B8 | validation=xlValidateList Formula1="=Tri_champs" alerte=xlValidAlertStop
+B3:B4 | validation=xlValidateList Formula1="=Années" alerte=xlValidAlertStop
+
+## MISES EN FORME CONDITIONNELLES (plage | type | formule | effet)
+(aucune)
+
+## FORMES ET BOUTONS (nom | genre | ancrage | gauche,haut,largeur,hauteur | texte | macro | visible)
+Rounded Rectangle 2 | Forme automatique | G1:K4 | 462,3.79999995231628,246.800003051758,54.7999992370605 | "" |  | Oui
+TextBox 3 | Zone de texte | G1:K2 | 475.5,9,216.800003051758,21 | "Le retraitement des données" |  | Oui
+Button 8 | Bouton (controle de formulaire) | H2:K4 | 486.799987792969,24,175.5,24.3999996185303 | "Traitement des données de santé" | Test_Import_OFX.xlsm!RetraiterSuiviSante | Oui
+Rounded Rectangle 4 | Forme automatique | C1:G11 | 197.300003051758,3.70000004768372,246,144.800003051758 | "" |  | Oui
+TextBox 5 | Zone de texte | C1:G4 | 222.800003051758,6,198.800003051758,41.2000007629395 | "La recherche de donnéessur une plage de date" |  | Oui
+Button 6 | Bouton (controle de formulaire) | C3:F5 | 208.5,38.2000007629395,171.800003051758,24.3999996185303 | "Opérations du mois sélectionné" | Test_Import_OFX.xlsm!RchOperationsDuMois | Oui
+Button 14 | Bouton (controle de formulaire) | C5:F6 | 208.5,64.5,171.800003051758,17.2000007629395 | "Bilan mensuel" | Test_Import_OFX.xlsm!Budget_Bilan_Mensuel | Oui
+Button 9 | Bouton (controle de formulaire) | C7:F8 | 208.5,90.8000030517578,171.800003051758,17.2000007629395 | "Dernier Import" | Test_Import_OFX.xlsm!RchDernierImport | Oui
+Rounded Rectangle 6 | Forme automatique | G5:K11 | 461.299987792969,60.7999992370605,246.800003051758,88.5 | "" |  | Oui
+TextBox 7 | Zone de texte | H5:K7 | 483.799987792969,61.5,199.5,41.2000007629395 | "Traitement du suivi des données de santé" |  | Oui
+Button 15 | Bouton (controle de formulaire) | H7:K8 | 487.5,93,175.5,17.2000007629395 | "Erreur Import Santé" | Test_Import_OFX.xlsm!RchErreursSante | Oui
+Button 4 | Bouton (controle de formulaire) | H9:K10 | 487.5,119.199996948242,175.5,17.2000007629395 | "Suivi Santé" | Test_Import_OFX.xlsm!Synthese_Care | Oui
+Button 16 | Bouton (controle de formulaire) | C8:F10 | 208.5,109.5,171.800003051758,24.3999996185303 | "Recherche Générale" | Test_Import_OFX.xlsm!RchGenerale | Oui
+Button 18 | Bouton (controle de formulaire) | A9:B12 | 12,128.199996948242,152.199996948242,38.2000007629395 | "Importer" | Test_Import_OFX.xlsm!ImporterOperationsOFX | Oui
+
+## NOMS DEFINIS (nom | portee | fait reference a | visible)
+Synthese!_FilterDatabase | feuille Synthese | =Synthese!#REF! | Non
+critAnnee | classeur | =Synthese!$B$3 | Oui
+critMois | classeur | =Synthese!$B$4 | Oui
+critNbLigne | classeur | =Synthese!$B$5 | Oui
+critTri | classeur | =Synthese!$B$8 | Oui
+critTriChamp | classeur | =Synthese!$B$7 | Oui
+critValMin | classeur | =Synthese!$B$6 | Oui
+nbLigne | classeur | =Synthese!$B$5 | Oui
+
+# FIN DE L'EXPORT

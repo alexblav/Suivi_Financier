@@ -120,6 +120,11 @@ Public Sub TraiterCasSuiviSante()
 
     ws.Visible = xlSheetVisible
     ws.Activate
+    mod_InstallCommun.MasquerQuadrillage   ' quadrillage et en-tetes toujours masques (09/10/2026)
+
+    ' Listes deroulantes reposees a chaque ouverture (09/10/2026).
+    mod_InstallCommun.PoserListeDeroulante ws.Range("ssBeneficiaire"), "Beneficiaires"
+    mod_InstallCommun.PoserListeDeroulante ws.Range("ssTiersCorrige"), "Praticiens"
 
     indexCasCourant = 1
     Call AfficherCasCourant(ws)
@@ -511,9 +516,9 @@ Private Sub AppliquerEtatChampsConditionnels(ws As Worksheet, cas As TCasSuiviSa
 
     With ws.Range("ssTiersCorrige")
         If EstTiersValide(cas.tiersDepense) Then
-            .Interior.Color = RGB(240, 240, 240)
+            .Interior.Color = mod_InstallCommun.CoulFondLecture()
         Else
-            .Interior.Color = RGB(255, 255, 235)
+            .Interior.Color = mod_InstallCommun.CoulFondSaisie()
         End If
     End With
 End Sub
@@ -613,12 +618,11 @@ End Sub
 
 
 ' =====================================================================================
-' MettreAJourCompteur : actualise le texte "X restant(s) sur Y"
+' MettreAJourCompteur : actualise le texte "Operation: x/y"
 ' =====================================================================================
 Private Sub MettreAJourCompteur(ws As Worksheet)
-    Dim casRestants As Long
-    casRestants = nbCas - indexCasCourant + 1
-    ws.Range("CompteurCasSante").value = casRestants & mod_Display.FR(" restant(s) sur ") & nbCas
+    ' Format commun a tous les formulaires : "Operation: x/y" (09/10/2026), x = cas en cours.
+    ws.Range("CompteurCasSante").value = mod_InstallCommun.TexteCompteur(indexCasCourant, nbCas)
 End Sub
 
 

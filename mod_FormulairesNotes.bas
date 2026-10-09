@@ -427,6 +427,8 @@ Private Function AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVa
     ' TblOperations déjà chargé par l'appelant), au lieu d'être lu dans la variable
     ' globale partagée tblData (voir le commentaire au point d'appel).
     Dim dateCtx As Variant, tiersCtx As String, chequeCtx As Variant, notesCtx As String, montantCtx As Double
+    Dim catCtx As String, sousCtx As String      ' ajout 09/10/2026 : categorie / sous-categorie affichees
+    Dim colVenCat As Long, colVenSous As Long
     Dim tblVen As ListObject
     Dim donneesVen As Variant
     Dim colVenNotes As Long, colVenMontant As Long
@@ -437,6 +439,8 @@ Private Function AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVa
         chequeCtx = donneesOp(ligneDepense, colCheque)
         notesCtx = mod_DataStructure.CellText(donneesOp(ligneDepense, colNotes))
         montantCtx = mod_DataStructure.ToDouble(donneesOp(ligneDepense, colMontant))
+        catCtx = mod_DataStructure.CellText(donneesOp(ligneDepense, colCategorie))
+        If colSousCategorie <> 0 Then sousCtx = mod_DataStructure.CellText(donneesOp(ligneDepense, colSousCategorie))
     Else
         Set tblVen = ObtenirTableVentilationsFN()
         donneesVen = tblVen.DataBodyRange.value
@@ -444,6 +448,10 @@ Private Function AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVa
         colVenMontant = IndexColSiExisteFN(tblVen, "Montant")
         notesCtx = mod_DataStructure.CellText(donneesVen(ligneDepense, colVenNotes))
         montantCtx = mod_DataStructure.ToDouble(donneesVen(ligneDepense, colVenMontant))
+        colVenCat = IndexColSiExisteFN(tblVen, "Categorie")
+        colVenSous = IndexColSiExisteFN(tblVen, "SousCategorie")
+        If colVenCat <> 0 Then catCtx = mod_DataStructure.CellText(donneesVen(ligneDepense, colVenCat))
+        If colVenSous <> 0 Then sousCtx = mod_DataStructure.CellText(donneesVen(ligneDepense, colVenSous))
         If Not TrouverContexteParentVentilation(ligneDepense, tblVen, donneesVen, dateCtx, tiersCtx, chequeCtx) Then
             dateCtx = ""
             tiersCtx = "(operation parente introuvable)"
@@ -458,6 +466,7 @@ Private Function AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVa
     ' encore xlSheetVeryHidden provoque une erreur 1004.
     ws.Visible = xlSheetVisible
     ws.Activate
+    mod_InstallCommun.MasquerQuadrillage   ' quadrillage et en-tetes toujours masques (09/10/2026)
 
     ' Reconstruit la liste des clés valides À CHAQUE APPEL (et non une seule fois
     ' pour VerifierNotesSante) : une clé générée via frm_GenerationCle pour une
@@ -478,9 +487,11 @@ Private Function AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVa
         ws.Range("rnTiersOp").value = tiersCtx
     End If
     ws.Range("rnNotes").value = notesCtx
+    ws.Range("rnCategorie").value = catCtx
+    ws.Range("rnSousCategorie").value = sousCtx
     ws.Range("rnMontantOp").value = montantCtx
     ws.Range("rnLigneEnCours").value = ligneDepense
-    ws.Range("rnCompteurCas").value = numero & FR(" sur ") & total
+    ws.Range("rnCompteurCas").value = mod_InstallCommun.TexteCompteur(numero, total)   ' format commun "Operation: x/y" (09/10/2026)
 
     ' --- Remise à zéro des filtres ---
     ' Le format Texte est également forcé ici (pas seulement sur la colonne
@@ -563,7 +574,10 @@ Private Function AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVa
         Case "Valider"
             AppliquerNouvelleCle ligneDepense, Source, CStr(ws.Range("rnCleTrouvee").value)
         Case "PasDeCorrespondance"
-            AfficherGenerationPourLigne ligneDepense, Source, donneesOp
+            ' "Retour" dans frm_GenerationCle (09/10/2026) : on revient sur la MEME ligne.
+            If AfficherGenerationPourLigne(ligneDepense, Source, donneesOp) Then
+                AfficherRapprochementPourLigne = AfficherRapprochementPourLigne(ligneDepense, Source, numero, total, donneesOp)
+            End If
         Case "Passer"
             ' Aucune action volontaire : la ligne reste inchangée (KO,
             ' Date_consult toujours sentinelle) et sera reproposée au prochain passage.
@@ -768,11 +782,20 @@ Public Sub PasserGenerationCle()
     g_SaisieEnCours = False
 End Sub
 
+' Bouton "Retour" (ajout 09/10/2026) : revient sur frm_RapprochementNotes pour la MEME
+' operation, sans rien modifier (erreur de clic sur "Pas de correspondance").
+Public Sub RetourGenerationCle()
+    derniereAction = "Retour"
+    g_SaisieEnCours = False
+End Sub
+
 
 ' =====================================================================================
 ' AfficherGenerationPourLigne : ouvre frm_GenerationCle pour UNE ligne.
+' Renvoie Vrai si l'operateur a clique sur "Retour" (09/10/2026) : l'appelant doit alors
+' reafficher frm_RapprochementNotes pour la meme ligne.
 ' =====================================================================================
-Private Sub AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal Source As String, ByRef donneesOp As Variant)
+Private Function AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal Source As String, ByRef donneesOp As Variant) As Boolean
 
     Dim ws As Worksheet
 
@@ -825,6 +848,12 @@ Private Sub AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal Source
 
     ws.Visible = xlSheetVisible
     ws.Activate
+    mod_InstallCommun.MasquerQuadrillage   ' quadrillage et en-tetes toujours masques (09/10/2026)
+
+    ' Listes deroulantes reposees a chaque ouverture (09/10/2026) : ne dependent plus
+    ' d'une validation posee une fois pour toutes a l'installation.
+    mod_InstallCommun.PoserListeDeroulante ws.Range("gcSpecialite"), "Specialites"
+    mod_InstallCommun.PoserListeDeroulante ws.Range("gcBeneficiaire"), "Beneficiaires"
 
     derniereAction = ""
     g_SaisieEnCours = True
@@ -843,7 +872,9 @@ Private Sub AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal Source
         End If
     End If
 
-End Sub
+    AfficherGenerationPourLigne = (derniereAction = "Retour")
+
+End Function
 
 
 ' =====================================================================================

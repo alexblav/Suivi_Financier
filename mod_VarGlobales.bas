@@ -149,8 +149,8 @@ Public Const COL_MONTANT As String = "D"
 Public Const COL_TIERS As String = "E"
 Public Const COL_CATEGORIE As String = "F"
 ' --- Zone du tableau des cas ambigus ---
-Public Const LIGNE_ENTETES_TABLEAU As Long = 11   ' ligne des libelles de colonnes
-Public Const LIGNE_PREMIERE_DONNEE As Long = 12   ' premiere ligne ou s'affichera un cas
+Public Const LIGNE_ENTETES_TABLEAU As Long = 8    ' ligne des libelles de colonnes (09/10/2026 : etait 11, voir mod_InstallResolutionSheet)
+Public Const LIGNE_PREMIERE_DONNEE As Long = 9    ' premiere ligne ou s'affichera un cas (09/10/2026 : etait 12)
 
 
 

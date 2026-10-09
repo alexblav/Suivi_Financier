@@ -4,12 +4,11 @@ Option Explicit
 ' MODULE : mod_InstallRechercheOperations
 '
 ' ROLE (PHASE 5a) :
-'   Construit la mise en page STATIQUE (aucune logique de clic pour l'instant)
-'   de la feuille masquée "frm_RechercheOperations" : un écran de recherche
-'   et de correction en masse pour TblOperations, basé sur un TABLEAU EXCEL
-'   CLASSIQUE avec filtre automatique natif (les flèches de filtre dans
-'   l'en-tête font tout le travail de filtrage croisé Date/Tiers/Montant/
-'   Catégorie/Notes, sans code personnalisé).
+'   Construit la mise en page de la feuille masquée "frm_RechercheOperations" : un écran
+'   de recherche et de correction en masse pour TblOperations, basé sur un TABLEAU EXCEL
+'   CLASSIQUE avec filtre automatique natif (les flèches de filtre dans l'en-tête font
+'   tout le travail de filtrage croisé Date/Tiers/Montant/Catégorie/Notes, sans code
+'   personnalisé).
 '
 '   Colonnes du tableau (dans cet ordre) :
 '     A - Valider       : l'opérateur y inscrit "Oui" sur les lignes finies
@@ -18,7 +17,7 @@ Option Explicit
 '     D - Montant
 '     E - Catégorie     : liste déroulante (avertissement, pas de blocage :
 '                         on peut taper une nouvelle catégorie qui n'existe
-'                         pas encore)
+'                         pas encore). Modifiable par double-clic (voir ci-dessous).
 '     F - SousCategorie : idem, PHASE 5 (catégories à 2 niveaux)
 '     G - Notes         : texte libre, SAUF si la valeur est déjà une clé
 '                         santé valide (grisée dans ce cas - voir Phase 5b)
@@ -27,14 +26,7 @@ Option Explicit
 '                         d'une opération bancaire (elle vient alors de
 '                         TblVentilations, pas de TblOperations), ou si
 '                         l'opération PARENTE d'une ligne normale a été
-'                         ventilée (Catégorie = "Ventile"). C'est le "tag"
-'                         de traçabilité demandé par l'opérateur : "on peut
-'                         prévenir un tag indiquant que cette opération fait
-'                         partie d'une ventilation, pour information". Une
-'                         opération ventilée reste ainsi accessible ICI de 2
-'                         façons : via sa ligne parente (Catégorie="Ventile"),
-'                         ou directement via chacune de ses parts (une ligne
-'                         par sous-catégorie de la ventilation).
+'                         ventilée (Catégorie = "Ventile").
 '     I - ID_Transaction : colonne technique MASQUÉE (ID de l'opération, ou
 '                         de l'opération PARENTE pour une part ventilée)
 '     J - SourceLigne    : colonne technique MASQUÉE, PHASE 5 : "O" (ligne de
@@ -43,102 +35,48 @@ Option Explicit
 '     K - LigneVentilation : colonne technique MASQUÉE, PHASE 5 : pour une
 '                         ligne "V", position de la part DANS TblVentilations
 '                         (DataBodyRange). Vide/non utilisée pour une ligne "O".
+'   PHASE 6 (refonte "écran central") : 5 colonnes RÉELLES supplémentaires, affichées
+'   ou masquées dynamiquement selon le "préfiltre" demandé (DefinirColonnesVisibles) :
+'     L - Budget / M - StatutSante / N - SoldeSante / O - Date_consult / P - Spe_consult
 '
-'   La Phase 5b (mod_RechercheOperations) remplira le tableau depuis
-'   TblOperations ET TblVentilations (bouton "Rechercher") et appliquera les
-'   lignes marquées (bouton "Appliquer les lignes marquées") dans la bonne
-'   table source, colonne par colonne, jamais par un tri/découpage de texte.
+'   Ce module ne construit QUE ce qui est fixe : l'en-tête commun (boutons, compteur,
+'   Instructions) et la ligne d'en-têtes du tableau. Les lignes du tableau elles-mêmes
+'   sont remplies, mises en forme et colorées à chaque ouverture par
+'   mod_RechercheOperations.RechercherOperations (gris = non modifiable, jaune = modifiable).
 '
-'   Ajout suite à un test opérateur : un 3e bouton "Revoir la ventilation"
-'   permet, sur une ligne dont la colonne Ventilé vaut "Oui", de rouvrir le
-'   formulaire de ventilation (frm_Ventilation) avec le détail déjà enregistré
-'   dans TblVentilations, au lieu d'un formulaire vide (voir
-'   mod_RechercheOperations.RevoirVentilationRO et l'explication complète en
-'   tête de mod_Ventilation).
-'
-' =====================================================================================
-' REFONTE "ÉCRAN CENTRAL" (PHASE 6, après discussion avec l'opérateur) :
-'   Ce tableau absorbe désormais les anciens écrans "Synthese_*" en lecture
-'   seule (Budget mensuel, Erreurs santé, Dernier import, Détail d'un total),
-'   qui n'offraient aucune correction. 5 colonnes RÉELLES supplémentaires ont
-'   été ajoutées à la table pour cela :
-'
-'     L - Budget         : la date de "mois budgétaire" de l'opération (déjà
-'                         une vraie colonne de TblOperations, voir mod_ImportOFX)
-'     M - StatutSante     : statut du suivi santé (déjà une vraie colonne)
-'     N - SoldeSante      : solde du suivi santé (déjà une vraie colonne)
-'     O - Date_consult    : date de consultation extraite des Notes santé
-'     P - Spe_consult     : spécialité extraite des Notes santé
-'
-'   Ces 5 colonnes ne sont PAS toujours utiles (par exemple Budget n'a pas de
-'   sens en recherche libre) : mod_RechercheOperations les affiche/masque
-'   dynamiquement selon le "préfiltre" demandé, via DefinirColonnesVisibles()
-'   ci-dessous. Elles restent néanmoins TOUJOURS PRÉSENTES dans le tableau
-'   (juste masquées) : c'est le moyen le plus simple et le plus fiable de
-'   garder un seul ListObject à colonnes fixes plutôt que de le reconstruire
-'   à chaque appel.
-'
-' À PROPOS DES ACCENTS : tout ce qui s'affiche dans Excel continue à passer par
-' la fonction FR() pour rester 100 % sûr à l'import VBA. Les commentaires que
-' j'ajoute à partir de maintenant utilisent de vrais caractères accentués pour
-' rester lisibles (convention validée avec l'opérateur) ; les anciens
-' commentaires du fichier restent tels quels pour l'instant.
+' REFONTE DU 09/10/2026 (harmonisation des formulaires) :
+'   - Construite avec les outils COMMUNS de mod_InstallCommun (boutons, compteur, bloc
+'     Instructions, étiquettes). Le texte d'aide en puces (avec surlignage des noms de
+'     colonnes) est remplacé par le bloc Instructions commun, placé SOUS la ligne de
+'     boutons ; la fonction SurlignerMotsRO, devenue inutile, est supprimée.
+'   - La ligne RO_LIGNE_FILTRE porte désormais le compteur au format commun
+'     "Opération: x/y" (cellule RO_ADR_COMPTEUR) et, à sa droite, la phrase qui rappelle
+'     le filtre actif (cellule RO_ADR_FILTRE).
+'   - Le tableau n'a plus de style Excel (bandes bleues) : ses couleurs suivent la charte
+'     commune. L'en-tête du tableau passe de la ligne 7 à la ligne 8 (RO_LIGNE_ENTETES).
+'   - AjouterBoutonsDecalageRO est supprimée : les 2 boutons "décalage" font partie de la
+'     construction normale.
+'   Les largeurs des colonnes et des boutons sont celles relevées sur la feuille réelle
+'   (export frm_RechercheOperations_structure.txt).
 '
 ' À FAIRE POUR INSTALLER CE MODULE :
-'   1. Alt+F11, Fichier > Importer un fichier..., choisir ce fichier .bas
-'   2. Ctrl+G : CreerFeuilleRechercheOperations (ATTENTION : reconstruit toute la
-'      feuille, y compris ses boutons – c'est le seul moyen de faire apparaître
-'      le nouveau bouton "Revoir la ventilation" ; réimporter le fichier seul
-'      ne suffit pas, comme déjà repéré plus tôt sur ce chantier)
+'   1. Alt+F11, Fichier > Importer un fichier... : mod_InstallCommun.bas, puis ce fichier
+'      et mod_RechercheOperations.bas (mis à jour).
+'   2. Ctrl+G : CreerFeuilleRechercheOperations (reconstruit toute la feuille, y compris
+'      ses boutons; réimporter le fichier seul ne suffit pas).
 '   3. Pour revoir la feuille : AfficherFeuilleRecherchePourEdition
 '      Pour la remasquer : MasquerFeuilleRechercheApresEdition
-'
-' MISE À JOUR 01/10/2026 (ergonomie, retours opérateur) :
-'   - 4e bouton "Sortir" ajouté (appelle mod_RechercheOperations.
-'     SortirRechercheOperations, qui existait déjà mais n'était relié à rien).
-'   - Bouton "Rechercher" renommé "Recherche globale" (plus explicite : il
-'     relance une recherche SANS filtre, par opposition aux recherches
-'     filtrées lancées depuis d'autres écrans).
-'   - La zone de commentaire explicatif, qui était écrite par erreur sur la
-'     MÊME ligne que les boutons (donc invisible, cachée dessous), a sa
-'     propre ligne maintenant (RO_LIGNE_ENTETES passe de 4 à 5).
-'   - Un double-clic sur "Oui" dans la colonne Ventile ouvre désormais
-'     directement le détail de la ventilation (voir ThisWorkbook.bas,
-'     Workbook_SheetBeforeDoubleClick), en plus du bouton "Revoir la
-'     ventilation" qui reste disponible.
-'
-' MISE À JOUR 02/10/2026 (après discussion avec l'opérateur) :
-'   - Le bouton "Revoir la ventilation" ci-dessus est SUPPRIMÉ (devenu inutile) :
-'     double-cliquer sur une cellule de la colonne Ventile fait désormais TOUT le
-'     travail, que la ligne soit déjà ventilée (revoir le détail) ou non (démarrer
-'     une nouvelle ventilation) -- voir mod_RechercheOperations.RevoirVentilationRO.
-'   - Nouveau : double-cliquer sur une cellule de la colonne Catégorie (hors ligne
-'     ventilée) ouvre le MÊME formulaire que le contrôle des catégories à l'import,
-'     en mode "une seule opération" -- voir mod_RechercheOperations.EditerCategorieRO
-'     et mod_ControleCategories.ControlerCategories (paramètre uneSeuleOperation).
-'   - Le bouton "Appliquer les lignes marquées" (et la colonne Valider) ne gère plus
-'     que la colonne Notes : Catégorie et SousCategorie se modifient désormais par
-'     double-clic (ci-dessus), qui écrit immédiatement, sans "Valider" ni ce bouton.
-'   - Nouvelle ligne RO_LIGNE_FILTRE (voir plus bas) : phrase recalculée à chaque
-'     recherche, qui rappelle à l'opérateur sur quel sous-ensemble d'opérations il
-'     travaille (recherche globale, dernier import, mois précis...).
 ' =====================================================================================
 
+' En-tête commun (voir mod_InstallCommun) : 1 ligne de boutons + compteur.
+'   ligne 1 marge / 2 boutons / 3 fine ligne / 4 compteur et filtre actif / 5 fine ligne /
+'   6 Instructions / 7 fine ligne / 8 en-têtes du tableau / 9 et suivantes : données
 Public Const RO_LIGNE_BOUTONS As Long = 2
-' RO_LIGNE_ENTETES = 5 (et non 4) : la ligne 3, laissée libre entre les
-' boutons (ligne 2) et l'en-tête du tableau, accueille désormais la zone de
-' commentaire explicatif ci-dessous. Avant ce changement, ce commentaire
-' était écrit sur la MÊME ligne que les boutons (RO_LIGNE_ENTETES - 2 = 2) :
-' invisible, caché sous les boutons eux-mêmes (constat opérateur du 01/10/2026).
-Public Const RO_LIGNE_ENTETES As Long = 7
-
-' RO_LIGNE_FILTRE = 4 (ajout 02/10/2026) : ligne restée vide entre le texte d'aide
-' (RO_LIGNE_ENTETES - 2 = 3) et l'en-tête du tableau (RO_LIGNE_ENTETES = 5). Accueille
-' désormais une phrase courte, recalculée à chaque recherche (voir
-' mod_RechercheOperations.DecrireFiltreActifRO), qui dit à l'opérateur sur quel
-' sous-ensemble d'opérations il travaille actuellement (recherche globale, dernier
-' import, mois précis, etc.).
 Public Const RO_LIGNE_FILTRE As Long = 4
+Public Const RO_ADR_COMPTEUR As String = "A4"     ' "Opération: 192/195" (fusion A4:C4)
+Public Const RO_ADR_FILTRE As String = "D4"       ' phrase du filtre actif (fusion D4:H4)
+Private Const RO_LIGNE_INSTRUCTIONS As Long = 6
+Public Const RO_LIGNE_ENTETES As Long = 8
 
 ' Position des colonnes DANS LE TABLEAU (1 = première colonne du tableau, A)
 Public Const RO_COL_VALIDER As Long = 1
@@ -161,280 +99,168 @@ Public Const RO_COL_SOLDESANTE As Long = 14
 Public Const RO_COL_DATECONSULT As Long = 15
 Public Const RO_COL_SPECONSULT As Long = 16
 
+
 ' =====================================================================================
 ' MACRO D'INSTALLATION
 ' =====================================================================================
 Sub CreerFeuilleRechercheOperations()
 
     Dim ws As Worksheet
-    Dim reponse As VbMsgBoxResult
-    Dim tbl As ListObject
-    Dim plageDepart As Range
+    Dim wsPrecedente As Worksheet
 
-    Set ws = ObtenirFeuilleSansErreurRO(NOM_FEUILLE_RECHERCHE)
+    Set wsPrecedente = ActiveSheet
 
-    If Not ws Is Nothing Then
-        reponse = MsgBox("La feuille '" & NOM_FEUILLE_RECHERCHE & "' existe deja." & vbCrLf & _
-                          "Veux-tu la reconstruire entierement (sa mise en forme actuelle sera perdue) ?", _
-                          vbYesNo + vbQuestion, "Confirmation de reconstruction")
-        If reponse = vbNo Then
-            MsgBox "Installation annulee, aucune modification effectuee.", vbInformation
-            Exit Sub
-        End If
-        ws.Visible = xlSheetVisible
-        On Error Resume Next
-        ws.ListObjects(NOM_TABLE_RECHERCHE).Delete
-        On Error GoTo 0
-        ws.Cells.Clear
-        Call SupprimerFormesExistantesRO(ws)
-        Call SupprimerNomsExistantsRO(ws, NOM_FEUILLE_RECHERCHE)
-    Else
-        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.count))
-        ws.Name = NOM_FEUILLE_RECHERCHE
+    Set ws = mod_InstallCommun.PreparerFeuille(NOM_FEUILLE_RECHERCHE, True, True)
+    If ws Is Nothing Then Exit Sub
+
+    Application.ScreenUpdating = False
+
+    ' Largeurs relevées sur la feuille réelle (A passe de 9 à 11 pour loger l'étiquette
+    ' "Instructions"). Colonnes I à K et L à P : techniques ou affichées selon le
+    ' préfiltre (masquées plus bas); Q : libre; R : liste technique des catégories.
+    mod_InstallCommun.MettreEnForme ws, Array(11, 9.07, 28.27, 8.93, 16.8, 24.67, 86.8, 7.87, _
+                                              12, 10, 10, 12, 14, 12, 14, 16, 10.13, 28), RO_LIGNE_ENTETES
+
+    RO_ConstruireEntete ws
+    RO_ConstruireEnteteTableau ws
+    RO_ConstruireBoutons ws     ' en dernier : les boutons se placent d'après les hauteurs de lignes
+
+    ' Colonnes techniques masquées (PHASE 5 : Ventile reste VISIBLE, c'est le tag
+    ' informatif demandé par l'opérateur -- seules I/J/K, qui ne servent qu'au code,
+    ' sont masquées).
+    ws.Range("I:K").EntireColumn.Hidden = True
+
+    ' PHASE 6 : les 5 colonnes issues des anciens écrans "Synthese_*" sont masquées par
+    ' défaut à l'installation ; mod_RechercheOperations les affiche/masque ensuite
+    ' dynamiquement à chaque appel, selon le préfiltre demandé (DefinirColonnesVisibles).
+    ws.Range("L:P").EntireColumn.Hidden = True
+
+    ' Liste technique des catégories (colonne R), alimentée à chaque recherche.
+    ws.Columns("R").Hidden = True
+
+    mod_InstallCommun.TerminerFeuille ws, wsPrecedente
+    Application.ScreenUpdating = True
+
+    MsgBox "La feuille '" & NOM_FEUILLE_RECHERCHE & mod_Display.FR("' a {e2}t{e2} cr{e2}{e2}e et masqu{e2}e.") & vbCrLf & _
+           "Pour la revoir : AfficherFeuilleRecherchePourEdition", vbInformation, mod_Display.FR("Installation termin{e2}e")
+
+End Sub
+
+
+' =====================================================================================
+' En-tête commun : hauteurs, compteur / filtre actif et bloc Instructions
+' =====================================================================================
+Private Sub RO_ConstruireEntete(ByVal ws As Worksheet)
+
+    If mod_InstallCommun.PremiereLigneCorps(1, True) <> RO_LIGNE_ENTETES Or _
+       mod_InstallCommun.LigneInstructions(1, True) <> RO_LIGNE_INSTRUCTIONS Or _
+       mod_InstallCommun.LigneCompteur(1, True) <> RO_LIGNE_FILTRE Then
+        MsgBox "mod_InstallRechercheOperations : constantes de lignes incoherentes avec mod_InstallCommun.", vbCritical
     End If
 
-    ws.Activate
-    ActiveWindow.DisplayGridlines = False
-    ws.Cells.Font.Name = "Calibri"
-    ws.Cells.Font.Size = 10
+    mod_InstallCommun.PoserHauteursEntete ws, 1, True
 
-    ws.Columns("A").ColumnWidth = 10
-    ws.Columns("B").ColumnWidth = 12
-    ws.Columns("C").ColumnWidth = 24
-    ws.Columns("D").ColumnWidth = 12
-    ws.Columns("E").ColumnWidth = 20
-    ws.Columns("F").ColumnWidth = 20
-    ws.Columns("G").ColumnWidth = 40
-    ws.Columns("H").ColumnWidth = 10
-    ws.Columns("I").ColumnWidth = 12
-    ws.Columns("J").ColumnWidth = 10
-    ws.Columns("K").ColumnWidth = 10
-    ws.Columns("L").ColumnWidth = 12   ' Budget
-    ws.Columns("M").ColumnWidth = 14   ' StatutSante
-    ws.Columns("N").ColumnWidth = 12   ' SoldeSante
-    ws.Columns("O").ColumnWidth = 14   ' Date_consult
-    ws.Columns("P").ColumnWidth = 16   ' Spe_consult
+    ' Compteur "Opération: x/y" (A4:C4), rempli par mod_RechercheOperations.RechercherOperations
+    mod_InstallCommun.PoserCompteur ws, RO_LIGNE_FILTRE, 1, 3
 
-    ' --- Boutons ---
-    Dim zoneBtn1 As Range, zoneBtn2 As Range
-    Dim btn As Button
-
-    Set zoneBtn1 = ws.Range("A" & RO_LIGNE_BOUTONS & ":B" & RO_LIGNE_BOUTONS)
-    zoneBtn1.RowHeight = 22
-    Set btn = ws.Buttons.Add(zoneBtn1.Left, zoneBtn1.Top, zoneBtn1.Width, zoneBtn1.Height)
-    With btn
-        .Caption = FR("Recherche globale")
-        .OnAction = "RechercherOperations"
-        .Name = "btnRechercherOperations"
-    End With
-
-    Set zoneBtn2 = ws.Range("C" & RO_LIGNE_BOUTONS & ":E" & RO_LIGNE_BOUTONS)
-    Set btn = ws.Buttons.Add(zoneBtn2.Left, zoneBtn2.Top, zoneBtn2.Width, zoneBtn2.Height)
-    With btn
-        .Caption = FR("Appliquer les lignes marqu{e2}es")
-        .OnAction = "AppliquerLignesMarquees"
-        .Name = "btnAppliquerLignesMarquees"
-    End With
-
-    ' Ajout 02/10/2026 : le bouton "Revoir la ventilation" qui était ici est supprimé,
-    ' devenu inutile -- le double-clic sur la colonne Ventile (voir ThisWorkbook.bas)
-    ' couvre désormais les 2 cas (revoir une ventilation existante, ou en démarrer une
-    ' nouvelle), voir mod_RechercheOperations.RevoirVentilationRO. Le bouton "Sortir"
-    ' reprend sa place (F:G) pour ne pas laisser un espace vide.
-    Dim zoneBtn4 As Range
-    Set zoneBtn4 = ws.Range("F" & RO_LIGNE_BOUTONS & ":G" & RO_LIGNE_BOUTONS)
-    Set btn = ws.Buttons.Add(zoneBtn4.Left, zoneBtn4.Top, zoneBtn4.Width, zoneBtn4.Height)
-    With btn
-        .Caption = FR("Sortir")
-        .OnAction = "SortirRechercheOperations"
-        .Name = "btnSortirRechercheOperations"
-    End With
-
-    ' AJOUT 03/10/2026 (demande opérateur) : 2 nouveaux boutons "décalage de budget",
-    ' placés à droite des 3 boutons existants (colonnes H à M de la ligne des boutons,
-    ' inoccupées jusqu'ici). Factorisés dans AjouterBoutonsDecalageRO ci-dessous (voir
-    ' ce Sub pour le détail), pour pouvoir aussi les ajouter sans tout reconstruire si
-    ' la feuille existe déjà (c'est d'ailleurs ce Sub qui les crée ici).
-    AjouterBoutonsDecalageRO ws
-
-    ' --- Petit rappel du fonctionnement, au-dessus du tableau ---
-    ' Refonte 02/10/2026 (après discussion avec l'opérateur) : mode opératoire en
-    ' liste à puces (plus lisible qu'un paragraphe), avec les noms de colonnes mis en
-    ' évidence (gras + vert) via SurlignerMotsRO ci-dessous -- aucun précédent de ce
-    ' genre de mise en forme (Characters) dans ce classeur, à vérifier visuellement à
-    ' l'import.
-    Dim texteAide As String
-    texteAide = "- " & FR("Utilise les fl{e2}ches de filtre dans l'en-t{ea}te de chaque colonne pour restreindre la liste affich{e2}e.") & Chr(10) & _
-                "- " & FR("Corrige directement la cellule Notes, inscris 'Oui' dans Valider, puis clique sur 'Appliquer les lignes marqu{e2}es' pour l'enregistrer (possible sur plusieurs lignes {a2} la fois).") & Chr(10) & _
-                "- " & FR("Double-clique sur une cellule Categorie pour l'{e2}diter, elle et sa sous-cat{e2}gorie, via le formulaire habituel de contr{o2}le des cat{e2}gories (elles ne se modifient plus via Valider/Appliquer).") & Chr(10) & _
-                "- " & FR("Double-clique sur une cellule vide de la colonne Ventile pour d{e2}marrer une nouvelle ventilation sur cette op{e2}ration, ou sur une cellule 'Oui' pour revoir ou supprimer une ventilation d{e2}j{a2} enregistr{e2}e.") & Chr(10) & _
-                "- " & FR("'Recherche globale' recharge toutes les op{e2}rations sans filtre. 'Sortir' referme cet {e2}cran.")
-
-    With ws.Range("A" & (RO_LIGNE_ENTETES - 2) & ":G" & (RO_LIGNE_ENTETES - 2))
+    ' Phrase du filtre actif (D4:H4), recalculée à chaque recherche (voir
+    ' mod_RechercheOperations.DecrireFiltreActifRO) : elle rappelle à l'opérateur sur quel
+    ' sous-ensemble d'opérations il travaille. Vide avant la toute première recherche.
+    With ws.Range("D" & RO_LIGNE_FILTRE & ":H" & RO_LIGNE_FILTRE)
         .Merge
-        .value = texteAide
-        .Font.Size = 9
-        .Font.Color = RGB(80, 80, 80)
-        .WrapText = True
-        .VerticalAlignment = xlTop
-    End With
-    SurlignerMotsRO ws.Range("A" & (RO_LIGNE_ENTETES - 2)), texteAide, _
-                    Array("SousCategorie", "Categorie", "Notes", "Valider", "Ventile")
-    ws.rows(RO_LIGNE_ENTETES - 2).RowHeight = 56
-
-    ' --- Zone "filtre actif" (ajout 02/10/2026) : phrase courte, recalculée par
-    ' mod_RechercheOperations.RechercherOperations à chaque recherche (voir
-    ' DecrireFiltreActifRO), qui rappelle sur quel sous-ensemble d'opérations
-    ' l'opérateur travaille actuellement. Vide au tout premier affichage de
-    ' l'écran (avant la toute première recherche).
-    With ws.Range("A" & RO_LIGNE_FILTRE & ":G" & RO_LIGNE_FILTRE)
-        .Merge
-        .value = ""
+        .Value = ""
         .Font.Size = 9
         .Font.Italic = True
-        .Font.Color = RGB(31, 78, 121)
-        .Interior.Color = RGB(237, 243, 250)
-        .WrapText = True
+        .Font.Bold = False
+        .Font.Color = mod_InstallCommun.CoulEtiquette()
+        .HorizontalAlignment = xlLeft
         .VerticalAlignment = xlCenter
     End With
-    ws.rows(RO_LIGNE_FILTRE).RowHeight = 16
 
-    ' --- Tableau (headers + 1 ligne vide de départ, indispensable pour créer un ListObject) ---
-    ws.Range("A" & RO_LIGNE_ENTETES).value = "Valider"
-    ws.Range("B" & RO_LIGNE_ENTETES).value = "Date"
-    ws.Range("C" & RO_LIGNE_ENTETES).value = "Tiers"
-    ws.Range("D" & RO_LIGNE_ENTETES).value = "Montant"
-    ws.Range("E" & RO_LIGNE_ENTETES).value = "Categorie"
-    ws.Range("F" & RO_LIGNE_ENTETES).value = "SousCategorie"
-    ws.Range("G" & RO_LIGNE_ENTETES).value = "Notes"
-    ws.Range("H" & RO_LIGNE_ENTETES).value = "Ventile"
-    ws.Range("I" & RO_LIGNE_ENTETES).value = "ID_Transaction"
-    ws.Range("J" & RO_LIGNE_ENTETES).value = "SourceLigne"
-    ws.Range("K" & RO_LIGNE_ENTETES).value = "LigneVentilation"
-    ws.Range("L" & RO_LIGNE_ENTETES).value = "Budget"
-    ws.Range("M" & RO_LIGNE_ENTETES).value = "StatutSante"
-    ws.Range("N" & RO_LIGNE_ENTETES).value = "SoldeSante"
-    ws.Range("O" & RO_LIGNE_ENTETES).value = "Date_consult"
-    ws.Range("P" & RO_LIGNE_ENTETES).value = "Spe_consult"
+    ' Étiquette en colonne A, texte sur B:H (les colonnes I à P sont masquées).
+    mod_InstallCommun.EcrireInstructions ws, RO_LIGNE_INSTRUCTIONS, 1, 1, 2, 8, RO_TexteInstructions()
 
-    Set plageDepart = ws.Range("A" & RO_LIGNE_ENTETES & ":P" & (RO_LIGNE_ENTETES + 1))
-    Set tbl = ws.ListObjects.Add(xlSrcRange, plageDepart, , xlYes)
+End Sub
+
+Private Function RO_TexteInstructions() As String
+
+    Dim t As String
+
+    t = "Cet {e2}cran permet de rechercher et de corriger les op{e2}rations enregistr{e2}es, ainsi que leurs lignes de ventilation. "
+    t = t & "Le tableau est charg{e2} {a2} l'ouverture (recherche globale, dernier import, mois budg{e2}taire, suivi sant{e2}...) ; "
+    t = t & "la ligne du dessus rappelle le filtre actif et le nombre de lignes affich{e2}es."
+    t = t & Chr(10) & "Utilisez les fl{e1}ches de filtre de l'en-t{ea}te de chaque colonne pour restreindre la liste affich{e2}e. "
+    t = t & "Corrigez directement la cellule [c:Notes], inscrivez Oui dans [c:Valider], puis cliquez sur [b:Appliquer les lignes marqu{e2}es] "
+    t = t & "(possible sur plusieurs lignes {a2} la fois)."
+    t = t & Chr(10) & "Double-cliquez sur une cellule [c:Categorie] pour l'{e2}diter, elle et sa [c:SousCategorie], via le formulaire [f:frm_ControleCategories] "
+    t = t & "(elles ne se modifient plus avec [c:Valider]). Double-cliquez sur une cellule vide de la colonne [c:Ventile] pour d{e2}marrer une nouvelle "
+    t = t & "ventilation sur cette op{e2}ration ([f:frm_Ventilation]), ou sur une cellule Oui pour revoir ou supprimer une ventilation d{e2}j{a2} enregistr{e2}e."
+    t = t & Chr(10) & "Boutons :"
+    t = t & Chr(10) & "- [b:Recherche globale] : recharge toutes les op{e2}rations sans filtre."
+    t = t & Chr(10) & "- [b:Appliquer les lignes marqu{e2}es] : pour chaque ligne dont [c:Valider] contient Oui, enregistre le champ [c:Notes] en contr{o2}lant la saisie."
+    t = t & Chr(10) & "- [b:Sortir] : referme cet {e2}cran et revient sur [f:Synthese]."
+    t = t & Chr(10) & "- [b:Ajouter un d{e2}calage] : ajoute un d{e2}calage de budget r{e2}current au syst{e2}me."
+    t = t & Chr(10) & "- [b:D{e2}caler cette op{e2}ration] : d{e2}calage ponctuel d'une op{e2}ration ; le calcul repart toujours de la date de l'op{e2}ration "
+    t = t & "(pour revenir au mois d'origine, indiquez 0)."
+
+    RO_TexteInstructions = t
+
+End Function
+
+
+' =====================================================================================
+' En-tête du tableau (seule partie fixe du tableau)
+' =====================================================================================
+' Le tableau est vidé et reconstruit à chaque ouverture par mod_RechercheOperations;
+' seule sa ligne d'en-têtes (et une première ligne vide, indispensable pour créer un
+' ListObject) est posée ici.
+Private Function RO_ConstruireEnteteTableau(ByVal ws As Worksheet) As ListObject
+
+    Dim tbl As ListObject
+    Dim noms As Variant
+    Dim i As Long
+
+    noms = Array("Valider", "Date", "Tiers", "Montant", "Categorie", "SousCategorie", "Notes", "Ventile", _
+                 "ID_Transaction", "SourceLigne", "LigneVentilation", "Budget", "StatutSante", "SoldeSante", _
+                 "Date_consult", "Spe_consult")
+
+    For i = 0 To UBound(noms)
+        ws.Cells(RO_LIGNE_ENTETES, i + 1).Value = noms(i)
+    Next i
+
+    Set tbl = ws.ListObjects.Add(xlSrcRange, ws.Range(ws.Cells(RO_LIGNE_ENTETES, 1), ws.Cells(RO_LIGNE_ENTETES + 1, 16)), , xlYes)
     tbl.Name = NOM_TABLE_RECHERCHE
-    tbl.TableStyle = "TableStyleMedium2"
+    tbl.TableStyle = ""           ' pas de style Excel : les couleurs suivent la charte commune
 
-    ' Colonnes techniques masquées (PHASE 5 : Ventile reste VISIBLE, c'est le
-    ' tag informatif demandé par l'opérateur -- seules I/J/K, qui ne servent
-    ' qu'au code, sont masquées)
-    ws.Columns("I").Hidden = True
-    ws.Columns("J").Hidden = True
-    ws.Columns("K").Hidden = True
+    mod_InstallCommun.PoserEnteteTableau tbl.HeaderRowRange
+    ws.Rows(RO_LIGNE_ENTETES).RowHeight = mod_InstallCommun.FRM_H_LIGNE
 
-    ' PHASE 6 : les 5 colonnes issues des anciens écrans "Synthese_*" sont
-    ' masquées par défaut à l'installation ; mod_RechercheOperations les
-    ' affiche/masque ensuite dynamiquement à chaque appel, selon le préfiltre
-    ' demandé (voir DefinirColonnesVisibles ci-dessous).
-    ws.Columns("L").Hidden = True
-    ws.Columns("M").Hidden = True
-    ws.Columns("N").Hidden = True
-    ws.Columns("O").Hidden = True
-    ws.Columns("P").Hidden = True
+    Set RO_ConstruireEnteteTableau = tbl
 
-    ws.Visible = xlSheetVeryHidden
-
-    MsgBox "La feuille '" & NOM_FEUILLE_RECHERCHE & "' a été créée et masquée." & vbCrLf & _
-           "Pour la revoir : AfficherFeuilleRecherchePourEdition", vbInformation, "Installation terminée"
-
-End Sub
+End Function
 
 
 ' =====================================================================================
-' AJOUT 03/10/2026 (demande opérateur) : ajoute les 2 boutons "décalage de budget" sur
-' la feuille de recherche SI ELLE EXISTE DÉJÀ, sans la reconstruire entièrement (donc
-' sans perdre les lignes/filtres en cours). Appelée automatiquement à la fin de
-' CreerFeuilleRechercheOperations ci-dessus (nouvelle installation complète), et peut
-' aussi être relancée seule, par Ctrl+G, sur une feuille déjà en place :
-'   AjouterBoutonsDecalageRO ThisWorkbook.Worksheets("frm_RechercheOperations")
-' Idempotente : si les boutons existent déjà (même nom), ne fait rien.
+' Boutons
 ' =====================================================================================
-Public Sub AjouterBoutonsDecalageRO(ByVal ws As Worksheet)
+' Largeurs relevées sur la feuille réelle (export du 09/10/2026), hauteur et alignement
+' communs (voir mod_InstallCommun.AjouterBoutonEntete).
+Private Sub RO_ConstruireBoutons(ByVal ws As Worksheet)
 
-    Dim forme As Shape
-    Dim btn As Button
-    Dim zoneBtn5 As Range, zoneBtn6 As Range
+    Dim gauche As Double
 
-    ' On vérifie si l'un des 2 boutons existe déjà (même principe que les colonnes/
-    ' tableaux installés ailleurs dans le projet : ne jamais recréer en double).
-    On Error Resume Next
-    Set forme = ws.Shapes("btnAjouterDecalageRO")
-    On Error GoTo 0
-    If Not forme Is Nothing Then Exit Sub
+    gauche = ws.Cells(1, 1).Left
 
-    ws.Range(RO_LIGNE_BOUTONS & ":" & RO_LIGNE_BOUTONS).RowHeight = 22
-
-    Set zoneBtn5 = ws.Range("H" & RO_LIGNE_BOUTONS & ":J" & RO_LIGNE_BOUTONS)
-    Set btn = ws.Buttons.Add(zoneBtn5.Left, zoneBtn5.Top, zoneBtn5.Width, zoneBtn5.Height)
-    With btn
-        .Caption = FR("Ajouter un d{e2}calage")
-        .OnAction = "AjouterDecalageDepuisRO"
-        .Name = "btnAjouterDecalageRO"
-    End With
-
-    Set zoneBtn6 = ws.Range("K" & RO_LIGNE_BOUTONS & ":M" & RO_LIGNE_BOUTONS)
-    Set btn = ws.Buttons.Add(zoneBtn6.Left, zoneBtn6.Top, zoneBtn6.Width, zoneBtn6.Height)
-    With btn
-        .Caption = FR("D{e2}caler cette op{e2}ration")
-        .OnAction = "DecalerBudgetOperationRO"
-        .Name = "btnDecalerBudgetOperationRO"
-    End With
-
-End Sub
-
-
-' =====================================================================================
-' SurlignerMotsRO (ajout 02/10/2026) : met en GRAS + VERT, DANS UNE CELLULE DÉJÀ
-' REMPLIE, chaque occurrence exacte (respect de la casse) de chacun des mots de
-' la liste "mots". Sert à faire ressortir les noms de colonnes (Catégorie,
-' SousCategorie, Notes, Valider, Ventile) dans le texte d'aide au-dessus du
-' tableau de recherche, pour que l'opérateur les repère en un coup d'œil.
-'
-' ATTENTION (technique nouvelle dans ce classeur, aucun autre module n'utilise
-' Range.Characters) : la recherche se fait avec vbBinaryCompare (respect de la
-' casse), PAS vbTextCompare, pour ne jamais accrocher un mot "générique" du
-' texte qui ressemblerait à un nom de colonne mais s'écrirait différemment
-' (exemple : "contrôle des catégories", en minuscules et au pluriel dans une
-' phrase normale, ne doit pas être coloré comme le nom de colonne "Categorie").
-' "texteComplet" DOIT être exactement la chaîne déjà écrite dans "cellule"
-' (après toute substitution mod_Display.FR, {tag} compris) : Characters()
-' raisonne en position de caractère dans le texte final affiché, pas dans un
-' texte source avec des {tag}.
-'
-' Remarque sur l'ordre des mots : "SousCategorie" contient "Categorie". Si
-' "SousCategorie" est traité APRÈS "Categorie" dans la liste, cela ne pose
-' aucun problème : le passage sur "SousCategorie" recolore alors l'ensemble du
-' mot (y compris la partie déjà colorée par "Categorie"), le résultat final
-' est donc correct quel que soit l'ordre choisi.
-' =====================================================================================
-Private Sub SurlignerMotsRO(ByVal cellule As Range, ByVal texteComplet As String, ByVal mots As Variant)
-
-    Dim m As Variant
-    Dim motTexte As String
-    Dim position As Long
-
-    For Each m In mots
-        motTexte = CStr(m)
-        If Len(motTexte) > 0 Then
-            position = 1
-            Do
-                position = InStr(position, texteComplet, motTexte, vbBinaryCompare)
-                If position = 0 Then Exit Do
-                With cellule.Characters(position, Len(motTexte)).Font
-                    .Bold = True
-                    .Color = RGB(0, 128, 0)
-                End With
-                position = position + Len(motTexte)
-            Loop
-        End If
-    Next m
+    mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Recherche globale"), _
+        "RechercherOperations", "btnRechercherOperations", 108
+    mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Appliquer les lignes marqu{e2}es"), _
+        "AppliquerLignesMarquees", "btnAppliquerLignesMarquees", 154.5
+    mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapSortir(), _
+        "SortirRechercheOperations", "btnSortirRechercheOperations", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Ajouter un d{e2}calage"), _
+        "AjouterDecalageDepuisRO", "btnAjouterDecalageRO", 104.2
+    mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("D{e2}caler cette op{e2}ration"), _
+        "DecalerBudgetOperationRO", "btnDecalerBudgetOperationRO", 117
 
 End Sub
 
@@ -481,62 +307,12 @@ End Sub
 
 
 ' =====================================================================================
-' FONCTIONS UTILITAIRES
-' =====================================================================================
-Private Function ObtenirFeuilleSansErreurRO(ByVal nomFeuille As String) As Worksheet
-    Dim ws As Worksheet
-    On Error Resume Next
-    Set ws = ThisWorkbook.Worksheets(nomFeuille)
-    On Error GoTo 0
-    Set ObtenirFeuilleSansErreurRO = ws
-End Function
-
-Private Sub SupprimerFormesExistantesRO(ws As Worksheet)
-    Dim i As Long
-    For i = ws.Shapes.count To 1 Step -1
-        ws.Shapes(i).Delete
-    Next i
-End Sub
-
-Private Sub SupprimerNomsExistantsRO(ws As Worksheet, ByVal nomFeuille As String)
-    Dim n As Name
-    Dim i As Long
-    For i = ThisWorkbook.Names.count To 1 Step -1
-        Set n = ThisWorkbook.Names(i)
-        On Error Resume Next
-        If InStr(1, n.RefersTo, "'" & nomFeuille & "'", vbTextCompare) > 0 Then
-            n.Delete
-        End If
-        On Error GoTo 0
-    Next i
-End Sub
-
-
-' =====================================================================================
 ' OUTILS DEVELOPPEUR
 ' =====================================================================================
 Sub AfficherFeuilleRecherchePourEdition()
-    Dim ws As Worksheet
-    Set ws = ObtenirFeuilleSansErreurRO(NOM_FEUILLE_RECHERCHE)
-    If ws Is Nothing Then
-        MsgBox "La feuille '" & NOM_FEUILLE_RECHERCHE & "' n'existe pas encore.", vbExclamation
-        Exit Sub
-    End If
-    ws.Visible = xlSheetVisible
-    ws.Activate
-    MsgBox "La feuille est maintenant visible. Pense a la remasquer avec" & vbCrLf & _
-           "MasquerFeuilleRechercheApresEdition", vbInformation
+    mod_InstallCommun.AfficherPourEdition NOM_FEUILLE_RECHERCHE, "CreerFeuilleRechercheOperations", "MasquerFeuilleRechercheApresEdition"
 End Sub
 
 Sub MasquerFeuilleRechercheApresEdition()
-    Dim ws As Worksheet
-    Set ws = ObtenirFeuilleSansErreurRO(NOM_FEUILLE_RECHERCHE)
-    If ws Is Nothing Then
-        MsgBox "La feuille '" & NOM_FEUILLE_RECHERCHE & "' n'existe pas.", vbExclamation
-        Exit Sub
-    End If
-    ws.Visible = xlSheetVeryHidden
-    MsgBox "La feuille est de nouveau masquee.", vbInformation
+    mod_InstallCommun.MasquerApresEdition NOM_FEUILLE_RECHERCHE
 End Sub
-
-

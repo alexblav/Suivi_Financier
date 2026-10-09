@@ -11,21 +11,31 @@ Option Explicit
 '   Il ne contient AUCUNE logique de fonctionnement : celle-ci se trouve dans
 '   le module mod_ControleCategories (partie 2/2).
 '
-'   Pourquoi une FEUILLE et pas un UserForm ? Parce que vous avez constaté que les
-'   UserForms s'affichent mal sur les postes multi-écrans (problème de DPI). On
-'   reprend donc la méthode déjà utilisée pour résoudre les catégories ambiguës :
-'   une feuille masquée (xlSheetVeryHidden) que le programme affiche au bon moment.
+'   Pourquoi une FEUILLE et pas un UserForm ? Parce que les UserForms s'affichent mal
+'   sur les postes multi-écrans (problème de DPI). On utilise donc une feuille masquée
+'   (xlSheetVeryHidden) que le programme affiche au bon moment.
 '
 '   Analogie : ce module "construit les murs" de la pièce; le module
 '   mod_ControleCategories "branche l'électricité".
 '
-' INSTALLATION (une seule fois) :
-'   1. Alt+F11, puis Fichier > Importer un fichier... : importer CE fichier.
-'   2. Importer aussi mod_ControleCategories.bas.
-'   3. Ctrl+G (fenêtre Exécution), taper : CreerFeuilleControleCategories, puis Entrée.
-'   4. Le message final indique le NOM de la feuille créée. Collez dans son
+' REFONTE DU 09/10/2026 (harmonisation des formulaires) :
+'   La feuille est désormais construite avec les outils COMMUNS de mod_InstallCommun
+'   (couleurs, boutons, étiquettes, champs, compteur, bloc Instructions), comme tous
+'   les autres formulaires. Les boutons du haut gardent les largeurs relevées sur la
+'   feuille réelle (export frm_ControleCategories_structure.txt). Le titre et le
+'   bloc d'instructions du bas ont été remplacés par le bloc Instructions commun,
+'   placé sous la ligne de boutons. Les adresses des cellules ont donc changé :
+'   toutes sont regroupées dans les constantes ci-dessous.
+'
+' INSTALLATION (une seule fois, ou après toute modification de ce fichier) :
+'   1. Alt+F11, puis Fichier > Importer un fichier... : importer mod_InstallCommun.bas
+'      puis CE fichier (et mod_ControleCategories.bas si ce n'est pas déjà fait).
+'   2. Ctrl+G (fenêtre Exécution), taper : CreerFeuilleControleCategories, puis Entrée
+'      (répondre Oui à la reconstruction si la feuille existe déjà).
+'   3. Le message final indique le NOM de la feuille créée. Collez dans son
 '      module de code les deux procédures du fichier
-'      "CodeBehind_frm_ControleCategories.txt" (explications dans ce fichier).
+'      "CodeBehind_frm_ControleCategories.txt" (inchangées; à refaire seulement si la
+'      feuille a été supprimée puis recréée).
 '
 ' Ce module ne modifie AUCUNE donnée : il ajoute seulement une feuille masquée.
 ' =====================================================================================
@@ -34,23 +44,26 @@ Option Explicit
 Public Const CTRL_NOM_FEUILLE As String = "frm_ControleCategories"
 
 ' --- Position des éléments (regroupés ici pour n'avoir qu'un endroit à modifier) -------
-Public Const CTRL_LIGNE_BOUTONS As Long = 2       ' ligne des boutons
+' En-tête commun (voir mod_InstallCommun) : 1 ligne de boutons + compteur.
+'   ligne 1 marge / 2 boutons / 3 fine ligne / 4 compteur / 5 fine ligne /
+'   6 Instructions / 7 fine ligne / 8 et suivantes : corps du formulaire
+Public Const CTRL_LIGNE_BOUTONS As Long = 2
+Public Const CTRL_ADR_COMPTEUR As String = "B4"   ' "Opération: 3/27"
+Private Const CTRL_LIGNE_INSTRUCTIONS As Long = 6
+Private Const CTRL_LIGNE_CORPS As Long = 8
 
-Public Const CTRL_ADR_TITRE As String = "B4"      ' titre
-Public Const CTRL_ADR_COMPTEUR As String = "B5"   ' "Opération 3 / 27"
-
-' Informations de l'opération (lecture seule) : étiquette en colonne B, valeur en colonne C
-Public Const CTRL_ADR_DATE As String = "C7"
-Public Const CTRL_ADR_TIERS As String = "C8"
-Public Const CTRL_ADR_LIBELLE As String = "C9"
-Public Const CTRL_ADR_MONTANT As String = "C10"
-Public Const CTRL_ADR_SOURCE As String = "C11"    ' catégorie envoyée par la banque
+' Informations de l'opération : étiquette en colonne B, valeur en colonne C
+Public Const CTRL_ADR_DATE As String = "C8"
+Public Const CTRL_ADR_TIERS As String = "C9"      ' modifiable (sauf opération de santé)
+Public Const CTRL_ADR_LIBELLE As String = "C10"   ' modifiable (sauf opération de santé)
+Public Const CTRL_ADR_MONTANT As String = "C11"
+Public Const CTRL_ADR_SOURCE As String = "C12"    ' catégorie envoyée par la banque
 
 ' Zones de saisie de l'opérateur
-Public Const CTRL_ADR_CAT As String = "C13"       ' catégorie choisie
-Public Const CTRL_ADR_SOUS As String = "C14"      ' sous-catégorie choisie
+Public Const CTRL_ADR_CAT As String = "C14"       ' catégorie choisie
+Public Const CTRL_ADR_SOUS As String = "C15"      ' sous-catégorie choisie
 
-Public Const CTRL_ADR_MESSAGE As String = "B16"   ' message d'aide (zone fusionnee B16:E16)
+Public Const CTRL_ADR_MESSAGE As String = "B17"   ' message d'aide (zone fusionnée B17:E17)
 
 ' Zone technique masquée : liste des sous-catégories de la catégorie choisie.
 ' La colonne 26 correspond à la colonne Z; elle est masquée, loin à droite de la mise en page.
@@ -64,56 +77,33 @@ Public Sub CreerFeuilleControleCategories()
 
     Dim ws As Worksheet
     Dim wsPrecedente As Worksheet
-    Dim reponse As VbMsgBoxResult
 
     ' On retient la feuille affichée pour y revenir à la fin (l'opérateur ne doit pas
     ' se retrouver ailleurs après l'installation).
     Set wsPrecedente = ActiveSheet
 
-    Set ws = FeuilleSansErreur(CTRL_NOM_FEUILLE)
-
-    If Not ws Is Nothing Then
-        ' La feuille existe déjà : on demande confirmation avant de tout reconstruire.
-        reponse = MsgBox(mod_Display.FR("La feuille '") & CTRL_NOM_FEUILLE & mod_Display.FR("' existe d{e2}j{a2}.") & vbCrLf & _
-                         mod_Display.FR("Voulez-vous la reconstruire enti{e1}rement (sa mise en forme sera perdue) ?"), _
-                         vbYesNo + vbQuestion, mod_Display.FR("Confirmation de reconstruction"))
-        If reponse = vbNo Then
-            MsgBox mod_Display.FR("Installation annul{e2}e, rien n'a {e2}t{e2} modifi{e2}."), vbInformation
-            Exit Sub
-        End If
-
-        ' Impossible de modifier une feuille "très masquée" : on la rend d'abord visible.
-        ws.Visible = xlSheetVisible
-        ws.Cells.UnMerge           ' défusionne les cellules fusionnées
-        ws.Cells.Clear             ' efface le contenu et la mise en forme
-        SupprimerFormes ws         ' supprime les anciens boutons
-    Else
-        ' Nouvelle feuille, placée en dernière position pour ne pas perturber les onglets.
-        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.count))
-        ws.Name = CTRL_NOM_FEUILLE
-    End If
+    Set ws = mod_InstallCommun.PreparerFeuille(CTRL_NOM_FEUILLE)
+    If ws Is Nothing Then Exit Sub
 
     Application.ScreenUpdating = False
 
-    MettreEnFormeGenerale ws
-    ConstruireBoutons ws
-    ConstruireTitreEtInformations ws
+    ' Colonnes : marge / étiquettes / valeurs / zone des boutons "Ventiler" et "+" / marge
+    mod_InstallCommun.MettreEnForme ws, Array(2, 26, 44, 22, 22, 2)
+
+    ConstruireEntete ws
+    ConstruireInformations ws
     ConstruireZoneSaisie ws
-    ConstruireInstructions ws
+    ConstruireBoutons ws        ' en dernier : les boutons se placent d'après les hauteurs de lignes
 
     ' La colonne technique (liste des sous-catégories) doit rester invisible.
     ws.Columns(CTRL_COL_AIDE).Hidden = True
 
     ' Masquage complet : invisible pour l'opérateur, même via clic droit > Afficher.
-    ws.Visible = xlSheetVeryHidden
-
-    On Error Resume Next
-    wsPrecedente.Activate
-    On Error GoTo 0
+    mod_InstallCommun.TerminerFeuille ws, wsPrecedente
     Application.ScreenUpdating = True
 
     MsgBox mod_Display.FR("La feuille '") & CTRL_NOM_FEUILLE & mod_Display.FR("' a {e2}t{e2} cr{e2}{e2}e puis masqu{e2}e.") & vbCrLf & vbCrLf & _
-           mod_Display.FR("PROCHAINE {E2}TAPE (indispensable) : coller le code des {e2}v{e2}nements dans la feuille.") & vbCrLf & _
+           mod_Display.FR("PROCHAINE {E2}TAPE (indispensable, si la feuille vient d'{ea}tre cr{e2}{e2}e) : coller le code des {e2}v{e2}nements dans la feuille.") & vbCrLf & _
            "Nom interne (CodeName) de cette feuille : " & ws.CodeName & vbCrLf & vbCrLf & _
            mod_Display.FR("Voir le fichier CodeBehind_frm_ControleCategories.txt."), _
            vbInformation, mod_Display.FR("Installation termin{e2}e")
@@ -122,222 +112,125 @@ End Sub
 
 
 ' =====================================================================================
-' Mise en forme générale : aspect "formulaire" (sans quadrillage), largeurs et police.
+' En-tête commun : hauteurs, compteur et bloc Instructions
 ' =====================================================================================
-Private Sub MettreEnFormeGenerale(ByVal ws As Worksheet)
+Private Sub ConstruireEntete(ByVal ws As Worksheet)
 
-    ' Le quadrillage est un réglage de la FENÊTRE, pas de la feuille : il faut donc
-    ' activer la feuille pour pouvoir le supprimer.
-    ws.Activate
-    ActiveWindow.DisplayGridlines = False
+    ' Garde-fou : les constantes de ce module doivent correspondre à l'en-tête commun.
+    If mod_InstallCommun.PremiereLigneCorps(1, True) <> CTRL_LIGNE_CORPS Or _
+       mod_InstallCommun.LigneInstructions(1, True) <> CTRL_LIGNE_INSTRUCTIONS Then
+        MsgBox "mod_InstallControleCategories : constantes de lignes incoherentes avec mod_InstallCommun.", vbCritical
+    End If
 
-    ws.Columns("A").ColumnWidth = 2      ' petite marge à gauche
-    ws.Columns("B").ColumnWidth = 26     ' étiquettes
-    ws.Columns("C").ColumnWidth = 44     ' valeurs et zones de saisie
-    ws.Columns("D").ColumnWidth = 22
-    ws.Columns("E").ColumnWidth = 22
-    ws.Columns("F").ColumnWidth = 2      ' petite marge à droite
+    mod_InstallCommun.PoserHauteursEntete ws, 1, True
+    mod_InstallCommun.PoserCompteur ws, mod_InstallCommun.LigneCompteur(1, True), 2, 5
 
-    ws.Cells.Font.Name = "Calibri"
-    ws.Cells.Font.Size = 10
-
-    ws.Range("A1").Select
-    ActiveWindow.DisplayHeadings = False
+    mod_InstallCommun.EcrireInstructions ws, CTRL_LIGNE_INSTRUCTIONS, 2, 2, 3, 5, TexteInstructions()
 
 End Sub
 
+Private Function TexteInstructions() As String
 
-' =====================================================================================
-' Boutons (contrôles de formulaire, pas ActiveX : plus fiables avec le DPI).
-' =====================================================================================
-' Chaque bouton est placé d'après une CELLULE (et non selon des pixels fixes) : si la largeur
-' des colonnes change, les boutons suivent. Le nom de macro donné à .OnAction correspond
-' à celui de la Public Sub concernée dans mod_ControleCategories.
-Private Sub ConstruireBoutons(ByVal ws As Worksheet)
+    Dim t As String
 
-    Dim zone As Range
+    t = "Ce formulaire permet de contr{o2}ler la cat{e2}gorie et la sous-cat{e2}gorie des op{e2}rations qui viennent d'{ea}tre import{e2}es."
+    t = t & Chr(10) & "Les op{e2}rations sont pr{e2}sent{e2}es une par une : v{e2}rifiez les informations affich{e2}es, corrigez si besoin "
+    t = t & "[c:Cat{e2}gorie] puis [c:Sous-cat{e2}gorie] (listes d{e2}roulantes), puis passez {a2} l'op{e2}ration suivante. "
+    t = t & "[c:Tiers] et [c:Libell{e2} / Notes] sont modifiables, sauf pour une op{e2}ration de sant{e2}."
+    t = t & Chr(10) & "Si des op{e2}rations n'ont pas pu {ea}tre reli{e2}es {a2} une sous-cat{e2}gorie interne, vous serez automatiquement "
+    t = t & "repositionn{e2} sur la premi{e1}re d'entre elles."
+    t = t & Chr(10) & "Boutons :"
+    t = t & Chr(10) & "- [b:< Pr{e2}c{e2}dent] et [b:Suivant >] : naviguent entre les op{e2}rations (les choix d{e2}j{a2} faits sont conserv{e2}s)."
+    t = t & Chr(10) & "- [b:Ventiler] : r{e2}partit le [c:Montant] de l'op{e2}ration entre plusieurs sous-cat{e2}gories (ouvre [f:frm_Ventilation])."
+    t = t & Chr(10) & "- [b:+] : cr{e2}e une nouvelle cat{e2}gorie ou sous-cat{e2}gorie (ouvre [f:frm_NouvelleCategorie])."
+    t = t & Chr(10) & "- [b:Enregistrer] : applique tous les choix faits et poursuit l'import."
+    t = t & Chr(10) & "- [b:Annuler] : abandonne l'import en cours."
+    t = t & Chr(10) & "ATTENTION : vos choix ne sont pris en compte qu'apr{e1}s un clic sur [b:Enregistrer]."
 
-    ws.rows(CTRL_LIGNE_BOUTONS).RowHeight = 26
+    TexteInstructions = t
 
-    ' --- Bouton "Précédent" (cellule B2) ---
-    Set zone = ws.Cells(CTRL_LIGNE_BOUTONS, 2)
-    AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, _
-                  "< " & mod_Display.FR("Pr{e2}c{e2}dent"), "ControleOperationPrecedente", "btnCtrlPrecedent"
-
-    ' --- Bouton "Suivant" (moitié gauche de la cellule C2) ---
-    Set zone = ws.Cells(CTRL_LIGNE_BOUTONS, 3)
-    AjouterBouton ws, zone.Left, zone.Top, 130, zone.Height, _
-                  "Suivant >", "ControleOperationSuivante", "btnCtrlSuivant"
-
-    ' --- Bouton "Terminer et continuer" (cellule D2) ---
-    Set zone = ws.Cells(CTRL_LIGNE_BOUTONS, 4)
-    AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, _
-                  "Terminer et continuer", "ControleTerminer", "btnCtrlTerminer"
-
-    ' --- Bouton "Annuler" (cellule E2) ---
-    Set zone = ws.Cells(CTRL_LIGNE_BOUTONS, 5)
-    AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, _
-                  "Annuler l'import", "ControleAnnuler", "btnCtrlAnnuler"
-
-End Sub
-
-' Crée UN bouton. Regroupe les quatre lignes répétitives pour garder le code lisible.
-Private Sub AjouterBouton(ByVal ws As Worksheet, ByVal gauche As Double, ByVal haut As Double, _
-                          ByVal largeur As Double, ByVal hauteur As Double, _
-                          ByVal legende As String, ByVal nomMacro As String, ByVal nomBouton As String)
-    Dim btn As Button
-    Set btn = ws.Buttons.Add(gauche, haut, largeur, hauteur)
-    btn.Caption = legende
-    btn.OnAction = nomMacro    ' macro exécutée au clic
-    btn.Name = nomBouton
-End Sub
+End Function
 
 
 ' =====================================================================================
-' Titre, compteur et bloc "informations de l'opération" (lecture seule)
+' Informations de l'opération (lecture seule, sauf Tiers et Libellé / Notes)
 ' =====================================================================================
-Private Sub ConstruireTitreEtInformations(ByVal ws As Worksheet)
+' NOTE : Tiers (C9) et Libellé / Notes (C10) sont modifiables, sauf pour une opération de
+' santé. Leur fond est donc posé ici en "modifiable" (jaune pâle) puis recalculé à chaque
+' affichage par mod_ControleCategories.AfficherOperation (gris = verrouillé).
+Private Sub ConstruireInformations(ByVal ws As Worksheet)
 
-    ' --- Titre ---
-    With ws.Range("B4:E4")
-        .Merge
-        .Font.Size = 14
-        .Font.Bold = True
-        .Font.Color = RGB(60, 60, 60)
-    End With
-    ws.Range(CTRL_ADR_TITRE).value = mod_Display.FR("Contr{o2}le des cat{e2}gories des op{e2}rations import{e2}es")
+    mod_InstallCommun.PoserEtiquette ws.Range("B8"), "Date"
+    mod_InstallCommun.PoserEtiquette ws.Range("B9"), "Tiers"
+    mod_InstallCommun.PoserEtiquette ws.Range("B10"), mod_Display.FR("Libell{e2} / Notes")
+    mod_InstallCommun.PoserEtiquette ws.Range("B11"), "Montant"
+    mod_InstallCommun.PoserEtiquette ws.Range("B12"), mod_Display.FR("Cat{e2}gorie source (banque)")
 
-    ' --- Compteur "Operation X / N" (rempli par le programme) ---
-    With ws.Range("B5:E5")
-        .Merge
-        .Font.Size = 10
-        .Font.Bold = True
-        .Font.Color = RGB(31, 78, 121)
-    End With
-
-    ' --- Étiquettes (colonne B) ---
-    EcrireEtiquette ws, "B7", "Date"
-    EcrireEtiquette ws, "B8", "Tiers"
-    EcrireEtiquette ws, "B9", mod_Display.FR("Libell{e2} / Notes")
-    EcrireEtiquette ws, "B10", "Montant"
-    EcrireEtiquette ws, "B11", mod_Display.FR("Cat{e2}gorie source (banque)")
-
-    ' --- Valeurs (colonne C) : format TEXTE pour éviter toute réinterprétation ---------
-    ' NOTE (ajout du 03/10/2026) : Date (C7), Montant (C10) et Categorie source (C11)
-    ' restent TOUJOURS en lecture seule. Tiers (C8) et Notes (C9) font exception : depuis
-    ' le 03/10/2026, l'opérateur peut les modifier (sauf pour une opération de santé).
-    ' Leur couleur de fond n'est toutefois PAS définie ici à l'installation; elle est
-    ' recalculée à chaque affichage par mod_ControleCategories.AfficherOperation
-    ' (gris = verrouillé, sans couleur = modifiable), car elle dépend de la sous-catégorie
-    ' de l'opération en cours, qui change à chaque affichage. Il est donc normal que ces
-    ' cellules n'aient pas de couleur particulière à l'installation.
-    With ws.Range("C7:C11")
-        .NumberFormat = "@"
-        .WrapText = True
-        .VerticalAlignment = xlCenter
-        .Font.Size = 10
-        .Borders(xlEdgeBottom).LineStyle = xlContinuous
-        .Borders(xlInsideHorizontal).LineStyle = xlContinuous
-        .Borders(xlEdgeBottom).Color = RGB(225, 225, 220)
-        .Borders(xlInsideHorizontal).Color = RGB(225, 225, 220)
-    End With
-    ws.rows(9).RowHeight = 42           ' le libellé peut être long : on lui laisse trois lignes
+    ' Valeurs en format TEXTE pour éviter toute réinterprétation par Excel.
+    mod_InstallCommun.PoserChampLecture ws.Range(CTRL_ADR_DATE), "@"
+    mod_InstallCommun.PoserChampSaisie ws.Range(CTRL_ADR_TIERS), "@"
+    mod_InstallCommun.PoserChampSaisie ws.Range(CTRL_ADR_LIBELLE), "@", True
+    mod_InstallCommun.PoserChampLecture ws.Range(CTRL_ADR_MONTANT), "@"
     ws.Range(CTRL_ADR_MONTANT).Font.Bold = True
-    ws.Range(CTRL_ADR_MONTANT).HorizontalAlignment = xlLeft
+    mod_InstallCommun.PoserChampLecture ws.Range(CTRL_ADR_SOURCE), "@"
 
-    ' --- Bouton "Ventiler" (phase 4) ---
-    ' Placé à côté du champ Montant (D10:E10), il ouvre la feuille frm_Ventilation (voir
-    ' mod_InstallVentilation); la logique se trouve dans mod_ControleCategories.ControleVentiler.
-    ws.rows(10).RowHeight = 22
-    Dim zoneBoutonVentiler As Range
-    Set zoneBoutonVentiler = ws.Range("D10:E10")
-    AjouterBouton ws, zoneBoutonVentiler.Left, zoneBoutonVentiler.Top, zoneBoutonVentiler.Width, zoneBoutonVentiler.Height, _
-                  mod_Display.FR("Ventiler..."), "ControleVentiler", "btnCtrlVentiler"
-
-End Sub
-
-' Écrit une étiquette grise (colonne B).
-Private Sub EcrireEtiquette(ByVal ws As Worksheet, ByVal adresse As String, ByVal texte As String)
-    With ws.Range(adresse)
-        .value = texte
-        .Font.Bold = True
-        .Font.Color = RGB(110, 110, 110)
-        .VerticalAlignment = xlCenter
-    End With
 End Sub
 
 
 ' =====================================================================================
-' Zone de saisie : Catégorie et Sous-catégorie (cases jaune pâle, encadrées)
+' Zone de saisie : Catégorie et Sous-catégorie, puis message d'aide
 ' =====================================================================================
 ' Les listes déroulantes (validation de données) ne sont PAS définies ici : elles
 ' dépendent du tableau de correspondance et sont donc créées par le programme à
 ' chaque ouverture du formulaire (voir mod_ControleCategories).
 Private Sub ConstruireZoneSaisie(ByVal ws As Worksheet)
 
-    EcrireEtiquette ws, "B13", mod_Display.FR("Cat{e2}gorie")
-    EcrireEtiquette ws, "B14", mod_Display.FR("Sous-cat{e2}gorie")
-    ws.Range("B13:B14").Font.Color = RGB(31, 78, 121)
+    ws.Rows(13).RowHeight = mod_InstallCommun.FRM_H_SEP
 
-    With ws.Range("C13:C14")
-        .NumberFormat = "@"
-        .Interior.Color = RGB(255, 250, 225)      ' jaune pâle = "à vous de saisir"
-        .Font.Size = 11
-        .Font.Bold = True
-        .VerticalAlignment = xlCenter
-        .Borders.LineStyle = xlContinuous
-        .Borders.Color = RGB(200, 185, 120)
-    End With
-    ws.rows("13:14").RowHeight = 22
+    mod_InstallCommun.PoserEtiquette ws.Range("B14"), mod_Display.FR("Cat{e2}gorie")
+    mod_InstallCommun.PoserEtiquette ws.Range("B15"), mod_Display.FR("Sous-cat{e2}gorie")
+    mod_InstallCommun.PoserChampSaisie ws.Range(CTRL_ADR_CAT), "@"
+    mod_InstallCommun.PoserChampSaisie ws.Range(CTRL_ADR_SOUS), "@"
 
-    ' --- Bouton "+" pour créer une nouvelle catégorie/sous-catégorie (phase 3) ---
-    ' Placé à côté du champ Categorie (D13:E13), il ouvre la feuille frm_NouvelleCategorie
-    ' (voir mod_InstallNouvelleCategorie); la logique se trouve dans mod_ControleCategories.
-    Dim zoneBoutonNouvelle As Range
-    Set zoneBoutonNouvelle = ws.Range("D13:E13")
-    AjouterBouton ws, zoneBoutonNouvelle.Left, zoneBoutonNouvelle.Top, zoneBoutonNouvelle.Width, zoneBoutonNouvelle.Height, _
-                  "+ " & mod_Display.FR("Nouvelle cat{e2}gorie"), "ControleNouvelleCategorie", "btnCtrlNouvelleCategorie"
+    ws.Rows(16).RowHeight = mod_InstallCommun.FRM_H_SEP
 
-    ' --- Message d'aide (varie selon l'opération affichée) ---
-    With ws.Range("B16:E16")
-        .Merge
-        .WrapText = True
-        .VerticalAlignment = xlTop
-        .Font.Size = 9.5
-        .Font.Italic = True
-        .Font.Color = RGB(90, 90, 90)
-    End With
-    ws.rows(16).RowHeight = 30
+    ' Message d'aide (varie selon l'opération affichée; sa couleur est choisie par le programme).
+    mod_InstallCommun.PoserMessage ws.Range("B17:E17")
 
 End Sub
 
 
 ' =====================================================================================
-' Bloc d'instructions (texte fixe)
+' Boutons
 ' =====================================================================================
-Private Sub ConstruireInstructions(ByVal ws As Worksheet)
+' Largeurs relevées sur la feuille réelle (export du 09/10/2026), hauteur et alignement
+' communs (voir mod_InstallCommun.AjouterBoutonEntete). Le nom de macro donné à
+' .OnAction correspond à celui de la Public Sub concernée dans mod_ControleCategories.
+Private Sub ConstruireBoutons(ByVal ws As Worksheet)
 
-    ws.Range("B18").value = "Instructions"
-    ws.Range("B18").Font.Bold = True
-    ws.Range("B18").Font.Size = 11
+    Dim gauche As Double
 
-    With ws.Range("B19:E23")
-        .Merge
-        .value = mod_Display.FR("1. V{e2}rifiez les informations de l'op{e2}ration (en haut).") & Chr(10) & _
-                 mod_Display.FR("2. Modifiez si besoin la Cat{e2}gorie, puis la Sous-cat{e2}gorie (listes d{e2}roulantes).") & Chr(10) & _
-                 mod_Display.FR("3. Passez {a2} l'op{e2}ration suivante avec 'Suivant' (ou revenez avec 'Pr{e2}c{e2}dent').") & Chr(10) & _
-                 mod_Display.FR("4. Quand tout est contr{o2}l{e2}, cliquez sur 'Terminer et continuer'.") & Chr(10) & _
-                 mod_Display.FR("Vos choix ne sont pris en compte qu'apr{e1}s 'Terminer et continuer'.")
-        .WrapText = True
-        .VerticalAlignment = xlTop
-        .HorizontalAlignment = xlLeft
-        .Font.Size = 9
-        .Font.Color = RGB(80, 80, 80)
-        .Interior.Color = RGB(245, 245, 242)
-        .Borders.LineStyle = xlContinuous
-        .Borders.Color = RGB(210, 210, 205)
-    End With
-    ws.rows("19:23").RowHeight = 16
+    gauche = ws.Cells(1, 2).Left
+
+    mod_InstallCommun.AjouterBoutonEntete ws, CTRL_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapPrecedent(), _
+        "ControleOperationPrecedente", "btnCtrlPrecedent", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonEntete ws, CTRL_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapSuivant(), _
+        "ControleOperationSuivante", "btnCtrlSuivant", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonEntete ws, CTRL_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapEnregistrer(), _
+        "ControleTerminer", "btnCtrlTerminer", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonEntete ws, CTRL_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapAnnuler(), _
+        "ControleAnnuler", "btnCtrlAnnuler", mod_InstallCommun.FRM_BTN_L
+
+    ' --- Bouton "Ventiler" (phase 4), à côté du champ Montant ---
+    ' Il ouvre la feuille frm_Ventilation (voir mod_InstallVentilation); la logique se
+    ' trouve dans mod_ControleCategories.ControleVentiler.
+    mod_InstallCommun.AjouterBoutonCellule ws, ws.Range("D11"), "Ventiler", _
+        "ControleVentiler", "btnCtrlVentiler", mod_InstallCommun.FRM_BTN_L
+
+    ' --- Bouton "+" (phase 3), à côté du champ Catégorie ---
+    ' Il ouvre la feuille frm_NouvelleCategorie (voir mod_InstallNouvelleCategorie).
+    mod_InstallCommun.AjouterBoutonCellule ws, ws.Range("D14"), mod_InstallCommun.CapAjouter(), _
+        "ControleNouvelleCategorie", "btnCtrlNouvelleCategorie", mod_InstallCommun.FRM_BTN_PLUS
 
 End Sub
 
@@ -346,44 +239,9 @@ End Sub
 ' OUTILS DÉVELOPPEUR (Ctrl+G) : afficher ou masquer la feuille pour la retoucher.
 ' =====================================================================================
 Public Sub AfficherFeuilleControlePourEdition()
-    Dim ws As Worksheet
-    Set ws = FeuilleSansErreur(CTRL_NOM_FEUILLE)
-    If ws Is Nothing Then
-        MsgBox mod_Display.FR("La feuille n'existe pas encore. Ex{e2}cutez CreerFeuilleControleCategories."), vbExclamation
-        Exit Sub
-    End If
-    ws.Visible = xlSheetVisible
-    ws.Activate
-    MsgBox mod_Display.FR("Feuille visible. Remasquez-la ensuite avec : MasquerFeuilleControleApresEdition"), vbInformation
+    mod_InstallCommun.AfficherPourEdition CTRL_NOM_FEUILLE, "CreerFeuilleControleCategories", "MasquerFeuilleControleApresEdition"
 End Sub
 
 Public Sub MasquerFeuilleControleApresEdition()
-    Dim ws As Worksheet
-    Set ws = FeuilleSansErreur(CTRL_NOM_FEUILLE)
-    If ws Is Nothing Then Exit Sub
-    ws.Visible = xlSheetVeryHidden
-    MsgBox mod_Display.FR("Feuille de nouveau masqu{e2}e."), vbInformation
-End Sub
-
-
-' =====================================================================================
-' OUTILS INTERNES
-' =====================================================================================
-
-' Retrouve une feuille par son nom SANS provoquer d'erreur si elle n'existe pas.
-Private Function FeuilleSansErreur(ByVal nomFeuille As String) As Worksheet
-    Dim ws As Worksheet
-    On Error Resume Next
-    Set ws = ThisWorkbook.Worksheets(nomFeuille)
-    On Error GoTo 0
-    Set FeuilleSansErreur = ws
-End Function
-
-' Supprime tous les boutons (évite les doublons si l'installation est relancée).
-' On parcourt à l'envers : supprimer en avançant ferait sauter des éléments.
-Private Sub SupprimerFormes(ByVal ws As Worksheet)
-    Dim i As Long
-    For i = ws.Shapes.count To 1 Step -1
-        ws.Shapes(i).Delete
-    Next i
+    mod_InstallCommun.MasquerApresEdition CTRL_NOM_FEUILLE
 End Sub

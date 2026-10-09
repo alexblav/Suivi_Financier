@@ -369,6 +369,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
 
     ws.Visible = xlSheetVisible
     ws.Activate
+    mod_InstallCommun.MasquerQuadrillage   ' quadrillage et en-tetes toujours masques (09/10/2026)
 
     ' Fige l'affichage sous la ligne d'en-tête du tableau (RO_LIGNE_ENTETES),
     ' pour que les intitulés restent visibles pendant le défilement des résultats
@@ -607,6 +608,20 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     tblRecherche.ListColumns("Budget").DataBodyRange.NumberFormat = "dd/mm/yyyy"
     tblRecherche.ListColumns("Date_consult").DataBodyRange.NumberFormat = "dd/mm/yyyy"
 
+    ' --- Ajout 09/10/2026 : couleurs de la charte commune (voir mod_InstallCommun) ---
+    ' Le tableau n'a plus de style Excel : tout le corps est gris (cellules non
+    ' modifiables), sauf les colonnes que l'opérateur remplit (Valider et Notes, cette
+    ' dernière redevenant grise ligne par ligne quand sa clé santé est verrouillée,
+    ' voir la boucle plus bas).
+    With tblRecherche.DataBodyRange
+        .Interior.Color = mod_InstallCommun.CoulFondLecture()
+        .Borders.LineStyle = xlContinuous
+        .Borders.Weight = xlThin
+        .Borders.Color = mod_InstallCommun.CoulBordureLecture()
+    End With
+    tblRecherche.ListColumns("Valider").DataBodyRange.Interior.Color = mod_InstallCommun.CoulFondSaisie()
+    tblRecherche.ListColumns("Notes").DataBodyRange.Interior.Color = mod_InstallCommun.CoulFondSaisie()
+
     ' --- PHASE 5 (correction du bug) : liste déroulante Catégorie/SousCategorie
     '     via une VRAIE plage nommée (technique OFFSET/COUNTA), jamais via du texte
     '     concaténé avec des virgules; voir l'explication en tête de fichier.
@@ -630,9 +645,9 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ' préfiltres, et non plus au seul ancien écran "Budget mensuel"). --------------
     For i = 1 To nbTotal
         If cleVerrouillee(i) Then
-            tblRecherche.ListColumns("Notes").DataBodyRange.Cells(i).Interior.Color = RGB(240, 240, 240)
+            tblRecherche.ListColumns("Notes").DataBodyRange.Cells(i).Interior.Color = mod_InstallCommun.CoulFondLecture()
         Else
-            tblRecherche.ListColumns("Notes").DataBodyRange.Cells(i).Interior.ColorIndex = xlColorIndexNone
+            tblRecherche.ListColumns("Notes").DataBodyRange.Cells(i).Interior.Color = mod_InstallCommun.CoulFondSaisie()
         End If
 
         ' Ajout 08/10/2026 (décision opérateur) : la couleur du montant est confiée à
@@ -698,7 +713,13 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ' permanence sur quel sous-ensemble d'operations il travaille, meme apres
     ' avoir quitte puis rouvert cet ecran, ou apres un "Revoir la ventilation"
     ' qui relance cette meme procedure avec le meme prefiltre (g_ROPrefiltreActif).
-    ws.Range("A" & mod_InstallRechercheOperations.RO_LIGNE_FILTRE).value = _
+    ' Ajout 09/10/2026 : la ligne porte maintenant le compteur au format commun
+    ' "Operation: x/y" (lignes affichees / lignes du jeu complet : operations, plus
+    ' leurs parts de ventilation quand l'ecran les inclut) en RO_ADR_COMPTEUR, et la
+    ' phrase du filtre actif en RO_ADR_FILTRE.
+    ws.Range(mod_InstallRechercheOperations.RO_ADR_COMPTEUR).value = _
+        mod_InstallCommun.TexteCompteur(nbTotal, n + nbLignesVen)
+    ws.Range(mod_InstallRechercheOperations.RO_ADR_FILTRE).value = _
         DecrireFiltreActifRO(prefiltre, param, nbTotal, complementSante)
 
     ' On remet en place le(s) filtre(s) que l'operateur avait poses avant cette
@@ -731,17 +752,16 @@ Private Function DecrireFiltreActifRO(ByVal prefiltre As String, ByVal param As 
     Select Case prefiltre
 
         Case ""
-            texte = FR("Recherche globale (aucun filtre de mois ni de montant) -- ") & nbTotal & FR(" ligne(s) affich{e2}e(s).")
+            texte = FR("Recherche globale (aucun filtre de mois ni de montant).")
 
         Case "DernierImport"
-            texte = FR("Op{e2}rations du dernier import -- ") & nbTotal & FR(" ligne(s) affich{e2}e(s).")
+            texte = FR("Op{e2}rations du dernier import.")
 
         Case "OperationsDuMois"
-            texte = FR("Op{e2}rations du mois budg{e2}taire ") & Format(critMois, "00") & "/" & critAnnee & _
-                    FR(" -- ") & nbTotal & FR(" op{e2}ration(s).")
+            texte = FR("Op{e2}rations du mois budg{e2}taire ") & Format(critMois, "00") & "/" & critAnnee & "."
 
         Case "ErreursSante"
-            texte = FR("Op{e2}rations avec une date de consultation invalide -- ") & nbTotal & FR(" op{e2}ration(s).")
+            texte = FR("Op{e2}rations avec une date de consultation invalide.")
 
         Case "DetailTotal"
             If CStr(param) = "Positif" Then
@@ -751,7 +771,7 @@ Private Function DecrireFiltreActifRO(ByVal prefiltre As String, ByVal param As 
             Else
                 texte = FR("D{e2}tail du total du mois budg{e2}taire ") & Format(critMois, "00") & "/" & critAnnee
             End If
-            texte = texte & FR(" -- ") & nbTotal & FR(" op{e2}ration(s).")
+            texte = texte & "."
 
         Case "SuiviSante"
             ' Ajout 07/10/2026, revu le 08/10/2026 (phrase enrichie, puis périmètre

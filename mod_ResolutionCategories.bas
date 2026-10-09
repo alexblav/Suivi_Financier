@@ -67,6 +67,7 @@ Public Sub AfficherFeuilleResolutionEtAttendre()
     ' On revele la feuille et on la place au premier plan.
     ws.Visible = xlSheetVisible
     ws.Activate
+    mod_InstallCommun.MasquerQuadrillage   ' quadrillage et en-tetes toujours masques (09/10/2026)
     ws.Range(COL_CATEGORIE & LIGNE_PREMIERE_DONNEE).Select
 
     ' --- Verrouillage "modal" ---
@@ -112,6 +113,9 @@ Private Sub RemplirTableauCas(ws As Worksheet)
         ' On supprime aussi d'anciennes listes deroulantes (validation de donnees)
         ' pour repartir sur une base propre a chaque nouvel import.
         .Validation.Delete
+        ' Ajout 09/10/2026 : les fonds (gris / jaune) sont reposes ci-dessous, sur les
+        ' seules lignes utilisees (voir mod_InstallCommun pour la charte de couleurs).
+        .Interior.ColorIndex = xlColorIndexNone
     End With
 
     ' On nettoie egalement la zone technique cachee (les anciennes listes de
@@ -147,6 +151,11 @@ Private Sub RemplirTableauCas(ws As Worksheet)
         montantNombre = CDbl(montantTexte)   ' CDbl respecte la virgule francaise
 
         ' --- Ecriture des cellules de la ligne ---
+        ' Ajout 09/10/2026 : gris = cellules non modifiables (Statut a Tiers),
+        ' jaune pale = cellule modifiable (choix de la categorie).
+        ws.Range(COL_STATUT & ligneCible & ":" & COL_TIERS & ligneCible).Interior.Color = mod_InstallCommun.CoulFondLecture()
+        ws.Range(COL_CATEGORIE & ligneCible).Interior.Color = mod_InstallCommun.CoulFondSaisie()
+
         ws.Range(COL_STATUT & ligneCible).value = "?"
         ws.Range(COL_STATUT & ligneCible).Font.Color = RGB(150, 150, 150)
         ws.Range(COL_STATUT & ligneCible).Font.Bold = False
@@ -221,7 +230,9 @@ Public Sub MettreAJourCompteur(ws As Worksheet)
         If g_CasChoix(i) = "" Then nbRestants = nbRestants + 1
     Next i
 
-    ws.Range("CompteurCasRestants").value = nbRestants & " restant(s) sur " & g_NbCasAmbigus
+    ' Format commun a tous les formulaires : "Operation: x/y" (09/10/2026). Ici x = nombre
+    ' d'operations deja traitees, y = nombre total d'operations a traiter.
+    ws.Range("CompteurCasRestants").value = mod_InstallCommun.TexteCompteur(g_NbCasAmbigus - nbRestants, g_NbCasAmbigus)
 
 End Sub
 
@@ -293,6 +304,7 @@ Public Sub TerminerEtAppliquerChoix()
     With ws.Range(COL_STATUT & LIGNE_PREMIERE_DONNEE & ":" & COL_CATEGORIE & derniereLigneEfface)
         .ClearContents
         .Validation.Delete
+        .Interior.ColorIndex = xlColorIndexNone
     End With
 
     ' Nettoyage de la zone technique cachee (listes de categories candidates)

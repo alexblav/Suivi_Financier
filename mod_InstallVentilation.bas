@@ -32,8 +32,16 @@ Option Explicit
 '   Ce module ne contient AUCUNE logique de calcul ou de validation : celle-ci se
 '   trouve dans mod_Ventilation (partie 2/2).
 '
+' REFONTE DU 09/10/2026 (harmonisation des formulaires) :
+'   La feuille frm_Ventilation est construite avec les outils COMMUNS de
+'   mod_InstallCommun (couleurs, boutons, étiquettes, champs, bloc Instructions).
+'   Le titre a été remplacé par le bloc Instructions commun, sous la ligne de boutons.
+'   Les lignes du tableau et de la zone de saisie gardent les mêmes numéros qu'avant
+'   (constantes ci-dessous inchangées). Les boutons "Éditer" (crayon) gardent la taille
+'   relevée sur la feuille réelle (export frm_Ventilation_structure.txt).
+'
 ' INSTALLATION :
-'   1. Alt+F11, Fichier > Importer un fichier... : importer CE fichier.
+'   1. Alt+F11, Fichier > Importer un fichier... : importer mod_InstallCommun.bas, puis CE fichier.
 '   2. Importer aussi mod_Ventilation.bas.
 '   3. Ctrl+G (fenêtre Exécution), taper : PreparerPhase4Ventilation, puis Entrée.
 '      (crée TblVentilations, la met à jour si elle existe déjà et reconstruit
@@ -53,9 +61,13 @@ Public Const VEN_NOM_TABLE As String = "TblVentilations"
 
 Public Const VEN_NOM_FEUILLE As String = "frm_Ventilation"
 
+' En-tête commun (voir mod_InstallCommun) : 1 ligne de boutons, pas de compteur.
+'   ligne 1 marge / 2 boutons / 3 fine ligne / 4 Instructions / 5 fine ligne /
+'   6 et suivantes : corps du formulaire
 Public Const VEN_LIGNE_BOUTONS As Long = 2
+Private Const VEN_LIGNE_INSTRUCTIONS As Long = 4
+Private Const VEN_LIGNE_CORPS As Long = 6
 
-Public Const VEN_ADR_TITRE As String = "B4"
 Public Const VEN_ADR_DATE As String = "C6"
 Public Const VEN_ADR_TIERS As String = "C7"
 Public Const VEN_ADR_LIBELLE As String = "C8"
@@ -203,7 +215,6 @@ Public Sub AjouterColonnesAnnulationVentilation()
 
 End Sub
 
-
 ' =====================================================================================
 ' ÉTAPE 2 : feuille-formulaire "frm_Ventilation"
 ' =====================================================================================
@@ -211,44 +222,27 @@ Public Sub CreerFeuilleVentilation()
 
     Dim ws As Worksheet
     Dim wsPrecedente As Worksheet
-    Dim reponse As VbMsgBoxResult
 
     Set wsPrecedente = ActiveSheet
 
-    Set ws = FeuilleSansErreur(VEN_NOM_FEUILLE)
-
-    If Not ws Is Nothing Then
-        reponse = MsgBox(mod_Display.FR("La feuille '") & VEN_NOM_FEUILLE & mod_Display.FR("' existe d{e2}j{a2}.") & vbCrLf & _
-                         mod_Display.FR("Voulez-vous la reconstruire enti{e1}rement (sa mise en forme sera perdue) ?"), _
-                         vbYesNo + vbQuestion, mod_Display.FR("Confirmation de reconstruction"))
-        If reponse = vbNo Then
-            MsgBox mod_Display.FR("Installation annul{e2}e, rien n'a {e2}t{e2} modifi{e2}."), vbInformation
-            Exit Sub
-        End If
-        ws.Visible = xlSheetVisible
-        ws.Cells.UnMerge
-        ws.Cells.Clear
-        SupprimerFormes ws
-    Else
-        Set ws = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.count))
-        ws.Name = VEN_NOM_FEUILLE
-    End If
+    Set ws = mod_InstallCommun.PreparerFeuille(VEN_NOM_FEUILLE)
+    If ws Is Nothing Then Exit Sub
 
     Application.ScreenUpdating = False
 
-    MettreEnFormeGenerale ws
-    ConstruireBoutonsGlobaux ws
+    ' Colonnes : marge / étiquettes / sous-catégorie / montant / notes / bouton "Éditer" / marge
+    mod_InstallCommun.MettreEnForme ws, Array(2, 26, 30, 16, 30, 2.4, 2)
+
     ConstruireEntete ws
+    ConstruireInformations ws
     ConstruireTotaux ws
     ConstruireGrilleAffichage ws
     ConstruireFormulaireSaisie ws
+    ConstruireBoutons ws        ' en dernier : les boutons se placent d'après les hauteurs de lignes
 
     ws.Columns(VEN_COL_AIDE).Hidden = True
-    ws.Visible = xlSheetVeryHidden
 
-    On Error Resume Next
-    wsPrecedente.Activate
-    On Error GoTo 0
+    mod_InstallCommun.TerminerFeuille ws, wsPrecedente
     Application.ScreenUpdating = True
 
     MsgBox mod_Display.FR("La feuille '") & VEN_NOM_FEUILLE & mod_Display.FR("' a {e2}t{e2} cr{e2}{e2}e puis masqu{e2}e.") & vbCrLf & vbCrLf & _
@@ -260,130 +254,92 @@ End Sub
 
 
 ' =====================================================================================
-' Mise en forme générale
-' =====================================================================================
-Private Sub MettreEnFormeGenerale(ByVal ws As Worksheet)
-
-    ws.Activate
-    ActiveWindow.DisplayGridlines = False
-
-    ws.Columns("A").ColumnWidth = 2
-    ws.Columns("B").ColumnWidth = 26
-    ws.Columns("C").ColumnWidth = 30
-    ws.Columns("D").ColumnWidth = 16
-    ws.Columns("E").ColumnWidth = 30
-    ws.Columns("F").ColumnWidth = 16
-    ws.Columns("G").ColumnWidth = 2
-
-    ws.Cells.Font.Name = "Calibri"
-    ws.Cells.Font.Size = 10
-
-    ws.Range("A1").Select
-    ActiveWindow.DisplayHeadings = False
-
-End Sub
-
-
-' =====================================================================================
-' Boutons globaux : "Terminer" (finalise TOUTE la ventilation) et "Annuler".
-' =====================================================================================
-Private Sub ConstruireBoutonsGlobaux(ByVal ws As Worksheet)
-
-    Dim zone As Range
-
-    ws.rows(VEN_LIGNE_BOUTONS).RowHeight = 26
-
-    Set zone = ws.Cells(VEN_LIGNE_BOUTONS, 2)
-    AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, _
-                  mod_Display.FR("Terminer la ventilation"), "VenTerminer", "btnVenTerminer"
-
-    Set zone = ws.Cells(VEN_LIGNE_BOUTONS, 3)
-    AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, "Annuler", "VenAnnuler", "btnVenAnnuler"
-
-    ' Ajout du 01/10/2026 (point 4) : bouton de suppression d'une ventilation EXISTANTE.
-    ' Masqué par défaut à la construction : mod_Ventilation.OuvrirVentilation le rend
-    ' visible uniquement si la ventilation existait déjà AVANT l'ouverture du formulaire
-    ' (rien à supprimer pour une nouvelle ventilation). Un bouton (objet Button/Shape)
-    ' flotte AU-DESSUS des cellules : lui donner la largeur de trois cellules ne les
-    ' fusionne pas; il n'y a donc aucun risque d'erreur liée aux cellules fusionnées.
-    Set zone = ws.Range(ws.Cells(VEN_LIGNE_BOUTONS, 4), ws.Cells(VEN_LIGNE_BOUTONS, 6))
-    AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, _
-                  mod_Display.FR("Supprimer cette ventilation"), "VenSupprimerVentilation", "btnVenSupprimerVentilation"
-    ws.Shapes("btnVenSupprimerVentilation").Visible = False
-
-End Sub
-
-Private Sub AjouterBouton(ByVal ws As Worksheet, ByVal gauche As Double, ByVal haut As Double, _
-                          ByVal largeur As Double, ByVal hauteur As Double, _
-                          ByVal legende As String, ByVal nomMacro As String, ByVal nomBouton As String)
-    Dim btn As Button
-    Set btn = ws.Buttons.Add(gauche, haut, largeur, hauteur)
-    btn.Caption = legende
-    btn.OnAction = nomMacro
-    btn.Name = nomBouton
-End Sub
-
-
-' =====================================================================================
-' En-tête : informations (lecture seule) de l'opération à ventiler -- INCHANGÉ
+' En-tête commun : hauteurs et bloc Instructions
 ' =====================================================================================
 Private Sub ConstruireEntete(ByVal ws As Worksheet)
 
-    With ws.Range("B4:F4")
-        .Merge
-        .Font.Size = 14
-        .Font.Bold = True
-        .Font.Color = RGB(60, 60, 60)
-    End With
-    ws.Range(VEN_ADR_TITRE).value = mod_Display.FR("Ventilation de l'op{e2}ration")
+    If mod_InstallCommun.PremiereLigneCorps(1, False) <> VEN_LIGNE_CORPS Or _
+       mod_InstallCommun.LigneInstructions(1, False) <> VEN_LIGNE_INSTRUCTIONS Then
+        MsgBox "mod_InstallVentilation : constantes de lignes incoherentes avec mod_InstallCommun.", vbCritical
+    End If
 
-    EcrireEtiquette ws, "B6", "Date"
-    EcrireEtiquette ws, "B7", "Tiers"
-    EcrireEtiquette ws, "B8", mod_Display.FR("Libell{e2} / Notes")
-    EcrireEtiquette ws, "B9", "Montant"
-    EcrireEtiquette ws, "B10", mod_Display.FR("Cat{e2}gorie actuelle")
-
-    With ws.Range("C6:C10")
-        .NumberFormat = "@"
-        .WrapText = True
-        .VerticalAlignment = xlCenter
-        .Font.Size = 10
-        .Borders(xlEdgeBottom).LineStyle = xlContinuous
-        .Borders(xlInsideHorizontal).LineStyle = xlContinuous
-        .Borders(xlEdgeBottom).Color = RGB(225, 225, 220)
-        .Borders(xlInsideHorizontal).Color = RGB(225, 225, 220)
-    End With
-    ws.Range(VEN_ADR_MONTANT).Font.Bold = True
+    mod_InstallCommun.PoserHauteursEntete ws, 1, False
+    mod_InstallCommun.EcrireInstructions ws, VEN_LIGNE_INSTRUCTIONS, 2, 2, 3, 6, TexteInstructions()
 
 End Sub
 
-Private Sub EcrireEtiquette(ByVal ws As Worksheet, ByVal adresse As String, ByVal texte As String)
-    With ws.Range(adresse)
-        .value = texte
-        .Font.Bold = True
-        .Font.Color = RGB(110, 110, 110)
-        .VerticalAlignment = xlCenter
-    End With
+Private Function TexteInstructions() As String
+
+    Dim t As String
+
+    t = "Ce formulaire permet de ventiler une op{e2}ration bancaire entre plusieurs cat{e2}gories et sous-cat{e2}gories."
+    t = t & Chr(10) & "Le haut du formulaire rappelle l'op{e2}ration ([c:Date], [c:Tiers], [c:Libell{e2} / Notes], [c:Montant], "
+    t = t & "[c:Cat{e2}gorie actuelle]) et le calcul : [c:Montant {a2} ventiler], [c:Total saisi] et [c:Reste {a2} ventiler]. "
+    t = t & "Le tableau liste les lignes d{e2}j{a2} ajout{e2}es. Pour en ajouter une, renseignez [c:Cat{e2}gorie], [c:Sous-cat{e2}gorie], "
+    t = t & "[c:Montant] (et [c:Notes] si besoin) dans la zone de saisie, puis cliquez sur [b:Ajouter la ligne]. "
+    t = t & "La ventilation ne peut {ea}tre enregistr{e2}e que lorsque le [c:Reste {a2} ventiler] est exactement nul."
+    t = t & Chr(10) & "Boutons :"
+    t = t & Chr(10) & "- [b:Enregistrer] : enregistre toutes les lignes et referme le formulaire."
+    t = t & Chr(10) & "- [b:Annuler] : abandonne la saisie en cours sans rien enregistrer."
+    t = t & Chr(10) & "- [b:Supprimer la ventilation] : visible seulement si l'op{e2}ration est d{e2}j{a2} ventil{e2}e ; efface toutes ses lignes "
+    t = t & "et rend {a2} l'op{e2}ration sa cat{e2}gorie d'origine."
+    t = t & Chr(10) & "- [b:" & mod_InstallCommun.CapEditer() & "] (en face de chaque ligne du tableau) : retire la ligne du tableau et la recopie dans la zone de saisie pour la corriger."
+    t = t & Chr(10) & "- [b:+] : cr{e2}e une nouvelle cat{e2}gorie ou sous-cat{e2}gorie (ouvre [f:frm_NouvelleCategorie])."
+    t = t & Chr(10) & "- [b:Ajouter la ligne] : ajoute la ligne saisie au tableau (ou remplace la ligne en cours de correction)."
+    t = t & Chr(10) & "- [b:Effacer la saisie] : vide la zone de saisie."
+    t = t & Chr(10) & "ATTENTION : une ligne retir{e2}e du tableau avec [b:" & mod_InstallCommun.CapEditer() & "] est perdue si vous ne cliquez pas ensuite sur [b:Ajouter la ligne]."
+
+    TexteInstructions = t
+
+End Function
+
+
+' =====================================================================================
+' Informations de l'opération à ventiler (lecture seule)
+' =====================================================================================
+' Les valeurs sont écrites dans la cellule de gauche de chaque zone (C6, C7...), la
+' zone C:E étant fusionnée pour laisser la place aux textes longs.
+Private Sub ConstruireInformations(ByVal ws As Worksheet)
+
+    mod_InstallCommun.PoserEtiquette ws.Range("B6"), "Date"
+    mod_InstallCommun.PoserEtiquette ws.Range("B7"), "Tiers"
+    mod_InstallCommun.PoserEtiquette ws.Range("B8"), mod_Display.FR("Libell{e2} / Notes")
+    mod_InstallCommun.PoserEtiquette ws.Range("B9"), "Montant"
+    mod_InstallCommun.PoserEtiquette ws.Range("B10"), mod_Display.FR("Cat{e2}gorie actuelle")
+
+    mod_InstallCommun.PoserChampLecture ws.Range("C6:E6"), "@"
+    mod_InstallCommun.PoserChampLecture ws.Range("C7:E7"), "@"
+    mod_InstallCommun.PoserChampLecture ws.Range("C8:E8"), "@", True
+    mod_InstallCommun.PoserChampLecture ws.Range("C9:E9"), "@"
+    mod_InstallCommun.PoserChampLecture ws.Range("C10:E10"), "@"
+    ws.Range(VEN_ADR_MONTANT).Font.Bold = True
+
+    ws.Rows(11).RowHeight = mod_InstallCommun.FRM_H_SEP
+
 End Sub
 
 
 ' =====================================================================================
-' Bloc des totaux -- INCHANGÉ
+' Bloc des totaux (lecture seule, recalculés par le programme)
 ' =====================================================================================
 Private Sub ConstruireTotaux(ByVal ws As Worksheet)
 
-    EcrireEtiquette ws, "B12", mod_Display.FR("Montant {a2} ventiler")
-    EcrireEtiquette ws, "B13", "Total saisi"
-    EcrireEtiquette ws, "B14", mod_Display.FR("Reste {a2} ventiler")
+    Dim formatEuro As String
 
-    With ws.Range("C12:C14")
-        ' Format numérique avec le symbole euro en suffixe (voir mod_Ventilation pour
-        ' le détail de la construction de cette chaîne).
-        .NumberFormat = "#,##0.00" & Chr(34) & " " & ChrW(8364) & Chr(34)
-        .Font.Bold = True
-        .VerticalAlignment = xlCenter
-    End With
-    ws.Range(VEN_ADR_RESTE).Font.Size = 12
+    ' Format numérique avec le symbole euro en suffixe (voir mod_Ventilation pour
+    ' le détail de la construction de cette chaîne).
+    formatEuro = "#,##0.00" & Chr(34) & " " & ChrW(8364) & Chr(34)
+
+    mod_InstallCommun.PoserEtiquette ws.Range("B12"), mod_Display.FR("Montant {a2} ventiler")
+    mod_InstallCommun.PoserEtiquette ws.Range("B13"), "Total saisi"
+    mod_InstallCommun.PoserEtiquette ws.Range("B14"), mod_Display.FR("Reste {a2} ventiler")
+
+    mod_InstallCommun.PoserChampLecture ws.Range(VEN_ADR_MONTANT_A_VENTILER), formatEuro
+    mod_InstallCommun.PoserChampLecture ws.Range(VEN_ADR_TOTAL_SAISI), formatEuro
+    mod_InstallCommun.PoserChampLecture ws.Range(VEN_ADR_RESTE), formatEuro
+    ws.Range("C12:C14").Font.Bold = True
+
+    ws.Rows(15).RowHeight = mod_InstallCommun.FRM_H_SEP
 
 End Sub
 
@@ -393,58 +349,29 @@ End Sub
 ' =====================================================================================
 ' Ces cellules ne sont PAS destinées à être modifiées directement par l'opérateur : elles
 ' sont remplies par le programme (mod_Ventilation) au fil des ajouts et se modifient
-' uniquement via le formulaire de saisie du bas (bouton "Éditer"). Un fond gris léger
-' les distingue des zones de saisie (jaune pâle).
+' uniquement via le formulaire de saisie du bas (bouton "Éditer"). Fond gris (non
+' modifiable), comme tout champ en lecture seule.
 Private Sub ConstruireGrilleAffichage(ByVal ws As Worksheet)
 
     Dim ligne As Long
 
-    With ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_CAT)
-        .value = mod_Display.FR("Cat{e2}gorie")
-    End With
-    With ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_SOUS)
-        .value = mod_Display.FR("Sous-cat{e2}gorie")
-    End With
-    With ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_MONTANT)
-        .value = "Montant"
-    End With
-    With ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_NOTES)
-        .value = "Notes"
-    End With
-    With ws.Range(ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_CAT), ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_EDITER))
-        .Font.Bold = True
-        .Font.Color = RGB(31, 78, 121)
-        .Interior.Color = RGB(240, 240, 235)
-        .Borders(xlEdgeBottom).LineStyle = xlContinuous
-    End With
+    ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_CAT).Value = mod_Display.FR("Cat{e2}gorie")
+    ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_SOUS).Value = mod_Display.FR("Sous-cat{e2}gorie")
+    ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_MONTANT).Value = "Montant"
+    ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_NOTES).Value = "Notes"
+    mod_InstallCommun.PoserEnteteTableau ws.Range(ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_CAT), _
+                                                  ws.Cells(VEN_LIGNE_GRILLE_ENTETE, VEN_COL_EDITER))
 
     For ligne = VEN_LIGNE_GRILLE_DEBUT To VEN_LIGNE_GRILLE_FIN
-        With ws.Range(ws.Cells(ligne, VEN_COL_CAT), ws.Cells(ligne, VEN_COL_NOTES))
-            .Interior.Color = RGB(242, 242, 240)          ' gris très pâle = affichage, pas saisie
-            .Borders(xlEdgeBottom).LineStyle = xlContinuous
-            .Borders(xlEdgeBottom).Color = RGB(220, 220, 215)
-        End With
+        mod_InstallCommun.PoserCorpsTableauLecture ws.Range(ws.Cells(ligne, VEN_COL_CAT), ws.Cells(ligne, VEN_COL_NOTES))
         ws.Cells(ligne, VEN_COL_CAT).NumberFormat = "@"
         ws.Cells(ligne, VEN_COL_SOUS).NumberFormat = "@"
         ws.Cells(ligne, VEN_COL_MONTANT).NumberFormat = "#,##0.00"
         ws.Cells(ligne, VEN_COL_NOTES).NumberFormat = "@"
-        ws.rows(ligne).RowHeight = 18
-
-        ' Bouton "Éditer" de cette ligne. Toutes les lignes ont leur bouton dès la
-        ' construction, qu'elles soient remplies ou non : cliquer sur une ligne vide
-        ' affiche simplement un message (voir mod_Ventilation.VenEditerLigne).
-        AjouterBoutonEditer ws, ligne
     Next ligne
 
-End Sub
+    ws.Rows(VEN_LIGNE_GRILLE_FIN + 1).RowHeight = mod_InstallCommun.FRM_H_SEP
 
-Private Sub AjouterBoutonEditer(ByVal ws As Worksheet, ByVal ligne As Long)
-    Dim zone As Range
-    Dim indice As Long
-    indice = ligne - VEN_LIGNE_GRILLE_DEBUT + 1
-    Set zone = ws.Cells(ligne, VEN_COL_EDITER)
-    AjouterBouton ws, zone.Left, zone.Top, zone.Width, zone.Height, _
-                  mod_Display.FR("{E2}diter"), "VenEditerLigne", "btnVenEditerLigne" & indice
 End Sub
 
 
@@ -453,100 +380,83 @@ End Sub
 ' =====================================================================================
 Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
 
-    ' --- Titre de la zone ---
-    With ws.Range("B" & VEN_LIGNE_SAISIE_TITRE & ":F" & VEN_LIGNE_SAISIE_TITRE)
-        .Merge
-        .value = mod_Display.FR("Ajouter ou modifier une ligne")
-        .Font.Bold = True
-        .Font.Size = 11
-        .Font.Color = RGB(60, 60, 60)
-    End With
-    ws.rows(VEN_LIGNE_SAISIE_TITRE).RowHeight = 20
+    mod_InstallCommun.PoserTitreBloc ws.Range("B" & VEN_LIGNE_SAISIE_TITRE & ":F" & VEN_LIGNE_SAISIE_TITRE), _
+                                     mod_Display.FR("Ajouter ou modifier une ligne")
 
-    ' --- Catégorie et bouton "+" (même principe que le formulaire de contrôle) ---
-    EcrireEtiquette ws, "B29", mod_Display.FR("Cat{e2}gorie")
-    ws.Range("B29").Font.Color = RGB(31, 78, 121)
-    With ws.Range(VEN_ADR_SAISIE_CAT)
-        .NumberFormat = "@"
-        .Interior.Color = RGB(255, 250, 225)
-        .Font.Size = 11
-        .Font.Bold = True
-        .VerticalAlignment = xlCenter
-        .Borders.LineStyle = xlContinuous
-        .Borders.Color = RGB(200, 185, 120)
-    End With
-    ws.rows(29).RowHeight = 22
-    Dim zoneBoutonNouvelle As Range
-    Set zoneBoutonNouvelle = ws.Range("D29:E29")
-    AjouterBouton ws, zoneBoutonNouvelle.Left, zoneBoutonNouvelle.Top, zoneBoutonNouvelle.Width, zoneBoutonNouvelle.Height, _
-                  "+ " & mod_Display.FR("Nouvelle cat{e2}gorie"), "VenNouvelleCategorie", "btnVenNouvelleCategorie"
+    ' --- Catégorie (le bouton "+" est posé avec les autres boutons) ---
+    mod_InstallCommun.PoserEtiquette ws.Range("B29"), mod_Display.FR("Cat{e2}gorie")
+    mod_InstallCommun.PoserChampSaisie ws.Range(VEN_ADR_SAISIE_CAT), "@"
 
     ' --- Sous-catégorie (liste dépendante de la catégorie ci-dessus) ---
-    EcrireEtiquette ws, "B30", mod_Display.FR("Sous-cat{e2}gorie")
-    ws.Range("B30").Font.Color = RGB(31, 78, 121)
-    With ws.Range(VEN_ADR_SAISIE_SOUS)
-        .NumberFormat = "@"
-        .Interior.Color = RGB(255, 250, 225)
-        .Font.Size = 11
-        .Font.Bold = True
-        .VerticalAlignment = xlCenter
-        .Borders.LineStyle = xlContinuous
-        .Borders.Color = RGB(200, 185, 120)
-    End With
-    ws.rows(30).RowHeight = 22
+    mod_InstallCommun.PoserEtiquette ws.Range("B30"), mod_Display.FR("Sous-cat{e2}gorie")
+    mod_InstallCommun.PoserChampSaisie ws.Range(VEN_ADR_SAISIE_SOUS), "@"
 
     ' --- Montant ---
-    EcrireEtiquette ws, "B31", "Montant"
-    ws.Range("B31").Font.Color = RGB(31, 78, 121)
-    With ws.Range(VEN_ADR_SAISIE_MONTANT)
-        .NumberFormat = "#,##0.00"
-        .Interior.Color = RGB(255, 250, 225)
-        .Font.Size = 11
-        .Font.Bold = True
-        .VerticalAlignment = xlCenter
-        .Borders.LineStyle = xlContinuous
-        .Borders.Color = RGB(200, 185, 120)
-    End With
-    ws.rows(31).RowHeight = 22
+    mod_InstallCommun.PoserEtiquette ws.Range("B31"), "Montant"
+    mod_InstallCommun.PoserChampSaisie ws.Range(VEN_ADR_SAISIE_MONTANT), "#,##0.00"
 
     ' --- Notes (commentaire libre, ajout du 01/10/2026, point 3) ------------------------
     ' Cellule volontairement SIMPLE, NON FUSIONNÉE (comme Categorie/Sous-categorie/
     ' Montant ci-dessus). Voir le commentaire de VEN_ADR_SAISIE_NOTES, qui explique
     ' l'erreur 1004 provoquée par la première version fusionnée. La largeur réduite
-    ' de cette cellule est compensée par le retour automatique à la ligne (WrapText)
-    ' et par une hauteur de ligne supérieure.
-    EcrireEtiquette ws, "B32", "Notes"
-    ws.Range("B32").Font.Color = RGB(31, 78, 121)
-    With ws.Range(VEN_ADR_SAISIE_NOTES)
-        .NumberFormat = "@"
-        .Interior.Color = RGB(255, 250, 225)
-        .Font.Size = 10
-        .VerticalAlignment = xlTop
-        .WrapText = True
-        .Borders.LineStyle = xlContinuous
-        .Borders.Color = RGB(200, 185, 120)
-    End With
-    ws.rows(32).RowHeight = 30
+    ' de cette cellule est compensée par le retour automatique à la ligne et par une
+    ' hauteur de ligne de 27.
+    mod_InstallCommun.PoserEtiquette ws.Range("B32"), "Notes"
+    mod_InstallCommun.PoserChampSaisie ws.Range(VEN_ADR_SAISIE_NOTES), "@", True
 
     ' --- Message (erreurs de saisie de cette ligne) ---
-    With ws.Range(VEN_ADR_SAISIE_MESSAGE & ":F33")
-        .Merge
-        .WrapText = True
-        .VerticalAlignment = xlTop
-        .Font.Size = 9
-        .Font.Color = RGB(192, 80, 0)
-    End With
-    ws.rows(33).RowHeight = 26
+    mod_InstallCommun.PoserMessage ws.Range(VEN_ADR_SAISIE_MESSAGE & ":F33")
+    ws.Range(VEN_ADR_SAISIE_MESSAGE).Font.Color = RGB(192, 80, 0)
 
-    ' --- Boutons "Ajouter la ligne" et "Effacer la saisie" ---
-    ws.rows(VEN_LIGNE_BOUTON_AJOUTER).RowHeight = 24
-    Dim zoneAjouter As Range, zoneEffacer As Range
-    Set zoneAjouter = ws.Range("B" & VEN_LIGNE_BOUTON_AJOUTER)
-    AjouterBouton ws, zoneAjouter.Left, zoneAjouter.Top, 150, zoneAjouter.Height, _
-                  mod_Display.FR("Ajouter la ligne"), "VenAjouterLigne", "btnVenAjouterLigne"
-    Set zoneEffacer = ws.Range("D" & VEN_LIGNE_BOUTON_AJOUTER)
-    AjouterBouton ws, zoneEffacer.Left, zoneEffacer.Top, 150, zoneEffacer.Height, _
-                  mod_Display.FR("Effacer la saisie"), "VenEffacerSaisie", "btnVenEffacerSaisie"
+    ws.Rows(34).RowHeight = mod_InstallCommun.FRM_H_SEP
+    ws.Rows(VEN_LIGNE_BOUTON_AJOUTER).RowHeight = mod_InstallCommun.FRM_H_BOUTONS
+
+End Sub
+
+
+' =====================================================================================
+' Boutons
+' =====================================================================================
+Private Sub ConstruireBoutons(ByVal ws As Worksheet)
+
+    Dim gauche As Double
+    Dim ligne As Long
+
+    ' --- Boutons globaux du haut : "Enregistrer" (finalise TOUTE la ventilation),
+    '     "Annuler" et "Supprimer la ventilation" ---
+    gauche = ws.Cells(1, 2).Left
+    mod_InstallCommun.AjouterBoutonEntete ws, VEN_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapEnregistrer(), _
+        "VenTerminer", "btnVenTerminer", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonEntete ws, VEN_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapAnnuler(), _
+        "VenAnnuler", "btnVenAnnuler", mod_InstallCommun.FRM_BTN_L
+
+    ' Ajout du 01/10/2026 (point 4) : bouton de suppression d'une ventilation EXISTANTE.
+    ' Masqué par défaut à la construction : mod_Ventilation.OuvrirVentilation le rend
+    ' visible uniquement si la ventilation existait déjà AVANT l'ouverture du formulaire
+    ' (rien à supprimer pour une nouvelle ventilation).
+    mod_InstallCommun.AjouterBoutonEntete ws, VEN_LIGNE_BOUTONS, gauche, mod_Display.FR("Supprimer la ventilation"), _
+        "VenSupprimerVentilation", "btnVenSupprimerVentilation", 140
+    ws.Shapes("btnVenSupprimerVentilation").Visible = False
+
+    ' --- Bouton "Éditer" de chaque ligne du tableau ---
+    ' Toutes les lignes ont leur bouton dès la construction, qu'elles soient remplies ou
+    ' non : cliquer sur une ligne vide affiche simplement un message (voir
+    ' mod_Ventilation.VenEditerLigne). Le nom "btnVenEditerLigneN" est relu par le code.
+    For ligne = VEN_LIGNE_GRILLE_DEBUT To VEN_LIGNE_GRILLE_FIN
+        mod_InstallCommun.AjouterBoutonCellule ws, ws.Cells(ligne, VEN_COL_EDITER), mod_InstallCommun.CapEditer(), _
+            "VenEditerLigne", "btnVenEditerLigne" & (ligne - VEN_LIGNE_GRILLE_DEBUT + 1), 13.4, 1
+    Next ligne
+
+    ' --- Bouton "+" à côté du champ Catégorie de la zone de saisie ---
+    mod_InstallCommun.AjouterBoutonCellule ws, ws.Range("D29"), mod_InstallCommun.CapAjouter(), _
+        "VenNouvelleCategorie", "btnVenNouvelleCategorie", mod_InstallCommun.FRM_BTN_PLUS
+
+    ' --- Boutons "Ajouter la ligne" et "Effacer la saisie" (ligne du bas) ---
+    gauche = ws.Cells(1, 2).Left
+    mod_InstallCommun.AjouterBoutonEntete ws, VEN_LIGNE_BOUTON_AJOUTER, gauche, mod_Display.FR("Ajouter la ligne"), _
+        "VenAjouterLigne", "btnVenAjouterLigne", 100
+    mod_InstallCommun.AjouterBoutonEntete ws, VEN_LIGNE_BOUTON_AJOUTER, gauche, mod_Display.FR("Effacer la saisie"), _
+        "VenEffacerSaisie", "btnVenEffacerSaisie", 100
 
 End Sub
 
@@ -555,44 +465,12 @@ End Sub
 ' OUTILS DÉVELOPPEUR (Ctrl+G)
 ' =====================================================================================
 Public Sub AfficherFeuilleVentilationPourEdition()
-    Dim ws As Worksheet
-    Set ws = FeuilleSansErreur(VEN_NOM_FEUILLE)
-    If ws Is Nothing Then
-        MsgBox mod_Display.FR("La feuille n'existe pas encore. Ex{e2}cutez PreparerPhase4Ventilation."), vbExclamation
-        Exit Sub
-    End If
-    ws.Visible = xlSheetVisible
-    ws.Activate
-    MsgBox mod_Display.FR("Feuille visible. Remasquez-la avec : MasquerFeuilleVentilationApresEdition") & vbCrLf & vbCrLf & _
-           mod_Display.FR("Rappel : les listes d{e2}roulantes ne sont pos{e2}es qu'{a2} l'ouverture normale du formulaire") & _
-           mod_Display.FR(" (bouton Ventiler..., ou TesterVentilation) -- elles n'apparaissent pas si vous affichez juste la feuille ainsi."), _
+    mod_InstallCommun.AfficherPourEdition VEN_NOM_FEUILLE, "PreparerPhase4Ventilation", "MasquerFeuilleVentilationApresEdition"
+    MsgBox mod_Display.FR("Rappel : les listes d{e2}roulantes ne sont pos{e2}es qu'{a2} l'ouverture normale du formulaire") & _
+           mod_Display.FR(" (bouton Ventiler, ou TesterVentilation) -- elles n'apparaissent pas si vous affichez juste la feuille ainsi."), _
            vbInformation
 End Sub
 
 Public Sub MasquerFeuilleVentilationApresEdition()
-    Dim ws As Worksheet
-    Set ws = FeuilleSansErreur(VEN_NOM_FEUILLE)
-    If ws Is Nothing Then Exit Sub
-    ws.Visible = xlSheetVeryHidden
-    MsgBox mod_Display.FR("Feuille de nouveau masqu{e2}e."), vbInformation
-End Sub
-
-
-' =====================================================================================
-' OUTILS INTERNES
-' =====================================================================================
-
-Private Function FeuilleSansErreur(ByVal nomFeuille As String) As Worksheet
-    Dim ws As Worksheet
-    On Error Resume Next
-    Set ws = ThisWorkbook.Worksheets(nomFeuille)
-    On Error GoTo 0
-    Set FeuilleSansErreur = ws
-End Function
-
-Private Sub SupprimerFormes(ByVal ws As Worksheet)
-    Dim i As Long
-    For i = ws.Shapes.count To 1 Step -1
-        ws.Shapes(i).Delete
-    Next i
+    mod_InstallCommun.MasquerApresEdition VEN_NOM_FEUILLE
 End Sub
