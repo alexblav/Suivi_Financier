@@ -1,0 +1,152 @@
+# STRUCTURE DE LA FEUILLE : frm_RechercheOperations
+Classeur           = Test_Import_OFX.xlsm
+CodeName           = Feuil16
+Visibilite         = visible
+Exporte le         = 2026-10-09 03:54:52
+Version Excel      = 16.0
+Plage utilisee     = A1:R1000
+Zone detaillee     = A1:T100  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
+Largeur standard   = 10.13
+Hauteur standard   = 13.2
+Protection contenu = Non
+Nb tableaux        = 1
+Nb formes          = 5
+Contenu des tableaux NON exporte (confidentialite).
+
+## FENETRE
+Zoom             = 100
+FreezePanes      = Oui
+SplitRow         = 7   (volets figes sous la ligne 7)
+SplitColumn      = 0
+ScrollRow        = 8
+ScrollColumn     = 1
+DisplayGridlines = Non
+DisplayHeadings  = Oui
+DisplayZeros     = Oui
+
+## COLONNES (lettre | largeur | masquee)
+A | 9
+B | 9.07
+C | 28.27
+D | 8.93
+E | 16.8
+F | 24.67
+G | 86.8
+H | 7.87
+I | 0 | MASQUEE
+J | 0 | MASQUEE
+K | 0 | MASQUEE
+L | 0 | MASQUEE
+M | 0 | MASQUEE
+N | 0 | MASQUEE
+O | 0 | MASQUEE
+P | 0 | MASQUEE
+Q | 10.13
+R | 0 | MASQUEE
+S | 10.13
+T | 10.13
+
+## LIGNES NON STANDARD (numero | hauteur | masquee) -- hauteur standard = 13.2
+2 | 22.1
+3 | 6
+4 | 16.5
+5 | 111.8
+6 | 16.1
+
+## CELLULES DE LA ZONE (hors tableaux)
+## adresse | valeur ou formule | fusion | police | fond | format | alignement | autres
+R1 | "Liste technique (Catégorie+SousCatégorie) - ne pas modifier" | police: taille=10 | format="@"
+R2 | "Dépenses vie courante" | police: taille=10 | format="@"
+R3 | "Remb. prêt conso" | police: taille=10 | format="@"
+A4 | "Recherche globale (aucun filtre de mois ni de montant) -- 192 ligne(s) affichée(s)." | fusion=A4:G4 | police: taille=9 italique couleur=RGB(31, 78, 121) | fond=RGB(237, 243, 250) | alignV=xlCenter | retour_ligne
+R4 | "Sports, loisirs" | police: taille=10 | format="@"
+A5 | ""- Utilise les fléches de filtre dans l'en-tête de chaque colonne pour restreindre la liste affichée.\n- Corrige directement la cellule Notes, inscris 'Oui' dans Valider, puis clique sur 'Appliquer les lignes marquées' pour l'enregistrer (possible sur plusieurs lignes à la fois).\n- Double-clique sur une cellule Categorie pour l'éditer, elle et sa sous-catégorie, via le formulaire habituel de contrôle des catégories (elles ne se modifient plus via Valider/Appliquer).\n- Double-clique sur une cellule vide de la colonne Ventile pour démarrer une nouvelle ventilation sur cette opération, ou sur une cellule 'Oui' pour revoir ou supprimer une ventilation déjà enregistrée.\n- 'Recherche globale' recharge toutes les opérations sans filtre. 'Sortir' referme cet écran.\n- 'Appliquer les lignes marquées' pour chaque ligne dont la valeur "Valider" contient oui, enregistre le champ "Notes" de chacune d'elle en contôlant la saisie\n- 'Sortir' sort du formulaire pour revenir sur la feuille de synthèse\n- 'Ajouter decalage' permet d'ajouter un decalage récurrent au système\n- 'Décaler cette opération' permet un decalage ponctuel d'une opération. Le calcul repartr toujours de la date de l'opération. Pour revenir au mois de l'opération mettre 0 de decalage"" | fusion=A5:G5 | police: taille=9 gras=mixte couleur=mixte (mise en forme partielle) | alignV=xlTop | retour_ligne | non_verrouillee
+R5 | "Cotis. sports, loisirs" | police: taille=10 | format="@"
+R6 | "Impôts" | police: taille=10 | format="@"
+R7 | "Contributions sociales" | police: taille=10 | format="@"
+R8 | "Revenus" | police: taille=10 | format="@"
+R9 | "Salaire/Revenus d'activité" | police: taille=10 | format="@"
+R10 | "Alimentation, supermarché" | police: taille=10 | format="@"
+R11 | "Education, formation" | police: taille=10 | format="@"
+R12 | "Cours, soutien scolaire" | police: taille=10 | format="@"
+R13 | "Internet, TV, télécom" | police: taille=10 | format="@"
+R14 | "Virements internes" | police: taille=10 | format="@"
+R15 | "Autre" | police: taille=10 | format="@"
+R16 | "Retrait d'espèces" | police: taille=10 | format="@"
+R17 | "Electronique, multimédia" | police: taille=10 | format="@"
+R18 | "Logement, immobilier" | police: taille=10 | format="@"
+R19 | "Travaux, déco, jardin" | police: taille=10 | format="@"
+R20 | "Transports, véhicules" | police: taille=10 | format="@"
+R21 | "Parking, péages, PV" | police: taille=10 | format="@"
+R22 | "Santé, prévoyance" | police: taille=10 | format="@"
+R23 | "Frais, remb santé" | police: taille=10 | format="@"
+R24 | "Musique, livres, films" | police: taille=10 | format="@"
+R25 | "Services" | police: taille=10 | format="@"
+R26 | "Frais bancaires" | police: taille=10 | format="@"
+R27 | "Electricité, gaz, chauffage" | police: taille=10 | format="@"
+R28 | "Dons caritatifs" | police: taille=10 | format="@"
+R29 | "Shopping/e-Commerce" | police: taille=10 | format="@"
+R30 | "Cotis mutuelle, prévoyance" | police: taille=10 | format="@"
+R31 | "Assurance véhicule" | police: taille=10 | format="@"
+R32 | "Entretien, équipements véhicules" | police: taille=10 | format="@"
+R33 | "Carburant" | police: taille=10 | format="@"
+R34 | "Sorties, voyages" | police: taille=10 | format="@"
+R35 | "Sorties détente" | police: taille=10 | format="@"
+R36 | "Aides et allocations" | police: taille=10 | format="@"
+R37 | "Cadeaux offerts" | police: taille=10 | format="@"
+R38 | "Enfants" | police: taille=10 | format="@"
+R39 | "Jouets, cadeaux" | police: taille=10 | format="@"
+R40 | "A catégoriser" | police: taille=10 | format="@"
+R41 | "Chèques" | police: taille=10 | format="@"
+R42 | "Autres" | police: taille=10 | format="@"
+R43 | "Equipement sports, loisirs" | police: taille=10 | format="@"
+R44 | "Cadeaux, dons reçus" | police: taille=10 | format="@"
+R45 | "Activités enfants" | police: taille=10 | format="@"
+R46 | "Habillement, accessoires" | police: taille=10 | format="@"
+R47 | "Voyages" | police: taille=10 | format="@"
+R48 | "Garage, parking privé" | police: taille=10 | format="@"
+
+## TABLEAUX
+
+### Tableau TblRechercheOperations
+Plage            = A7:P199
+Ligne d'en-tete  = 7
+Nb lignes donnees= 192 (contenu non exporte)
+Filtre auto      = Oui
+Ligne de total   = Non
+Style            = TableStyleMedium2
+Colonnes (index | nom | lettre | largeur | masquee | format | liste)
+1 | Valider | A | 9 | - | format="General" | sans liste
+2 | Date | B | 9.07 | - | format="m/d/yyyy" | sans liste
+3 | Tiers | C | 28.27 | - | format="General" | sans liste
+4 | Montant | D | 8.93 | - | format="#,##0.00" | sans liste
+5 | Categorie | E | 16.8 | - | format="General" | validation=xlValidateList Formula1="=ListeValeursRechercheOperations" alerte=xlValidAlertWarning
+6 | SousCategorie | F | 24.67 | - | format="General" | validation=xlValidateList Formula1="=ListeValeursRechercheOperations" alerte=xlValidAlertWarning
+7 | Notes | G | 86.8 | - | format="General" | sans liste
+8 | Ventile | H | 7.87 | - | format="General" | sans liste
+9 | ID_Transaction | I | 0 | MASQUEE | format="@" | sans liste
+10 | SourceLigne | J | 0 | MASQUEE | format="General" | sans liste
+11 | LigneVentilation | K | 0 | MASQUEE | format="General" | sans liste
+12 | Budget | L | 0 | MASQUEE | format="m/d/yyyy" | sans liste
+13 | StatutSante | M | 0 | MASQUEE | format="General" | sans liste
+14 | SoldeSante | N | 0 | MASQUEE | format="General" | sans liste
+15 | Date_consult | O | 0 | MASQUEE | format="m/d/yyyy" | sans liste
+16 | Spe_consult | P | 0 | MASQUEE | format="General" | sans liste
+
+## VALIDATIONS HORS TABLEAUX (plage | description)
+(aucune)
+
+## MISES EN FORME CONDITIONNELLES (plage | type | formule | effet)
+(aucune)
+
+## FORMES ET BOUTONS (nom | genre | ancrage | gauche,haut,largeur,hauteur | texte | macro | visible)
+btnRechercherOperations | Bouton (controle de formulaire) | A1:B2 | 0,12.8000001907349,108,21.3999996185303 | "Recherche globale" | Test_Import_OFX.xlsm!RechercherOperations | Oui
+btnAppliquerLignesMarquees | Bouton (controle de formulaire) | C1:C2 | 108.800003051758,12.8000001907349,154.5,21.3999996185303 | "Appliquer les lignes marquées" | Test_Import_OFX.xlsm!AppliquerLignesMarquees | Oui
+btnSortirRechercheOperations | Bouton (controle de formulaire) | C1:E2 | 264.799987792969,12.8000001907349,84,21.3999996185303 | "Sortir" | Test_Import_OFX.xlsm!SortirRechercheOperations | Oui
+btnAjouterDecalageRO | Bouton (controle de formulaire) | E1:F2 | 349.5,12.8000001907349,104.199996948242,21.3999996185303 | "Ajouter un décalage" | Test_Import_OFX.xlsm!AjouterDecalageDepuisRO | Oui
+btnDecalerBudgetOperationRO | Bouton (controle de formulaire) | F1:G2 | 455.200012207031,12.8000001907349,117,21.3999996185303 | "Décaler cette opération" | Test_Import_OFX.xlsm!DecalerBudgetOperationRO | Oui
+
+## NOMS DEFINIS (nom | portee | fait reference a | visible)
+ListeValeursRechercheOperations | classeur | =OFFSET(frm_RechercheOperations!$R$2,0,0,MAX(1,COUNTA(frm_RechercheOperations!$R$2:$R$1000)),1) | Oui
+
+# FIN DE L'EXPORT

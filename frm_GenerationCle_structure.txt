@@ -1,0 +1,142 @@
+# STRUCTURE DE LA FEUILLE : frm_GenerationCle
+Classeur           = Test_Import_OFX.xlsm
+CodeName           = Feuil8
+Visibilite         = visible
+Exporte le         = 2026-10-09 03:52:25
+Version Excel      = 16.0
+Plage utilisee     = B2:J21
+Zone detaillee     = A1:L21  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
+Largeur standard   = 10.13
+Hauteur standard   = 13.2
+Protection contenu = Non
+Nb tableaux        = 0
+Nb formes          = 5
+Contenu des tableaux NON exporte (confidentialite).
+
+## FENETRE
+Zoom             = 100
+FreezePanes      = Non
+SplitRow         = 0   (volets figes sous la ligne 0)
+SplitColumn      = 0
+ScrollRow        = 1
+ScrollColumn     = 1
+DisplayGridlines = Non
+DisplayHeadings  = Non
+DisplayZeros     = Oui
+
+## COLONNES (lettre | largeur | masquee)
+A | 2
+B | 22
+C | 16
+D | 16
+E | 16
+F | 14
+G | 16
+H | 2
+I | 10.13
+J | 0 | MASQUEE
+K | 10.13
+L | 10.13
+
+## LIGNES NON STANDARD (numero | hauteur | masquee) -- hauteur standard = 13.2
+2 | 22.2
+3 | 22.2
+5 | 14.3
+6 | 30
+7 | 30
+8 | 30
+9 | 30
+11 | 13.9
+12 | 18
+15 | 18
+16 | 18
+17 | 18
+18 | 18
+20 | 18
+
+## CELLULES DE LA ZONE (hors tableaux)
+## adresse | valeur ou formule | fusion | police | fond | format | alignement | autres
+J2 | "1218" | police: taille=10
+B5 | "Instructions" | police: gras | bordures
+C5 | "" | police: taille=10 | bordures
+D5 | "" | police: taille=10 | bordures
+E5 | "" | police: taille=10 | bordures
+F5 | "" | police: taille=10 | bordures
+G5 | "" | police: taille=10 | bordures
+A6 | "" | police: taille=10 | bordures
+B6 | "Aucune clé existante ne correspond à cette opération.\nRenseignez les 4 champs, cliquez 'Générer' pour construire la clé (elle est aussi\ncopiée dans le presse-papier), vérifiez-la, puis clique 'Valider'.\nATTENTION : une fois 'Valider' cliqué, la clé est écrite DEFINITIVEMENT, même\napproximative ou incorrecte : cette opération ne sera PLUS JAMAIS reproposée pour\ncorrection automatique (seule une modification manuelle dans Import_data pourrait\nla faire réapparaitre). Si vous n'êtes pas certain des informations, cliquez plutôt sur\n'Passer' pour laisser cette opération de côté et y revenir plus tard." | fusion=B6:G9 | police: taille=9 gras=mixte couleur=mixte (mise en forme partielle) | fond=RGB(245, 245, 242) | alignV=xlTop | retour_ligne | bordures
+H6 | "" | police: taille=10 | bordures
+A7 | "" | police: taille=10 | bordures
+H7 | "" | police: taille=10 | bordures
+A8 | "" | police: taille=10 | bordures
+H8 | "" | police: taille=10 | bordures
+A9 | "" | police: taille=10 | bordures
+H9 | "" | police: taille=10 | bordures
+B10 | "" | police: taille=10 | bordures
+C10 | "" | police: taille=10 | bordures
+D10 | "" | police: taille=10 | bordures
+E10 | "" | police: taille=10 | bordures
+F10 | "" | police: taille=10 | bordures
+G10 | "" | police: taille=10 | bordures
+B11 | "Opération concernée" | fusion=B11:G11 | police: taille=10.5 gras | fond=RGB(250, 250, 248)
+B12 | "Date :" | police: taille=10 couleur=RGB(90, 90, 90)
+C12 | "45631" | police: taille=10 | fond=RGB(248, 248, 246) | format="m/d/yyyy"
+D12 | "Tiers :" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+E12 | "PHARM SAINT JAC FACT" | police: taille=10 | fond=RGB(248, 248, 246)
+F12 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+G12 | "" | police: taille=10 | fond=RGB(248, 248, 246)
+B13 | "Num. Chéque" | police: taille=10 couleur=RGB(90, 90, 90)
+C13 | "" | police: taille=10 | fond=RGB(248, 248, 246) | format="m/d/yyyy"
+D13 | "Notes" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+E13 | "CB PHARM SAINT JAC FACT 031224 344135******6" | police: taille=10 | fond=RGB(248, 248, 246)
+F13 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+G13 | "" | police: taille=10 | fond=RGB(248, 248, 246)
+B15 | "Génération de la clé" | fusion=B15:G15 | police: taille=10.5 gras | fond=RGB(250, 250, 248)
+B16 | "Date_consult (JJ/MM/AAAA) :" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
+C16 | "45629" | police: taille=10 | fond=RGB(255, 255, 235) | format="m/d/yyyy" | bordures | non_verrouillee
+D16 | "" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
+E16 | "" | police: taille=10 | bordures
+B17 | "Spécialité :" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
+C17 | "Pharmacie" | fusion=C17:E17 | police: taille=10 | fond=RGB(255, 255, 235) | bordures | non_verrouillee
+F17 | "" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
+B18 | "Bénéficiaire :" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
+C18 | "Alex" | fusion=C18:E18 | police: taille=10 | fond=RGB(255, 255, 235) | bordures | non_verrouillee
+F18 | "" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
+B19 | "Montant :" | police: taille=10 couleur=RGB(90, 90, 90)
+C19 | "14" | police: taille=10 | fond=RGB(248, 248, 246) | format="#,##0.00 €" | bordures
+D19 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246) | bordures
+E19 | "" | police: taille=10 | fond=RGB(248, 248, 246) | bordures
+F19 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+G19 | "" | police: taille=10 | fond=RGB(248, 248, 246)
+B21 | "Clé générée :" | police: taille=10 couleur=RGB(90, 90, 90)
+C21 | "20241203;Pharmacie;Alex;14" | fusion=C21:G21 | police: taille=10 gras | fond=RGB(248, 248, 246)
+
+## TABLEAUX
+(aucun)
+
+## VALIDATIONS HORS TABLEAUX (plage | description)
+C17:E18 | validation=xlValidateList Formula1="=Specialites" alerte=xlValidAlertStop
+
+## MISES EN FORME CONDITIONNELLES (plage | type | formule | effet)
+(aucune)
+
+## FORMES ET BOUTONS (nom | genre | ancrage | gauche,haut,largeur,hauteur | texte | macro | visible)
+btnGenererCle | Bouton (controle de formulaire) | A1:B2 | 7.5,6.80000019073486,120,14.6000003814697 | "Générer" | Test_Import_OFX.xlsm!GenererCleNotes | Oui
+btnValiderGeneration | Bouton (controle de formulaire) | B1:D2 | 129.800003051758,7.5,109.5,15.3999996185303 | "Valider" | Test_Import_OFX.xlsm!ValiderGenerationCle | Oui
+btnAjouterSpecialite | Bouton (controle de formulaire) | F17:F18 | 426.799987792969,315,12.8000001907349,18 | "+" | Test_Import_OFX.xlsm!AjouterSpecialite | Oui
+btnAjouterBeneficiaireGC | Bouton (controle de formulaire) | F18:F19 | 426.799987792969,333,12.8000001907349,18 | "+" | Test_Import_OFX.xlsm!AjouterBeneficiaireDepuisGeneration | Oui
+btnPasserGeneration | Bouton (controle de formulaire) | D1:E2 | 240.800003051758,6.80000019073486,181.5,16.1000003814697 | "Passer" | Test_Import_OFX.xlsm!PasserGenerationCle | Oui
+
+## NOMS DEFINIS (nom | portee | fait reference a | visible)
+frm_GenerationCle!gcBeneficiaire | feuille frm_GenerationCle | =frm_GenerationCle!$C$18 | Oui
+frm_GenerationCle!gcCleGeneree | feuille frm_GenerationCle | =frm_GenerationCle!$C$21 | Oui
+frm_GenerationCle!gcDateConsult | feuille frm_GenerationCle | =frm_GenerationCle!$C$16 | Oui
+frm_GenerationCle!gcDateOp | feuille frm_GenerationCle | =frm_GenerationCle!$C$12 | Oui
+frm_GenerationCle!gcLigneEnCours | feuille frm_GenerationCle | =frm_GenerationCle!$J$2 | Oui
+frm_GenerationCle!gcMontant | feuille frm_GenerationCle | =frm_GenerationCle!$C$19 | Oui
+gcNotes | classeur | =frm_GenerationCle!$E$13 | Oui
+gcNumCheque | classeur | =frm_GenerationCle!$C$13 | Oui
+frm_GenerationCle!gcSpecialite | feuille frm_GenerationCle | =frm_GenerationCle!$C$17 | Oui
+frm_GenerationCle!gcTiersOp | feuille frm_GenerationCle | =frm_GenerationCle!$E$12 | Oui
+
+# FIN DE L'EXPORT

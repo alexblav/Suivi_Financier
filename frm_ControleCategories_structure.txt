@@ -1,0 +1,132 @@
+# STRUCTURE DE LA FEUILLE : frm_ControleCategories
+Classeur           = Test_Import_OFX.xlsm
+CodeName           = Feuil14
+Visibilite         = visible
+Exporte le         = 2026-10-09 03:52:39
+Version Excel      = 16.0
+Plage utilisee     = B2:Z23
+Zone detaillee     = A1:AB23  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
+Largeur standard   = 10.13
+Hauteur standard   = 13.2
+Protection contenu = Non
+Nb tableaux        = 0
+Nb formes          = 6
+Contenu des tableaux NON exporte (confidentialite).
+
+## FENETRE
+Zoom             = 100
+FreezePanes      = Non
+SplitRow         = 0   (volets figes sous la ligne 0)
+SplitColumn      = 0
+ScrollRow        = 1
+ScrollColumn     = 1
+DisplayGridlines = Non
+DisplayHeadings  = Non
+DisplayZeros     = Oui
+
+## COLONNES (lettre | largeur | masquee)
+A | 2
+B | 26
+C | 44
+D | 22
+E | 22
+F | 2
+G | 10.13
+H | 10.13
+I | 10.13
+J | 10.13
+K | 10.13
+L | 10.13
+M | 10.13
+N | 10.13
+O | 10.13
+P | 10.13
+Q | 10.13
+R | 10.13
+S | 10.13
+T | 10.13
+U | 10.13
+V | 10.13
+W | 10.13
+X | 10.13
+Y | 10.13
+Z | 0 | MASQUEE
+AA | 10.13
+AB | 10.13
+
+## LIGNES NON STANDARD (numero | hauteur | masquee) -- hauteur standard = 13.2
+2 | 26.1
+4 | 18
+9 | 42
+10 | 22.2
+13 | 22.2
+14 | 22.2
+16 | 30
+18 | 14.3
+19 | 16.2
+20 | 16.2
+21 | 16.2
+22 | 16.2
+23 | 20.7
+
+## CELLULES DE LA ZONE (hors tableaux)
+## adresse | valeur ou formule | fusion | police | fond | format | alignement | autres
+B4 | "Contrôle des catégories des opérations importées" | fusion=B4:E4 | police: taille=14 gras couleur=RGB(60, 60, 60)
+B5 | "Opération 1 / 1" | fusion=B5:E5 | police: taille=10 gras couleur=RGB(0, 176, 80)
+C6 | "" | police: taille=10 | bordures
+B7 | "Date" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignV=xlCenter
+C7 | "18/09/2026" | police: taille=10 | fond=RGB(240, 240, 240) | format="@" | alignV=xlCenter | retour_ligne | bordures
+B8 | "Tiers" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignV=xlCenter
+C8 | "PHARMACIE MAIRI" | police: taille=10 | fond=RGB(240, 240, 240) | format="@" | alignV=xlCenter | retour_ligne | bordures
+B9 | "Libellé / Notes" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignV=xlCenter
+C9 | "" | police: taille=10 | fond=RGB(240, 240, 240) | format="@" | alignV=xlCenter | retour_ligne | bordures
+B10 | "Montant" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignV=xlCenter
+C10 | "-33,90 €" | police: taille=10 | fond=RGB(240, 240, 240) | format="@" | alignV=xlCenter | retour_ligne | bordures
+B11 | "Catégorie source (banque)" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignV=xlCenter
+C11 | "" | police: taille=10 | fond=RGB(240, 240, 240) | format="@" | alignV=xlCenter | retour_ligne | bordures
+C12 | "" | police: taille=10 | bordures
+B13 | "Catégorie" | police: taille=10 gras couleur=RGB(31, 78, 121) | alignV=xlCenter | bordures
+C13 | "Santé, prévoyance" | police: gras | fond=RGB(255, 250, 225) | format="@" | alignV=xlCenter | bordures
+D13 | "" | police: taille=10 | bordures
+B14 | "Sous-catégorie" | police: taille=10 gras couleur=RGB(31, 78, 121) | alignV=xlCenter | bordures
+C14 | "Frais, remb santé" | police: gras | fond=RGB(255, 250, 225) | format="@" | alignV=xlCenter | bordures
+D14 | "" | police: taille=10 | bordures
+C15 | "" | police: taille=10 | bordures
+B16 | "Catégorie et sous-catégorie actuelles de cette opération. Vous pouvez les modifier ci-dessous." | fusion=B16:E16 | police: taille=9.5 italique couleur=RGB(90, 90, 90) | alignV=xlTop | retour_ligne
+B18 | "Instructions" | police: gras | bordures
+C18 | "" | police: taille=10 | bordures
+D18 | "" | police: taille=10 | bordures
+E18 | "" | police: taille=10 | bordures
+A19 | "" | police: taille=10 | bordures
+B19 | "1. Vérifiez les informations de l'opération (en haut).\n2. Modifiez si besoin la Catégorie, puis la Sous-catégorie (listes déroulantes).\n3. Passez à l'opération suivante avec 'Suivant' (ou revenez avec 'Précédent').\n4. Quand tout est contrôlé, cliquez sur 'Terminer et continuer'.\n5. S'il reste des opérations dont la catégorie ne peut être relié à une sous categorie interne vous serait automatiquement repositionné sur la première de la liste globale des opérations importées. \nVos choix ne sont pris en compte qu'après 'Terminer et continuer'." | fusion=B19:E23 | police: taille=9 gras=mixte couleur=mixte (mise en forme partielle) | fond=RGB(245, 245, 242) | alignH=xlLeft | alignV=xlTop | retour_ligne | bordures
+F19 | "" | police: taille=10 | bordures
+A20 | "" | police: taille=10 | bordures
+F20 | "" | police: taille=10 | bordures
+A21 | "" | police: taille=10 | bordures
+F21 | "" | police: taille=10 | bordures
+A22 | "" | police: taille=10 | bordures
+F22 | "" | police: taille=10 | bordures
+A23 | "" | police: taille=10 | bordures
+F23 | "" | police: taille=10 | bordures
+
+## TABLEAUX
+(aucun)
+
+## VALIDATIONS HORS TABLEAUX (plage | description)
+C13:C14 | validation=xlValidateList Formula1="=ListeCategories" alerte=xlValidAlertStop titreErreur="Catégorie inconnue" messageErreur="Choisissez une catégorie dans la liste, ou laissez le champ vide.\nPour créer une nouvelle catégorie, utilisez le bouton '+ Nouvelle catégorie'."
+
+## MISES EN FORME CONDITIONNELLES (plage | type | formule | effet)
+(aucune)
+
+## FORMES ET BOUTONS (nom | genre | ancrage | gauche,haut,largeur,hauteur | texte | macro | visible)
+btnCtrlPrecedent | Bouton (controle de formulaire) | A1:B2 | 7.5,6.80000019073486,82.5,19.5 | "< Précédent" | Test_Import_OFX.xlsm!ControleOperationPrecedente | Oui
+btnCtrlSuivant | Bouton (controle de formulaire) | B1:C2 | 90,6.80000019073486,87,19.1000003814697 | "Suivant >" | Test_Import_OFX.xlsm!ControleOperationSuivante | Oui
+btnCtrlTerminer | Bouton (controle de formulaire) | C1:C2 | 183.800003051758,6.80000019073486,117.800003051758,19.1000003814697 | "Enregistrer et continuer" | Test_Import_OFX.xlsm!ControleTerminer | Oui
+btnCtrlAnnuler | Bouton (controle de formulaire) | C1:C2 | 306,6.80000019073486,76.5,19.1000003814697 | "Annuler" | Test_Import_OFX.xlsm!ControleAnnuler | Oui
+btnCtrlVentiler | Bouton (controle de formulaire) | D10:D10 | 421.5,168.800003051758,82.5,19.5 | "Ventiler..." | Test_Import_OFX.xlsm!ControleVentiler | Oui
+btnCtrlNouvelleCategorie | Bouton (controle de formulaire) | D13:D13 | 420.799987792969,219,113.199996948242,16.5 | "+ Nouvelle catégorie" | Test_Import_OFX.xlsm!ControleNouvelleCategorie | Oui
+
+## NOMS DEFINIS (nom | portee | fait reference a | visible)
+ListeSousCatControle | classeur | =OFFSET(frm_ControleCategories!$Z$2,0,0,MAX(1,COUNTA(frm_ControleCategories!$Z$2:$Z$300)),1) | Oui
+
+# FIN DE L'EXPORT

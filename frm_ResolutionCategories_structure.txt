@@ -1,0 +1,316 @@
+# STRUCTURE DE LA FEUILLE : frm_ResolutionCategories
+Classeur           = Test_Import_OFX.xlsm
+CodeName           = Feuil6
+Visibilite         = visible
+Exporte le         = 2026-10-09 03:43:59
+Version Excel      = 16.0
+Plage utilisee     = B2:F211
+Zone detaillee     = A1:H100  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
+Largeur standard   = 10.13
+Hauteur standard   = 13.2
+Protection contenu = Non
+Nb tableaux        = 0
+Nb formes          = 2
+Contenu des tableaux NON exporte (confidentialite).
+
+## FENETRE
+Zoom             = 100
+FreezePanes      = Oui
+SplitRow         = 11   (volets figes sous la ligne 11)
+SplitColumn      = 1
+ScrollRow        = 12
+ScrollColumn     = 2
+DisplayGridlines = Non
+DisplayHeadings  = Non
+DisplayZeros     = Oui
+
+## COLONNES (lettre | largeur | masquee)
+A | 2
+B | 8
+C | 12
+D | 12
+E | 28
+F | 24
+G | 2
+H | 10.13
+
+## LIGNES NON STANDARD (numero | hauteur | masquee) -- hauteur standard = 13.2
+2 | 22.2
+5 | 14.3
+6 | 16.2
+7 | 16.2
+8 | 16.2
+9 | 16.2
+11 | 20.1
+
+## CELLULES DE LA ZONE (hors tableaux)
+## adresse | valeur ou formule | fusion | police | fond | format | alignement | autres
+E2 | "" | fusion=E2:F2 | police: taille=9 couleur=RGB(120, 120, 120) | alignH=xlRight | alignV=xlCenter
+B5 | "Instructions" | police: gras | bordures
+C5 | "" | police: taille=10 | bordures
+D5 | "" | police: taille=10 | bordures
+E5 | "" | police: taille=10 | bordures
+F5 | "" | police: taille=10 | bordures
+A6 | "" | police: taille=10 | bordures
+B6 | "Les opérations listées n'ont pas pu être catégorisées de façon automatique.\nIl faut donc le faire manuellement. Pour ce faire suivre les étapes suivantes :\n1. Sélectionner une catégorie dans la liste déroulante en face de l'opération concernée\n2. Le statut de la ligne passe automatiquement à  " OK " une fois la catégorie choisie\n3. Recommencer pour chaque opération puis cliquer sur "Terminer et appliquer"" | fusion=B6:F9 | police: taille=9 couleur=RGB(80, 80, 80) | fond=RGB(245, 245, 242) | alignH=xlLeft | alignV=xlTop | retour_ligne | bordures
+G6 | "" | police: taille=10 | bordures
+A7 | "" | police: taille=10 | bordures
+G7 | "" | police: taille=10 | bordures
+A8 | "" | police: taille=10 | bordures
+G8 | "" | police: taille=10 | bordures
+A9 | "" | police: taille=10 | bordures
+G9 | "" | police: taille=10 | bordures
+B10 | "" | police: taille=10 | bordures
+C10 | "" | police: taille=10 | bordures
+D10 | "" | police: taille=10 | bordures
+E10 | "" | police: taille=10 | bordures
+F10 | "" | police: taille=10 | bordures
+B11 | "Statut" | police: taille=9.5 gras couleur=RGB(90, 90, 90) | fond=RGB(250, 250, 248) | alignV=xlCenter | bordures
+C11 | "Date" | police: taille=9.5 gras couleur=RGB(90, 90, 90) | fond=RGB(250, 250, 248) | alignV=xlCenter | bordures
+D11 | "Montant" | police: taille=9.5 gras couleur=RGB(90, 90, 90) | fond=RGB(250, 250, 248) | alignV=xlCenter | bordures
+E11 | "Tiers" | police: taille=9.5 gras couleur=RGB(90, 90, 90) | fond=RGB(250, 250, 248) | alignV=xlCenter | bordures
+F11 | "Catégorie(s)" | police: taille=9.5 gras couleur=RGB(90, 90, 90) | fond=RGB(250, 250, 248) | alignV=xlCenter | bordures
+B12 | "" | police: taille=9.5 gras couleur=RGB(30, 130, 76) | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter | bordures
+C12 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter | bordures
+D12 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter | bordures
+E12 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter | bordures
+F12 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter | bordures
+B13 | "" | police: taille=9.5 gras couleur=RGB(30, 130, 76) | alignH=xlCenter | alignV=xlCenter
+B14 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C14 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D14 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E14 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F14 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B16 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C16 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D16 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E16 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F16 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B18 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C18 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D18 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E18 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F18 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B20 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C20 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D20 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E20 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F20 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B22 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C22 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D22 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E22 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F22 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B24 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C24 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D24 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E24 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F24 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B26 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C26 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D26 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E26 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F26 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B28 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C28 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D28 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E28 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F28 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B30 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C30 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D30 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E30 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F30 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B32 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C32 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D32 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E32 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F32 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B34 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C34 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D34 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E34 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F34 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B36 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C36 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D36 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E36 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F36 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B38 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C38 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D38 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E38 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F38 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B40 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C40 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D40 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E40 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F40 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B42 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C42 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D42 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E42 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F42 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B44 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C44 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D44 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E44 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F44 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B46 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C46 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D46 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E46 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F46 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B48 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C48 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D48 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E48 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F48 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B50 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C50 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D50 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E50 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F50 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B52 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C52 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D52 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E52 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F52 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B54 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C54 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D54 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E54 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F54 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B56 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C56 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D56 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E56 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F56 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B58 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C58 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D58 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E58 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F58 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B60 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C60 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D60 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E60 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F60 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B62 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C62 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D62 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E62 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F62 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B64 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C64 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D64 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E64 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F64 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B66 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C66 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D66 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E66 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F66 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B68 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C68 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D68 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E68 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F68 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B70 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C70 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D70 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E70 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F70 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B72 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C72 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D72 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E72 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F72 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B74 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C74 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D74 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E74 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F74 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B76 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C76 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D76 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E76 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F76 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B78 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C78 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D78 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E78 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F78 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B80 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C80 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D80 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E80 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F80 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B82 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C82 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D82 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E82 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F82 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B84 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C84 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D84 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E84 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F84 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B86 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C86 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D86 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E86 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F86 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B88 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C88 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D88 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E88 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F88 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B90 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C90 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D90 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E90 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F90 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B92 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C92 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D92 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E92 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F92 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B94 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C94 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D94 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E94 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F94 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B96 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C96 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D96 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E96 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F96 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B98 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C98 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D98 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E98 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F98 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+B100 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignH=xlCenter | alignV=xlCenter
+C100 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="m/d/yyyy" | alignV=xlCenter
+D100 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | format="#,##0.00 \â‚¬" | alignH=xlRight | alignV=xlCenter
+E100 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+F100 | "" | police: taille=9.5 | fond=RGB(250, 250, 248) | alignV=xlCenter
+
+## TABLEAUX
+(aucun)
+
+## VALIDATIONS HORS TABLEAUX (plage | description)
+(aucune)
+
+## MISES EN FORME CONDITIONNELLES (plage | type | formule | effet)
+(aucune)
+
+## FORMES ET BOUTONS (nom | genre | ancrage | gauche,haut,largeur,hauteur | texte | macro | visible)
+btnReinitialiserLigne | Bouton (controle de formulaire) | B2:D3 | 15,13.5,120,22.1000003814697 | "Réinitialiser cette ligne" | Test_Import_OFX.xlsm!ReinitialiserLigneSelectionnee | Oui
+btnTerminerResolution | Bouton (controle de formulaire) | D2:F3 | 135,13.5,232.5,22.1000003814697 | "Terminer et appliquer" | Test_Import_OFX.xlsm!TerminerEtAppliquerChoix | Oui
+
+## NOMS DEFINIS (nom | portee | fait reference a | visible)
+frm_ResolutionCategories!CompteurCasRestants | feuille frm_ResolutionCategories | =frm_ResolutionCategories!$E$2 | Oui
+
+# FIN DE L'EXPORT

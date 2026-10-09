@@ -1,0 +1,193 @@
+# STRUCTURE DE LA FEUILLE : frm_SuiviSante
+Classeur           = Test_Import_OFX.xlsm
+CodeName           = Feuil5
+Visibilite         = visible
+Exporte le         = 2026-10-09 03:44:31
+Version Excel      = 16.0
+Plage utilisee     = B2:J30
+Zone detaillee     = A1:L30  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
+Largeur standard   = 10.13
+Hauteur standard   = 13.2
+Protection contenu = Non
+Nb tableaux        = 0
+Nb formes          = 6
+Contenu des tableaux NON exporte (confidentialite).
+
+## FENETRE
+Zoom             = 100
+FreezePanes      = Non
+SplitRow         = 0   (volets figes sous la ligne 0)
+SplitColumn      = 0
+ScrollRow        = 1
+ScrollColumn     = 1
+DisplayGridlines = Non
+DisplayHeadings  = Oui
+DisplayZeros     = Oui
+
+## COLONNES (lettre | largeur | masquee)
+A | 2
+B | 21.8
+C | 16
+D | 16
+E | 16
+F | 14
+G | 16
+H | 2
+I | 10.13
+J | 0 | MASQUEE
+K | 10.13
+L | 10.13
+
+## LIGNES NON STANDARD (numero | hauteur | masquee) -- hauteur standard = 13.2
+2 | 22.2
+5 | 14.3
+6 | 15
+7 | 15
+8 | 15
+9 | 104.7
+11 | 13.9
+12 | 18
+15 | 18
+16 | 18
+17 | 13.9
+18 | 18
+20 | 18
+21 | 18
+22 | 18
+23 | 18
+27 | 18
+28 | 18
+29 | 28.2
+
+## CELLULES DE LA ZONE (hors tableaux)
+## adresse | valeur ou formule | fusion | police | fond | format | alignement | autres
+F2 | "1 restant(s) sur 3" | fusion=F2:G2 | police: taille=9 couleur=RGB(120, 120, 120) | alignH=xlRight | alignV=xlCenter
+J2 | "54" | police: taille=10
+B5 | "Instructions" | police: gras | bordures
+C5 | "" | police: taille=10 | bordures
+D5 | "" | police: taille=10 | bordures
+E5 | "" | police: taille=10 | bordures
+F5 | "" | police: taille=10 | bordures
+G5 | "" | police: taille=10 | bordures
+A6 | "" | police: taille=10 | bordures
+B6 | "Cette dépense de santé n'est pas encore soldée (équilibre non atteint).\nVérifiez les informations ci-dessous puis renseignez les champs demandés :\n1. Choisissez le Bénéficiaire dans la liste\n2. Si le Tiers importé n'est pas correct, choisissez la bonne valeur dans 'Tiers corrigé'\n3. Indiquez le montant de Franchise retenu par l'assurance (0 si aucune)\n4. Le champ 'Dépassement validé ?' est accessible dès que le solde n'est pas nul, que 1 ou 2 remboursements soient arrivés. Si vous considérez ce solde comme définitif et normal (à expliquer en commentaire), répondez Oui : cette dépense ne sera plus jamais reproposée, même si son statut reste affiché 'KO'. Si vous pensez qu'un remboursement supplémentaire va encore arriver, laissez ce champ vide (ou répondez Non) : la dépense sera reproposée au prochain passage.\n5. Ajoutez un commentaire si besoin, puis cliquez sur 'Valider ce cas'\n\nSi vous cliquez sur 'Sortir' vous pourrez relancer le traitement des données de santé en cliquant sur le bouton "Retraiter de suivi de santé"" | fusion=B6:G9 | police: taille=9 gras=mixte couleur=mixte (mise en forme partielle) | fond=RGB(245, 245, 242) | alignH=xlLeft | alignV=xlTop | retour_ligne | bordures
+H6 | "" | police: taille=10 | bordures
+A7 | "" | police: taille=10 | bordures
+H7 | "" | police: taille=10 | bordures
+A8 | "" | police: taille=10 | bordures
+H8 | "" | police: taille=10 | bordures
+A9 | "" | police: taille=10 | bordures
+H9 | "" | police: taille=10 | bordures
+B10 | "" | police: taille=10 | bordures
+C10 | "" | police: taille=10 | bordures
+D10 | "" | police: taille=10 | bordures
+E10 | "" | police: taille=10 | bordures
+F10 | "" | police: taille=10 | bordures
+G10 | "" | police: taille=10 | bordures
+B11 | "Dépense à traiter" | fusion=B11:G11 | police: taille=10.5 gras | fond=RGB(250, 250, 248)
+B12 | "Date opération :" | police: taille=10 couleur=RGB(90, 90, 90)
+C12 | "46277" | police: taille=10 | fond=RGB(248, 248, 246) | format="m/d/yyyy"
+D12 | "Tiers importe :" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+E12 | "PHARM SAINT JAC" | police: taille=10 | fond=RGB(248, 248, 246)
+F12 | "Montant :" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+G12 | "21,1" | police: taille=10 | fond=RGB(248, 248, 246) | format="#,##0.00 €"
+B13 | "Num_Cheque :" | police: taille=10 couleur=RGB(90, 90, 90)
+C13 | "" | police: taille=10 | fond=RGB(248, 248, 246)
+D13 | "Date_consult :" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+E13 | "3" | police: taille=10 | fond=RGB(248, 248, 246) | format="m/d/yyyy"
+F13 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+G13 | "" | police: taille=10 | fond=RGB(248, 248, 246) | format="#,##0.00 €"
+B14 | "Spécialité consultée :" | police: taille=10 couleur=RGB(90, 90, 90)
+C14 | "" | fusion=C14:E14 | police: taille=10 | fond=RGB(248, 248, 246)
+F14 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+G14 | "" | police: taille=10 | fond=RGB(248, 248, 246)
+B15 | "Notes :" | police: taille=10 couleur=RGB(90, 90, 90)
+C15 | "Frais, remb santé - CB PHARM SAINT JAC FACT 100926 344135******6, non rbt femmanose" | fusion=C15:G15 | police: taille=10 | fond=RGB(248, 248, 246) | alignV=xlTop | retour_ligne
+B17 | "Remboursements liés (jusqu'à 2)" | fusion=B17:G17 | police: taille=10.5 gras | fond=RGB(250, 250, 248)
+B18 | "Remb. 1 - Date :" | police: taille=10 couleur=RGB(90, 90, 90)
+C18 | "" | police: taille=10 | fond=RGB(248, 248, 246) | format="m/d/yyyy"
+D18 | "Montant :" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+E18 | "0" | police: taille=10 | fond=RGB(248, 248, 246) | format="#,##0.00 €"
+F18 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+G18 | "" | police: taille=10 | fond=RGB(248, 248, 246)
+B19 | "Remb. 2 - Date :" | police: taille=10 couleur=RGB(90, 90, 90)
+C19 | "" | police: taille=10 | fond=RGB(248, 248, 246) | format="m/d/yyyy"
+D19 | "Montant :" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+E19 | "0" | police: taille=10 | fond=RGB(248, 248, 246) | format="#,##0.00 €"
+F19 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+G19 | "" | police: taille=10 | fond=RGB(248, 248, 246)
+B21 | "Solde actuel :" | police: taille=10 couleur=RGB(90, 90, 90)
+C21 | "=ssMontant-ssRemb1Montant-ssRemb2Montant-ssFranchise" | fusion=C21:E21 | police: taille=10 gras | fond=RGB(248, 248, 246) | format="#,##0.00 €"
+F21 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+G21 | "" | police: taille=10 | fond=RGB(248, 248, 246)
+C22 | "" | police: taille=10 | bordures
+D22 | "" | police: taille=10 | bordures
+E22 | "" | police: taille=10 | bordures
+B23 | "Bénéficiaire :" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
+C23 | "" | fusion=C23:E23 | police: taille=10 | fond=RGB(255, 255, 235) | bordures | non_verrouillee
+F23 | "" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
+B24 | "Tiers corrigé :" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
+C24 | "" | fusion=C24:E24 | police: taille=10 | fond=RGB(255, 255, 235) | bordures | non_verrouillee
+F24 | "" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
+B25 | "Franchise :" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
+C25 | "0" | police: taille=10 | fond=RGB(255, 255, 235) | format="#,##0.00 €" | bordures | non_verrouillee
+D25 | "" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
+E25 | "" | police: taille=10 | bordures
+B26 | "Dépassement validé ? :" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
+C26 | "" | police: taille=10 | fond=RGB(255, 255, 235) | bordures | non_verrouillee
+D26 | "" | police: taille=10 | bordures
+E26 | "" | police: taille=10 | bordures
+F26 | "" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
+G26 | "" | police: taille=10 | bordures
+B27 | "Commentaire :" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
+C27 | "" | fusion=C27:G27 | police: taille=10 | fond=RGB(255, 255, 235) | alignV=xlTop | retour_ligne | bordures | non_verrouillee
+H27 | "" | police: taille=10 | bordures
+C28 | "" | police: taille=10 | bordures
+D28 | "" | police: taille=10 | bordures
+E28 | "" | police: taille=10 | bordures
+F28 | "" | police: taille=10 | bordures
+G28 | "" | police: taille=10 | bordures
+B29 | "" | fusion=B29:G29 | police: taille=10.5 gras | fond=RGB(250, 250, 248)
+F30 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
+G30 | "" | police: taille=10 | fond=RGB(248, 248, 246)
+
+## TABLEAUX
+(aucun)
+
+## VALIDATIONS HORS TABLEAUX (plage | description)
+C23:E24 | validation=xlValidateList Formula1="=Beneficiaires" alerte=xlValidAlertStop
+C26 | validation=xlValidateList Formula1="Oui;Non" alerte=xlValidAlertStop
+
+## MISES EN FORME CONDITIONNELLES (plage | type | formule | effet)
+(aucune)
+
+## FORMES ET BOUTONS (nom | genre | ancrage | gauche,haut,largeur,hauteur | texte | macro | visible)
+btnCasSuivantSuiviSante | Bouton (controle de formulaire) | A1:B2 | 7.5,6.69999980926514,99,17.6000003814697 | "Cas suivant" | Test_Import_OFX.xlsm!CasSuivantSuiviSante | Oui
+btnValiderCasSuiviSante | Bouton (controle de formulaire) | B1:C2 | 107.199996948242,6.69999980926514,113.199996948242,17.6000003814697 | "Valider ce cas" | Test_Import_OFX.xlsm!ValiderCasSuiviSante | Oui
+btnAjouterBeneficiaire | Bouton (controle de formulaire) | F23:F24 | 426.799987792969,435.799987792969,13.5,18 | "+" | Test_Import_OFX.xlsm!AjouterBeneficiaire | Oui
+btnAjouterTiers | Bouton (controle de formulaire) | F24:F25 | 426.799987792969,453.799987792969,13.5,13.1000003814697 | "+" | Test_Import_OFX.xlsm!AjouterTiersPraticien | Oui
+Button 8 | Bouton (controle de formulaire) | C1:D2 | 221.199996948242,6.69999980926514,91.5,17.6000003814697 | "Sortir" | Test_Import_OFX.xlsm!SortirSuiviSante | Oui
+Comment 15 | Type 4 | C21:L26 | 146.600006103516,412.899993896484,593.200012207031,66 | "Le champ 'Dépassement d'honoraires ?' est accessible dès que le solde n'est pas nul, que 1 ou 2 remboursements soient arrivés. Si vous considérez ce solde comme définitif et normal (à expliquer en commentaire), répondez Oui : cette dépense ne sera plus ja" |  | Non
+
+## NOMS DEFINIS (nom | portee | fait reference a | visible)
+frm_SuiviSante!CompteurCasSante | feuille frm_SuiviSante | =frm_SuiviSante!$F$2 | Oui
+frm_SuiviSante!ssBeneficiaire | feuille frm_SuiviSante | =frm_SuiviSante!$C$23 | Oui
+frm_SuiviSante!ssCommentaire | feuille frm_SuiviSante | =frm_SuiviSante!$C$27 | Oui
+frm_SuiviSante!ssDate | feuille frm_SuiviSante | =frm_SuiviSante!$C$12 | Oui
+frm_SuiviSante!ssDateConsult | feuille frm_SuiviSante | =frm_SuiviSante!$E$13 | Oui
+frm_SuiviSante!ssDepassement | feuille frm_SuiviSante | =frm_SuiviSante!$C$26 | Oui
+frm_SuiviSante!ssFranchise | feuille frm_SuiviSante | =frm_SuiviSante!$C$25 | Oui
+frm_SuiviSante!ssLigneEnCours | feuille frm_SuiviSante | =frm_SuiviSante!$J$2 | Oui
+frm_SuiviSante!ssMontant | feuille frm_SuiviSante | =frm_SuiviSante!$G$12 | Oui
+frm_SuiviSante!ssNotes | feuille frm_SuiviSante | =frm_SuiviSante!$C$15 | Oui
+frm_SuiviSante!ssNumCheque | feuille frm_SuiviSante | =frm_SuiviSante!$C$13 | Oui
+frm_SuiviSante!ssRemb1Date | feuille frm_SuiviSante | =frm_SuiviSante!$C$18 | Oui
+frm_SuiviSante!ssRemb1Montant | feuille frm_SuiviSante | =frm_SuiviSante!$E$18 | Oui
+frm_SuiviSante!ssRemb2Date | feuille frm_SuiviSante | =frm_SuiviSante!$C$19 | Oui
+frm_SuiviSante!ssRemb2Montant | feuille frm_SuiviSante | =frm_SuiviSante!$E$19 | Oui
+frm_SuiviSante!ssSolde | feuille frm_SuiviSante | =frm_SuiviSante!$C$21 | Oui
+frm_SuiviSante!ssSpeConsult | feuille frm_SuiviSante | =frm_SuiviSante!$C$14 | Oui
+frm_SuiviSante!ssTiersCorrige | feuille frm_SuiviSante | =frm_SuiviSante!$C$24 | Oui
+frm_SuiviSante!ssTiersImporte | feuille frm_SuiviSante | =frm_SuiviSante!$E$12 | Oui
+
+# FIN DE L'EXPORT
