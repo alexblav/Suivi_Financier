@@ -329,6 +329,9 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
         Case "DetailTotal"
             showTypeDetail = CStr(param)
             mod_Criteres.GetSelectCriteres
+        Case "Analyse"
+            ' Ajout 10/10/2026 (analyse budgetaire) : param = "cat|sous|debut|fin|exclues"
+            mod_Analyse.PreparerFiltreAnalyse CStr(param)
     End Select
 
     ' Les lignes de TblVentilations n'ont pas de mois/année budgétaire ni de
@@ -337,7 +340,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ' Ajout 07/10/2026 : le préfiltre "SuiviSante" inclut lui aussi les parts
     ' ventilées (décision opérateur : pour le suivi santé, une part ventilée est
     ' une opération comme une autre).
-    inclureVentilations = (prefiltre = "" Or prefiltre = "DernierImport" Or prefiltre = "SuiviSante")
+    inclureVentilations = (prefiltre = "" Or prefiltre = "DernierImport" Or prefiltre = "SuiviSante" Or prefiltre = "Analyse")
 
     ' --- PHASE 5 : chargement de TblVentilations, si pertinent ---
     venDisponible = False
@@ -437,6 +440,16 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
 
     nbIndicesVen = 0
     If venDisponible Then
+        ' Ajout 10/10/2026 (prefiltre "Analyse") : une part n'a pas de mois de budget
+        ' propre, on prend celui de l'operation d'origine (index ID -> ligne).
+        Dim indexParentAn As Object, pRowAn As Long
+        If prefiltre = "Analyse" Then
+            Set indexParentAn = CreateObject("Scripting.Dictionary")
+            indexParentAn.CompareMode = 1
+            For i = 1 To n
+                indexParentAn(mod_DataStructure.CellText(tblData(i, colID))) = i
+            Next i
+        End If
         For i = 1 To nbLignesVen
             If prefiltre = "" Then
                 nbIndicesVen = nbIndicesVen + 1
@@ -447,6 +460,18 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
                     nbIndicesVen = nbIndicesVen + 1
                     ReDim Preserve indicesVen(1 To nbIndicesVen)
                     indicesVen(nbIndicesVen) = i
+                End If
+            ElseIf prefiltre = "Analyse" Then
+                If indexParentAn.Exists(mod_DataStructure.CellText(tblDataVen(i, colVenID))) Then
+                    pRowAn = indexParentAn(mod_DataStructure.CellText(tblDataVen(i, colVenID)))
+                    If mod_Analyse.LigneRetenueAnalyse(mod_DataStructure.CellText(tblDataVen(i, colVenCat)), _
+                            mod_DataStructure.CellText(tblDataVen(i, colVenSousCat)), _
+                            mod_DataStructure.ToLong(tblData(pRowAn, colAnneeBud)), _
+                            mod_DataStructure.ToLong(tblData(pRowAn, colMoisBud)), tblData(pRowAn, colDate)) Then
+                        nbIndicesVen = nbIndicesVen + 1
+                        ReDim Preserve indicesVen(1 To nbIndicesVen)
+                        indicesVen(nbIndicesVen) = i
+                    End If
                 End If
             ElseIf prefiltre = "SuiviSante" Then
                 ' Ajout 07/10/2026, élargi le 08/10/2026 : même règle que pour
@@ -556,7 +581,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
             ' trie comme une dépense ordinaire. indexParIDPourTiers (construit juste
             ' au-dessus pour le Tiers) donne déjà la ligne parente : on le réutilise.
             resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_DATE) = Empty
-            If prefiltre = "SuiviSante" Then
+            If prefiltre = "SuiviSante" Or prefiltre = "Analyse" Then
                 If indexParIDPourTiers.Exists(idParentVen) Then
                     resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_DATE) = _
                         tblData(indexParIDPourTiers(idParentVen), colDate)
@@ -773,6 +798,9 @@ Private Function DecrireFiltreActifRO(ByVal prefiltre As String, ByVal param As 
             End If
             texte = texte & "."
 
+        Case "Analyse"
+            texte = mod_Analyse.DecrireFiltreAnalyse() & " " & nbTotal & FR(" ligne(s).")
+
         Case "SuiviSante"
             ' Ajout 07/10/2026, revu le 08/10/2026 (phrase enrichie, puis périmètre
             ' élargi à la catégorie "Santé, prévoyance"). Exemple de résultat :
@@ -828,6 +856,17 @@ Private Function LigneOpRetenuePourPrefiltre(ByVal i As Long, ByVal prefiltre As
                 ElseIf showTypeDetail = "Negatif" Then
                     LigneOpRetenuePourPrefiltre = (Montant < 0)
                 End If
+            End If
+        Case "Analyse"
+            ' Ajout 10/10/2026 : memes regles que mod_Analyse (voir LigneRetenueAnalyse).
+            If colSousCategorie <> 0 Then
+                LigneOpRetenuePourPrefiltre = mod_Analyse.LigneRetenueAnalyse(mod_DataStructure.CellText(tblData(i, colCategorie)), _
+                    mod_DataStructure.CellText(tblData(i, colSousCategorie)), mod_DataStructure.ToLong(tblData(i, colAnneeBud)), _
+                    mod_DataStructure.ToLong(tblData(i, colMoisBud)), tblData(i, colDate))
+            Else
+                LigneOpRetenuePourPrefiltre = mod_Analyse.LigneRetenueAnalyse(mod_DataStructure.CellText(tblData(i, colCategorie)), _
+                    "", mod_DataStructure.ToLong(tblData(i, colAnneeBud)), _
+                    mod_DataStructure.ToLong(tblData(i, colMoisBud)), tblData(i, colDate))
             End If
         Case "SuiviSante"
             ' Ajout 07/10/2026 (remplace l'ancien Synthese_Care), élargi le 08/10/2026
@@ -1430,6 +1469,13 @@ End Sub
 Public Sub SortirRechercheOperations()
     Dim ws As Worksheet
     Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RECHERCHE)
+    ' Ajout 10/10/2026 : ouvert depuis l'analyse budgetaire -> retour sur l'analyse,
+    ' qui se recalcule (une recategorisation ou un decalage change les chiffres).
+    If g_ROPrefiltreActif = "Analyse" Then
+        mod_Analyse.RetourDepuisRecherche
+        ws.Visible = xlSheetVeryHidden
+        Exit Sub
+    End If
     On Error Resume Next
     If g_ROPrefiltreActif = "DetailTotal" Then
         ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RESULTAT).Activate

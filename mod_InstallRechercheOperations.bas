@@ -290,7 +290,7 @@ Public Sub DefinirColonnesVisibles(ByVal ws As Worksheet, ByVal prefiltre As Str
         Case "DernierImport"
             ws.Columns("M").Hidden = False
             ws.Columns("N").Hidden = False
-        Case "OperationsDuMois", "DetailTotal"
+        Case "OperationsDuMois", "DetailTotal", "Analyse"
             ws.Columns("L").Hidden = False
         Case "ErreursSante"
             ws.Columns("O").Hidden = False

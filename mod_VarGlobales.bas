@@ -194,6 +194,12 @@ Public Const NOM_TABLE_ECHEANCES As String = "TblEcheances"
 Public Const NOM_TABLE_RECURRENCES As String = "TblRecurrences"
 
 '' -------------------------------------------------------------------------------------
+'' ANALYSE BUDGETAIRE (ajout 10/10/2026, voir mod_Analyse et mod_InstallAnalyse)
+'' -------------------------------------------------------------------------------------
+'' Feuille masquee ouverte par le bouton "Analyse budgetaire" de Synthese.
+Public Const NOM_FEUILLE_ANALYSE As String = "frm_Analyse"
+
+'' -------------------------------------------------------------------------------------
 '' EXPORT DE LA STRUCTURE DES FEUILLES (ajout 08/10/2026, voir mod_ExportStructure)
 '' -------------------------------------------------------------------------------------
 ' Sous-dossier créé à côté du classeur pour recevoir les fichiers d'export (un
