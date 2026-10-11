@@ -486,6 +486,14 @@ Public Sub ImporterOperationsOFX()
         End With
     End If
 
+    ' --- ÉTAPE 9ter-0 (ajout du 11/10/2026, sécurité) : suppression des fichiers sources ---
+    ' Les données sont désormais dans le classeur (protégé par passphrase) : l'export bancaire
+    ' OFX et son CSV complémentaire ne doivent pas rester en clair sur le disque. Ils sont
+    ' écrasés puis supprimés. Un import abandonné ou en erreur (Exit Sub plus haut) ne supprime
+    ' RIEN : l'opérateur peut recommencer avec les mêmes fichiers.
+    Dim msgSuppr As String
+    msgSuppr = SupprimerFichierSensible(cheminOFX) & SupprimerFichierSensible(cheminCSV)
+
     ' --- ÉTAPE 9bis-0 : mémorisation du dernier import (toujours effectuée) ---
     ' Écriture rapide, sans affichage, dans la feuille technique très masquée
     ' "TechDernierImport". Elle alimente le bouton "Dernier import" de la feuille
@@ -564,7 +572,7 @@ Public Sub ImporterOperationsOFX()
            "Deja presentes (ignorees) : " & nbDoublons & vbCrLf & _
            "Nouvelles lignes ajoutees : " & nbAjoutees & vbCrLf & _
            "  dont sans correspondance CSV (categorie vide) : " & nbSansCategorie & vbCrLf & _
-           "  dont categorie ambigue traitee via le formulaire : " & nbAmbigus, _
+           "  dont categorie ambigue traitee via le formulaire : " & nbAmbigus & msgSuppr, _
            vbInformation, "Import OFX + CSV"
 
     ' --- ÉTAPE 11 : retour à Synthese (demande opérateur du 03/10/2026) -----------
@@ -589,6 +597,42 @@ End Sub
 ' ----------------------------------------------------------------------------
 ' FONCTIONS UTILITAIRES PRIVÉES
 ' ----------------------------------------------------------------------------
+
+' Écrase le contenu d'un fichier avec des zéros puis le supprime (aucune copie dans la corbeille).
+' Renvoie "" si tout s'est bien passé, sinon une ligne d'avertissement à ajouter au rapport
+' (fichier verrouillé, en lecture seule sur un partage, etc.) : l'opérateur doit alors le supprimer lui-même.
+' NB : sur SSD, l'écrasement n'offre pas de garantie absolue (répartition de l'usure) ; la
+' protection la plus sûre reste le chiffrement du disque (BitLocker).
+Private Function SupprimerFichierSensible(ByVal chemin As String) As String
+    Dim f As Integer, taille As Long, reste As Long, bloc As Long
+    Dim zeros() As Byte
+
+    On Error GoTo Echec
+    If Len(Dir$(chemin)) = 0 Then Exit Function
+    SetAttr chemin, vbNormal
+    taille = FileLen(chemin)
+    If taille > 0 Then
+        ReDim zeros(0 To 65535)                    ' tableau d'octets initialisé à 0
+        f = FreeFile
+        Open chemin For Binary Access Write As #f
+        reste = taille
+        Do While reste > 0
+            bloc = IIf(reste > 65536, 65536, reste)
+            If bloc < 65536 Then ReDim zeros(0 To bloc - 1)
+            Put #f, , zeros
+            reste = reste - bloc
+        Loop
+        Close #f
+    End If
+    Kill chemin
+    Exit Function
+
+Echec:
+    On Error Resume Next
+    Close #f
+    SupprimerFichierSensible = vbCrLf & vbCrLf & "ATTENTION : le fichier source n'a pas pu etre supprime, supprimez-le vous-meme :" & _
+                               vbCrLf & chemin
+End Function
 
 ' Ouvre la boîte de dialogue de sélection de fichier. Renvoie "" si l'opération est annulée.
 Private Function ChoisirFichier(filtre As String, Titre As String) As String

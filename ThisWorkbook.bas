@@ -105,6 +105,17 @@ End Sub
 ' AJOUT 09/10/2026 (échéancier) : à l'ouverture du classeur, complète les occurrences des règles
 ' de récurrence jusqu'à l'horizon, pour que le solde prévisionnel ne manque jamais d'échéances
 ' même si aucun import n'a été fait depuis longtemps. Sans effet si l'échéancier n'est pas installé.
+'
+' AJOUT 11/10/2026 (déploiement et sauvegardes, voir mod_Synchro) : la synchronisation avec le
+' fichier central du réseau passe EN PREMIER. Si l'échéancier était complété avant, ce
+' complément compterait comme une modification locale et créerait un conflit inutile.
 Private Sub Workbook_Open()
+    mod_Synchro.SynchroniserALOuverture
     mod_Echeancier.MettreAJourEcheancier
+End Sub
+
+' AJOUT 11/10/2026 : à la fermeture, envoi des données vers le fichier central. Si la
+' synchronisation échoue et que l'opérateur refuse de fermer sans elle, la fermeture est annulée.
+Private Sub Workbook_BeforeClose(Cancel As Boolean)
+    If Not mod_Synchro.SynchroniserALaFermeture() Then Cancel = True
 End Sub

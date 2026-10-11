@@ -21,6 +21,7 @@ Ce document existe en deux formats, **toujours identiques** : `README.md` (lu su
 - [9. L'analyse budgétaire](#9-lanalyse-budgétaire)
 - [10. Le suivi des consommations](#10-le-suivi-des-consommations)
 - [11. Installation, maintenance et outils développeur](#11-installation-maintenance-et-outils-développeur)
+- [12. Déploiement et sauvegardes](#12-déploiement-et-sauvegardes-synchronisation-avec-le-fichier-central)
 - [Glossaire](#glossaire)
 - [Points relevés à la lecture du code](#points-relevés-à-la-lecture-du-code)
 
@@ -133,7 +134,9 @@ Ce qui se passe, dans l'ordre :
     - « Traiter/revoir les catégories des opérations affectées à Santé ? » → lance la vérification des clés santé ;
     - si oui, « Réaliser le rapprochement des opérations de santé ? » → lance le formulaire de suivi santé ;
     - « Afficher les opérations importées ? » → ouvre l'écran de recherche sur le dernier import. C'est aussi l'endroit idéal pour déclarer une opération comme récurrente (bouton « Rendre récurrente », section 8).
-12. **Bilan.** Un message résume : opérations lues, déjà présentes, ajoutées, sans correspondance CSV, ambiguës. Si vous n'avez demandé aucun écran, vous revenez sur Synthese.
+12. **Bilan.** Un message résume : opérations lues, déjà présentes, ajoutées, sans correspondance CSV, ambiguës, et rappelle la suppression des fichiers sources (voir ci-dessous). Si vous n'avez demandé aucun écran, vous revenez sur Synthese.
+
+**Suppression des fichiers sources (sécurité).** Une fois les données écrites dans Import\_data (étape 8), le fichier OFX et le fichier CSV sont **écrasés avec des zéros puis supprimés** (sans passer par la corbeille), pour ne pas laisser de données bancaires en clair sur le disque. Cela vaut aussi quand aucune nouvelle ligne n'a été ajoutée (tout était déjà présent). **Rien n'est supprimé** si l'import s'arrête avant l'écriture (fichier illisible, CSV de structure invalide, « Annuler l'import ») : vous pouvez recommencer avec les mêmes fichiers. Si un fichier ne peut pas être supprimé (verrouillé, en lecture seule sur un partage), le bilan l'indique avec son chemin : supprimez-le vous-même. Sur un SSD l'écrasement n'est pas une garantie absolue ; le chiffrement du disque (BitLocker) reste la meilleure protection.
 
 Répondre « Non » aux questions santé n'est pas grave : tout peut être relancé plus tard avec le bouton « Traitement des données de santé » de Synthese.
 
@@ -726,6 +729,61 @@ python build_docs.py
 
 Le script (Python 3 et le paquet `markdown`, installable avec `pip install markdown`) produit un fichier HTML **autonome** : styles, schémas (dessinés en SVG à partir des blocs Mermaid du `.md`) et sommaire sont inclus, sans aucune dépendance en ligne.
 
+## 12. Déploiement et sauvegardes (synchronisation avec le fichier central)
+
+Pour ne pas être bloqué par les règles de sécurité de Windows (macros d'un fichier placé sur un partage réseau), chaque opérateur travaille sur une **copie locale** du classeur (sur son bureau). Une copie **centrale** est conservée sur le réseau, et le module `mod_Synchro` garde les deux copies **identiques du point de vue des données**.
+
+### Ce qui se passe
+
+- **À l'ouverture** : le classeur compare ses données à celles du fichier central. Si le réseau est plus récent, les données sont récupérées et un **résumé** s'affiche (par tableau : nombre de lignes, lignes nouvelles ou modifiées, lignes retirées). Si rien n'a changé, un simple message dans la barre d'état.
+- **À la fermeture** : si vous avez modifié des données, le fichier central est remplacé par une copie complète de votre classeur, puis le classeur local est enregistré.
+- **Premier usage** : à la première fermeture (ou si le fichier central est introuvable), le classeur demande où il se trouve : désigner un fichier existant, ou en créer un nouveau (copie du classeur). L'emplacement est mémorisé dans le registre Windows de l'opérateur, **pas dans le classeur** : il ne fait donc jamais partie des données synchronisées. Préférer un chemin UNC (`\serveur\partage\...`) à une lettre de lecteur.
+- **Un seul central par poste.** Ce chemin est enregistré **par poste**, pas par classeur : toutes les copies du classeur ouvertes sur ce poste (y compris une copie renommée ou chiffrée, créée pour des tests) utilisent le même central. Pour changer de central, lancer la macro `DefinirFichierCentral` (Alt+F8) : « Non » crée un nouveau fichier central (copie du classeur), « Oui » en désigne un existant. Une copie dont les données sont identiques à celles du central n'envoie rien à la fermeture, sans message : un nouveau fichier central ne se crée donc que par `DefinirFichierCentral`.
+
+### Comment le code décide (comparaison à trois voies)
+
+Une **empreinte** (calculée sur toutes les données synchronisées) est comparée pour le local (L), le central (N) et la dernière synchronisation réussie (B, mémorisée dans le classeur).
+
+| Situation | Action |
+| --- | --- |
+| L = N | Rien à faire |
+| Seul le réseau a changé (L = B) | Les données du central sont **récupérées** dans le classeur local |
+| Seul le local a changé (N = B) | Le central est **remplacé** par le classeur local |
+| Les deux ont changé (ou première synchronisation avec des données différentes) | **Conflit** : l'opérateur choisit la version à garder |
+
+Après chaque récupération ou envoi, les empreintes sont recalculées : si les deux fichiers ne sont pas strictement identiques, les éléments en écart sont listés.
+
+### Ce qui est synchronisé
+
+- les tableaux **TblOperations, TblVentilations, TblEcheances, TblRecurrences, TblReleves, TblContrats, TblCategories, TblDecalagesBudget** (colonnes retrouvées par leur nom ; les colonnes calculées par formule sont ignorées) ;
+- les feuilles **Param** (hors tableaux : listes Spécialités, Praticiens...) et **TechDernierImport** ;
+- les cellules nommées **soldeRefMontant** et **soldeRefDate**.
+
+Ne sont **pas** synchronisés : les écrans de résultat (recherche, analyse, consommations), qui se recalculent, et les choix d'affichage de chaque opérateur (critères de Synthese, réglages des écrans). Pour ajouter un élément au périmètre, l'ajouter dans les fonctions `ListeTables`, `ListeFeuilles` ou `ListeNoms` de `mod_Synchro`.
+
+### Protection du classeur par passphrase
+
+Le classeur peut être protégé par un **mot de passe d'ouverture** (Fichier > Informations > Protéger le classeur > Chiffrer avec mot de passe), qui chiffre tout le fichier (AES-256). C'est la seule protection réelle : le verrouillage du projet VBA ou la protection de feuille se contournent facilement et ne servent qu'à éviter les fausses manipulations. Choisir une passphrase longue (plusieurs mots) ; Excel ne sait pas la récupérer si elle est perdue, donc la conserver dans un gestionnaire de mots de passe.
+
+**Règles pour que la synchronisation fonctionne :**
+
+- **la même passphrase** pour le fichier central et pour toutes les copies locales ; l'enregistrement du classeur depuis Excel est nécessaire pour que le chiffrement soit pris en compte ;
+- à l'ouverture, Excel demande d'abord la passphrase du classeur local (boîte masquée). Puis, au premier accès au central, `mod_Synchro` détecte que le central est chiffré et la **demande une seule fois** (boîte de saisie). Elle est gardée **en mémoire** pour la session Excel et réutilisée à la fermeture ; elle n'est **jamais écrite** sur disque, dans le registre ni dans le classeur ;
+- passphrase refusée : elle est redemandée (3 essais), puis la synchronisation échoue avec le message habituel. Annuler la saisie a le même effet ;
+- l'envoi vers le central et les sauvegardes (`Sauvegardes_Synchro`) conservent le chiffrement du classeur local : tout reste chiffré. Un central existant **non chiffré** ne le devient que lors d'un **envoi** (données locales modifiées) : chiffrer un classeur sans changer ses données ne chiffre donc pas le central. Pour migrer vers un central chiffré, créer un nouveau central depuis le classeur chiffré avec `DefinirFichierCentral` (choix « Non ») ;
+- **`AfficherEtatSynchro`** indique si le classeur local et le fichier central sont chiffrés (« oui » / « NON ») et si la passphrase est déjà connue pour la session : à lancer pour vérifier que tout est protégé ;
+- le fonctionnement de la comparaison (empreintes, conflits, verrou) ne change pas : les empreintes portent sur les données, pas sur les octets du fichier.
+
+Limite : la boîte de saisie de la passphrase est une `InputBox`, qui n'offre pas de saisie masquée (la passphrase est visible pendant la frappe).
+
+### Sécurités et macros utiles
+
+- avant d'écraser le central, il est sauvegardé dans `Sauvegardes_Synchro` (à côté du fichier central, 10 sauvegardes conservées) ; en cas de conflit résolu en faveur du réseau, c'est le classeur local qui est sauvegardé ;
+- un fichier `.verrou` évite deux synchronisations simultanées ;
+- si la structure diffère (colonne ajoutée après une mise à jour du classeur), la récupération est impossible : le code propose de remplacer le central par une copie complète du classeur local ;
+- macros : `SynchroniserMaintenant`, `DefinirFichierCentral` (changer ou créer le fichier central), `AfficherEtatSynchro`.
+- **Installation** : importer `mod_Synchro.bas` (ImportUTF8) et remplacer le contenu du module `ThisWorkbook` par `ThisWorkbook.bas` (nouveaux événements `Workbook_Open` et `Workbook_BeforeClose`). Pour activer la passphrase, chiffrer ensuite le classeur et le central comme décrit ci-dessus ; la suppression des fichiers OFX/CSV est dans `mod_ImportOFX.bas` (à importer aussi).
+
 ## Glossaire
 
 | Terme | Définition |
@@ -760,6 +818,7 @@ Le script (Python 3 et le paquet `markdown`, installable avec `pip install markd
 | Relevé (consommation) | Une période libre avec sa quantité, son prix d'unité et son abonnement mensuel ; une facture à plusieurs prix donne plusieurs relevés. |
 | Nombre de mois (NbMois) | Somme, sur les mois touchés par une période, des jours couverts divisés par les jours du mois ; un mois complet vaut 1. |
 | Répartition au prorata | Étalement d'un relevé sur les mois qu'il couvre, selon les jours couverts, pour le graphique des consommations. |
+| Passphrase | Mot de passe d'ouverture du classeur (chiffrement du fichier), commun à toutes les copies ; saisi une fois par session pour le fichier central. |
 | CodeName | Nom interne d'une feuille dans l'éditeur VBA, utile pour y coller un code d'événements. |
 
 ## Points relevés à la lecture du code
