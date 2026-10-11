@@ -432,6 +432,7 @@ Private Function AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVa
     Dim tblVen As ListObject
     Dim donneesVen As Variant
     Dim colVenNotes As Long, colVenMontant As Long
+    Dim idCtx As String                          ' ID_Transaction de l'operation (ajout 11/10/2026, pointage)
 
     If Source = "O" Then
         dateCtx = donneesOp(ligneDepense, colDate)
@@ -439,6 +440,7 @@ Private Function AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVa
         chequeCtx = donneesOp(ligneDepense, colCheque)
         notesCtx = mod_DataStructure.CellText(donneesOp(ligneDepense, colNotes))
         montantCtx = mod_DataStructure.ToDouble(donneesOp(ligneDepense, colMontant))
+        idCtx = mod_DataStructure.CellText(donneesOp(ligneDepense, colID))
         catCtx = mod_DataStructure.CellText(donneesOp(ligneDepense, colCategorie))
         If colSousCategorie <> 0 Then sousCtx = mod_DataStructure.CellText(donneesOp(ligneDepense, colSousCategorie))
     Else
@@ -452,6 +454,7 @@ Private Function AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVa
         colVenSous = IndexColSiExisteFN(tblVen, "SousCategorie")
         If colVenCat <> 0 Then catCtx = mod_DataStructure.CellText(donneesVen(ligneDepense, colVenCat))
         If colVenSous <> 0 Then sousCtx = mod_DataStructure.CellText(donneesVen(ligneDepense, colVenSous))
+        If IndexColSiExisteFN(tblVen, "ID_Transaction") <> 0 Then idCtx = mod_DataStructure.CellText(donneesVen(ligneDepense, IndexColSiExisteFN(tblVen, "ID_Transaction")))
         If Not TrouverContexteParentVentilation(ligneDepense, tblVen, donneesVen, dateCtx, tiersCtx, chequeCtx) Then
             dateCtx = ""
             tiersCtx = "(operation parente introuvable)"
@@ -487,6 +490,9 @@ Private Function AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVa
         ws.Range("rnTiersOp").value = tiersCtx
     End If
     ws.Range("rnNotes").value = notesCtx
+    ' Pointage de l'operation (ajout 11/10/2026) : une part de ventilation affiche celui de son
+    ' operation d'origine. Sans effet si l'ecran n'a pas ete reconstruit avec le champ rnPointe.
+    mod_Pointage.AfficherPointageParNom ws, "rnPointe", idCtx
     ws.Range("rnCategorie").value = catCtx
     ws.Range("rnSousCategorie").value = sousCtx
     ws.Range("rnMontantOp").value = montantCtx
@@ -807,6 +813,7 @@ Private Function AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal S
     Dim tblVen As ListObject
     Dim donneesVen As Variant
     Dim colVenNotes As Long, colVenMontant As Long
+    Dim idCtx As String                          ' ID_Transaction de l'operation (ajout 11/10/2026, pointage)
 
     If Source = "O" Then
         dateCtx = donneesOp(ligneDepense, colDate)
@@ -814,6 +821,7 @@ Private Function AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal S
         chequeCtx = donneesOp(ligneDepense, colCheque)
         notesCtx = mod_DataStructure.CellText(donneesOp(ligneDepense, colNotes))
         montantCtx = mod_DataStructure.ToDouble(donneesOp(ligneDepense, colMontant))
+        idCtx = mod_DataStructure.CellText(donneesOp(ligneDepense, colID))
     Else
         Set tblVen = ObtenirTableVentilationsFN()
         donneesVen = tblVen.DataBodyRange.value
@@ -821,6 +829,7 @@ Private Function AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal S
         colVenMontant = IndexColSiExisteFN(tblVen, "Montant")
         notesCtx = mod_DataStructure.CellText(donneesVen(ligneDepense, colVenNotes))
         montantCtx = mod_DataStructure.ToDouble(donneesVen(ligneDepense, colVenMontant))
+        If IndexColSiExisteFN(tblVen, "ID_Transaction") <> 0 Then idCtx = mod_DataStructure.CellText(donneesVen(ligneDepense, IndexColSiExisteFN(tblVen, "ID_Transaction")))
         If Not TrouverContexteParentVentilation(ligneDepense, tblVen, donneesVen, dateCtx, tiersCtx, chequeCtx) Then
             dateCtx = ""
             tiersCtx = "(operation parente introuvable)"
@@ -837,6 +846,8 @@ Private Function AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal S
         ws.Range("gcTiersOp").value = tiersCtx
     End If
     ws.Range("gcNotes").value = notesCtx
+    ' Pointage de l'operation (ajout 11/10/2026), voir AfficherRapprochementPourLigne.
+    mod_Pointage.AfficherPointageParNom ws, "gcPointe", idCtx
     ws.Range("gcNumCheque").value = chequeCtx
     ws.Range("gcLigneEnCours").value = ligneDepense
 

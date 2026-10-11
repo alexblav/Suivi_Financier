@@ -230,6 +230,10 @@ Public Sub ImporterOperationsOFX()
         ' Ces deux tableaux reçoivent les valeurs FINALES (modifiées ou non) renvoyées
         ' par ControlerCategories, selon le même principe que catFinaleCtrl/sousFinaleCtrl.
         Dim tiersFinaleCtrl() As String, libelleFinaleCtrl() As String
+        ' AJOUT du 11/10/2026 (pointage, voir mod_Pointage) : pointage choisi par l'operateur
+        ' pour chaque operation (tableau de Boolean, Vrai = deja analysee). Il est ecrit dans la
+        ' colonne Pointe a l'ETAPE 8quater. Reste vide (Empty) si le controle n'a rien renvoye.
+        Dim pointeFinaleCtrl As Variant
         Dim kCtrl As Long
 
         ReDim opsControle(1 To nbAjoutees, 1 To mod_ControleCategories.CTRL_OP_NBCOL)
@@ -244,7 +248,8 @@ Public Sub ImporterOperationsOFX()
 
         If Not mod_ControleCategories.ControlerCategories(opsControle, nbAjoutees, catFinaleCtrl, sousFinaleCtrl, _
                                                             catAvantVentilCtrl, sousAvantVentilCtrl, _
-                                                            tiersFinaleCtrl, libelleFinaleCtrl) Then
+                                                            tiersFinaleCtrl, libelleFinaleCtrl, _
+                                                            pointeFinale:=pointeFinaleCtrl) Then
             MsgBox "Import annule : aucune ligne n'a ete ecrite dans Import_data.", vbInformation, "Import interrompu"
             Exit Sub
         End If
@@ -442,6 +447,39 @@ Public Sub ImporterOperationsOFX()
                 wsDonnees.Cells(premiereLigneEcriture + kCtrl - 1, colCatAvantVenFeuille).value = catAvantVentilCtrl(kCtrl)
                 wsDonnees.Cells(premiereLigneEcriture + kCtrl - 1, colSousAvantVenFeuille).value = sousAvantVentilCtrl(kCtrl)
             Next kCtrl
+        End If
+    End If
+
+    ' --- ÉTAPE 8quater (ajout du 11/10/2026, pointage des operations) ---
+    ' Ecrit "Oui" dans la colonne Pointe des lignes que l'operateur a pointees pendant le
+    ' controle des categories. Les autres restent vides (= a analyser). Comme pour
+    ' SousCategorie, cette etape doit rester AVANT le tri de l'ETAPE 9 (lignes contigues).
+    ' Si la colonne n'est pas installee, on previent sans bloquer l'import.
+    If nbAjoutees > 0 Then
+        If IsArray(pointeFinaleCtrl) Then
+            Dim nbPointeesImport As Long, colPointeFeuille As Long
+            For kCtrl = 1 To nbAjoutees
+                If pointeFinaleCtrl(kCtrl) Then nbPointeesImport = nbPointeesImport + 1
+            Next kCtrl
+            If nbPointeesImport > 0 Then
+                On Error Resume Next
+                colPointeFeuille = 0
+                colPointeFeuille = wsDonnees.ListObjects(NOM_TABLE).ListColumns(mod_VarGlobales.NOM_COL_POINTE).index
+                On Error GoTo 0
+                If colPointeFeuille = 0 Then
+                    MsgBox "La colonne 'Pointe' est introuvable dans TblOperations." & vbCrLf & _
+                           "L'import continue, mais le pointage n'a pas ete enregistre pour " & _
+                           nbPointeesImport & " operation(s)." & vbCrLf & _
+                           "Executez AjouterColonnePointage (mod_Pointage) puis pointez-les via RechercherOperations.", _
+                           vbExclamation, "Colonne manquante"
+                Else
+                    For kCtrl = 1 To nbAjoutees
+                        If pointeFinaleCtrl(kCtrl) Then
+                            wsDonnees.Cells(premiereLigneEcriture + kCtrl - 1, colPointeFeuille).value = mod_VarGlobales.POINTE_OUI
+                        End If
+                    Next kCtrl
+                End If
+            End If
         End If
     End If
 

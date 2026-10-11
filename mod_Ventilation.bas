@@ -177,6 +177,9 @@ Public Function OuvrirVentilation(ByVal idTransaction As String, ByVal dateOp As
     On Error GoTo Erreur
 
     RemplirEntete ws, dateOp, tiers, libelle, montantOp, categorieActuelle, sousCategorieActuelle
+    ' Pointage de l'operation (ajout 11/10/2026, voir mod_Pointage). Pendant un import,
+    ' l'operation n'est pas encore dans TblOperations : le champ est alors grise.
+    mod_Pointage.AfficherPointageFormulaire ws, ws.Range(VEN_ADR_POINTE), idTransaction
     RafraichirAffichageLignes ws
 
     ' Petite aide : la saisie demarre avec la categorie actuelle de l'operation,

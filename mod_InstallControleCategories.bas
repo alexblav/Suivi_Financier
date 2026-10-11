@@ -54,6 +54,9 @@ Private Const CTRL_LIGNE_CORPS As Long = 8
 
 ' Informations de l'opération : étiquette en colonne B, valeur en colonne C
 Public Const CTRL_ADR_DATE As String = "C8"
+' Pointage (ajout 11/10/2026, voir mod_Pointage) : étiquette "Pointé" en D8, champ en E8
+' (liste Oui / vide). Sur la ligne de la date, pour ne décaler aucune autre ligne.
+Public Const CTRL_ADR_POINTE As String = "E8"
 Public Const CTRL_ADR_TIERS As String = "C9"      ' modifiable (sauf opération de santé)
 Public Const CTRL_ADR_LIBELLE As String = "C10"   ' modifiable (sauf opération de santé)
 Public Const CTRL_ADR_MONTANT As String = "C11"
@@ -137,6 +140,8 @@ Private Function TexteInstructions() As String
     t = t & Chr(10) & "Les op{e2}rations sont pr{e2}sent{e2}es une par une : v{e2}rifiez les informations affich{e2}es, corrigez si besoin "
     t = t & "[c:Cat{e2}gorie] puis [c:Sous-cat{e2}gorie] (listes d{e2}roulantes), puis passez {a2} l'op{e2}ration suivante. "
     t = t & "[c:Tiers] et [c:Libell{e2} / Notes] sont modifiables, sauf pour une op{e2}ration de sant{e2}."
+    t = t & Chr(10) & "[c:Point{e2}] indique si l'op{e2}ration a d{e2}j{a2} {e2}t{e2} analys{e2}e : choisissez Oui dans la liste pour la pointer (laissez vide sinon). "
+    t = t & "Retirer un pointage d{e2}j{a2} enregistr{e2} demande une confirmation. Comme le reste, il n'est pris en compte qu'{a2} l'enregistrement."
     t = t & Chr(10) & "Si des op{e2}rations n'ont pas pu {ea}tre reli{e2}es {a2} une sous-cat{e2}gorie interne, vous serez automatiquement "
     t = t & "repositionn{e2} sur la premi{e1}re d'entre elles."
     t = t & Chr(10) & "Boutons :"
@@ -168,6 +173,8 @@ Private Sub ConstruireInformations(ByVal ws As Worksheet)
 
     ' Valeurs en format TEXTE pour éviter toute réinterprétation par Excel.
     mod_InstallCommun.PoserChampLecture ws.Range(CTRL_ADR_DATE), "@"
+    ' Pointage : "Oui" = opération déjà analysée. Enregistré avec le reste, au clic sur Enregistrer.
+    mod_Pointage.PoserChampPointage ws, ws.Range("D8"), ws.Range(CTRL_ADR_POINTE)
     mod_InstallCommun.PoserChampSaisie ws.Range(CTRL_ADR_TIERS), "@"
     mod_InstallCommun.PoserChampSaisie ws.Range(CTRL_ADR_LIBELLE), "@", True
     mod_InstallCommun.PoserChampLecture ws.Range(CTRL_ADR_MONTANT), "@"

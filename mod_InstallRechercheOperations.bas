@@ -38,6 +38,13 @@ Option Explicit
 '   PHASE 6 (refonte "écran central") : 5 colonnes RÉELLES supplémentaires, affichées
 '   ou masquées dynamiquement selon le "préfiltre" demandé (DefinirColonnesVisibles) :
 '     L - Budget / M - StatutSante / N - SoldeSante / O - Date_consult / P - Spe_consult
+'   POINTAGE (ajout 11/10/2026) :
+'     Q - Pointe        : "Oui" = opération déjà analysée, vide = à analyser. Liste
+'                         déroulante Oui / vide, TOUJOURS visible, filtrable avec les flèches
+'                         d'Excel. Une modification s'enregistre tout de suite dans
+'                         TblOperations (retirer un "Oui" demande confirmation) ; une part de
+'                         ventilation affiche et modifie le pointage de son opération
+'                         d'origine (voir mod_Pointage).
 '
 '   Ce module ne construit QUE ce qui est fixe : l'en-tête commun (boutons, compteur,
 '   Instructions) et la ligne d'en-têtes du tableau. Les lignes du tableau elles-mêmes
@@ -98,6 +105,9 @@ Public Const RO_COL_STATUTSANTE As Long = 13
 Public Const RO_COL_SOLDESANTE As Long = 14
 Public Const RO_COL_DATECONSULT As Long = 15
 Public Const RO_COL_SPECONSULT As Long = 16
+' POINTAGE (ajout 11/10/2026) : 17e colonne du tableau, toujours visible
+Public Const RO_COL_POINTE As Long = 17
+Public Const RO_NB_COLONNES As Long = 17
 
 
 ' =====================================================================================
@@ -117,7 +127,7 @@ Sub CreerFeuilleRechercheOperations()
 
     ' Largeurs relevées sur la feuille réelle (A passe de 9 à 11 pour loger l'étiquette
     ' "Instructions"). Colonnes I à K et L à P : techniques ou affichées selon le
-    ' préfiltre (masquées plus bas); Q : libre; R : liste technique des catégories.
+    ' préfiltre (masquées plus bas); Q : Pointe (toujours visible); R : liste technique des catégories.
     mod_InstallCommun.MettreEnForme ws, Array(11, 9.07, 28.27, 8.93, 16.8, 24.67, 86.8, 7.87, _
                                               12, 10, 10, 12, 14, 12, 14, 16, 10.13, 28), RO_LIGNE_ENTETES
 
@@ -192,6 +202,9 @@ Private Function RO_TexteInstructions() As String
     t = t & Chr(10) & "Utilisez les fl{e1}ches de filtre de l'en-t{ea}te de chaque colonne pour restreindre la liste affich{e2}e. "
     t = t & "Corrigez directement la cellule [c:Notes], inscrivez Oui dans [c:Valider], puis cliquez sur [b:Appliquer les lignes marqu{e2}es] "
     t = t & "(possible sur plusieurs lignes {a2} la fois)."
+    t = t & Chr(10) & "La colonne [c:Pointe] indique les op{e2}rations d{e2}j{a2} analys{e2}es : choisissez Oui dans la liste pour pointer une op{e2}ration "
+    t = t & "(le changement est enregistr{e2} tout de suite). Pour retirer un pointage, videz la cellule : une confirmation vous est demand{e2}e. "
+    t = t & "Filtrez la colonne avec sa fl{e1}che pour ne garder que les op{e2}rations {a2} analyser. Une part de ventilation suit le pointage de son op{e2}ration."
     t = t & Chr(10) & "Double-cliquez sur une cellule [c:Categorie] pour l'{e2}diter, elle et sa [c:SousCategorie], via le formulaire [f:frm_ControleCategories] "
     t = t & "(elles ne se modifient plus avec [c:Valider]). Double-cliquez sur une cellule vide de la colonne [c:Ventile] pour d{e2}marrer une nouvelle "
     t = t & "ventilation sur cette op{e2}ration ([f:frm_Ventilation]), ou sur une cellule Oui pour revoir ou supprimer une ventilation d{e2}j{a2} enregistr{e2}e."
@@ -224,18 +237,22 @@ Private Function RO_ConstruireEnteteTableau(ByVal ws As Worksheet) As ListObject
 
     noms = Array("Valider", "Date", "Tiers", "Montant", "Categorie", "SousCategorie", "Notes", "Ventile", _
                  "ID_Transaction", "SourceLigne", "LigneVentilation", "Budget", "StatutSante", "SoldeSante", _
-                 "Date_consult", "Spe_consult")
+                 "Date_consult", "Spe_consult", mod_VarGlobales.NOM_COL_POINTE)
 
     For i = 0 To UBound(noms)
         ws.Cells(RO_LIGNE_ENTETES, i + 1).Value = noms(i)
     Next i
 
-    Set tbl = ws.ListObjects.Add(xlSrcRange, ws.Range(ws.Cells(RO_LIGNE_ENTETES, 1), ws.Cells(RO_LIGNE_ENTETES + 1, 16)), , xlYes)
+    Set tbl = ws.ListObjects.Add(xlSrcRange, ws.Range(ws.Cells(RO_LIGNE_ENTETES, 1), ws.Cells(RO_LIGNE_ENTETES + 1, RO_NB_COLONNES)), , xlYes)
     tbl.Name = NOM_TABLE_RECHERCHE
     tbl.TableStyle = ""           ' pas de style Excel : les couleurs suivent la charte commune
 
     mod_InstallCommun.PoserEnteteTableau tbl.HeaderRowRange
     ws.Rows(RO_LIGNE_ENTETES).RowHeight = mod_InstallCommun.FRM_H_LIGNE
+
+    ' Colonne Pointe : liste déroulante Oui / vide sur la ligne de départ (elle est reposée
+    ' à chaque ouverture de l'écran, voir mod_RechercheOperations).
+    mod_Pointage.PoserListePointage tbl.ListColumns(mod_VarGlobales.NOM_COL_POINTE).DataBodyRange
 
     Set RO_ConstruireEnteteTableau = tbl
 

@@ -32,6 +32,17 @@ Public colType As Long, colBudget As Long, colTiers As Long, colMoisBud As Long,
 Public colID As Long, colStatutSante As Long, colSoldeSante As Long, colDepassementHoraires As Long, colCommentaireSante As Long, colFranchise As Long
 Public colBeneficiaire As Long
 
+' --- POINTAGE DES OPÉRATIONS (ajout 11/10/2026, demande opérateur) -------------------
+' Index de la colonne "Pointe" de TblOperations (0 tant que la colonne n'existe pas :
+' tout code qui s'en sert DOIT vérifier qu'elle est différente de 0, comme pour
+' colSousCategorie). Une opération "pointée" est une opération DÉJÀ ANALYSÉE par
+' l'opérateur : la colonne contient "Oui" (pointée) ou rien (à analyser). Le pointage
+' est porté par l'opération bancaire ; les parts de ventilation reprennent celui de
+' leur opération d'origine. Toute la logique est dans mod_Pointage.
+Public colPointe As Long
+Public Const NOM_COL_POINTE As String = "Pointe"
+Public Const POINTE_OUI As String = "Oui"
+
 ' Décalage manuel d'une operation précise (ajout 03/10/2026, demande opérateur) : vaut
 ' 0 (ou vide) pour la grande majorité des operations, qui suivent la règle générale
 ' lue dans TblDecalagesBudget. Quand l'opérateur force un décalage pour UNE opération

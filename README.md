@@ -29,6 +29,7 @@ Ce document existe en deux formats, **toujours identiques** : `README.md` (lu su
 - [10. Le suivi des consommations](#10-le-suivi-des-consommations)
 - [11. Installation, maintenance et outils développeur](#11-installation-maintenance-et-outils-développeur)
 - [12. Déploiement et sauvegardes](#12-déploiement-et-sauvegardes-synchronisation-avec-le-fichier-central)
+- [13. Le pointage des opérations](#13-le-pointage-des-opérations)
 - [Glossaire](#glossaire)
 - [Points relevés à la lecture du code](#points-relevés-à-la-lecture-du-code)
 
@@ -173,6 +174,7 @@ Au début, une question : **« Les catégories ont-elles été correctement rens
 Pour chaque opération affichée, vous voyez la date, le montant, le Tiers, le libellé/Notes et la catégorie source, puis :
 
 - **Catégorie** puis **Sous-catégorie** (listes déroulantes ; la seconde se met à jour selon la première) ;
+- **Pointé** (liste Oui / vide), à côté de la date : « Oui » indique que vous avez déjà analysé l'opération (section 13). Comme le reste, il n'est écrit qu'au clic sur « Terminer et continuer » ;
 - **Tiers** et **Notes** modifiables, pour corriger un libellé bancaire peu lisible. Exception : pour une opération en « Frais, remb santé », ces deux champs sont **grisés et verrouillés**, parce que Notes contient la clé de consultation utilisée par le suivi santé (section 5) ;
 - les boutons **< Précédent** / **Suivant >** pour naviguer ;
 - **+ Nouvelle catégorie** pour créer une catégorie absente (voir ci-dessous) ;
@@ -393,6 +395,7 @@ Une ligne de texte au-dessus du tableau rappelle le filtre actif et le nombre de
 | Colonne | Signification | Modifiable ? |
 | --- | --- | --- |
 | Valider | Tapez « Oui » pour marquer une ligne à enregistrer | Oui |
+| Pointe | « Oui » = opération déjà analysée, vide = à analyser (section 13) ; dernière colonne, toujours visible | Oui, par la liste déroulante : enregistré tout de suite |
 | Date, Tiers, Montant | Données de l'opération | Non |
 | Categorie, SousCategorie | Rangement | Par double-clic sur Categorie ou SousCategorie |
 | Notes | Libellé ou clé santé | Oui, sauf une clé santé déjà valide (cellule grisée) |
@@ -759,6 +762,7 @@ Le classeur contient du code VBA (Alt+F11), versionné dans ce dépôt sous form
 | Échéancier | `InstallerEcheancier` | Coller `CodeBehind_frm_Echeance.txt` dans la feuille frm\_Echeance |
 | Contrôle des chèques de la liste (seul) | `MettreAJourControleCheques` | Pose la mise en forme conditionnelle de la colonne NumCheque sans reconstruire la liste |
 | Bloc prévisionnel de Synthese (seul) | `MettreAJourBlocSynthese` | Ajoute au bloc ce qui manque (ligne d'écart, bouton de contrôle du solde) ; **n'écrase rien d'existant** : libellés, valeurs, formules, formats, noms et boutons déjà présents (même déplacés à la main) restent tels quels |
+| Pointage des opérations | `AjouterColonnePointage`, puis reconstruire les 6 écrans concernés (section 13) | Ajoute la colonne Pointe à TblOperations ; aucun code à coller (événement dans `ThisWorkbook`) |
 | Analyse budgétaire | `InstallerAnalyse` | Aucun code à coller |
 | Suivi des consommations | `InstallerConsommations` | Coller `CodeBehind_frm_Releve.txt` dans frm\_Releve et `CodeBehind_frm_Contrat.txt` dans frm\_Contrat (ne pas les confondre avec les listes frm\_Releves et frm\_Contrats) |
 
@@ -828,7 +832,7 @@ Le classeur peut être protégé par un **mot de passe d'ouverture** (Fichier > 
 - **`AfficherEtatSynchro`** indique si le classeur local et le fichier central sont chiffrés (« oui » / « NON ») et si la passphrase est déjà connue pour la session : à lancer pour vérifier que tout est protégé ;
 - le fonctionnement de la comparaison (empreintes, conflits, verrou) ne change pas : les empreintes portent sur les données, pas sur les octets du fichier.
 
-Limite : la boîte de saisie de la passphrase est une `InputBox`, qui n'offre pas de saisie masquée (la passphrase est visible pendant la frappe).
+**Deux saisies à l'ouverture, c'est normal.** Excel demande la passphrase pour ouvrir le classeur local, mais ne la communique pas au code VBA : le code doit donc la redemander pour lire le central. Cette seconde saisie est **masquée** (étoiles) grâce au formulaire `frm_Passphrase`, créé une seule fois par la macro `InstallerFormPassphrase` (module `mod_InstallPassphrase`, Alt+F8 ; demande « Accès approuvé au modèle d'objet du projet VBA », déjà nécessaire à ImportUTF8). Tant que ce formulaire n'est pas installé, le code se rabat sur une `InputBox`, dont la saisie est **visible**.
 
 ### Sécurités et macros utiles
 
@@ -836,12 +840,47 @@ Limite : la boîte de saisie de la passphrase est une `InputBox`, qui n'offre pa
 - un fichier `.verrou` évite deux synchronisations simultanées ;
 - si la structure diffère (colonne ajoutée après une mise à jour du classeur), la récupération est impossible : le code propose de remplacer le central par une copie complète du classeur local ;
 - macros : `SynchroniserMaintenant`, `DefinirFichierCentral` (changer ou créer le fichier central), `AfficherEtatSynchro`.
-- **Installation** : importer `mod_Synchro.bas` (ImportUTF8) et remplacer le contenu du module `ThisWorkbook` par `ThisWorkbook.bas` (nouveaux événements `Workbook_Open` et `Workbook_BeforeClose`). Pour activer la passphrase, chiffrer ensuite le classeur et le central comme décrit ci-dessus ; la suppression des fichiers OFX/CSV est dans `mod_ImportOFX.bas` (à importer aussi).
+- **Installation** : importer `mod_Synchro.bas` (ImportUTF8) et remplacer le contenu du module `ThisWorkbook` par `ThisWorkbook.bas` (nouveaux événements `Workbook_Open` et `Workbook_BeforeClose`). Pour activer la passphrase, chiffrer ensuite le classeur et le central comme décrit ci-dessus ; la suppression des fichiers OFX/CSV est dans `mod_ImportOFX.bas` (à importer aussi). Importer aussi `mod_InstallPassphrase.bas` et lancer `InstallerFormPassphrase` une fois.
+
+## 13. Le pointage des opérations
+
+**Pointer** une opération, c'est indiquer qu'on l'a **déjà analysée**. Cela permet de voir d'un coup d'œil, à l'import comme dans les recherches, ce qui reste à examiner. Le pointage se saisit avec une **liste déroulante à deux valeurs : « Oui » ou vide**.
+
+### Les règles
+
+- Le pointage est stocké dans la colonne **Pointe** de TblOperations : « Oui » = pointée, vide = à analyser. Toutes les opérations existantes sont d'abord « à analyser ».
+- Il appartient à l'**opération bancaire**. Une **part de ventilation** n'a pas de pointage propre : elle affiche celui de son opération d'origine, et le modifier modifie celui de l'opération (donc celui de toutes ses parts).
+- **Retirer** un pointage (Oui → vide) demande **toujours une confirmation**, bouton « Non » par défaut, pour éviter une dévalidation par erreur. Pointer, lui, ne demande rien. Quand on retire plusieurs pointages d'un coup (collage dans la colonne de l'écran de recherche), une seule confirmation annonce le nombre d'opérations concernées.
+- Une valeur autre que « Oui » ou vide est refusée.
+
+### Où le pointage apparaît
+
+| Écran | Où | Quand le changement est enregistré |
+| --- | --- | --- |
+| frm\_ControleCategories (import, ou correction depuis la recherche) | Champ **Pointé**, à droite de la date | À l'enregistrement du formulaire, avec la catégorie : « Annuler » ne modifie rien. À l'import, les opérations pointées sont écrites avec « Oui » dans Import\_data |
+| frm\_RechercheOperations | Colonne **Pointe** (la plus à droite, toujours visible) ; la ligne du filtre actif affiche « Pointées : x/y » | Tout de suite, dès la sélection dans la liste |
+| frm\_Ventilation | Champ **Pointé**, à droite de la date | Tout de suite. Pendant un import, l'opération n'est pas encore enregistrée : le champ est grisé et se règle dans le contrôle des catégories |
+| frm\_RapprochementNotes | Champ **Pointé**, sur la ligne du Tiers | Tout de suite |
+| frm\_GenerationCle | Champ **Pointé**, sous le bloc « Opération concernée » | Tout de suite |
+| frm\_SuiviSante | Champ **Pointé**, sur la ligne de la spécialité | Tout de suite (indépendamment du bouton Valider) |
+
+Dans l'écran de recherche, la **flèche de filtre** de la colonne Pointe suffit à ne garder que les opérations à analyser (cocher « (Vides) ») ou déjà pointées.
+
+Les écrans de résolution des cas ambigus (frm\_ResolutionCategories) et de saisie d'une échéance n'affichent pas le pointage : le premier précède le contrôle des catégories, qui est l'endroit où l'on pointe à l'import ; le second ne décrit pas une opération enregistrée.
+
+### Installer le pointage
+
+1. Importer les modules modifiés (`ImportUTF8`) : `mod_Pointage` (nouveau), `mod_VarGlobales`, `mod_Display`, `mod_ControleCategories`, `mod_ImportOFX`, `mod_RechercheOperations`, `mod_Ventilation`, `mod_FormulairesNotes`, `mod_SuiviSanteFormulaire`, ainsi que les modules d'installation `mod_InstallControleCategories`, `mod_InstallRechercheOperations`, `mod_InstallVentilation`, `mod_InstallFormulairesNotes` et `mod_InstallSuiviSanteSheet`. Remplacer le contenu de `ThisWorkbook` par `ThisWorkbook.bas` (nouvel événement `Workbook_SheetChange`, qui aiguille toutes les saisies de pointage).
+2. Lancer `AjouterColonnePointage` (ajoute la colonne à TblOperations).
+3. Reconstruire les écrans pour y faire apparaître le champ : `CreerFeuilleControleCategories`, `CreerFeuilleRechercheOperations`, `PreparerPhase4Ventilation` (ou `CreerFeuilleVentilation`), `CreerFeuilleRapprochementNotes`, `CreerFeuilleGenerationCle` et `CreerFeuilleSuiviSante`. **Attention** : reconstruire un écran efface ses retouches manuelles ; si le classeur est partagé via la synchronisation (section 12), le nouveau tableau fait aussi changer la structure : prévoir la mise à jour du fichier central. Aucun nouveau code n'est à coller dans les feuilles.
+
+Un écran **pas encore reconstruit** continue de fonctionner comme avant : il n'affiche simplement pas le pointage. Si l'écran de recherche est reconstruit avant `AjouterColonnePointage`, sa colonne Pointe reste vide et un message invite à installer la colonne dès qu'on y touche.
 
 ## Glossaire
 
 | Terme | Définition |
 | --- | --- |
+| Pointage / opération pointée | Marque « Oui » (colonne Pointe de TblOperations) indiquant qu'une opération a déjà été analysée ; vide = à analyser. |
 | OFX | Format de fichier bancaire standard ; donne les opérations et leur identifiant, pas la catégorie. |
 | FITID / ID\_Transaction | Identifiant unique d'une opération donné par la banque ; sert d'anti-doublon et relie une opération à ses parts ventilées. |
 | Catégorie source | La catégorie telle que la banque l'envoie dans le CSV. |

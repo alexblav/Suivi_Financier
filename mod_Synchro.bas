@@ -716,13 +716,27 @@ Fin:
 End Function
 
 ' Demande la passphrase une seule fois par session Excel ; elle n'est JAMAIS écrite sur disque.
-' (InputBox n'offre pas de saisie masquée : la passphrase est visible pendant la frappe.)
+' Saisie MASQUÉE via le formulaire frm_Passphrase (créé par mod_InstallPassphrase.InstallerFormPassphrase) ;
+' s'il n'est pas installé, repli sur une InputBox (saisie visible). Excel ne communique pas le mot de
+' passe saisi à l'ouverture du classeur local : une seconde saisie est donc inévitable.
 Private Function DemanderPassphrase(ByVal erreur As Boolean) As Boolean
-    Dim v As String, msg As String
+    Dim v As String, msg As String, f As Object
     msg = T("Le fichier central est prot{e2}g{e2} par une passphrase.") & vbCrLf & _
           T("Saisissez-la (elle ne sera demand{e2}e qu'une fois pour cette session) :")
     If erreur Then msg = T("Passphrase incorrecte.") & vbCrLf & vbCrLf & msg
-    v = InputBox(msg, TITRE)
+
+    On Error Resume Next
+    Set f = VBA.UserForms.Add("frm_Passphrase")      ' liaison tardive : compile même si le formulaire est absent
+    On Error GoTo 0
+    If Not f Is Nothing Then
+        f.Preparer msg
+        f.Show vbModal
+        If f.Valide Then v = f.Saisie
+        Unload f
+    Else
+        v = InputBox(msg, TITRE)
+    End If
+
     If Len(v) > 0 Then mPassphrase = v: DemanderPassphrase = True
 End Function
 

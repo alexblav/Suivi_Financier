@@ -69,6 +69,9 @@ Private Const VEN_LIGNE_INSTRUCTIONS As Long = 4
 Private Const VEN_LIGNE_CORPS As Long = 6
 
 Public Const VEN_ADR_DATE As String = "C6"
+' Pointage (ajout 11/10/2026, voir mod_Pointage) : étiquette "Pointé" en D6, champ en E6,
+' sur la ligne de la date (C6 n'est donc plus fusionnée avec D6:E6).
+Public Const VEN_ADR_POINTE As String = "E6"
 Public Const VEN_ADR_TIERS As String = "C7"
 Public Const VEN_ADR_LIBELLE As String = "C8"
 Public Const VEN_ADR_MONTANT As String = "C9"
@@ -274,10 +277,12 @@ Private Function TexteInstructions() As String
 
     t = "Ce formulaire permet de ventiler une op{e2}ration bancaire entre plusieurs cat{e2}gories et sous-cat{e2}gories."
     t = t & Chr(10) & "Le haut du formulaire rappelle l'op{e2}ration ([c:Date], [c:Tiers], [c:Libell{e2} / Notes], [c:Montant], "
-    t = t & "[c:Cat{e2}gorie actuelle]) et le calcul : [c:Montant {a2} ventiler], [c:Total saisi] et [c:Reste {a2} ventiler]. "
+    t = t & "[c:Cat{e2}gorie actuelle], [c:Point{e2}]) et le calcul : [c:Montant {a2} ventiler], [c:Total saisi] et [c:Reste {a2} ventiler]. "
     t = t & "Le tableau liste les lignes d{e2}j{a2} ajout{e2}es. Pour en ajouter une, renseignez [c:Cat{e2}gorie], [c:Sous-cat{e2}gorie], "
     t = t & "[c:Montant] (et [c:Notes] si besoin) dans la zone de saisie, puis cliquez sur [b:Ajouter la ligne]. "
     t = t & "La ventilation ne peut {ea}tre enregistr{e2}e que lorsque le [c:Reste {a2} ventiler] est exactement nul."
+    t = t & Chr(10) & "[c:Point{e2}] indique si l'op{e2}ration est d{e2}j{a2} analys{e2}e (Oui) ; il se modifie ici et s'enregistre tout de suite "
+    t = t & "(retirer un pointage demande confirmation), sauf pendant un import : il se choisit alors dans [f:frm_ControleCategories]."
     t = t & Chr(10) & "Boutons :"
     t = t & Chr(10) & "- [b:Enregistrer] : enregistre toutes les lignes et referme le formulaire."
     t = t & Chr(10) & "- [b:Annuler] : abandonne la saisie en cours sans rien enregistrer."
@@ -307,7 +312,8 @@ Private Sub ConstruireInformations(ByVal ws As Worksheet)
     mod_InstallCommun.PoserEtiquette ws.Range("B9"), "Montant"
     mod_InstallCommun.PoserEtiquette ws.Range("B10"), mod_Display.FR("Cat{e2}gorie actuelle")
 
-    mod_InstallCommun.PoserChampLecture ws.Range("C6:E6"), "@"
+    mod_InstallCommun.PoserChampLecture ws.Range("C6"), "@"
+    mod_Pointage.PoserChampPointage ws, ws.Range("D6"), ws.Range(VEN_ADR_POINTE)
     mod_InstallCommun.PoserChampLecture ws.Range("C7:E7"), "@"
     mod_InstallCommun.PoserChampLecture ws.Range("C8:E8"), "@", True
     mod_InstallCommun.PoserChampLecture ws.Range("C9:E9"), "@"

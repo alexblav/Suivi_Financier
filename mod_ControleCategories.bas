@@ -51,8 +51,13 @@ Public Const CTRL_OP_TIERS As Long = 2
 Public Const CTRL_OP_LIBELLE As Long = 3
 Public Const CTRL_OP_MONTANT As Long = 4
 Public Const CTRL_OP_CATSOURCE As Long = 5
+'                             Ajout 11/10/2026 :
+' ops(i, CTRL_OP_POINTE)    = pointage de départ ("Oui" ou vide). Facultatif : l'import le laisse
+'                             vide (nouvelle opération = à analyser) ; l'édition directe depuis
+'                             l'écran de recherche y met le pointage actuel de l'opération.
 Public Const CTRL_OP_ID As Long = 6
-Public Const CTRL_OP_NBCOL As Long = 6
+Public Const CTRL_OP_POINTE As Long = 7
+Public Const CTRL_OP_NBCOL As Long = 7
 
 ' --- Réglage : présenter aussi les opérations "non rangées" après un OUI ? ------------
 Private Const CTRL_FORCER_NON_RANGEES As Boolean = True
@@ -102,6 +107,10 @@ Private g_CtrlSousAvantVen() As String
 Private g_CtrlTiers() As String
 Private g_CtrlLibelle() As String
 Private g_CtrlVu() As Boolean            ' opération déjà affichée / enregistrée
+' Ajout 11/10/2026 (pointage, voir mod_Pointage) : pointage COURANT de chaque opération
+' (Vrai = pointée, c'est-à-dire déjà analysée). Valeur de départ lue dans ops, puis mise à
+' jour par EnregistrerOperationAffichee depuis la cellule "Pointé" du formulaire.
+Private g_CtrlPointe() As Boolean
 Private g_CtrlARanger() As Boolean       ' correspondance introuvable (à ranger à la main)
 
 Private g_CtrlIndices() As Long          ' opérations présentées : position -> numéro d'opération
@@ -152,6 +161,10 @@ Private g_CtrlRefN As Long
 '                raison, en mode "une seule opération" (uneSeuleOperation:=True; voir
 '                plus bas, pour l'édition directe depuis l'écran de recherche), ces deux
 '                champs restent également figés : cette correction est réservée à l'import.
+'   pointeFinale : (ajout du 11/10/2026, pointage) paramètre de SORTIE facultatif. S'il est
+'                fourni (variable Variant), il reçoit un tableau de Boolean (1..nbOps) : le
+'                pointage retenu pour chaque opération (Vrai = pointée). Sans lui, le
+'                pointage choisi dans le formulaire est simplement ignoré.
 '   uneSeuleOperation, categorieActuelleUnique, sousCategorieActuelleUnique :
 '                (ajout du 02/10/2026, édition directe depuis l'écran de recherche) :
 '                paramètres facultatifs, NON utilisés par l'import (valeurs par défaut
@@ -168,7 +181,8 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
                                     ByRef tiersFinale() As String, ByRef libelleFinale() As String, _
                                     Optional ByVal uneSeuleOperation As Boolean = False, _
                                     Optional ByVal categorieActuelleUnique As String = "", _
-                                    Optional ByVal sousCategorieActuelleUnique As String = "") As Boolean
+                                    Optional ByVal sousCategorieActuelleUnique As String = "", _
+                                    Optional ByRef pointeFinale As Variant) As Boolean
 
     Dim ws As Worksheet
     Dim i As Long, nbARanger As Long
@@ -212,6 +226,8 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
     ReDim g_CtrlARanger(1 To nbOps)
     ReDim g_CtrlTiers(1 To nbOps)
     ReDim g_CtrlLibelle(1 To nbOps)
+    ReDim g_CtrlPointe(1 To nbOps)
+    mod_Pointage.ViderPointageImport
 
     ' --- ÉTAPE 1 : application automatique de la correspondance --------------------------
     For i = 1 To nbOps
@@ -232,6 +248,10 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
         ' EnregistrerOperationAffichee).
         g_CtrlTiers(i) = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_TIERS))
         g_CtrlLibelle(i) = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_LIBELLE))
+        g_CtrlPointe(i) = mod_Pointage.TexteEnPointage(g_CtrlOps(i, CTRL_OP_POINTE))
+        If Not g_CtrlModeUnique Then
+            mod_Pointage.DefinirPointageImport mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_ID)), g_CtrlPointe(i)
+        End If
     Next i
 
     ' Ajout du 02/10/2026 : en mode "édition directe" (uneSeuleOperation:=True), on ignore
@@ -311,7 +331,10 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
         ReDim sousAvantVentilation(1 To nbOps)
         ReDim tiersFinale(1 To nbOps)
         ReDim libelleFinale(1 To nbOps)
+        Dim pointeTemp() As Boolean
+        ReDim pointeTemp(1 To nbOps)
         For i = 1 To nbOps
+            pointeTemp(i) = g_CtrlPointe(i)
             catFinale(i) = g_CtrlCat(i)
             sousFinale(i) = g_CtrlSous(i)
             catAvantVentilation(i) = g_CtrlCatAvantVen(i)
@@ -319,13 +342,16 @@ Public Function ControlerCategories(ByVal ops As Variant, ByVal nbOps As Long, _
             tiersFinale(i) = g_CtrlTiers(i)
             libelleFinale(i) = g_CtrlLibelle(i)
         Next i
+        If Not IsMissing(pointeFinale) Then pointeFinale = pointeTemp
     End If
+    mod_Pointage.ViderPointageImport
     Exit Function
 
 Erreur:
     ' Erreur imprévue : on remet Excel en état normal avant d'informer l'opérateur.
     Application.EnableEvents = True
     g_CtrlEnCours = False
+    mod_Pointage.ViderPointageImport
     MsgBox mod_Display.FR("Erreur inattendue dans le contr{o2}le des cat{e2}gories :") & vbCrLf & _
            Err.Number & " - " & Err.Description, vbCritical
     On Error Resume Next
@@ -380,6 +406,7 @@ Public Function ModifierCategorieOperation(ByVal tblOp As ListObject, ByVal lign
     Dim tiersFinaleInutilise() As String, libelleFinaleInutilise() As String
     Dim categorieActuelle As String, sousCategorieActuelle As String
     Dim colCatAvant As Long, colSousAvant As Long
+    Dim pointeRes As Variant            ' pointage retenu (ajout 11/10/2026)
 
     ModifierCategorieOperation = False
     If tblOp Is Nothing Then Exit Function
@@ -411,17 +438,24 @@ Public Function ModifierCategorieOperation(ByVal tblOp As ListObject, ByVal lign
     ops(1, CTRL_OP_MONTANT) = mod_DataStructure.ToDouble(donneesLigne(1, colMontant))
     ops(1, CTRL_OP_CATSOURCE) = ""
     ops(1, CTRL_OP_ID) = mod_DataStructure.CellText(donneesLigne(1, colID))
+    ' Pointage actuel de l'opération (ajout 11/10/2026) ; vide si la colonne n'est pas installée.
+    If colPointe <> 0 Then ops(1, CTRL_OP_POINTE) = donneesLigne(1, colPointe)
 
     If Not ControlerCategories(ops, 1, catFinale, sousFinale, catAvantVen, sousAvantVen, _
                                tiersFinaleInutilise, libelleFinaleInutilise, _
                                uneSeuleOperation:=True, _
                                categorieActuelleUnique:=categorieActuelle, _
-                               sousCategorieActuelleUnique:=sousCategorieActuelle) Then
+                               sousCategorieActuelleUnique:=sousCategorieActuelle, _
+                               pointeFinale:=pointeRes) Then
         Exit Function    ' annulation : rien n'est écrit
     End If
 
     ' --- Écriture du résultat validé ---
     tblOp.DataBodyRange.Cells(ligneOp, colCategorie).value = catFinale(1)
+    ' Pointage (ajout 11/10/2026) : écrit avec le reste, donc annulé par "Annuler".
+    If colPointe <> 0 And IsArray(pointeRes) Then
+        tblOp.DataBodyRange.Cells(ligneOp, colPointe).value = mod_Pointage.TextePointage(CBool(pointeRes(1)))
+    End If
     If colSousCategorie <> 0 Then tblOp.DataBodyRange.Cells(ligneOp, colSousCategorie).value = sousFinale(1)
 
     ' Catégorie d'avant ventilation : ControlerCategories ne la renseigne QUE si
@@ -538,6 +572,22 @@ Private Function TiersNotesEditables(ByVal i As Long) As Boolean
 End Function
 
 
+' Vrai si la feuille a été reconstruite avec le champ "Pointé" (étiquette à gauche du champ).
+' Sans cela (écran ancien), le pointage n'est ni affiché ni lu.
+Private Function PointageDisponible(ByVal ws As Worksheet) As Boolean
+    PointageDisponible = mod_Pointage.ChampPresent(ws.Range(CTRL_ADR_POINTE))
+End Function
+
+' Relit la cellule "Pointé" du formulaire et la mémorise pour l'opération affichée.
+Private Sub MemoriserPointageAffiche(ByVal ws As Worksheet, ByVal i As Long)
+    If Not PointageDisponible(ws) Then Exit Sub
+    g_CtrlPointe(i) = mod_Pointage.TexteEnPointage(ws.Range(CTRL_ADR_POINTE).value)
+    If Not g_CtrlModeUnique Then
+        mod_Pointage.DefinirPointageImport mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_ID)), g_CtrlPointe(i)
+    End If
+End Sub
+
+
 ' =====================================================================================
 ' AFFICHAGE DE L'OPÉRATION COURANTE (position g_CtrlPos)
 ' =====================================================================================
@@ -554,7 +604,7 @@ Private Sub AfficherOperation(ByVal ws As Worksheet)
     ' On désactive les événements pendant NOS écritures : sinon, écrire dans la cellule
     ' Categorie déclencherait Worksheet_Change comme si l'opérateur l'avait saisie.
     evenementsAvant = Application.EnableEvents
-    Application.EnableEvents = False
+    FixerEvenements False
     On Error GoTo Sortie
 
     ' --- Compteur et informations (lecture seule) ---
@@ -596,6 +646,15 @@ Private Sub AfficherOperation(ByVal ws As Worksheet)
     ws.Range(CTRL_ADR_CAT).value = g_CtrlCat(i)
     ws.Range(CTRL_ADR_SOUS).value = g_CtrlSous(i)
 
+    ' --- Pointage (ajout 11/10/2026) : valeur choisie jusqu'ici pour cette opération. Elle
+    ' n'est écrite dans TblOperations qu'à l'enregistrement du formulaire (écriture différée :
+    ' "Annuler" ne doit rien modifier), d'où ecritureDirecte:=False. Si le champ n'existe pas
+    ' encore sur la feuille (écran non reconstruit), rien n'est affiché.
+    If PointageDisponible(ws) Then
+        mod_Pointage.AfficherPointageFormulaire ws, ws.Range(CTRL_ADR_POINTE), _
+            mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_ID)), False, g_CtrlPointe(i)
+    End If
+
     PoserValidationCategorie ws.Range(CTRL_ADR_CAT)
 
     RemplirListeSousCategories ws, g_CtrlCat(i)
@@ -621,7 +680,7 @@ Sortie:
     ' Ce bloc s'exécute TOUJOURS (fin normale ou erreur) : on réactive les événements.
     numErr = Err.Number
     descErr = Err.Description
-    Application.EnableEvents = evenementsAvant
+    FixerEvenements evenementsAvant
     If numErr <> 0 Then Err.Raise numErr, "AfficherOperation", descErr
 
 End Sub
@@ -734,13 +793,13 @@ Public Sub CtrlTraiterChangement(ByVal ws As Worksheet, ByVal Target As Range)
     If Target.Address(False, False) <> CTRL_ADR_CAT Then Exit Sub   ' autre cellule : on ignore
 
     On Error GoTo Sortie
-    Application.EnableEvents = False        ' évite que nos écritures relancent l'événement
+    FixerEvenements False                   ' évite que nos écritures relancent l'événement
     ws.Range(CTRL_ADR_SOUS).ClearContents
     RemplirListeSousCategories ws, mod_DataStructure.CellText(Target.value)
 
 Sortie:
     numErr = Err.Number
-    Application.EnableEvents = True
+    FixerEvenements True
     If numErr <> 0 Then MsgBox mod_Display.FR("Erreur lors du changement de cat{e2}gorie : ") & Err.Description, vbExclamation
 
 End Sub
@@ -802,6 +861,8 @@ Private Function EnregistrerOperationAffichee(ByVal ws As Worksheet) As Boolean
         g_CtrlTiers(i) = mod_DataStructure.CellText(ws.Range(CTRL_ADR_TIERS).value)
         g_CtrlLibelle(i) = mod_DataStructure.CellText(ws.Range(CTRL_ADR_LIBELLE).value)
     End If
+
+    MemoriserPointageAffiche ws, i       ' pointage (ajout 11/10/2026)
 
     g_CtrlVu(i) = True
     EnregistrerOperationAffichee = True
@@ -1031,6 +1092,8 @@ Public Sub ControleVentiler()
         g_CtrlSousAvantVen(i) = g_CtrlSous(i)
     End If
 
+    MemoriserPointageAffiche ws, i       ' pointage choisi jusqu'ici (affiché dans frm_Ventilation)
+
     g_CtrlVerrouActif = False
 
     ok = mod_Ventilation.OuvrirVentilation(idTransaction, g_CtrlOps(i, CTRL_OP_DATE), _
@@ -1124,9 +1187,33 @@ End Sub
 
 ' Message d'erreur commun aux boutons (le formulaire reste ouvert).
 Private Sub SignalerErreur(ByVal nomProcedure As String)
-    Application.EnableEvents = True
-    MsgBox mod_Display.FR("Erreur dans ") & nomProcedure & " : " & Err.Number & " - " & Err.Description, vbCritical
+    Dim numErr As Long, descErr As String
+    numErr = Err.Number
+    descErr = Err.Description
+    FixerEvenements True                      ' ne doit jamais planter lui-même
+    MsgBox mod_Display.FR("Erreur dans ") & nomProcedure & " : " & numErr & " - " & descErr, vbCritical
 End Sub
+
+' Active/désactive Application.EnableEvents en tolérant le refus transitoire d'Excel
+' (erreur 50290 : cellule encore en cours de validation juste après le choix dans un menu
+' déroulant, constaté le 11/10/2026). On laisse Excel finir (DoEvents) puis on réessaie.
+' Renvoie False si Excel refuse toujours après les essais (sans lever d'erreur).
+Private Function FixerEvenements(ByVal actif As Boolean) As Boolean
+    Dim essai As Long
+    For essai = 1 To 20
+        On Error Resume Next
+        Application.EnableEvents = actif
+        If Err.Number = 0 Then
+            On Error GoTo 0
+            FixerEvenements = True
+            Exit Function
+        End If
+        Err.Clear
+        On Error GoTo 0
+        DoEvents
+        Application.Wait Now + TimeSerial(0, 0, 0) + 0.00000116   ' ~0,1 s
+    Next essai
+End Function
 
 
 ' =====================================================================================

@@ -97,12 +97,13 @@ Private Const GC_LIGNE_CORPS As Long = 6
 Private Const GC_LIGNE_TITRE_OPERATION As Long = 6
 Private Const GC_LIGNE_OPERATION As Long = 7            ' Date / Tiers
 Private Const GC_LIGNE_CHEQUE As Long = 8               ' Num. chèque / Notes
-Private Const GC_LIGNE_TITRE_GENERATION As Long = 10
-Private Const GC_LIGNE_DATE_CONSULT As Long = 11
-Private Const GC_LIGNE_SPECIALITE As Long = 12
-Private Const GC_LIGNE_BENEFICIAIRE As Long = 13
-Private Const GC_LIGNE_MONTANT As Long = 14
-Private Const GC_LIGNE_CLE_GENEREE As Long = 16
+Private Const GC_LIGNE_POINTE As Long = 9               ' Pointé (ajout 11/10/2026, voir mod_Pointage)
+Private Const GC_LIGNE_TITRE_GENERATION As Long = 11
+Private Const GC_LIGNE_DATE_CONSULT As Long = 12
+Private Const GC_LIGNE_SPECIALITE As Long = 13
+Private Const GC_LIGNE_BENEFICIAIRE As Long = 14
+Private Const GC_LIGNE_MONTANT As Long = 15
+Private Const GC_LIGNE_CLE_GENEREE As Long = 17
 
 
 ' =====================================================================================
@@ -170,6 +171,8 @@ Private Function RN_TexteInstructions() As String
     t = t & Chr(10) & "S{e2}lectionnez la [c:Date consultation] dans la liste. Si elle est absente, cliquez sur [b:Pas de correspondance] pour cr{e2}er une nouvelle cl{e2}. "
     t = t & "Si elle est pr{e2}sente, continuez {a2} descendre : [c:Sp{e2}cialit{e2}], puis [c:B{e2}n{e2}ficiaire], puis [c:Montant], "
     t = t & "pour retrouver la cl{e2} parmi celles d{e2}j{a2} connues ; elle s'affiche dans [c:Cl{e2} trouv{e2}e]."
+    t = t & Chr(10) & "[c:Point{e2}] indique si l'op{e2}ration est d{e2}j{a2} analys{e2}e (Oui) ; il se modifie ici et s'enregistre tout de suite "
+    t = t & "(retirer un pointage demande confirmation)."
     t = t & Chr(10) & "Boutons :"
     t = t & Chr(10) & "- [b:Valider] : applique la cl{e2} trouv{e2}e {a2} cette op{e2}ration. ATTENTION : elle ne sera PLUS JAMAIS repropos{e2}e "
     t = t & "(rapprochement consid{e2}r{e2} r{e2}gl{e2} d{e2}finitivement)."
@@ -191,7 +194,7 @@ End Function
 '   10 : Date opération | Chèque         | Montant
 '   11 : Catégorie      | Sous-catégorie | (bouton "Changer la catégorie")
 '   12 : Notes (valeur fusionnée de C à G)
-'   13 : Tiers (valeur fusionnée de C à G)
+'   13 : Tiers (valeur fusionnée de C à E)   | Pointé (ajout 11/10/2026, étiquette F, champ G)
 Private Sub RN_ConstruireBlocOperation(ByVal ws As Worksheet)
 
     mod_InstallCommun.PoserTitreBloc ws.Range(FN_COL_LIBELLE_1 & RN_LIGNE_TITRE_OPERATION & ":" & FN_COL_VALEUR_3 & RN_LIGNE_TITRE_OPERATION), _
@@ -226,8 +229,11 @@ Private Sub RN_ConstruireBlocOperation(ByVal ws As Worksheet)
 
     ' Ligne 13 : Tiers (valeur fusionnée sur C:G : "[ligne de ventilation]" peut s'y ajouter)
     mod_InstallCommun.PoserEtiquette ws.Range(FN_COL_LIBELLE_1 & RN_LIGNE_TIERS), "Tiers"
-    mod_InstallCommun.PoserChampLecture ws.Range(FN_COL_VALEUR_1 & RN_LIGNE_TIERS & ":" & FN_COL_VALEUR_3 & RN_LIGNE_TIERS), "@"
+    mod_InstallCommun.PoserChampLecture ws.Range(FN_COL_VALEUR_1 & RN_LIGNE_TIERS & ":" & FN_COL_VALEUR_2 & RN_LIGNE_TIERS), "@"
     mod_InstallCommun.PoserNom ws, "rnTiersOp", ws.Range(FN_COL_VALEUR_1 & RN_LIGNE_TIERS)
+    ' Pointage de l'opération (ajout 11/10/2026) : étiquette en F, champ en G, nom rnPointe.
+    mod_Pointage.PoserChampPointage ws, ws.Range(FN_COL_LIBELLE_3 & RN_LIGNE_TIERS), _
+        ws.Range(FN_COL_VALEUR_3 & RN_LIGNE_TIERS), "rnPointe"
 
     ws.Rows(RN_LIGNE_TIERS + 1).RowHeight = mod_InstallCommun.FRM_H_SEP
 
@@ -378,6 +384,8 @@ Private Function GC_TexteInstructions() As String
     t = t & Chr(10) & "- [b:Valider] : {e2}crit la cl{e2} g{e2}n{e2}r{e2}e dans l'op{e2}ration. ATTENTION : une fois [b:Valider] cliqu{e2}, la cl{e2} est {e2}crite "
     t = t & "D{E2}FINITIVEMENT, m{ea}me approximative ou incorrecte : l'op{e2}ration ne sera PLUS JAMAIS repropos{e2}e pour correction automatique "
     t = t & "(seule une modification manuelle dans [f:Import_Data] pourrait la faire r{e2}appara{i2}tre)."
+    t = t & Chr(10) & "[c:Point{e2}] indique si l'op{e2}ration est d{e2}j{a2} analys{e2}e (Oui) ; il se modifie ici et s'enregistre tout de suite "
+    t = t & "(retirer un pointage demande confirmation)."
     t = t & Chr(10) & "- [b:Passer] : laisse cette op{e2}ration de c{o2}t{e2} pour y revenir plus tard (utile si vous n'{ea}tes pas certain des informations)."
     t = t & Chr(10) & "- [b:Retour] : revient sur [f:frm_RapprochementNotes] pour la m{ea}me op{e2}ration, sans rien modifier (par exemple apr{e1}s une erreur de clic sur [b:Pas de correspondance])."
     t = t & Chr(10) & "- [b:+] (en face de [c:Sp{e2}cialit{e2}] et [c:B{e2}n{e2}ficiaire]) : ajoute une nouvelle valeur {a2} la liste."
@@ -389,6 +397,7 @@ End Function
 ' Bloc "Opération concernée" (lecture seule)
 '   7 : Date | Tiers (valeur fusionnée de E à G)
 '   8 : Num. chèque | Notes (valeur fusionnée de E à G, sur 2 lignes)
+'   9 : Pointé (ajout 11/10/2026)
 Private Sub GC_ConstruireBlocOperation(ByVal ws As Worksheet)
 
     mod_InstallCommun.PoserTitreBloc ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_TITRE_OPERATION & ":" & FN_COL_VALEUR_3 & GC_LIGNE_TITRE_OPERATION), _
@@ -410,7 +419,11 @@ Private Sub GC_ConstruireBlocOperation(ByVal ws As Worksheet)
     mod_InstallCommun.PoserNom ws, "gcNumCheque", ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_CHEQUE)
     mod_InstallCommun.PoserNom ws, "gcNotes", ws.Range(FN_COL_VALEUR_2 & GC_LIGNE_CHEQUE)
 
-    ws.Rows(GC_LIGNE_CHEQUE + 1).RowHeight = mod_InstallCommun.FRM_H_SEP
+    ' Pointage de l'opération (ajout 11/10/2026) : champ rangé par son nom gcPointe.
+    mod_Pointage.PoserChampPointage ws, ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_POINTE), _
+        ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_POINTE), "gcPointe"
+
+    ws.Rows(GC_LIGNE_POINTE + 1).RowHeight = mod_InstallCommun.FRM_H_SEP
 
 End Sub
 

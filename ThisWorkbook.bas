@@ -102,6 +102,15 @@ Private Sub Workbook_SheetBeforeDoubleClick(ByVal Sh As Object, ByVal Target As 
  
 End Sub
 
+' AJOUT 11/10/2026 (pointage des opérations, voir mod_Pointage) : toute modification d'une
+' cellule de pointage est interceptée ICI, pour tous les écrans à la fois (colonne Pointe de
+' frm_RechercheOperations et champ "Pointé" des formulaires). Ce point d'entrée unique évite de
+' coller du code dans chaque feuille. mod_Pointage sort aussitôt si la cellule modifiée n'est
+' pas une cellule de pointage : le coût est négligeable pour toutes les autres feuilles.
+Private Sub Workbook_SheetChange(ByVal Sh As Object, ByVal Target As Range)
+    mod_Pointage.TraiterChangementFeuille Sh, Target
+End Sub
+
 ' AJOUT 09/10/2026 (échéancier) : à l'ouverture du classeur, complète les occurrences des règles
 ' de récurrence jusqu'à l'horizon, pour que le solde prévisionnel ne manque jamais d'échéances
 ' même si aucun import n'a été fait depuis longtemps. Sans effet si l'échéancier n'est pas installé.

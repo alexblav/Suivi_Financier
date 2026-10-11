@@ -293,6 +293,13 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     Dim ecartKO As Double               ' somme des SoldeSante des dépenses KO
     Dim complementSante As String       ' fin de phrase de la ligne RO_LIGNE_FILTRE
 
+    ' Ajout 11/10/2026 (pointage, voir mod_Pointage) : nombre de colonnes du tableau de
+    ' l'ecran (16 tant que l'ecran n'a pas ete reconstruit avec la colonne Pointe, 17 apres)
+    ' et nombre de lignes pointees affichees (resume de la ligne du filtre actif).
+    Dim nbColRO As Long
+    Dim colPointeRO As Long
+    Dim nbPointees As Long
+
     ' Mémorise le préfiltre actif : RevoirVentilationRO le réutilise pour
     ' recharger l'écran dans le MÊME contexte après une modification.
     g_ROPrefiltreActif = prefiltre
@@ -300,6 +307,8 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
  
     Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RECHERCHE)
     Set tblRecherche = ws.ListObjects(mod_VarGlobales.NOM_TABLE_RECHERCHE)
+    nbColRO = tblRecherche.ListColumns.Count
+    colPointeRO = IndexColRO(tblRecherche, mod_VarGlobales.NOM_COL_POINTE)
 
     Set tbl = mod_DonneesTable.GetOperationsTable()
     If tbl Is Nothing Then
@@ -493,7 +502,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
         Exit Sub
     End If
 
-    ReDim resultat(1 To nbTotal, 1 To 16)
+    ReDim resultat(1 To nbTotal, 1 To nbColRO)
     ReDim cleVerrouillee(1 To nbTotal)
 
     Set valeursVues = CreateObject("Scripting.Dictionary")
@@ -530,6 +539,11 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
         resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_ID) = mod_DataStructure.CellText(tblData(i, colID))
         resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_SOURCE) = "O"
         resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_LIGNEVEN) = ""
+
+        ' Pointage (ajout 11/10/2026) : "Oui" ou vide, tel que dans TblOperations.
+        If colPointeRO <> 0 And colPointe <> 0 Then
+            resultat(ligneEcran, colPointeRO) = mod_Pointage.TextePointage(mod_Pointage.TexteEnPointage(tblData(i, colPointe)))
+        End If
 
         ' PHASE 6 : colonnes issues des anciens écrans "Synthese_*", toujours
         ' renseignées (même si masquées pour ce préfiltre). C'est sans conséquence
@@ -603,6 +617,14 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
             resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_SOURCE) = "V"
             resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_LIGNEVEN) = i
 
+            ' Pointage (ajout 11/10/2026) : une part reprend celui de son operation d'origine.
+            If colPointeRO <> 0 And colPointe <> 0 Then
+                If indexParIDPourTiers.Exists(idParentVen) Then
+                    resultat(ligneEcran, colPointeRO) = mod_Pointage.TextePointage( _
+                        mod_Pointage.TexteEnPointage(tblData(indexParIDPourTiers(idParentVen), colPointe)))
+                End If
+            End If
+
             ' Ajout 07/10/2026 : en mode suivi santé, on affiche aussi les colonnes
             ' santé de la part ventilée, lues dans TblVentilations (qui porte les
             ' mêmes colonnes que TblOperations depuis l'extension de la Phase 4).
@@ -624,7 +646,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     End If
 
     ' --- Redimensionner le tableau, puis écrire les données en bloc ---
-    tblRecherche.Resize tblRecherche.HeaderRowRange.Resize(nbTotal + 1, 16)
+    tblRecherche.Resize tblRecherche.HeaderRowRange.Resize(nbTotal + 1, nbColRO)
     tblRecherche.ListColumns("ID_Transaction").DataBodyRange.NumberFormat = "@"   ' <- ajout : AVANT l'écriture, sinon Excel convertit les longs ID en nombre
     tblRecherche.DataBodyRange.value = resultat
 
@@ -646,6 +668,20 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     End With
     tblRecherche.ListColumns("Valider").DataBodyRange.Interior.Color = mod_InstallCommun.CoulFondSaisie()
     tblRecherche.ListColumns("Notes").DataBodyRange.Interior.Color = mod_InstallCommun.CoulFondSaisie()
+
+    ' Ajout 11/10/2026 : colonne Pointe modifiable (liste Oui / vide, posee a chaque
+    ' rechargement car la reconstruction du tableau efface la validation).
+    If colPointeRO <> 0 Then
+        With tblRecherche.ListColumns(colPointeRO).DataBodyRange
+            .Interior.Color = mod_InstallCommun.CoulFondSaisie()
+            .HorizontalAlignment = xlCenter
+            .NumberFormat = "@"
+        End With
+        mod_Pointage.PoserListePointage tblRecherche.ListColumns(colPointeRO).DataBodyRange
+        For i = 1 To nbTotal
+            If mod_Pointage.TexteEnPointage(resultat(i, colPointeRO)) Then nbPointees = nbPointees + 1
+        Next i
+    End If
 
     ' --- PHASE 5 (correction du bug) : liste déroulante Catégorie/SousCategorie
     '     via une VRAIE plage nommée (technique OFFSET/COUNTA), jamais via du texte
@@ -746,6 +782,12 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
         mod_InstallCommun.TexteCompteur(nbTotal, n + nbLignesVen)
     ws.Range(mod_InstallRechercheOperations.RO_ADR_FILTRE).value = _
         DecrireFiltreActifRO(prefiltre, param, nbTotal, complementSante)
+    ' Ajout 11/10/2026 : resume du pointage (a analyser = lignes sans "Oui").
+    If colPointeRO <> 0 Then
+        ws.Range(mod_InstallRechercheOperations.RO_ADR_FILTRE).value = _
+            ws.Range(mod_InstallRechercheOperations.RO_ADR_FILTRE).value & mod_Display.FR(" Point{e2}es : ") & _
+            nbPointees & "/" & nbTotal & "."
+    End If
 
     ' On remet en place le(s) filtre(s) que l'operateur avait poses avant cette
     ' recherche (voir RestaurerFiltresRO plus haut) -- sans ca, un filtre de colonne

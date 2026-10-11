@@ -163,6 +163,8 @@ Private Function SS_TexteInstructions() As String
     t = t & "Si un remboursement suppl{e2}mentaire doit encore arriver, laissez ce champ vide (ou r{e2}pondez Non) : la d{e2}pense sera repropos{e2}e au prochain passage."
     t = t & Chr(10) & "5. Ajoutez un [c:Commentaire] si besoin, puis cliquez sur [b:Valider]."
     t = t & Chr(10) & "Boutons :"
+    t = t & Chr(10) & "- [c:Point{e2}] : indique si l'op{e2}ration est d{e2}j{a2} analys{e2}e (Oui). Il se modifie ici et s'enregistre tout de suite "
+    t = t & "(retirer un pointage demande confirmation), ind{e2}pendamment de [b:Valider]."
     t = t & Chr(10) & "- [b:Valider] : contr{o2}le la saisie, l'enregistre et passe au cas suivant."
     t = t & Chr(10) & "- [b:Passer] : passe au cas suivant sans rien enregistrer ; la d{e2}pense sera repropos{e2}e au prochain traitement."
     t = t & Chr(10) & "- [b:Sortir] : ferme le formulaire et revient sur [f:Synthese]. Le traitement peut {ea}tre relanc{e2} avec le bouton [b:Retraiter suivi de sant{e2}]."
@@ -204,6 +206,11 @@ Private Sub SS_ConstruireBlocDepense(ByVal ws As Worksheet)
     mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_SPE_CONSULT), mod_Display.FR("Sp{e2}cialit{e2} consult{e2}e")
     mod_InstallCommun.PoserChampLecture ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_SPE_CONSULT & ":" & SS_COL_VALEUR_2 & SS_LIGNE_SPE_CONSULT), "@"
     mod_InstallCommun.PoserNom ws, "ssSpeConsult", ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_SPE_CONSULT)
+
+    ' Pointage de l'operation (ajout 11/10/2026, voir mod_Pointage) : sur la ligne de la
+    ' specialite (qui n'occupe que C:E), etiquette en F, champ en G, nom ssPointe.
+    mod_Pointage.PoserChampPointage ws, ws.Range(SS_COL_LIBELLE_3 & SS_LIGNE_SPE_CONSULT), _
+        ws.Range(SS_COL_VALEUR_3 & SS_LIGNE_SPE_CONSULT), "ssPointe"
 
     ' Ligne 4 : Notes (texte brut, potentiellement long -> retour à la ligne)
     mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_NOTES), "Notes"

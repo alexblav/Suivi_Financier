@@ -203,6 +203,9 @@ Public Sub RecupIndexCol()
     colCommentaireSante = GetColumnIndex(tbl, "CommentaireSante")
     colFranchise = GetColumnIndex(tbl, "Franchise")
     colBeneficiaire = GetColumnIndex(tbl, "Beneficiaire")
+    ' Ajout 11/10/2026 : pointage des operations (voir mod_Pointage). 0 si la colonne
+    ' n'est pas encore installee (macro AjouterColonnePointage).
+    colPointe = GetColumnIndex(tbl, mod_VarGlobales.NOM_COL_POINTE)
 End Sub
 
 ' Gère les erreurs potentielles dans le nom de la colonne à rechercher.

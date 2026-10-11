@@ -497,6 +497,15 @@ Private Sub AfficherCasCourant(ws As Worksheet)
     ws.Range("ssSpeConsult").value = cas.speConsultCtx
     ws.Range("ssNotes").value = cas.notesCtx
 
+    ' Pointage de l'operation (ajout 11/10/2026, voir mod_Pointage). Une depense ventilee
+    ' (Source = "V") affiche celui de son operation d'origine. Sans effet si l'ecran n'a
+    ' pas ete reconstruit avec le champ ssPointe.
+    If cas.Source = "V" Then
+        mod_Pointage.AfficherPointageParNom ws, "ssPointe", mod_Pointage.IdDeLigneOperation(cas.parentLigneOp)
+    Else
+        mod_Pointage.AfficherPointageParNom ws, "ssPointe", mod_Pointage.IdDeLigneOperation(cas.ligneDepense)
+    End If
+
     Call AppliquerEtatChampsConditionnels(ws, cas)
     Call MettreAJourCompteur(ws)
 
