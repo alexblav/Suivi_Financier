@@ -1,0 +1,111 @@
+# STRUCTURE DE LA FEUILLE : Import_data
+Classeur           = Suivi_Financier_V2.xlsm
+CodeName           = Feuil3
+Visibilite         = masquee (xlSheetHidden)
+Exporte le         = 2026-10-11 19:19:59
+Version Excel      = 16.0
+Plage utilisee     = A1:Y13180
+Zone detaillee     = A1:AA100  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
+Largeur standard   = 10.07
+Hauteur standard   = 14.3
+Protection contenu = Non
+Nb tableaux        = 1
+Nb formes          = 0
+Contenu des tableaux NON exporte (confidentialite).
+
+## FENETRE
+Zoom             = 100
+FreezePanes      = Non
+SplitRow         = 0   (volets figes sous la ligne 0)
+SplitColumn      = 0
+ScrollRow        = 1
+ScrollColumn     = 1
+DisplayGridlines = Oui
+DisplayHeadings  = Oui
+DisplayZeros     = Oui
+
+## COLONNES (lettre | largeur | masquee)
+A | 18.2
+B | 16.4
+C | 15.73
+D | 15.87
+E | 40.4
+F | 106.4
+G | 9.73
+H | 13.87
+I | 32.4
+J | 8.4
+K | 12.53
+L | 13.87
+M | 13.33
+N | 13.2
+O | 12.13
+P | 11.87
+Q | 20.93
+R | 18.67
+S | 10.4
+T | 12.53
+U | 28.8
+V | 24.93
+W | 28.93
+X | 16.4
+Y | 10.07
+Z | 10.07
+AA | 10.07
+
+## LIGNES NON STANDARD (numero | hauteur | masquee) -- hauteur standard = 14.3
+(aucune)
+
+## CELLULES DE LA ZONE (hors tableaux)
+## adresse | valeur ou formule | fusion | police | fond | format | alignement | autres
+(aucune)
+
+## TABLEAUX
+
+### Tableau TblOperations
+Plage            = A1:Y219
+Ligne d'en-tete  = 1
+Nb lignes donnees= 218 (contenu non exporte)
+Filtre auto      = Oui
+Ligne de total   = Non
+Style            = TableStyleMedium9
+Colonnes (index | nom | lettre | largeur | masquee | format | liste)
+1 | ID_Transaction | A | 18.2 | - | format="@" | sans liste
+2 | Date_Comptable | B | 16.4 | - | format="m/d/yyyy" | sans liste
+3 | Date_Operation | C | 15.73 | - | format="m/d/yyyy" | sans liste
+4 | Type_Operation | D | 15.87 | - | format="General" | sans liste
+5 | Tiers | E | 40.4 | - | format="General" | sans liste
+6 | Notes | F | 106.4 | - | format="General" | sans liste
+7 | Montant | G | 9.73 | - | format="General" | sans liste
+8 | Num_Cheque | H | 13.87 | - | format="General" | sans liste
+9 | Categorie | I | 32.4 | - | format="General" | sans liste
+10 | Budget | J | 8.4 | - | format="mm/yyyy" | sans liste
+11 | MoisBudget | K | 12.53 | - | format="General" | sans liste
+12 | AnneeBudget | L | 13.87 | - | format="General" | sans liste
+13 | Date_consult | M | 13.33 | - | format="m/d/yyyy" | sans liste
+14 | Spe_Consult | N | 13.2 | - | format="General" | sans liste
+15 | StatutSante | O | 12.13 | - | format="General" | sans liste
+16 | SoldeSante | P | 11.87 | - | format="General" | sans liste
+17 | DepassementHoraires | Q | 20.93 | - | format="General" | sans liste
+18 | CommentaireSante | R | 18.67 | - | format="General" | sans liste
+19 | Franchise | S | 10.4 | - | format="General" | sans liste
+20 | Beneficiaire | T | 12.53 | - | format="General" | sans liste
+21 | SousCategorie | U | 28.8 | - | format="General" | sans liste
+22 | CategorieAvantVentilation | V | 24.93 | - | format="General" | sans liste
+23 | SousCategorieAvantVentilation | W | 28.93 | - | format="General" | sans liste
+24 | DecalageManuel | X | 16.4 | - | format="General" | sans liste
+25 | Pointe | Y | 10.07 | - | format="General" | validation=xlValidateList Formula1="Oui;" alerte=xlValidAlertStop titreErreur="Pointage" messageErreur="Choisissez Oui (opération analysée) ou laissez la cellule vide."
+
+## VALIDATIONS HORS TABLEAUX (plage | description)
+(aucune)
+
+## MISES EN FORME CONDITIONNELLES (plage | type | formule | effet)
+(aucune)
+
+## FORMES ET BOUTONS (nom | genre | ancrage | gauche,haut,largeur,hauteur | texte | macro | visible)
+(aucune)
+
+## NOMS DEFINIS (nom | portee | fait reference a | visible)
+(aucun)
+
+# FIN DE L'EXPORT

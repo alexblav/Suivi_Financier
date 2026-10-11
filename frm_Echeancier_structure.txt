@@ -1,0 +1,353 @@
+# STRUCTURE DE LA FEUILLE : frm_Echeancier
+Classeur           = Suivi_Financier_V2.xlsm
+CodeName           = Feuil17
+Visibilite         = tres masquee (xlSheetVeryHidden)
+Exporte le         = 2026-10-11 19:20:23
+Version Excel      = 16.0
+Plage utilisee     = B1:GR2000
+Zone detaillee     = A1:GT100  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
+Largeur standard   = 10.07
+Hauteur standard   = 13.2
+Protection contenu = Non
+Nb tableaux        = 1
+Nb formes          = 4
+Contenu des tableaux NON exporte (confidentialite).
+
+## FENETRE
+Zoom             = 100
+FreezePanes      = Non
+SplitRow         = 0   (volets figes sous la ligne 0)
+SplitColumn      = 0
+ScrollRow        = 1
+ScrollColumn     = 1
+DisplayGridlines = Non
+DisplayHeadings  = Oui
+DisplayZeros     = Oui
+
+## COLONNES (lettre | largeur | masquee)
+A | 2
+B | 12
+C | 13
+D | 28
+E | 24
+F | 20
+G | 24
+H | 11
+I | 13
+J | 12
+K | 13
+L | 14
+M | 12
+N | 10.07
+O | 10.07
+P | 10.07
+Q | 10.07
+R | 10.07
+S | 10.07
+T | 10.07
+U | 10.07
+V | 10.07
+W | 10.07
+X | 10.07
+Y | 10.07
+Z | 10.07
+AA | 10.07
+AB | 10.07
+AC | 10.07
+AD | 10.07
+AE | 10.07
+AF | 10.07
+AG | 10.07
+AH | 10.07
+AI | 10.07
+AJ | 10.07
+AK | 10.07
+AL | 10.07
+AM | 10.07
+AN | 10.07
+AO | 10.07
+AP | 10.07
+AQ | 10.07
+AR | 10.07
+AS | 10.07
+AT | 10.07
+AU | 10.07
+AV | 10.07
+AW | 10.07
+AX | 10.07
+AY | 10.07
+AZ | 10.07
+BA | 10.07
+BB | 10.07
+BC | 10.07
+BD | 10.07
+BE | 10.07
+BF | 10.07
+BG | 10.07
+BH | 10.07
+BI | 10.07
+BJ | 10.07
+BK | 10.07
+BL | 10.07
+BM | 10.07
+BN | 10.07
+BO | 10.07
+BP | 10.07
+BQ | 10.07
+BR | 10.07
+BS | 10.07
+BT | 10.07
+BU | 10.07
+BV | 10.07
+BW | 10.07
+BX | 10.07
+BY | 10.07
+BZ | 10.07
+CA | 10.07
+CB | 10.07
+CC | 10.07
+CD | 10.07
+CE | 10.07
+CF | 10.07
+CG | 10.07
+CH | 10.07
+CI | 10.07
+CJ | 10.07
+CK | 10.07
+CL | 10.07
+CM | 10.07
+CN | 10.07
+CO | 10.07
+CP | 10.07
+CQ | 10.07
+CR | 10.07
+CS | 10.07
+CT | 10.07
+CU | 10.07
+CV | 10.07
+CW | 10.07
+CX | 10.07
+CY | 10.07
+CZ | 10.07
+DA | 10.07
+DB | 10.07
+DC | 10.07
+DD | 10.07
+DE | 10.07
+DF | 10.07
+DG | 10.07
+DH | 10.07
+DI | 10.07
+DJ | 10.07
+DK | 10.07
+DL | 10.07
+DM | 10.07
+DN | 10.07
+DO | 10.07
+DP | 10.07
+DQ | 10.07
+DR | 10.07
+DS | 10.07
+DT | 10.07
+DU | 10.07
+DV | 10.07
+DW | 10.07
+DX | 10.07
+DY | 10.07
+DZ | 10.07
+EA | 10.07
+EB | 10.07
+EC | 10.07
+ED | 10.07
+EE | 10.07
+EF | 10.07
+EG | 10.07
+EH | 10.07
+EI | 10.07
+EJ | 10.07
+EK | 10.07
+EL | 10.07
+EM | 10.07
+EN | 10.07
+EO | 10.07
+EP | 10.07
+EQ | 10.07
+ER | 10.07
+ES | 10.07
+ET | 10.07
+EU | 10.07
+EV | 10.07
+EW | 10.07
+EX | 10.07
+EY | 10.07
+EZ | 10.07
+FA | 10.07
+FB | 10.07
+FC | 10.07
+FD | 10.07
+FE | 10.07
+FF | 10.07
+FG | 10.07
+FH | 10.07
+FI | 10.07
+FJ | 10.07
+FK | 10.07
+FL | 10.07
+FM | 10.07
+FN | 10.07
+FO | 10.07
+FP | 10.07
+FQ | 10.07
+FR | 10.07
+FS | 10.07
+FT | 10.07
+FU | 10.07
+FV | 10.07
+FW | 10.07
+FX | 10.07
+FY | 10.07
+FZ | 10.07
+GA | 10.07
+GB | 10.07
+GC | 10.07
+GD | 10.07
+GE | 10.07
+GF | 10.07
+GG | 10.07
+GH | 10.07
+GI | 10.07
+GJ | 10.07
+GK | 10.07
+GL | 10.07
+GM | 10.07
+GN | 10.07
+GO | 10.07
+GP | 10.07
+GQ | 10.07
+GR | 10.07
+GS | 10.07
+GT | 10.07
+
+## LIGNES NON STANDARD (numero | hauteur | masquee) -- hauteur standard = 13.2
+1 | 6
+2 | 21
+3 | 4.1
+4 | 160.2
+5 | 4.1
+6 | 15
+7 | 15
+8 | 15
+9 | 15
+10 | 15
+11 | 15
+12 | 15
+13 | 15
+14 | 15
+15 | 15
+16 | 15
+17 | 15
+18 | 15
+19 | 15
+20 | 15
+21 | 15
+22 | 15
+23 | 15
+24 | 15
+25 | 15
+26 | 15
+27 | 15
+28 | 15
+29 | 15
+30 | 15
+31 | 15
+32 | 15
+33 | 15
+34 | 15
+35 | 15
+36 | 15
+37 | 15
+38 | 15
+39 | 15
+40 | 15
+
+## CELLULES DE LA ZONE (hors tableaux)
+## adresse | valeur ou formule | fusion | police | fond | format | alignement | autres
+C3 | "" | police: taille=10 | alignV=xlCenter | bordures
+D3 | "" | police: taille=10 | alignV=xlCenter | bordures
+E3 | "" | police: taille=10 | alignV=xlCenter | bordures
+F3 | "" | police: taille=10 | alignV=xlCenter | bordures
+G3 | "" | police: taille=10 | alignV=xlCenter | bordures
+H3 | "" | police: taille=10 | alignV=xlCenter | bordures
+I3 | "" | police: taille=10 | alignV=xlCenter | bordures
+J3 | "" | police: taille=10 | alignV=xlCenter | bordures
+K3 | "" | police: taille=10 | alignV=xlCenter | bordures
+L3 | "" | police: taille=10 | alignV=xlCenter | bordures
+M3 | "" | police: taille=10 | alignV=xlCenter | bordures
+B4 | "Instructions" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignH=xlLeft | alignV=xlTop | bordures
+C4 | "Cette liste contient les échéances à venir : opérations prévues qui ne sont pas encore passées sur le compte. Elles servent au calcul du solde prévisionnel de Synthese. Les échéances d'une règle y sont ajoutées automatiquement (voir frm_Recurrences).\nAprès chaque import, les opérations importées sont comparées aux échéances et l'import propose les rapprochements. Une fois un rapprochement validé, l'échéance disparaît de cette liste : seule l'opération est conservée. Une échéance non rapprochée reste ici, reste comptée dans le solde prévisionnel et, si sa date est passée, est comptée dans 'Éch. en retard' de Synthese (pour une précision Mois, une fois le mois écoulé) : c'est à vous de la supprimer.\nVous pouvez corriger directement les cellules (montant, date, tiers...). PrecisionDate vaut Jour ou Mois (Mois : l'opération peut arriver n'importe quel jour du mois de DatePrevue, mais l'échéance est comptée dans le solde prévisionnel dès le 1er du mois). TolerancePct : écart de montant accepté pour le rapprochement. NumCheque : numéro du chèque attendu (vide si aucun) ; son contrôle est automatique et silencieux (aucun message) : la cellule devient rouge si le numéro est invalide ou déjà passé en banque, orange s'il figure deux fois dans cette liste. ID_Recurrence indique la règle d'origine (vide pour une opération ponctuelle) ; modifier une échéance ne modifie pas sa règle.\nBoutons :\n- Ajouter une échéance : ouvre le formulaire de saisie.\n- Supprimer la sélection : supprime les lignes sélectionnées. Pour une échéance qui vient d'une règle, deux choix vous sont proposés : Oui = supprimer seulement ces échéances (la règle continue ; si elle n'a plus aucune échéance dans la liste, la suivante est recréée aussitôt) ; Non = arrêter la récurrence à partir de la première échéance sélectionnée (ces échéances disparaissent et la règle ne produira plus rien à partir de cette date, puis disparaît de frm_Recurrences quand il ne lui reste plus d'échéance : cas d'un remboursement anticipé, par exemple).\n- Voir les règles : affiche la liste des règles de récurrence.\n- Sortir : revient sur Synthese." | fusion=C4:M4 | police: taille=9 gras=mixte couleur=mixte (mise en forme partielle) | fond=RGB(240, 240, 240) | alignH=xlLeft | alignV=xlTop | retour_ligne | bordures
+N4 | "" | police: taille=10 | alignV=xlCenter | bordures
+C5 | "" | police: taille=10 | alignV=xlCenter | bordures
+D5 | "" | police: taille=10 | alignV=xlCenter | bordures
+E5 | "" | police: taille=10 | alignV=xlCenter | bordures
+F5 | "" | police: taille=10 | alignV=xlCenter | bordures
+G5 | "" | police: taille=10 | alignV=xlCenter | bordures
+H5 | "" | police: taille=10 | alignV=xlCenter | bordures
+I5 | "" | police: taille=10 | alignV=xlCenter | bordures
+J5 | "" | police: taille=10 | alignV=xlCenter | bordures
+K5 | "" | police: taille=10 | alignV=xlCenter | bordures
+L5 | "" | police: taille=10 | alignV=xlCenter | bordures
+M5 | "" | police: taille=10 | alignV=xlCenter | bordures
+A7 | "" | police: taille=10 | alignV=xlCenter | bordures
+N7 | "" | police: taille=10 | alignV=xlCenter | bordures
+B8 | "" | police: taille=10 | alignV=xlCenter | bordures
+C8 | "" | police: taille=10 | alignV=xlCenter | bordures
+D8 | "" | police: taille=10 | alignV=xlCenter | bordures
+E8 | "" | police: taille=10 | alignV=xlCenter | bordures
+F8 | "" | police: taille=10 | alignV=xlCenter | bordures
+G8 | "" | police: taille=10 | alignV=xlCenter | bordures
+H8 | "" | police: taille=10 | alignV=xlCenter | bordures
+I8 | "" | police: taille=10 | alignV=xlCenter | bordures
+J8 | "" | police: taille=10 | alignV=xlCenter | bordures
+K8 | "" | police: taille=10 | alignV=xlCenter | bordures
+L8 | "" | police: taille=10 | alignV=xlCenter | bordures
+M8 | "" | police: taille=10 | alignV=xlCenter | bordures
+
+## TABLEAUX
+
+### Tableau TblEcheances
+Plage            = B6:M7
+Ligne d'en-tete  = 6
+Nb lignes donnees= 1 (contenu non exporte)
+Filtre auto      = Non
+Ligne de total   = Non
+Style            =  
+Colonnes (index | nom | lettre | largeur | masquee | format | liste)
+1 | ID_Echeance | B | 12 | - | format="0" | sans liste
+2 | ID_Recurrence | C | 13 | - | format="0" | sans liste
+3 | Libelle | D | 28 | - | format="@" | sans liste
+4 | Tiers | E | 24 | - | format="@" | sans liste
+5 | Categorie | F | 20 | - | format="@" | sans liste
+6 | SousCategorie | G | 24 | - | format="@" | sans liste
+7 | Montant | H | 11 | - | format="#,##0.00" | sans liste
+8 | NumCheque | I | 13 | - | format="@" | sans liste
+9 | DatePrevue | J | 12 | - | format="m/d/yyyy" | sans liste
+10 | PrecisionDate | K | 13 | - | format="@" | sans liste
+11 | Periodicite | L | 14 | - | format="@" | sans liste
+12 | TolerancePct | M | 12 | - | format="0" | sans liste
+
+## VALIDATIONS HORS TABLEAUX (plage | description)
+(aucune)
+
+## MISES EN FORME CONDITIONNELLES (plage | type | formule | effet)
+(aucune)
+
+## FORMES ET BOUTONS (nom | genre | ancrage | gauche,haut,largeur,hauteur | texte | macro | visible)
+btnAjouterEcheance | Bouton (controle de formulaire) | A2:C2 | 14.1999998092651,6.80000019073486,117.800003051758,19.5 | "Ajouter une échéance" | Suivi_Financier_V2.xlsm!SaisirEcheance | Oui
+btnSupprimerEcheance | Bouton (controle de formulaire) | C2:D2 | 134.199996948242,6.80000019073486,117.800003051758,19.5 | "Supprimer la sélection" | Suivi_Financier_V2.xlsm!SupprimerEcheanceSelection | Oui
+btnVoirRecurrences | Bouton (controle de formulaire) | D2:E2 | 254.199996948242,6.80000019073486,99.8000030517578,19.5 | "Voir les régles" | Suivi_Financier_V2.xlsm!AfficherRecurrences | Oui
+btnSortirEcheancier | Bouton (controle de formulaire) | E2:E2 | 356.200012207031,6.80000019073486,82.5,19.5 | "Sortir" | Suivi_Financier_V2.xlsm!SortirEcheancier | Oui
+
+## NOMS DEFINIS (nom | portee | fait reference a | visible)
+(aucun)
+
+# FIN DE L'EXPORT

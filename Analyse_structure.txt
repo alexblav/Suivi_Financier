@@ -1,0 +1,89 @@
+# STRUCTURE DE LA FEUILLE : Analyse
+Classeur           = Suivi_Financier_V2.xlsm
+CodeName           = Feuil9
+Visibilite         = visible
+Exporte le         = 2026-10-11 19:19:59
+Version Excel      = 16.0
+Plage utilisee     = A1:J8
+Zone detaillee     = A1:L8  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
+Largeur standard   = 10.07
+Hauteur standard   = 14.3
+Protection contenu = Non
+Nb tableaux        = 0
+Nb formes          = 0
+Contenu des tableaux NON exporte (confidentialite).
+
+## FENETRE
+Zoom             = 100
+FreezePanes      = Non
+SplitRow         = 0   (volets figes sous la ligne 0)
+SplitColumn      = 0
+ScrollRow        = 1
+ScrollColumn     = 1
+DisplayGridlines = Oui
+DisplayHeadings  = Oui
+DisplayZeros     = Oui
+
+## COLONNES (lettre | largeur | masquee)
+A | 16.8
+B | 21.67
+C | 7.67
+D | 7.67
+E | 7.67
+F | 7.67
+G | 7.67
+H | 7.67
+I | 7.67
+J | 11.13
+K | 10.67
+L | 10.67
+
+## LIGNES NON STANDARD (numero | hauteur | masquee) -- hauteur standard = 14.3
+(aucune)
+
+## CELLULES DE LA ZONE (hors tableaux)
+## adresse | valeur ou formule | fusion | police | fond | format | alignement | autres
+A1 | "Categorie"
+B1 | "Carburant"
+B3 | "Étiquettes de colonnes"
+B4 | "2018"
+C4 | "2019"
+D4 | "2020"
+E4 | "2021"
+F4 | "2022"
+G4 | "2023"
+H4 | "2024"
+I4 | "2025"
+J4 | "Total général"
+A8 | "Somme de Montant"
+B8 | "-2344,84"
+C8 | "-3092,52"
+D8 | "-2032,46"
+E8 | "-2007,71"
+F8 | "-2014,28"
+G8 | "-1958,17"
+H8 | "-2174,53"
+I8 | "-2272,79"
+J8 | "-17897,3"
+
+## TABLEAUX
+(aucun)
+
+## VALIDATIONS HORS TABLEAUX (plage | description)
+(aucune)
+
+## MISES EN FORME CONDITIONNELLES (plage | type | formule | effet)
+(aucune)
+
+## FORMES ET BOUTONS (nom | genre | ancrage | gauche,haut,largeur,hauteur | texte | macro | visible)
+(aucune)
+
+## NOMS DEFINIS (nom | portee | fait reference a | visible)
+ListeAnneesAnalyse | classeur | =OFFSET(frm_Analyse!$AJ$2,0,0,MAX(1,COUNTA(frm_Analyse!$AJ$2:$AJ$60)),1) | Oui
+ListeCategoriesAnalyse | classeur | =OFFSET(frm_Analyse!$AA$2,0,0,MAX(1,COUNTA(frm_Analyse!$AA$2:$AA$300)),1) | Oui
+ListeEvoAnalyse | classeur | =frm_Analyse!$AH$2:$AH$3 | Oui
+ListeGraphAnalyse | classeur | =frm_Analyse!$AG$2:$AG$3 | Oui
+ListeMoisAnalyse | classeur | =frm_Analyse!$AI$2:$AI$13 | Oui
+ListePeriodeAnalyse | classeur | =frm_Analyse!$AF$2:$AF$4 | Oui
+
+# FIN DE L'EXPORT

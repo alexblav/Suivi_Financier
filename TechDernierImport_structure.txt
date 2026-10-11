@@ -1,0 +1,85 @@
+# STRUCTURE DE LA FEUILLE : TechDernierImport
+Classeur           = Suivi_Financier_V2.xlsm
+CodeName           = Feuil7
+Visibilite         = tres masquee (xlSheetVeryHidden)
+Exporte le         = 2026-10-11 19:20:05
+Version Excel      = 16.0
+Plage utilisee     = A1:B29
+Zone detaillee     = A1:D29  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
+Largeur standard   = 10.07
+Hauteur standard   = 14.3
+Protection contenu = Non
+Nb tableaux        = 0
+Nb formes          = 0
+Contenu des tableaux NON exporte (confidentialite).
+
+## FENETRE
+Zoom             = 100
+FreezePanes      = Non
+SplitRow         = 0   (volets figes sous la ligne 0)
+SplitColumn      = 0
+ScrollRow        = 1
+ScrollColumn     = 1
+DisplayGridlines = Oui
+DisplayHeadings  = Oui
+DisplayZeros     = Oui
+
+## COLONNES (lettre | largeur | masquee)
+A | 10.07
+B | 17.8
+C | 10.07
+D | 10.07
+
+## LIGNES NON STANDARD (numero | hauteur | masquee) -- hauteur standard = 14.3
+(aucune)
+
+## CELLULES DE LA ZONE (hors tableaux)
+## adresse | valeur ou formule | fusion | police | fond | format | alignement | autres
+A1 | "DateImport"
+B1 | "46306,6853587963" | format="dd/mm/yyyy hh:mm:ss"
+A2 | "NbOperations"
+B2 | "26"
+A3 | "ID_Transaction"
+A4 | "895888267964279155" | format="@"
+A5 | "896612423076900338" | format="@"
+A6 | "896612423060123123" | format="@"
+A7 | "896612423026568637" | format="@"
+A8 | "896250773538825665" | format="@"
+A9 | "896977205378378395" | format="@"
+A10 | "896250773442356670" | format="@"
+A11 | "895888267947502047" | format="@"
+A12 | "895888267926530393" | format="@"
+A13 | "895527742214465598" | format="@"
+A14 | "895164046780267254" | format="@"
+A15 | "895164046776072819" | format="@"
+A16 | "894801160295806454" | format="@"
+A17 | "895164046771878641" | format="@"
+A18 | "895164046767684219" | format="@"
+A19 | "895164046767684216" | format="@"
+A20 | "895164046763490036" | format="@"
+A21 | "895164046755101436" | format="@"
+A22 | "895164046750906996" | format="@"
+A23 | "894801160283223508" | format="@"
+A24 | "894801160270640630" | format="@"
+A25 | "894801160253863387" | format="@"
+A26 | "894801160241280479" | format="@"
+A27 | "894801160232891900" | format="@"
+A28 | "894801160220308952" | format="@"
+A29 | "895527742214465595" | format="@"
+
+## TABLEAUX
+(aucun)
+
+## VALIDATIONS HORS TABLEAUX (plage | description)
+(aucune)
+
+## MISES EN FORME CONDITIONNELLES (plage | type | formule | effet)
+(aucune)
+
+## FORMES ET BOUTONS (nom | genre | ancrage | gauche,haut,largeur,hauteur | texte | macro | visible)
+(aucune)
+
+## NOMS DEFINIS (nom | portee | fait reference a | visible)
+(aucun)
+
+# FIN DE L'EXPORT

@@ -2,15 +2,15 @@
 Classeur           = Suivi_Financier_V2.xlsm
 CodeName           = Feuil2
 Visibilite         = visible
-Exporte le         = 2026-10-11 12:58:37
+Exporte le         = 2026-10-11 19:19:59
 Version Excel      = 16.0
-Plage utilisee     = A4:B23
-Zone detaillee     = A1:D23  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
+Plage utilisee     = A4:B24
+Zone detaillee     = A1:D24  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
 Largeur standard   = 10.07
 Hauteur standard   = 14.3
 Protection contenu = Non
 Nb tableaux        = 0
-Nb formes          = 26
+Nb formes          = 28
 Contenu des tableaux NON exporte (confidentialite).
 
 ## FENETRE
@@ -42,7 +42,7 @@ B5 | "" | fond=RGB(141, 180, 226)
 A6 | "Années Budget" | fond=RGB(141, 180, 226)
 B6 | "2026" | fond=RGB(141, 180, 226)
 A7 | "Mois Bubget" | fond=RGB(141, 180, 226)
-B7 | "9" | fond=RGB(141, 180, 226)
+B7 | "10" | fond=RGB(141, 180, 226)
 A8 | "Nb ligne" | fond=RGB(141, 180, 226)
 B8 | "15" | fond=RGB(141, 180, 226)
 A9 | "Valeur Min" | fond=RGB(141, 180, 226)
@@ -65,6 +65,8 @@ A22 | "Solde à J+30" | fond=RGB(141, 180, 226)
 B22 | "=IF(ISNUMBER(B20),B20+SUMIFS(TblEcheances[Montant],TblEcheances[DatePrevue],"<="&(TODAY()+30)),"")" | fond=RGB(240, 240, 240) | format="#,##0.00_);[Red](#,##0.00)" | alignH=xlRight
 A23 | "Éch. en retard" | fond=RGB(141, 180, 226)
 B23 | "=SUMPRODUCT((TblEcheances[DatePrevue]<>"")*((TblEcheances[DatePrevue]+(TblEcheances[PrecisionDate]="Mois")*(DATE(YEAR(TblEcheances[DatePrevue]),MONTH(TblEcheances[DatePrevue])+1,0)-TblEcheances[DatePrevue]))<TODAY()))" | fond=RGB(240, 240, 240) | format="0" | alignH=xlRight
+A24 | "Écart du solde" | fond=RGB(141, 180, 226)
+B24 | "" | fond=RGB(240, 240, 240) | format="#,##0.00_);[Red](#,##0.00)" | alignH=xlRight
 
 ## TABLEAUX
 (aucun)
@@ -93,7 +95,7 @@ Button 16 | Bouton (controle de formulaire) | C12:F13 | 235.5,160.5,171.80000305
 Button 18 | Bouton (controle de formulaire) | A1:B2 | 15.8000001907349,4.5,108,20.2000007629395 | "Importer" | Suivi_Financier_V2.xlsm!ImporterOperationsOFX | Oui
 Button 29 | Bouton (controle de formulaire) | B1:D2 | 124.5,3.79999995231628,152.199996948242,21 | "Définir fichier Central" | Suivi_Financier_V2.xlsm!DefinirFichierCentral | Oui
 Button 30 | Bouton (controle de formulaire) | D1:F2 | 278.200012207031,4.5,132.800003051758,20.2000007629395 | "Synchroniser" | Suivi_Financier_V2.xlsm!SynchroniserMaintenant | Oui
-Rounded Rectangle 1 | Forme automatique | C14:G20 | 198,197.199996948242,246,78 | "" |  | Oui
+Rounded Rectangle 1 | Forme automatique | C14:G21 | 198,197.199996948242,246,102.099998474121 | "" |  | Oui
 btnSaisirEcheance | Bouton (controle de formulaire) | C16:F17 | 235.5,224.199996948242,170.199996948242,17.2000007629395 | "Saisir une échéance" | Suivi_Financier_V2.xlsm!SaisirEcheance | Oui
 btnVoirEcheancier | Bouton (controle de formulaire) | C18:F19 | 235.5,249,170.199996948242,17.2000007629395 | "Voir l'échéancier" | Suivi_Financier_V2.xlsm!AfficherEcheancier | Oui
 TextBox 8 | Zone de texte | D14:F16 | 258,201,129.800003051758,21.7999992370605 | "Gestion Prévisionnelle" |  | Oui
@@ -103,6 +105,8 @@ TextBox 10 | Zone de texte | H15:J16 | 526.5,204.800003051758,116.199996948242,1
 Rounded Rectangle 11 | Forme automatique | G19:K23 | 462.799987792969,263.200012207031,246,54.7999992370605 | "" |  | Oui
 TextBox 12 | Zone de texte | H19:K20 | 528,264,133.5,18.7999992370605 | "Analyse Energetique" |  | Oui
 btnConsommations | Bouton (controle de formulaire) | H21:K22 | 510,288.799987792969,151.5,17.2000007629395 | "Consommations" | Suivi_Financier_V2.xlsm!AfficherConsommations | Oui
+btnSaisirSolde | Bouton (controle de formulaire) | C19:F21 | 235.5,273.799987792969,170.199996948242,17.2000007629395 | "Saisir / contrôler le solde" | Suivi_Financier_V2.xlsm!SaisirSoldeReference | Oui
+Drop Down 32 | Liste deroulante |  | 87.8000030517578,89.1999969482422,108.400001525879,14.1999998092651 | "" |  | Oui
 
 ## NOMS DEFINIS (nom | portee | fait reference a | visible)
 Synthese!_FilterDatabase | feuille Synthese | =Synthese!#REF! | Non
@@ -113,6 +117,7 @@ critTri | classeur | =Synthese!$B$11 | Oui
 critTriChamp | classeur | =Synthese!$B$10 | Oui
 critValMin | classeur | =Synthese!$B$9 | Oui
 nbLigne | classeur | =Synthese!$B$8 | Oui
+soldeEcart | classeur | =Synthese!$B$24 | Oui
 soldeRefDate | classeur | =Synthese!$B$19 | Oui
 soldeRefMontant | classeur | =Synthese!$B$18 | Oui
 

@@ -1,16 +1,16 @@
 # STRUCTURE DE LA FEUILLE : frm_GenerationCle
-Classeur           = Test_Import_OFX.xlsm
+Classeur           = Suivi_Financier_V2.xlsm
 CodeName           = Feuil8
-Visibilite         = visible
-Exporte le         = 2026-10-09 03:52:25
+Visibilite         = tres masquee (xlSheetVeryHidden)
+Exporte le         = 2026-10-11 19:20:08
 Version Excel      = 16.0
-Plage utilisee     = B2:J21
-Zone detaillee     = A1:L21  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
+Plage utilisee     = B1:GR2000
+Zone detaillee     = A1:GT100  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
 Largeur standard   = 10.13
 Hauteur standard   = 13.2
 Protection contenu = Non
 Nb tableaux        = 0
-Nb formes          = 5
+Nb formes          = 6
 Contenu des tableaux NON exporte (confidentialite).
 
 ## FENETRE
@@ -37,106 +37,333 @@ I | 10.13
 J | 0 | MASQUEE
 K | 10.13
 L | 10.13
+M | 10.13
+N | 10.13
+O | 10.13
+P | 10.13
+Q | 10.13
+R | 10.13
+S | 10.13
+T | 10.13
+U | 10.13
+V | 10.13
+W | 10.13
+X | 10.13
+Y | 10.13
+Z | 10.13
+AA | 10.13
+AB | 10.13
+AC | 10.13
+AD | 10.13
+AE | 10.13
+AF | 10.13
+AG | 10.13
+AH | 10.13
+AI | 10.13
+AJ | 10.13
+AK | 10.13
+AL | 10.13
+AM | 10.13
+AN | 10.13
+AO | 10.13
+AP | 10.13
+AQ | 10.13
+AR | 10.13
+AS | 10.13
+AT | 10.13
+AU | 10.13
+AV | 10.13
+AW | 10.13
+AX | 10.13
+AY | 10.13
+AZ | 10.13
+BA | 10.13
+BB | 10.13
+BC | 10.13
+BD | 10.13
+BE | 10.13
+BF | 10.13
+BG | 10.13
+BH | 10.13
+BI | 10.13
+BJ | 10.13
+BK | 10.13
+BL | 10.13
+BM | 10.13
+BN | 10.13
+BO | 10.13
+BP | 10.13
+BQ | 10.13
+BR | 10.13
+BS | 10.13
+BT | 10.13
+BU | 10.13
+BV | 10.13
+BW | 10.13
+BX | 10.13
+BY | 10.13
+BZ | 10.13
+CA | 10.13
+CB | 10.13
+CC | 10.13
+CD | 10.13
+CE | 10.13
+CF | 10.13
+CG | 10.13
+CH | 10.13
+CI | 10.13
+CJ | 10.13
+CK | 10.13
+CL | 10.13
+CM | 10.13
+CN | 10.13
+CO | 10.13
+CP | 10.13
+CQ | 10.13
+CR | 10.13
+CS | 10.13
+CT | 10.13
+CU | 10.13
+CV | 10.13
+CW | 10.13
+CX | 10.13
+CY | 10.13
+CZ | 10.13
+DA | 10.13
+DB | 10.13
+DC | 10.13
+DD | 10.13
+DE | 10.13
+DF | 10.13
+DG | 10.13
+DH | 10.13
+DI | 10.13
+DJ | 10.13
+DK | 10.13
+DL | 10.13
+DM | 10.13
+DN | 10.13
+DO | 10.13
+DP | 10.13
+DQ | 10.13
+DR | 10.13
+DS | 10.13
+DT | 10.13
+DU | 10.13
+DV | 10.13
+DW | 10.13
+DX | 10.13
+DY | 10.13
+DZ | 10.13
+EA | 10.13
+EB | 10.13
+EC | 10.13
+ED | 10.13
+EE | 10.13
+EF | 10.13
+EG | 10.13
+EH | 10.13
+EI | 10.13
+EJ | 10.13
+EK | 10.13
+EL | 10.13
+EM | 10.13
+EN | 10.13
+EO | 10.13
+EP | 10.13
+EQ | 10.13
+ER | 10.13
+ES | 10.13
+ET | 10.13
+EU | 10.13
+EV | 10.13
+EW | 10.13
+EX | 10.13
+EY | 10.13
+EZ | 10.13
+FA | 10.13
+FB | 10.13
+FC | 10.13
+FD | 10.13
+FE | 10.13
+FF | 10.13
+FG | 10.13
+FH | 10.13
+FI | 10.13
+FJ | 10.13
+FK | 10.13
+FL | 10.13
+FM | 10.13
+FN | 10.13
+FO | 10.13
+FP | 10.13
+FQ | 10.13
+FR | 10.13
+FS | 10.13
+FT | 10.13
+FU | 10.13
+FV | 10.13
+FW | 10.13
+FX | 10.13
+FY | 10.13
+FZ | 10.13
+GA | 10.13
+GB | 10.13
+GC | 10.13
+GD | 10.13
+GE | 10.13
+GF | 10.13
+GG | 10.13
+GH | 10.13
+GI | 10.13
+GJ | 10.13
+GK | 10.13
+GL | 10.13
+GM | 10.13
+GN | 10.13
+GO | 10.13
+GP | 10.13
+GQ | 10.13
+GR | 10.13
+GS | 10.13
+GT | 10.13
 
 ## LIGNES NON STANDARD (numero | hauteur | masquee) -- hauteur standard = 13.2
-2 | 22.2
-3 | 22.2
-5 | 14.3
-6 | 30
-7 | 30
-8 | 30
-9 | 30
-11 | 13.9
-12 | 18
-15 | 18
-16 | 18
-17 | 18
-18 | 18
-20 | 18
+1 | 6
+2 | 21
+3 | 4.1
+4 | 189
+5 | 4.1
+6 | 15
+7 | 15
+8 | 27
+9 | 15
+10 | 4.1
+11 | 15
+12 | 15
+13 | 15
+14 | 15
+15 | 15
+16 | 4.1
+17 | 15
+18 | 15
+19 | 15
+20 | 15
+21 | 15
+22 | 15
+23 | 15
+24 | 15
+25 | 15
+26 | 15
+27 | 15
+28 | 15
+29 | 15
+30 | 15
+31 | 15
+32 | 15
+33 | 15
+34 | 15
+35 | 15
+36 | 15
+37 | 15
+38 | 15
+39 | 15
+40 | 15
 
 ## CELLULES DE LA ZONE (hors tableaux)
 ## adresse | valeur ou formule | fusion | police | fond | format | alignement | autres
-J2 | "1218" | police: taille=10
-B5 | "Instructions" | police: gras | bordures
-C5 | "" | police: taille=10 | bordures
-D5 | "" | police: taille=10 | bordures
-E5 | "" | police: taille=10 | bordures
-F5 | "" | police: taille=10 | bordures
-G5 | "" | police: taille=10 | bordures
-A6 | "" | police: taille=10 | bordures
-B6 | "Aucune clé existante ne correspond à cette opération.\nRenseignez les 4 champs, cliquez 'Générer' pour construire la clé (elle est aussi\ncopiée dans le presse-papier), vérifiez-la, puis clique 'Valider'.\nATTENTION : une fois 'Valider' cliqué, la clé est écrite DEFINITIVEMENT, même\napproximative ou incorrecte : cette opération ne sera PLUS JAMAIS reproposée pour\ncorrection automatique (seule une modification manuelle dans Import_data pourrait\nla faire réapparaitre). Si vous n'êtes pas certain des informations, cliquez plutôt sur\n'Passer' pour laisser cette opération de côté et y revenir plus tard." | fusion=B6:G9 | police: taille=9 gras=mixte couleur=mixte (mise en forme partielle) | fond=RGB(245, 245, 242) | alignV=xlTop | retour_ligne | bordures
-H6 | "" | police: taille=10 | bordures
-A7 | "" | police: taille=10 | bordures
-H7 | "" | police: taille=10 | bordures
-A8 | "" | police: taille=10 | bordures
-H8 | "" | police: taille=10 | bordures
-A9 | "" | police: taille=10 | bordures
-H9 | "" | police: taille=10 | bordures
-B10 | "" | police: taille=10 | bordures
-C10 | "" | police: taille=10 | bordures
-D10 | "" | police: taille=10 | bordures
-E10 | "" | police: taille=10 | bordures
-F10 | "" | police: taille=10 | bordures
-G10 | "" | police: taille=10 | bordures
-B11 | "Opération concernée" | fusion=B11:G11 | police: taille=10.5 gras | fond=RGB(250, 250, 248)
-B12 | "Date :" | police: taille=10 couleur=RGB(90, 90, 90)
-C12 | "45631" | police: taille=10 | fond=RGB(248, 248, 246) | format="m/d/yyyy"
-D12 | "Tiers :" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
-E12 | "PHARM SAINT JAC FACT" | police: taille=10 | fond=RGB(248, 248, 246)
-F12 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
-G12 | "" | police: taille=10 | fond=RGB(248, 248, 246)
-B13 | "Num. Chéque" | police: taille=10 couleur=RGB(90, 90, 90)
-C13 | "" | police: taille=10 | fond=RGB(248, 248, 246) | format="m/d/yyyy"
-D13 | "Notes" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
-E13 | "CB PHARM SAINT JAC FACT 031224 344135******6" | police: taille=10 | fond=RGB(248, 248, 246)
-F13 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
-G13 | "" | police: taille=10 | fond=RGB(248, 248, 246)
-B15 | "Génération de la clé" | fusion=B15:G15 | police: taille=10.5 gras | fond=RGB(250, 250, 248)
-B16 | "Date_consult (JJ/MM/AAAA) :" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
-C16 | "45629" | police: taille=10 | fond=RGB(255, 255, 235) | format="m/d/yyyy" | bordures | non_verrouillee
-D16 | "" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
-E16 | "" | police: taille=10 | bordures
-B17 | "Spécialité :" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
-C17 | "Pharmacie" | fusion=C17:E17 | police: taille=10 | fond=RGB(255, 255, 235) | bordures | non_verrouillee
-F17 | "" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
-B18 | "Bénéficiaire :" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
-C18 | "Alex" | fusion=C18:E18 | police: taille=10 | fond=RGB(255, 255, 235) | bordures | non_verrouillee
-F18 | "" | police: taille=10 couleur=RGB(90, 90, 90) | bordures
-B19 | "Montant :" | police: taille=10 couleur=RGB(90, 90, 90)
-C19 | "14" | police: taille=10 | fond=RGB(248, 248, 246) | format="#,##0.00 €" | bordures
-D19 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246) | bordures
-E19 | "" | police: taille=10 | fond=RGB(248, 248, 246) | bordures
-F19 | "" | police: taille=10 couleur=RGB(90, 90, 90) | fond=RGB(248, 248, 246)
-G19 | "" | police: taille=10 | fond=RGB(248, 248, 246)
-B21 | "Clé générée :" | police: taille=10 couleur=RGB(90, 90, 90)
-C21 | "20241203;Pharmacie;Alex;14" | fusion=C21:G21 | police: taille=10 gras | fond=RGB(248, 248, 246)
+J2 | "0" | police: taille=10 | alignV=xlCenter
+C3 | "" | police: taille=10 | alignV=xlCenter | bordures
+D3 | "" | police: taille=10 | alignV=xlCenter | bordures
+E3 | "" | police: taille=10 | alignV=xlCenter | bordures
+F3 | "" | police: taille=10 | alignV=xlCenter | bordures
+G3 | "" | police: taille=10 | alignV=xlCenter | bordures
+B4 | "Instructions" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignH=xlLeft | alignV=xlTop | bordures
+C4 | "Aucune clé existante ne correspond à cette opération : ce formulaire permet de créer une nouvelle clé de rapprochement (Clé générée) de la forme AAAAMMJJ;Spécialité;Bénéficiaire;Montant.\nRenseignez les 3 champs Date consultation (JJ/MM/AAAA), Spécialité et Bénéficiaire (le Montant est repris de l'opération), cliquez sur Générer pour construire la clé (elle est aussi copiée dans le presse-papier), vérifiez-la, puis cliquez sur Valider.\nBoutons :\n- Générer : construit la clé à partir des champs saisis.\n- Valider : écrit la clé générée dans l'opération. ATTENTION : une fois Valider cliqué, la clé est écrite DÉFINITIVEMENT, même approximative ou incorrecte : l'opération ne sera PLUS JAMAIS reproposée pour correction automatique (seule une modification manuelle dans Import_Data pourrait la faire réapparaître).\nPointé indique si l'opération est déjà analysée (Oui) ; il se modifie ici et s'enregistre tout de suite (retirer un pointage demande confirmation).\n- Passer : laisse cette opération de côté pour y revenir plus tard (utile si vous n'êtes pas certain des informations).\n- Retour : revient sur frm_RapprochementNotes pour la même opération, sans rien modifier (par exemple après une erreur de clic sur Pas de correspondance).\n- + (en face de Spécialité et Bénéficiaire) : ajoute une nouvelle valeur à la liste." | fusion=C4:G4 | police: taille=9 gras=mixte couleur=mixte (mise en forme partielle) | fond=RGB(240, 240, 240) | alignH=xlLeft | alignV=xlTop | retour_ligne | bordures
+H4 | "" | police: taille=10 | alignV=xlCenter | bordures
+C5 | "" | police: taille=10 | alignV=xlCenter | bordures
+D5 | "" | police: taille=10 | alignV=xlCenter | bordures
+E5 | "" | police: taille=10 | alignV=xlCenter | bordures
+F5 | "" | police: taille=10 | alignV=xlCenter | bordures
+G5 | "" | police: taille=10 | alignV=xlCenter | bordures
+B6 | "Opération concernée" | fusion=B6:G6 | police: taille=10 gras couleur=RGB(31, 73, 125) | alignH=xlLeft | alignV=xlCenter | bordures
+B7 | "Date" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignH=xlLeft | alignV=xlCenter | bordures
+C7 | "" | police: taille=10 | fond=RGB(240, 240, 240) | format="dd/mm/yyyy" | alignH=xlLeft | alignV=xlCenter | bordures
+D7 | "Tiers" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignH=xlLeft | alignV=xlCenter | bordures
+E7 | "" | fusion=E7:G7 | police: taille=10 | fond=RGB(240, 240, 240) | format="@" | alignH=xlLeft | alignV=xlCenter | bordures
+H7 | "" | police: taille=10 | alignV=xlCenter | bordures
+B8 | "Num. chèque" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignH=xlLeft | alignV=xlCenter | bordures
+C8 | "" | police: taille=10 | fond=RGB(240, 240, 240) | format="@" | alignH=xlLeft | alignV=xlTop | retour_ligne | bordures
+D8 | "Notes" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignH=xlLeft | alignV=xlTop | bordures
+E8 | "" | fusion=E8:G8 | police: taille=10 | fond=RGB(240, 240, 240) | format="@" | alignH=xlLeft | alignV=xlTop | retour_ligne | bordures
+H8 | "" | police: taille=10 | alignV=xlCenter | bordures
+B9 | "Pointé" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignH=xlLeft | alignV=xlCenter | bordures
+C9 | "" | police: taille=10 | fond=RGB(255, 255, 235) | format="@" | alignH=xlCenter | alignV=xlCenter | bordures | non_verrouillee
+D9 | "" | police: taille=10 | alignV=xlCenter | bordures
+E9 | "" | police: taille=10 | alignV=xlCenter | bordures
+F9 | "" | police: taille=10 | alignV=xlCenter | bordures
+G9 | "" | police: taille=10 | alignV=xlCenter | bordures
+C10 | "" | police: taille=10 | alignV=xlCenter | bordures
+B11 | "Génération de la clé" | fusion=B11:G11 | police: taille=10 gras couleur=RGB(31, 73, 125) | alignH=xlLeft | alignV=xlCenter | bordures
+B12 | "Date consultation" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignH=xlLeft | alignV=xlCenter | bordures
+C12 | "" | police: taille=10 | fond=RGB(255, 255, 235) | format="dd/mm/yyyy" | alignH=xlLeft | alignV=xlCenter | bordures | non_verrouillee
+D12 | "" | police: taille=10 | alignV=xlCenter | bordures
+E12 | "" | police: taille=10 | alignV=xlCenter | bordures
+F12 | "" | police: taille=10 | alignV=xlCenter | bordures
+G12 | "" | police: taille=10 | alignV=xlCenter | bordures
+B13 | "Spécialité" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignH=xlLeft | alignV=xlCenter | bordures
+C13 | "" | fusion=C13:E13 | police: taille=10 | fond=RGB(255, 255, 235) | format="@" | alignH=xlLeft | alignV=xlCenter | bordures | non_verrouillee
+F13 | "" | police: taille=10 | alignV=xlCenter | bordures
+B14 | "Bénéficiaire" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignH=xlLeft | alignV=xlCenter | bordures
+C14 | "" | fusion=C14:E14 | police: taille=10 | fond=RGB(255, 255, 235) | format="@" | alignH=xlLeft | alignV=xlCenter | bordures | non_verrouillee
+F14 | "" | police: taille=10 | alignV=xlCenter | bordures
+B15 | "Montant" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignH=xlLeft | alignV=xlCenter | bordures
+C15 | "" | police: taille=10 | fond=RGB(240, 240, 240) | format="#,##0.00 €" | alignH=xlLeft | alignV=xlCenter | bordures
+D15 | "" | police: taille=10 | alignV=xlCenter | bordures
+E15 | "" | police: taille=10 | alignV=xlCenter | bordures
+C16 | "" | police: taille=10 | alignV=xlCenter | bordures
+D16 | "" | police: taille=10 | alignV=xlCenter | bordures
+E16 | "" | police: taille=10 | alignV=xlCenter | bordures
+F16 | "" | police: taille=10 | alignV=xlCenter | bordures
+G16 | "" | police: taille=10 | alignV=xlCenter | bordures
+B17 | "Clé générée" | police: taille=10 gras couleur=RGB(31, 73, 125) | alignH=xlLeft | alignV=xlCenter | bordures
+C17 | "" | fusion=C17:G17 | police: taille=10 gras | fond=RGB(240, 240, 240) | format="@" | alignH=xlLeft | alignV=xlCenter | bordures
+H17 | "" | police: taille=10 | alignV=xlCenter | bordures
+C18 | "" | police: taille=10 | alignV=xlCenter | bordures
+D18 | "" | police: taille=10 | alignV=xlCenter | bordures
+E18 | "" | police: taille=10 | alignV=xlCenter | bordures
+F18 | "" | police: taille=10 | alignV=xlCenter | bordures
+G18 | "" | police: taille=10 | alignV=xlCenter | bordures
 
 ## TABLEAUX
 (aucun)
 
 ## VALIDATIONS HORS TABLEAUX (plage | description)
-C17:E18 | validation=xlValidateList Formula1="=Specialites" alerte=xlValidAlertStop
+C13:E14 | validation=xlValidateList Formula1="=Specialites" alerte=xlValidAlertStop
+C9 | validation=xlValidateList Formula1="Oui;" alerte=xlValidAlertStop titreErreur="Pointage" messageErreur="Choisissez Oui (opération analysée) ou laissez la cellule vide."
 
 ## MISES EN FORME CONDITIONNELLES (plage | type | formule | effet)
 (aucune)
 
 ## FORMES ET BOUTONS (nom | genre | ancrage | gauche,haut,largeur,hauteur | texte | macro | visible)
-btnGenererCle | Bouton (controle de formulaire) | A1:B2 | 7.5,6.80000019073486,120,14.6000003814697 | "Générer" | Test_Import_OFX.xlsm!GenererCleNotes | Oui
-btnValiderGeneration | Bouton (controle de formulaire) | B1:D2 | 129.800003051758,7.5,109.5,15.3999996185303 | "Valider" | Test_Import_OFX.xlsm!ValiderGenerationCle | Oui
-btnAjouterSpecialite | Bouton (controle de formulaire) | F17:F18 | 426.799987792969,315,12.8000001907349,18 | "+" | Test_Import_OFX.xlsm!AjouterSpecialite | Oui
-btnAjouterBeneficiaireGC | Bouton (controle de formulaire) | F18:F19 | 426.799987792969,333,12.8000001907349,18 | "+" | Test_Import_OFX.xlsm!AjouterBeneficiaireDepuisGeneration | Oui
-btnPasserGeneration | Bouton (controle de formulaire) | D1:E2 | 240.800003051758,6.80000019073486,181.5,16.1000003814697 | "Passer" | Test_Import_OFX.xlsm!PasserGenerationCle | Oui
+btnGenererCle | Bouton (controle de formulaire) | A2:B2 | 14.1999998092651,6.80000019073486,82.5,19.5 | "Générer" | Suivi_Financier_V2.xlsm!GenererCleNotes | Oui
+btnValiderGeneration | Bouton (controle de formulaire) | B2:C2 | 99,6.80000019073486,82.5,19.5 | "Valider" | Suivi_Financier_V2.xlsm!ValiderGenerationCle | Oui
+btnPasserGeneration | Bouton (controle de formulaire) | C2:D2 | 183,6.80000019073486,82.5,19.5 | "Passer" | Suivi_Financier_V2.xlsm!PasserGenerationCle | Oui
+btnRetourGeneration | Bouton (controle de formulaire) | D2:E2 | 267.799987792969,6.80000019073486,82.5,19.5 | "Retour" | Suivi_Financier_V2.xlsm!RetourGenerationCle | Oui
+btnAjouterSpecialite | Bouton (controle de formulaire) | F13:F13 | 423.799987792969,329.200012207031,25.5,14.1999998092651 | "+" | Suivi_Financier_V2.xlsm!AjouterSpecialite | Oui
+btnAjouterBeneficiaireGC | Bouton (controle de formulaire) | F14:F14 | 423.799987792969,344.200012207031,25.5,14.1999998092651 | "+" | Suivi_Financier_V2.xlsm!AjouterBeneficiaireDepuisGeneration | Oui
 
 ## NOMS DEFINIS (nom | portee | fait reference a | visible)
-frm_GenerationCle!gcBeneficiaire | feuille frm_GenerationCle | =frm_GenerationCle!$C$18 | Oui
-frm_GenerationCle!gcCleGeneree | feuille frm_GenerationCle | =frm_GenerationCle!$C$21 | Oui
-frm_GenerationCle!gcDateConsult | feuille frm_GenerationCle | =frm_GenerationCle!$C$16 | Oui
-frm_GenerationCle!gcDateOp | feuille frm_GenerationCle | =frm_GenerationCle!$C$12 | Oui
+frm_GenerationCle!gcBeneficiaire | feuille frm_GenerationCle | =frm_GenerationCle!$C$14 | Oui
+frm_GenerationCle!gcCleGeneree | feuille frm_GenerationCle | =frm_GenerationCle!$C$17 | Oui
+frm_GenerationCle!gcDateConsult | feuille frm_GenerationCle | =frm_GenerationCle!$C$12 | Oui
+frm_GenerationCle!gcDateOp | feuille frm_GenerationCle | =frm_GenerationCle!$C$7 | Oui
 frm_GenerationCle!gcLigneEnCours | feuille frm_GenerationCle | =frm_GenerationCle!$J$2 | Oui
-frm_GenerationCle!gcMontant | feuille frm_GenerationCle | =frm_GenerationCle!$C$19 | Oui
-gcNotes | classeur | =frm_GenerationCle!$E$13 | Oui
-gcNumCheque | classeur | =frm_GenerationCle!$C$13 | Oui
-frm_GenerationCle!gcSpecialite | feuille frm_GenerationCle | =frm_GenerationCle!$C$17 | Oui
-frm_GenerationCle!gcTiersOp | feuille frm_GenerationCle | =frm_GenerationCle!$E$12 | Oui
+frm_GenerationCle!gcMontant | feuille frm_GenerationCle | =frm_GenerationCle!$C$15 | Oui
+frm_GenerationCle!gcNotes | feuille frm_GenerationCle | =frm_GenerationCle!$E$8 | Oui
+frm_GenerationCle!gcNumCheque | feuille frm_GenerationCle | =frm_GenerationCle!$C$8 | Oui
+frm_GenerationCle!gcPointe | feuille frm_GenerationCle | =frm_GenerationCle!$C$9 | Oui
+frm_GenerationCle!gcSpecialite | feuille frm_GenerationCle | =frm_GenerationCle!$C$13 | Oui
+frm_GenerationCle!gcTiersOp | feuille frm_GenerationCle | =frm_GenerationCle!$E$7 | Oui
 
 # FIN DE L'EXPORT

@@ -1,0 +1,89 @@
+# STRUCTURE DE LA FEUILLE : Ventilations
+Classeur           = Suivi_Financier_V2.xlsm
+CodeName           = Feuil13
+Visibilite         = masquee (xlSheetHidden)
+Exporte le         = 2026-10-11 19:20:17
+Version Excel      = 16.0
+Plage utilisee     = A1:N25
+Zone detaillee     = A1:P25  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
+Largeur standard   = 10.07
+Hauteur standard   = 14.3
+Protection contenu = Non
+Nb tableaux        = 1
+Nb formes          = 0
+Contenu des tableaux NON exporte (confidentialite).
+
+## FENETRE
+Zoom             = 100
+FreezePanes      = Non
+SplitRow         = 0   (volets figes sous la ligne 0)
+SplitColumn      = 0
+ScrollRow        = 1
+ScrollColumn     = 1
+DisplayGridlines = Oui
+DisplayHeadings  = Oui
+DisplayZeros     = Oui
+
+## COLONNES (lettre | largeur | masquee)
+A | 22.67
+B | 10.27
+C | 14.13
+D | 10.07
+E | 15.4
+F | 10.07
+G | 10.07
+H | 10.07
+I | 10.07
+J | 10.07
+K | 10.07
+L | 10.07
+M | 10.07
+N | 10.07
+O | 10.07
+P | 10.07
+
+## LIGNES NON STANDARD (numero | hauteur | masquee) -- hauteur standard = 14.3
+(aucune)
+
+## CELLULES DE LA ZONE (hors tableaux)
+## adresse | valeur ou formule | fusion | police | fond | format | alignement | autres
+(aucune)
+
+## TABLEAUX
+
+### Tableau TblVentilations
+Plage            = A1:N2
+Ligne d'en-tete  = 1
+Nb lignes donnees= 0 (contenu non exporte)
+Filtre auto      = Oui
+Ligne de total   = Non
+Style            = TableStyleMedium9
+Colonnes (index | nom | lettre | largeur | masquee | format | liste)
+1 | ID_Transaction | A | 22.67 | - | (tableau vide : format et liste non lisibles)
+2 | Categorie | B | 10.27 | - | (tableau vide : format et liste non lisibles)
+3 | SousCategorie | C | 14.13 | - | (tableau vide : format et liste non lisibles)
+4 | Montant | D | 10.07 | - | (tableau vide : format et liste non lisibles)
+5 | DateVentilation | E | 15.4 | - | (tableau vide : format et liste non lisibles)
+6 | Notes | F | 10.07 | - | (tableau vide : format et liste non lisibles)
+7 | Date_consult | G | 10.07 | - | (tableau vide : format et liste non lisibles)
+8 | Spe_Consult | H | 10.07 | - | (tableau vide : format et liste non lisibles)
+9 | StatutSante | I | 10.07 | - | (tableau vide : format et liste non lisibles)
+10 | SoldeSante | J | 10.07 | - | (tableau vide : format et liste non lisibles)
+11 | DepassementHoraires | K | 10.07 | - | (tableau vide : format et liste non lisibles)
+12 | CommentaireSante | L | 10.07 | - | (tableau vide : format et liste non lisibles)
+13 | Franchise | M | 10.07 | - | (tableau vide : format et liste non lisibles)
+14 | Beneficiaire | N | 10.07 | - | (tableau vide : format et liste non lisibles)
+
+## VALIDATIONS HORS TABLEAUX (plage | description)
+(aucune)
+
+## MISES EN FORME CONDITIONNELLES (plage | type | formule | effet)
+(aucune)
+
+## FORMES ET BOUTONS (nom | genre | ancrage | gauche,haut,largeur,hauteur | texte | macro | visible)
+(aucune)
+
+## NOMS DEFINIS (nom | portee | fait reference a | visible)
+(aucun)
+
+# FIN DE L'EXPORT

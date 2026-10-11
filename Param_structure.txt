@@ -1,0 +1,206 @@
+# STRUCTURE DE LA FEUILLE : Param
+Classeur           = Suivi_Financier_V2.xlsm
+CodeName           = Feuil10
+Visibilite         = masquee (xlSheetHidden)
+Exporte le         = 2026-10-11 19:19:59
+Version Excel      = 16.0
+Plage utilisee     = A1:V89
+Zone detaillee     = A1:X89  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
+Largeur standard   = 10.07
+Hauteur standard   = 14.3
+Protection contenu = Non
+Nb tableaux        = 2
+Nb formes          = 0
+Contenu des tableaux NON exporte (confidentialite).
+
+## FENETRE
+Zoom             = 100
+FreezePanes      = Non
+SplitRow         = 0   (volets figes sous la ligne 0)
+SplitColumn      = 0
+ScrollRow        = 1
+ScrollColumn     = 1
+DisplayGridlines = Oui
+DisplayHeadings  = Oui
+DisplayZeros     = Oui
+
+## COLONNES (lettre | largeur | masquee)
+A | 14.13
+B | 14.13
+C | 10.07
+D | 10.07
+E | 10.07
+F | 10.07
+G | 40.8
+H | 14.8
+I | 10.07
+J | 10.07
+K | 30.8
+L | 30.8
+M | 33.53
+N | 10.07
+O | 10.07
+P | 42.8
+Q | 10.07
+R | 10.07
+S | 20.4
+T | 10.53
+U | 24
+V | 10
+W | 10.07
+X | 10.07
+
+## LIGNES NON STANDARD (numero | hauteur | masquee) -- hauteur standard = 14.3
+(aucune)
+
+## CELLULES DE LA ZONE (hors tableaux)
+## adresse | valeur ou formule | fusion | police | fond | format | alignement | autres
+A1 | "MoisBudget"
+B1 | "AnnéeBudget"
+D1 | "Tri_champs"
+E1 | "Tri_Ordre"
+G1 | "Médecin"
+H1 | "Spécialités"
+I1 | "Bénéficiaire"
+P1 | "Liste categories (zone technique - ne pas modifier)"
+A2 | "=SORT(UNIQUE(FILTER(TblOperations[MoisBudget], TblOperations[MoisBudget] <> "")))"
+B2 | "=UNIQUE(FILTER(TblOperations[AnneeBudget], TblOperations[AnneeBudget]<> ""))"
+D2 | "Date"
+E2 | "Croissant"
+G2 | "Clinique L'Union"
+H2 | "Analyses"
+I2 | "Adam"
+P2 | "A catégoriser" | format="@"
+A3 | "9"
+D3 | "Montant"
+E3 | "Décroissant"
+G3 | "Dr Covin (Urologue)"
+H3 | "Dentiste"
+I3 | "Alex"
+P3 | "Assurances" | format="@"
+A4 | "10"
+G4 | "M Bouvet (Généraliste)"
+H4 | "Dermatologue"
+I4 | "Dédé"
+P4 | "Déblocage prêt, crédits, réserves" | format="@"
+G5 | "M Delga (Généraliste)"
+H5 | "Gynécologue"
+I5 | "Noah"
+P5 | "Dépense professionnel Remboursable" | format="@"
+G6 | "M LACROUX FRANCOIS (Analyses)"
+H6 | "Généraliste"
+I6 | "Historique non récupéré"
+P6 | "Dépenses vie courante" | format="@"
+G7 | "M Serein Daniel (Gynécologue)"
+H7 | "Infirmière"
+P7 | "Education, formation" | format="@"
+G8 | "M Spahn Benjamin (Osteo)"
+H8 | "Kinésithérapeute"
+P8 | "Enfants" | format="@"
+G9 | "M Urbain (Généraliste)"
+H9 | "Naturopathe"
+P9 | "Impôts" | format="@"
+G10 | "M. Gorce Philippe (Neurologue)"
+H10 | "Neurologue"
+P10 | "Inconnue" | format="@"
+G11 | "M. Lesieur Gilles (Ophtalmo)"
+H11 | "Ophtalmologue"
+P11 | "Logement, immobilier" | format="@"
+G12 | "M.Benouaich (Ophtalmo)"
+H12 | "Opticien"
+P12 | "Prél. carte débit différé" | format="@"
+G13 | "Mme Aiello Beatrice"
+H13 | "ORL"
+P13 | "Retrait d'espèces" | format="@"
+G14 | "Mme Alquier"
+H14 | "Orthodontiste"
+P14 | "Revenus" | format="@"
+G15 | "Mme Baudoux (Généraliste)"
+H15 | "Orthoptiste"
+P15 | "Santé, prévoyance" | format="@"
+G16 | "Mme Bibas (Dermatologue)"
+H16 | "Ostéopathe"
+P16 | "Services" | format="@"
+G17 | "Mme Bonvillain Colombe (Psychologue)"
+H17 | "Pharmacie"
+P17 | "Sorties, voyages" | format="@"
+G18 | "Mme Briol Diane (Naturopathe)"
+H18 | "Podologue"
+P18 | "Sports, loisirs" | format="@"
+G19 | "Mme Corre-Gerin Blandine (Psychomotricienne)"
+H19 | "Psychologue"
+P19 | "Transports, véhicules" | format="@"
+G20 | "Mme Durieux (Dermatologue)"
+H20 | "Psychomotricien"
+P20 | "Ventilé" | format="@"
+G21 | "Mme Jacquier Clotilde (Orthoptiste)"
+H21 | "Urologue"
+P21 | "Virements internes" | format="@"
+G22 | "Mme Jungen Emma (Ostéo)"
+H22 | "Urgence"
+G23 | "Mme Lagarde Eugénie (Kiné)"
+H23 | "non reprise historique"
+G24 | "Mme Lartigue Catherine (Psycologue)"
+G25 | "Mme Lascols"
+G26 | "Mme Le Clainche Nathalie (Généraliste)"
+G27 | "Mme Lemoine"
+G28 | "Mme Martel-Lambert Solange (Orthodontiste)"
+G29 | "Mme Massicard Elise (Psychologue)"
+G30 | "Mme Nguyen (Dentiste)"
+G31 | "Mme Nguyen Gisèle (Ophtalmo)"
+G32 | "Mme Plard Christelle(Gynécologue)"
+G33 | "Mme Puig (Ostéopathe)"
+G34 | "Mme Quillet (Podologue)"
+G35 | "Mme Tainturier"
+G36 | "Opticiens Mutualiste"
+G37 | "Historique non récupéré"
+G38 | "Pharmacie"
+
+## TABLEAUX
+
+### Tableau TblCategories
+Plage            = K1:N89
+Ligne d'en-tete  = 1
+Nb lignes donnees= 88 (contenu non exporte)
+Filtre auto      = Oui
+Ligne de total   = Non
+Style            = TableStyleMedium9
+Colonnes (index | nom | lettre | largeur | masquee | format | liste)
+1 | CategorieSource | K | 30.8 | - | format="@" | sans liste
+2 | Categorie | L | 30.8 | - | format="@" | validation=xlValidateList Formula1="=ListeCategories" alerte=xlValidAlertWarning
+3 | SousCategorie | M | 33.53 | - | format="@" | validation=xlValidateInputOnly Formula1="" Formula2="" alerte=xlValidAlertWarning
+4 | Verifie | N | 10.07 | - | format="@" | validation=xlValidateList Formula1="Oui" alerte=xlValidAlertStop
+
+### Tableau TblDecalagesBudget
+Plage            = S1:V2
+Ligne d'en-tete  = 1
+Nb lignes donnees= 1 (contenu non exporte)
+Filtre auto      = Oui
+Ligne de total   = Non
+Style            = TableStyleMedium9
+Colonnes (index | nom | lettre | largeur | masquee | format | liste)
+1 | Tiers | S | 20.4 | - | format="@" | sans liste
+2 | Categorie | T | 10.53 | - | format="@" | sans liste
+3 | SousCategorie | U | 24 | - | format="@" | sans liste
+4 | Decalage | V | 10 | - | format="General" | sans liste
+
+## VALIDATIONS HORS TABLEAUX (plage | description)
+(aucune)
+
+## MISES EN FORME CONDITIONNELLES (plage | type | formule | effet)
+(aucune)
+
+## FORMES ET BOUTONS (nom | genre | ancrage | gauche,haut,largeur,hauteur | texte | macro | visible)
+(aucune)
+
+## NOMS DEFINIS (nom | portee | fait reference a | visible)
+Années | classeur | =Param!$B$2# | Oui
+Beneficiaires | classeur | =Param!$I$2:$I$6 | Oui
+ListeCategories | classeur | =OFFSET(Param!$P$2,0,0,MAX(1,COUNTA(Param!$P$2:$P$500)),1) | Oui
+Mois | classeur | =Param!$A$2# | Oui
+Praticiens | classeur | =Param!$G$2:$G$38 | Oui
+Specialites | classeur | =Param!$H$2:$H$23 | Oui
+Tri_champs | classeur | =Param!$D$2:$D$3 | Oui
+Tri_Ordre | classeur | =Param!$E$2:$E$3 | Oui
+
+# FIN DE L'EXPORT

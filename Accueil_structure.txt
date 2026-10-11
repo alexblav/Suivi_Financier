@@ -1,0 +1,58 @@
+# STRUCTURE DE LA FEUILLE : Accueil
+Classeur           = Suivi_Financier_V2.xlsm
+CodeName           = Feuil1
+Visibilite         = visible
+Exporte le         = 2026-10-11 19:19:59
+Version Excel      = 16.0
+Plage utilisee     = B2:B28
+Zone detaillee     = A1:D28  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
+Largeur standard   = 8.4
+Hauteur standard   = 14.3
+Protection contenu = Non
+Nb tableaux        = 0
+Nb formes          = 4
+Contenu des tableaux NON exporte (confidentialite).
+
+## FENETRE
+Zoom             = 100
+FreezePanes      = Non
+SplitRow         = 0   (volets figes sous la ligne 0)
+SplitColumn      = 0
+ScrollRow        = 1
+ScrollColumn     = 1
+DisplayGridlines = Oui
+DisplayHeadings  = Oui
+DisplayZeros     = Oui
+
+## COLONNES (lettre | largeur | masquee)
+A | 2.4
+B | 89.4
+C | 15.4
+D | 15.4
+
+## LIGNES NON STANDARD (numero | hauteur | masquee) -- hauteur standard = 14.3
+2 | 20.7
+
+## CELLULES DE LA ZONE (hors tableaux)
+## adresse | valeur ou formule | fusion | police | fond | format | alignement | autres
+B2 | "Suivi financier" | police: nom=Arial taille=16 gras couleur=RGB(31, 78, 120)
+
+## TABLEAUX
+(aucun)
+
+## VALIDATIONS HORS TABLEAUX (plage | description)
+(aucune)
+
+## MISES EN FORME CONDITIONNELLES (plage | type | formule | effet)
+(aucune)
+
+## FORMES ET BOUTONS (nom | genre | ancrage | gauche,haut,largeur,hauteur | texte | macro | visible)
+TextBox 1 | Zone de texte | B3:C7 | 17.2000007629395,46.5,513.799987792969,52.5 | "Ce fichier est consu pour suivre les opérations bancaires. Il se base sur l'exportation des données LINXO.Un premier au format CSV l'autre au format OFX le cumul de ces 2 exports permet de récupérer l'exhaustivité des données.\n" |  | Oui
+TextBox 2 | Zone de texte | B17:C23 | 17.2000007629395,248.199996948242,513.799987792969,76.5 | "Récupération des données\n1. Télécharger les données sur le site web de Linxo  au format CSV et OFX2. Enregistrer ces derniers\n3. Cliquer sur le bouton rafraichir4. fournir les 2 fichiers quand le programme les demande\n" |  | Oui
+TextBox 3 | Zone de texte | B23:C28 | 17.2000007629395,328.5,513.799987792969,64.5 | "L'analyse\nToutes les requêtes d'analyse sont lancées depuis la page SyntheseToutes, une fois lancé, affiche une bréve description  du rapport et des instructions de fonctionnement." |  | Oui
+TextBox 4 | Zone de texte | B7:C17 | 17.2000007629395,102,513.799987792969,135 | "Une fois les opérations importées, les modification dans LINXO ne sont pas reprises et devront être traitées directement dans l'outil. Avant tout export il est IMPERATIF de contrôler certaines opérations dans LINXO:Rechercher toutes les opérations de la catégorie: Santé, prévoyanceContôler les catégories de chaque opération:"Santé, prévoyance"/"Frais,remb santé": toutes les opérations devant faire l'objet d'un remboursement Secu et/ou Mutuel"Santé, prévoyance"/"Autres: Santé, prévoyance": Toutes les opérations de santé ne devant pas faire l'objet d'un remboursement\n" |  | Oui
+
+## NOMS DEFINIS (nom | portee | fait reference a | visible)
+(aucun)
+
+# FIN DE L'EXPORT
