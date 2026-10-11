@@ -1,0 +1,1296 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Suivi Financier – Guide de fonctionnement</title>
+<style>
+:root{--fond:#fbfbfa;--texte:#1d2430;--doux:#5b6678;--trait:#d9dee6;--accent:#1f497d;
+--accent2:#2f6db5;--carte:#ffffff;--code:#f1f3f6;--noeud:#eaf1fb;--base:#fdf3dc;--decision:#fbe9e7}
+@media (prefers-color-scheme:dark){:root{--fond:#14181f;--texte:#e3e8ef;--doux:#9aa6b8;
+--trait:#2d3644;--accent:#8db4e2;--accent2:#6aa3e6;--carte:#1b212b;--code:#222a36;
+--noeud:#1f2d44;--base:#3a3220;--decision:#3d2623}}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:16px}
+body{margin:0;background:var(--fond);color:var(--texte);
+font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.page{display:flex;align-items:flex-start;max-width:1240px;margin:0 auto}
+nav.sommaire{position:sticky;top:0;flex:0 0 290px;max-height:100vh;overflow:auto;
+padding:24px 16px 24px 24px;font-size:14px;border-right:1px solid var(--trait)}
+nav.sommaire .titre{font-weight:700;color:var(--accent);margin:0 0 8px;font-size:15px}
+nav.sommaire ul{list-style:none;margin:0;padding:0}nav.sommaire ul ul{padding-left:14px;
+border-left:1px solid var(--trait);margin:2px 0 6px 4px}
+nav.sommaire a{display:block;padding:3px 6px;color:var(--doux);text-decoration:none;border-radius:6px}
+nav.sommaire a:hover{background:var(--code);color:var(--accent)}
+main{flex:1;min-width:0;padding:28px 36px 80px;max-width:920px}
+h1{font-size:2rem;color:var(--accent);margin:.2em 0 .1em;line-height:1.2}
+h2{font-size:1.5rem;color:var(--accent);margin:2.2em 0 .6em;padding-bottom:.25em;
+border-bottom:2px solid var(--trait)}
+h3{font-size:1.18rem;margin:1.6em 0 .4em;color:var(--accent2)}
+a{color:var(--accent2)}p,li{max-width:76ch}
+code{background:var(--code);padding:.1em .38em;border-radius:5px;font:.88em ui-monospace,Consolas,monospace;
+word-break:break-word}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow:auto}pre code{padding:0;background:none}
+.tableau{overflow-x:auto;margin:1em 0;border:1px solid var(--trait);border-radius:8px;background:var(--carte)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{padding:7px 11px;text-align:left;vertical-align:top;border-bottom:1px solid var(--trait)}
+th{background:var(--code);color:var(--accent);font-weight:650;position:sticky;top:0}
+tr:last-child td{border-bottom:0}
+blockquote{margin:1em 0;padding:.2em 1em;border-left:4px solid var(--accent2);background:var(--code)}
+.formule{margin:1em 0;padding:14px 18px;background:var(--carte);border:1px solid var(--trait);
+border-left:4px solid var(--accent2);border-radius:8px;font:1.08rem ui-monospace,Consolas,monospace}
+figure.diagramme{margin:1.4em 0;padding:14px;background:var(--carte);border:1px solid var(--trait);
+border-radius:10px;overflow-x:auto;text-align:center}
+svg.schema{max-width:100%;height:auto;min-width:340px}
+svg .noeud{fill:var(--noeud);stroke:var(--accent2);stroke-width:1.4}
+svg .noeud.base{fill:var(--base);stroke:#c28b1e;stroke-width:2}
+svg .noeud.decision{fill:var(--decision);stroke:#c4503f}
+svg .txt{fill:var(--texte);font:13px system-ui,sans-serif}svg .txt.t1{font-weight:650}
+svg .arete{fill:none;stroke:var(--doux);stroke-width:1.5}svg .pointille{stroke-dasharray:5 4}
+svg .pointe{fill:var(--doux)}
+svg .fond-etiquette{fill:var(--carte);stroke:var(--trait)}
+svg .etiquette{fill:var(--doux);font:11.5px system-ui,sans-serif}
+.haut{position:fixed;right:18px;bottom:18px;background:var(--accent);color:var(--fond);
+padding:8px 12px;border-radius:999px;text-decoration:none;font-size:13px;box-shadow:0 2px 8px #0003}
+.meta{color:var(--doux);margin-top:0}
+@media (max-width:900px){.page{display:block}nav.sommaire{position:static;max-height:none;
+border-right:0;border-bottom:1px solid var(--trait);padding:16px}main{padding:20px 16px 60px}}
+@media print{nav.sommaire,.haut{display:none}.page{display:block}main{max-width:none;padding:0}
+h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff;color:#000}}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="sommaire" aria-label="Sommaire"><p class="titre">Sommaire</p><ul><ul><li><a href="#sommaire">Sommaire</a></li><li><a href="#en-bref--le-parcours-dune-opération">En bref : le parcours d&#x27;une opération</a></li><li><a href="#les-feuilles-et-tableaux-du-classeur">Les feuilles et tableaux du classeur</a></li><li><a href="#1-limport-des-relevés-ofx--csv">1. L&#x27;import des relevés (OFX + CSV)</a></li><li><a href="#2-le-contrôle-des-catégories">2. Le contrôle des catégories</a><ul><li><a href="#le-tableau-de-correspondance-tblcategories-feuille-param-colonnes-k-à-n">Le tableau de correspondance TblCategories (feuille Param, colonnes K à N)</a></li><li><a href="#le-formulaire-frm_controlecategories">Le formulaire frm_ControleCategories</a></li><li><a href="#créer-une-catégorie-frm_nouvellecategorie">Créer une catégorie (frm_NouvelleCategorie)</a></li><li><a href="#corriger-plus-tard">Corriger plus tard</a></li></ul></li><li><a href="#3-la-ventilation-dune-opération">3. La ventilation d&#x27;une opération</a></li><li><a href="#4-le-mois-de-budget-et-les-décalages">4. Le mois de budget et les décalages</a></li><li><a href="#5-le-suivi-santé">5. Le suivi santé</a><ul><li><a href="#lidée-clé--la--clé-notes-">L&#x27;idée clé : la « clé Notes »</a></li><li><a href="#le-calcul--solde-et-statut">Le calcul : solde et statut</a></li><li><a href="#les-trois-étapes-dans-lordre">Les trois étapes, dans l&#x27;ordre</a></li><li><a href="#consulter-et-corriger--lécran--suivi-santé-">Consulter et corriger : l&#x27;écran « Suivi santé »</a></li></ul></li><li><a href="#6-lécran-de-recherche-des-opérations">6. L&#x27;écran de recherche des opérations</a><ul><li><a href="#comment-louvrir--sept-entrées-sept--préfiltres-">Comment l&#x27;ouvrir : sept entrées, sept « préfiltres »</a></li><li><a href="#les-colonnes">Les colonnes</a></li><li><a href="#les-actions">Les actions</a></li></ul></li><li><a href="#7-la-feuille-synthese-et-les-écrans-de-résultat">7. La feuille Synthese et les écrans de résultat</a></li><li><a href="#8-léchéancier-et-le-prévisionnel-de-trésorerie">8. L&#x27;échéancier et le prévisionnel de trésorerie</a><ul><li><a href="#les-principes-validés-le-09102026">Les principes (validés le 09/10/2026)</a></li><li><a href="#installer-léchéancier">Installer l&#x27;échéancier</a></li><li><a href="#déclarer-une-échéance--le-formulaire-frm_echeance">Déclarer une échéance : le formulaire frm_Echeance</a></li><li><a href="#les-règles-produisent-seules-les-occurrences">Les règles produisent seules les occurrences</a></li><li><a href="#le-rapprochement-après-limport">Le rapprochement après l&#x27;import</a></li><li><a href="#les-deux-listes">Les deux listes</a></li><li><a href="#le-bloc--prévisionnel-de-trésorerie--de-synthese">Le bloc « Prévisionnel de trésorerie » de Synthese</a></li></ul></li><li><a href="#9-lanalyse-budgétaire">9. L&#x27;analyse budgétaire</a><ul><li><a href="#ouvrir-et-régler-lécran">Ouvrir et régler l&#x27;écran</a></li><li><a href="#les-règles-de-calcul">Les règles de calcul</a></li><li><a href="#les-boutons">Les boutons</a></li><li><a href="#analyse-ou-bilan-mensuel--pourquoi-deux-chiffres-">Analyse ou bilan mensuel : pourquoi deux chiffres ?</a></li></ul></li><li><a href="#10-installation-maintenance-et-outils-développeur">10. Installation, maintenance et outils développeur</a><ul><li><a href="#comment-le-code-est-organisé">Comment le code est organisé</a></li><li><a href="#les-macros-dinstallation">Les macros d&#x27;installation</a></li><li><a href="#les-outils-pour-développeur">Les outils pour développeur</a></li><li><a href="#régénérer-le-guide-html">Régénérer le guide HTML</a></li></ul></li><li><a href="#glossaire">Glossaire</a></li><li><a href="#points-relevés-à-la-lecture-du-code">Points relevés à la lecture du code</a></li></ul></ul></nav>
+<main>
+<h1 id="suivi-financier--guide-de-fonctionnement">Suivi Financier – Guide de fonctionnement</h1>
+<p>Oct 11, 2026 · @Alexandre</p>
+<p>Ce guide explique ce que fait le classeur Excel de suivi des comptes : on importe les relevés de la banque, on range chaque opération dans une catégorie, on suit les remboursements de santé, on déclare les opérations à venir (échéancier) et on analyse ses dépenses, puis on consulte et corrige depuis un écran de recherche. Il décrit le code de la branche Refonte_recherche du dépôt Suivi_Financier, dans son état du 11/10/2026 (dernier commit da794e7, « Analyse budgetaire »).</p>
+<p>Ce document existe en deux formats, <strong>toujours identiques</strong> : <code>README.md</code> (lu sur GitHub, schémas Mermaid) et <code>README.html</code> (un seul fichier autonome, qui s'ouvre dans n'importe quel navigateur, sans connexion internet). Voir la section « Régénérer le guide HTML » en fin de document.</p>
+<h2 id="sommaire">Sommaire</h2>
+<ul>
+<li><a href="#en-bref--le-parcours-dune-opération">En bref : le parcours d'une opération</a></li>
+<li><a href="#les-feuilles-et-tableaux-du-classeur">Les feuilles et tableaux du classeur</a></li>
+<li><a href="#1-limport-des-relevés-ofx--csv">1. L'import des relevés (OFX + CSV)</a></li>
+<li><a href="#2-le-contrôle-des-catégories">2. Le contrôle des catégories</a></li>
+<li><a href="#3-la-ventilation-dune-opération">3. La ventilation d'une opération</a></li>
+<li><a href="#4-le-mois-de-budget-et-les-décalages">4. Le mois de budget et les décalages</a></li>
+<li><a href="#5-le-suivi-santé">5. Le suivi santé</a></li>
+<li><a href="#6-lécran-de-recherche-des-opérations">6. L'écran de recherche des opérations</a></li>
+<li><a href="#7-la-feuille-synthese-et-les-écrans-de-résultat">7. La feuille Synthese et les écrans de résultat</a></li>
+<li><a href="#8-léchéancier-et-le-prévisionnel-de-trésorerie">8. L'échéancier et le prévisionnel de trésorerie</a></li>
+<li><a href="#9-lanalyse-budgétaire">9. L'analyse budgétaire</a></li>
+<li><a href="#10-installation-maintenance-et-outils-développeur">10. Installation, maintenance et outils développeur</a></li>
+<li><a href="#glossaire">Glossaire</a></li>
+<li><a href="#points-relevés-à-la-lecture-du-code">Points relevés à la lecture du code</a></li>
+</ul>
+<h2 id="en-bref--le-parcours-dune-opération">En bref : le parcours d'une opération</h2>
+<figure class="diagramme"><svg class="schema" width="780" viewBox="0 0 780 819" role="img" aria-label="Schéma 1" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="fl1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="pointe"/></marker></defs>
+<path class="arete" d="M360,91 C360,126 360,126 360,161" marker-end="url(#fl1)"/>
+<path class="arete" d="M360,232 C360,267 260,267 260,302" marker-end="url(#fl1)"/>
+<path class="arete" d="M260,373 C260,408 360,408 360,443" marker-end="url(#fl1)"/>
+<path class="arete" d="M360,514 C360,549 124,549 124,584" marker-end="url(#fl1)"/>
+<path class="arete" d="M360,514 C360,611 360,611 360,708" marker-end="url(#fl1)"/>
+<path class="arete" d="M360,514 C360,549 596,549 596,584" marker-end="url(#fl1)"/>
+<path class="arete" d="M360,514 C360,549 360,549 360,584" marker-end="url(#fl1)"/>
+<path class="arete" d="M360,232 C360,267 467,267 467,302" marker-end="url(#fl1)"/>
+<path class="arete" d="M467,373 C467,478 596,478 596,584" marker-end="url(#fl1)"/>
+<path class="arete" d="M360,638 C360,673 360,673 360,708" marker-end="url(#fl1)"/>
+<rect class="noeud" x="267" y="20" width="185" height="71" rx="8"/>
+<text class="txt t1" x="360" y="43.0" text-anchor="middle">Relevés banque</text>
+<text class="txt" x="360" y="60.0" text-anchor="middle">OFX : opérations + ID</text>
+<text class="txt" x="360" y="77.0" text-anchor="middle">CSV : catégories</text>
+<rect class="noeud" x="271" y="161" width="178" height="71" rx="8"/>
+<text class="txt t1" x="360" y="184.0" text-anchor="middle">1. Import</text>
+<text class="txt" x="360" y="201.0" text-anchor="middle">ignore les doublons</text>
+<text class="txt" x="360" y="218.0" text-anchor="middle">reprend la catégorie</text>
+<rect class="noeud" x="171" y="302" width="178" height="71" rx="8"/>
+<text class="txt t1" x="260" y="325.0" text-anchor="middle">2-4. Contrôle</text>
+<text class="txt" x="260" y="342.0" text-anchor="middle">catégorie, sous-cat.</text>
+<text class="txt" x="260" y="359.0" text-anchor="middle">ventilation, budget</text>
+<rect class="noeud base" x="290" y="443" width="141" height="71" rx="16"/>
+<text class="txt t1" x="360" y="466.0" text-anchor="middle">Les données</text>
+<text class="txt" x="360" y="483.0" text-anchor="middle">TblOperations</text>
+<text class="txt" x="360" y="500.0" text-anchor="middle">TblVentilations</text>
+<rect class="noeud" x="20" y="584" width="208" height="54" rx="8"/>
+<text class="txt t1" x="124" y="607.0" text-anchor="middle">5. Suivi santé</text>
+<text class="txt" x="124" y="624.0" text-anchor="middle">clé Notes, solde, statut</text>
+<rect class="noeud" x="267" y="708" width="185" height="71" rx="8"/>
+<text class="txt t1" x="360" y="731.0" text-anchor="middle">6. Écran de recherche</text>
+<text class="txt" x="360" y="748.0" text-anchor="middle">filtrer, consulter,</text>
+<text class="txt" x="360" y="765.0" text-anchor="middle">corriger</text>
+<rect class="noeud" x="492" y="584" width="208" height="54" rx="8"/>
+<text class="txt t1" x="596" y="607.0" text-anchor="middle">7. Bilan mensuel</text>
+<text class="txt" x="596" y="624.0" text-anchor="middle">entrées, dépenses, écart</text>
+<rect class="noeud" x="385" y="302" width="163" height="71" rx="8"/>
+<text class="txt t1" x="467" y="325.0" text-anchor="middle">8. Échéancier</text>
+<text class="txt" x="467" y="342.0" text-anchor="middle">opérations à venir</text>
+<text class="txt" x="467" y="359.0" text-anchor="middle">solde prévisionnel</text>
+<rect class="noeud" x="264" y="584" width="193" height="54" rx="8"/>
+<text class="txt t1" x="360" y="607.0" text-anchor="middle">9. Analyse budgétaire</text>
+<text class="txt" x="360" y="624.0" text-anchor="middle">répartition, évolution</text>
+<rect class="fond-etiquette" x="295" y="257" width="236" height="18" rx="4"/><text class="etiquette" x="414" y="270" text-anchor="middle">rapproche les opérations importées</text>
+<rect class="fond-etiquette" x="463" y="468" width="137" height="18" rx="4"/><text class="etiquette" x="532" y="482" text-anchor="middle">solde à J+15 / J+30</text>
+<rect class="fond-etiquette" x="291" y="680" width="137" height="18" rx="4"/><text class="etiquette" x="360" y="694" text-anchor="middle">Voir les opérations</text>
+</svg></figure>
+<p>Une opération entre une seule fois, par l'import, et n'est écrite qu'après votre contrôle. Ensuite, le suivi santé, l'écran de recherche, le bilan mensuel et l'analyse budgétaire travaillent tous sur les deux mêmes tableaux. L'échéancier, lui, garde la liste de ce qui <strong>va</strong> arriver sur le compte et la compare aux opérations à chaque import. Les numéros renvoient aux sections de ce guide.</p>
+<h2 id="les-feuilles-et-tableaux-du-classeur">Les feuilles et tableaux du classeur</h2>
+<p>Toutes les données vivent dans deux tableaux Excel : <strong>TblOperations</strong> (une ligne par opération bancaire) et <strong>TblVentilations</strong> (les « parts » d'une opération découpée). L'échéancier a ses deux propres tableaux (<strong>TblEcheances</strong> et <strong>TblRecurrences</strong>). Les autres feuilles servent soit de réglages, soit d'écrans de saisie.</p>
+<p>Un point de vocabulaire utile dès le départ : un <strong>tableau Excel</strong> (ou <em>ListObject</em>) est une plage mise en forme avec « Insérer &gt; Tableau ». Le code retrouve toujours ses colonnes par leur <strong>nom d'en-tête</strong>, jamais par leur numéro : on peut donc déplacer une colonne sans rien casser, mais il ne faut <strong>jamais la renommer</strong>.</p>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Feuille</th>
+<th>Tableau / contenu</th>
+<th>Rôle pour l'utilisateur</th>
+<th>Visible ?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Accueil</td>
+<td>Bouton d'import</td>
+<td>Lancer l'import des relevés</td>
+<td>Oui</td>
+</tr>
+<tr>
+<td>Synthese</td>
+<td>Critères (année, mois, seuil…), bloc « Prévisionnel de trésorerie », boutons</td>
+<td>Point de départ de toutes les consultations</td>
+<td>Oui</td>
+</tr>
+<tr>
+<td>Import_data</td>
+<td><strong>TblOperations</strong></td>
+<td>La base : toutes les opérations importées</td>
+<td>Oui</td>
+</tr>
+<tr>
+<td>Ventilations</td>
+<td><strong>TblVentilations</strong></td>
+<td>Les parts des opérations ventilées</td>
+<td>Oui</td>
+</tr>
+<tr>
+<td>Param</td>
+<td><strong>TblCategories</strong> (K:N), <strong>TblDecalagesBudget</strong> (S:V), listes Spécialités, Praticiens, Bénéficiaires, Mois, Années</td>
+<td>Réglages modifiables sans toucher au code</td>
+<td>Masquée en temps normal</td>
+</tr>
+<tr>
+<td>frm_ResolutionCategories</td>
+<td>Formulaire</td>
+<td>Choisir une catégorie quand le CSV en propose plusieurs</td>
+<td>Seulement pendant l'import</td>
+</tr>
+<tr>
+<td>frm_ControleCategories</td>
+<td>Formulaire</td>
+<td>Contrôler catégorie, sous-catégorie, Tiers et Notes</td>
+<td>Pendant l'import ou à la demande</td>
+</tr>
+<tr>
+<td>frm_NouvelleCategorie</td>
+<td>Formulaire</td>
+<td>Créer une catégorie ou sous-catégorie</td>
+<td>Ouvert depuis le contrôle ou l'échéancier</td>
+</tr>
+<tr>
+<td>frm_Ventilation</td>
+<td>Formulaire</td>
+<td>Découper une opération en plusieurs parts</td>
+<td>À la demande</td>
+</tr>
+<tr>
+<td>frm_RapprochementNotes</td>
+<td>Formulaire</td>
+<td>Retrouver la clé santé d'une opération</td>
+<td>Suivi santé</td>
+</tr>
+<tr>
+<td>frm_GenerationCle</td>
+<td>Formulaire</td>
+<td>Créer une nouvelle clé santé</td>
+<td>Suivi santé</td>
+</tr>
+<tr>
+<td>frm_SuiviSante</td>
+<td>Formulaire</td>
+<td>Compléter bénéficiaire, franchise, dépassement</td>
+<td>Suivi santé</td>
+</tr>
+<tr>
+<td>frm_RechercheOperations</td>
+<td><strong>TblRechercheOperations</strong></td>
+<td>Écran central de consultation et de correction</td>
+<td>À la demande</td>
+</tr>
+<tr>
+<td>frm_Resultat</td>
+<td>Zone de résultats</td>
+<td>Bilan mensuel</td>
+<td>À la demande</td>
+</tr>
+<tr>
+<td>frm_Echeancier</td>
+<td><strong>TblEcheances</strong></td>
+<td>Liste des opérations à venir</td>
+<td>À la demande</td>
+</tr>
+<tr>
+<td>frm_Recurrences</td>
+<td><strong>TblRecurrences</strong></td>
+<td>Liste des règles de récurrence</td>
+<td>À la demande</td>
+</tr>
+<tr>
+<td>frm_Echeance</td>
+<td>Formulaire</td>
+<td>Saisir une échéance ou une règle</td>
+<td>À la demande</td>
+</tr>
+<tr>
+<td>frm_Analyse</td>
+<td>2 tableaux + 2 graphiques</td>
+<td>Analyse budgétaire</td>
+<td>À la demande</td>
+</tr>
+<tr>
+<td>TechDernierImport</td>
+<td>Liste d'identifiants</td>
+<td>Mémorise le dernier import</td>
+<td>Très masquée (technique)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Pourquoi des « formulaires » en feuilles et pas de vraies fenêtres ?</strong> Les fenêtres VBA classiques (<em>UserForm</em>) s'affichaient mal sur un poste à plusieurs écrans (problème d'échelle d'affichage, « DPI »). Chaque formulaire est donc une feuille cachée qui s'affiche le temps de la saisie. Tant qu'elle est ouverte, Excel vous empêche d'aller sur un autre onglet : c'est voulu, cela imite une fenêtre « modale ». On en sort uniquement par ses boutons (Terminer, Valider, Annuler, Sortir…).</p>
+<p><strong>Charte commune des écrans.</strong> Tous les écrans partagent la même présentation (définie une seule fois dans <code>mod_InstallCommun</code>) : une ligne de boutons en haut, un bloc « Instructions » juste dessous, puis le corps. Les couleurs sont toujours les mêmes : étiquette de champ en bleu foncé, <strong>cellule grise = non modifiable</strong>, <strong>cellule jaune pâle = modifiable</strong>. Dans le bloc Instructions, les noms de boutons sont en rouge gras, les noms de champs en vert gras. Quadrillage et en-têtes de lignes sont masqués.</p>
+<h2 id="1-limport-des-relevés-ofx--csv">1. L'import des relevés (OFX + CSV)</h2>
+<p>L'import ajoute à TblOperations les seules opérations <strong>nouvelles</strong>, avec leur catégorie, et ne réécrit jamais une opération déjà présente. On le lance avec le bouton de la feuille Accueil (macro <code>ImporterOperationsOFX</code>, module <code>mod_ImportOFX</code>).</p>
+<p><strong>Pourquoi deux fichiers ?</strong> Le fichier <strong>OFX</strong> de la banque contient les opérations avec un identifiant unique (le <em>FITID</em>) mais <strong>sans catégorie</strong>. Le fichier <strong>CSV</strong> exporté en même temps contient, lui, la <strong>catégorie</strong> choisie dans l'application de la banque. L'import lit les deux et les « recolle ».</p>
+<figure class="diagramme"><svg class="schema" width="514" viewBox="0 0 514 1207" role="img" aria-label="Schéma 2" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="fl2" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="pointe"/></marker></defs>
+<path class="arete" d="M227,74 C227,109 227,109 227,144" marker-end="url(#fl2)"/>
+<path class="arete" d="M227,198 C227,233 227,233 227,268" marker-end="url(#fl2)"/>
+<path class="arete" d="M227,355 C227,394 98,394 98,434" marker-end="url(#fl2)"/>
+<path class="arete" d="M227,355 C227,390 323,390 323,425" marker-end="url(#fl2)"/>
+<path class="arete" d="M323,479 C323,514 227,514 227,549" marker-end="url(#fl2)"/>
+<path class="arete" d="M323,479 C323,576 227,576 227,673" marker-end="url(#fl2)"/>
+<path class="arete" d="M227,603 C227,638 227,638 227,673" marker-end="url(#fl2)"/>
+<path class="arete" d="M227,727 C227,762 227,762 227,797" marker-end="url(#fl2)"/>
+<path class="arete" d="M227,868 C227,903 227,903 227,938" marker-end="url(#fl2)"/>
+<path class="arete" d="M227,1009 C227,1044 227,1044 227,1079" marker-end="url(#fl2)"/>
+<rect class="noeud" x="138" y="20" width="178" height="54" rx="8"/>
+<text class="txt t1" x="227" y="43.0" text-anchor="middle">Choix des 2 fichiers</text>
+<text class="txt" x="227" y="60.0" text-anchor="middle">OFX puis CSV</text>
+<rect class="noeud" x="134" y="144" width="185" height="54" rx="8"/>
+<text class="txt t1" x="227" y="167.0" text-anchor="middle">Lecture de l&#x27;OFX</text>
+<text class="txt" x="227" y="184.0" text-anchor="middle">1 opération = 1 FITID</text>
+<polygon class="noeud decision" points="227,268 347,312 227,355 107,312"/>
+<text class="txt t1" x="227" y="307.5" text-anchor="middle">FITID déjà</text>
+<text class="txt" x="227" y="324.5" text-anchor="middle">dans Import_data ?</text>
+<rect class="noeud" x="20" y="434" width="156" height="37" rx="8"/>
+<text class="txt" x="98" y="456.5" text-anchor="middle">Opération ignorée</text>
+<rect class="noeud" x="212" y="425" width="222" height="54" rx="8"/>
+<text class="txt t1" x="323" y="448.0" text-anchor="middle">Rapprochement CSV</text>
+<text class="txt" x="323" y="465.0" text-anchor="middle">clé date + montant + Tiers</text>
+<rect class="noeud" x="123" y="549" width="208" height="54" rx="8"/>
+<text class="txt t1" x="227" y="572.0" text-anchor="middle">Cas ambigus</text>
+<text class="txt" x="227" y="589.0" text-anchor="middle">frm_ResolutionCategories</text>
+<rect class="noeud" x="127" y="673" width="200" height="54" rx="8"/>
+<text class="txt t1" x="227" y="696.0" text-anchor="middle">Contrôle des catégories</text>
+<text class="txt" x="227" y="713.0" text-anchor="middle">frm_ControleCategories</text>
+<rect class="noeud" x="127" y="797" width="200" height="71" rx="8"/>
+<text class="txt t1" x="227" y="820.0" text-anchor="middle">Calculs automatiques</text>
+<text class="txt" x="227" y="837.0" text-anchor="middle">mois de budget, date et</text>
+<text class="txt" x="227" y="854.0" text-anchor="middle">spécialité santé</text>
+<rect class="noeud base" x="164" y="938" width="126" height="71" rx="16"/>
+<text class="txt t1" x="227" y="961.0" text-anchor="middle">Écriture dans</text>
+<text class="txt" x="227" y="978.0" text-anchor="middle">TblOperations</text>
+<text class="txt" x="227" y="995.0" text-anchor="middle">tri par date</text>
+<rect class="noeud" x="123" y="1079" width="208" height="88" rx="8"/>
+<text class="txt t1" x="227" y="1102.0" text-anchor="middle">Échéancier, questions</text>
+<text class="txt" x="227" y="1119.0" text-anchor="middle">santé,</text>
+<text class="txt" x="227" y="1136.0" text-anchor="middle">affichage des opérations</text>
+<text class="txt" x="227" y="1153.0" text-anchor="middle">importées</text>
+<rect class="fond-etiquette" x="147" y="384" width="32" height="18" rx="4"/><text class="etiquette" x="162" y="397" text-anchor="middle">oui</text>
+<rect class="fond-etiquette" x="259" y="380" width="32" height="18" rx="4"/><text class="etiquette" x="275" y="393" text-anchor="middle">non</text>
+<rect class="fond-etiquette" x="203" y="504" width="144" height="18" rx="4"/><text class="etiquette" x="275" y="517" text-anchor="middle">plusieurs catégories</text>
+<rect class="fond-etiquette" x="216" y="566" width="118" height="18" rx="4"/><text class="etiquette" x="275" y="579" text-anchor="middle">0 ou 1 catégorie</text>
+<rect class="fond-etiquette" x="152" y="770" width="151" height="18" rx="4"/><text class="etiquette" x="227" y="782" text-anchor="middle">Terminer et continuer</text>
+</svg></figure>
+<p>Ce qui se passe, dans l'ordre :</p>
+<ol>
+<li><strong>Choix des fichiers.</strong> Excel vous demande d'abord l'OFX, puis le CSV. Annuler l'une des deux fenêtres arrête tout, sans rien modifier.</li>
+<li><strong>Lecture de l'OFX.</strong> Chaque opération (balise <code>STMTTRN</code>) donne : date comptable, date d'opération, type, Tiers (<code>NAME</code>), libellé (<code>MEMO</code>, rangé dans la colonne <strong>Notes</strong>), montant (négatif = dépense) et numéro de chèque.</li>
+<li><strong>Anti-doublon.</strong> Le FITID devient la colonne <strong>ID_Transaction</strong>. Si cet identifiant existe déjà dans Import_data, l'opération est ignorée. On peut donc réimporter un relevé qui chevauche le précédent sans créer de doublon.</li>
+<li><strong>Rapprochement avec le CSV.</strong> Pour retrouver la catégorie, le code fabrique une clé « date + montant + Tiers » des deux côtés (le CSV est attendu en UTF-16, séparé par des tabulations, avec les colonnes Date, Libellé, Catégorie, Montant). Trois cas :<ul>
+<li>la clé est trouvée avec une seule catégorie → elle est reprise ;</li>
+<li>elle n'est pas trouvée → catégorie vide, l'opération sera à ranger à la main ;</li>
+<li>elle est trouvée avec <strong>plusieurs</strong> catégories différentes (deux achats identiques le même jour) → cas « ambigu ».</li>
+</ul>
+</li>
+<li><strong>Cas ambigus.</strong> S'il y en a, la feuille <strong>frm_ResolutionCategories</strong> s'affiche : une ligne par cas, une liste déroulante avec les catégories possibles. Vous choisissez, puis « Terminer et appliquer ».</li>
+<li><strong>Contrôle des catégories.</strong> Le formulaire de contrôle s'ouvre (voir section 2). C'est ici que chaque opération reçoit sa catégorie <strong>et</strong> sa sous-catégorie. Si vous cliquez sur « Annuler l'import », <strong>rien n'est écrit</strong> : le classeur reste exactement comme avant.</li>
+<li><strong>Calculs automatiques.</strong> Pour chaque opération : le mois de budget (section 4) et, pour une dépense de santé, la date et la spécialité de consultation lues dans Notes (section 5).</li>
+<li><strong>Écriture.</strong> Les nouvelles lignes sont ajoutées en bas de TblOperations, l'identifiant forcé au format Texte (sinon Excel arrondirait les longs numéros). Puis la sous-catégorie et, si l'opération a été ventilée, sa catégorie d'origine sont écrites, et le tableau est trié par date comptable, la plus récente en haut.</li>
+<li><strong>Mémorisation du dernier import.</strong> La liste des identifiants ajoutés est notée dans la feuille technique TechDernierImport. C'est elle qui alimente le bouton « Dernier import ».</li>
+<li><strong>Échéancier (automatique, sans question préalable).</strong> Les occurrences des règles de récurrence sont complétées, puis, si des opérations ont été ajoutées, l'import compare ces opérations aux échéances à venir et vous propose les rapprochements (voir section 8). Sans effet si l'échéancier n'est pas installé.</li>
+<li><strong>Trois questions finales</strong>, toutes facultatives :<ul>
+<li>« Traiter/revoir les catégories des opérations affectées à Santé ? » → lance la vérification des clés santé ;</li>
+<li>si oui, « Réaliser le rapprochement des opérations de santé ? » → lance le formulaire de suivi santé ;</li>
+<li>« Afficher les opérations importées ? » → ouvre l'écran de recherche sur le dernier import. C'est aussi l'endroit idéal pour déclarer une opération comme récurrente (bouton « Rendre récurrente », section 8).</li>
+</ul>
+</li>
+<li><strong>Bilan.</strong> Un message résume : opérations lues, déjà présentes, ajoutées, sans correspondance CSV, ambiguës. Si vous n'avez demandé aucun écran, vous revenez sur Synthese.</li>
+</ol>
+<p>Répondre « Non » aux questions santé n'est pas grave : tout peut être relancé plus tard avec le bouton « Traitement des données de santé » de Synthese.</p>
+<h2 id="2-le-contrôle-des-catégories">2. Le contrôle des catégories</h2>
+<p>Chaque opération est rangée sur <strong>deux niveaux</strong> : une <strong>Catégorie</strong> (ex. « Santé, prévoyance ») et une <strong>Sous-catégorie</strong> (ex. « Frais, remb santé »). La banque n'en fournit qu'un seul, la « catégorie source » : un tableau de correspondance fait le lien.</p>
+<h3 id="le-tableau-de-correspondance-tblcategories-feuille-param-colonnes-k-à-n">Le tableau de correspondance TblCategories (feuille Param, colonnes K à N)</h3>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Colonne</th>
+<th>Contenu</th>
+<th>Exemple</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>K – CategorieSource</td>
+<td>Le texte exact envoyé par la banque (ne pas modifier)</td>
+<td>Frais, remb santé</td>
+</tr>
+<tr>
+<td>L – Categorie</td>
+<td>La catégorie de rangement</td>
+<td>Santé, prévoyance</td>
+</tr>
+<tr>
+<td>M – SousCategorie</td>
+<td>La sous-catégorie (peut rester vide)</td>
+<td>Frais, remb santé</td>
+</tr>
+<tr>
+<td>N – Verifie</td>
+<td>« Oui » quand vous avez contrôlé la ligne</td>
+<td>Oui</td>
+</tr>
+</tbody>
+</table></div>
+<p>Quand une opération arrive avec la catégorie source « X », le formulaire lui propose automatiquement la Catégorie et la Sous-catégorie de la ligne « X ». Les listes déroulantes de tout le classeur (y compris celles de l'échéancier et de l'analyse) sont alimentées par ce tableau.</p>
+<h3 id="le-formulaire-frm_controlecategories">Le formulaire frm_ControleCategories</h3>
+<p>Au début, une question : <strong>« Les catégories ont-elles été correctement renseignées dans la source ? »</strong></p>
+<ul>
+<li><strong>Oui</strong> → les propositions sont gardées telles quelles. Seules les opérations <strong>sans</strong> correspondance (catégorie source vide ou inconnue) vous sont présentées, car on ne saurait pas où les ranger.</li>
+<li><strong>Non</strong> → toutes les opérations vous sont présentées, une par une.</li>
+<li><strong>Annuler</strong> → l'import s'arrête, rien n'est écrit.</li>
+</ul>
+<p>Pour chaque opération affichée, vous voyez la date, le montant, le Tiers, le libellé/Notes et la catégorie source, puis :</p>
+<ul>
+<li><strong>Catégorie</strong> puis <strong>Sous-catégorie</strong> (listes déroulantes ; la seconde se met à jour selon la première) ;</li>
+<li><strong>Tiers</strong> et <strong>Notes</strong> modifiables, pour corriger un libellé bancaire peu lisible. Exception : pour une opération en « Frais, remb santé », ces deux champs sont <strong>grisés et verrouillés</strong>, parce que Notes contient la clé de consultation utilisée par le suivi santé (section 5) ;</li>
+<li>les boutons <strong>&lt; Précédent</strong> / <strong>Suivant &gt;</strong> pour naviguer ;</li>
+<li><strong>+ Nouvelle catégorie</strong> pour créer une catégorie absente (voir ci-dessous) ;</li>
+<li><strong>Ventiler...</strong> pour découper l'opération (section 3) ;</li>
+<li><strong>Terminer et continuer</strong> pour valider l'ensemble ; <strong>Annuler l'import</strong> pour tout abandonner.</li>
+</ul>
+<p>Vos choix ne sont pris en compte qu'au clic sur « Terminer et continuer ». Deux garde-fous à ce moment :</p>
+<ul>
+<li>s'il reste des opérations <strong>sans catégorie</strong>, impossible de terminer. Le message propose <strong>OK</strong> (aller à la première opération à corriger) ou <strong>Annuler</strong> (rester où vous êtes) ;</li>
+<li>si certaines opérations n'ont <strong>jamais été affichées</strong>, le message demande confirmation : elles garderont la catégorie proposée.</li>
+</ul>
+<h3 id="créer-une-catégorie-frm_nouvellecategorie">Créer une catégorie (frm_NouvelleCategorie)</h3>
+<p>Le bouton « + Nouvelle catégorie » ouvre un petit formulaire par-dessus le contrôle. Vous choisissez une catégorie existante ou en tapez une nouvelle, puis la sous-catégorie. À la validation, la paire est ajoutée à TblCategories et vous revenez au contrôle avec la nouvelle valeur déjà sélectionnée. Le même formulaire est réutilisé par les boutons « + » du formulaire de ventilation et du formulaire d'échéance.</p>
+<p>Un <strong>garde-fou orthographique</strong> évite les quasi-doublons : si ce que vous tapez ressemble à une valeur existante à 2 lettres près (ex. « Alimentaton » pour « Alimentation »), le formulaire vous le signale avant de créer. La comparaison ignore aussi les accents, les majuscules et les espaces en trop.</p>
+<h3 id="corriger-plus-tard">Corriger plus tard</h3>
+<p>Depuis l'écran de recherche (section 6), un <strong>double-clic sur une cellule Categorie ou SousCategorie</strong> rouvre ce même formulaire pour cette seule opération, prérempli avec ses valeurs actuelles. La catégorie et la sous-catégorie se modifient toujours ensemble. À la validation, l'opération est mise à jour, les statuts santé sont recalculés sans message, et l'écran se recharge avec le même filtre qu'avant. Une opération ventilée ne se corrige pas ainsi : un message vous renvoie vers la colonne Ventile.</p>
+<h2 id="3-la-ventilation-dune-opération">3. La ventilation d'une opération</h2>
+<p>Ventiler, c'est découper <strong>une</strong> opération bancaire en plusieurs <strong>parts</strong>, chacune avec sa propre catégorie. Exemple : un ticket de pharmacie de 45 € dont 30 € de médicaments remboursés (« Frais, remb santé ») et 15 € d'hygiène (autre sous-catégorie).</p>
+<p><strong>Où la déclencher :</strong> bouton « Ventiler... » du contrôle des catégories pendant l'import, ou double-clic sur la colonne <strong>Ventile</strong> de l'écran de recherche (cellule vide = nouvelle ventilation, cellule « Oui » = revoir une ventilation existante).</p>
+<p><strong>Le formulaire frm_Ventilation</strong> se lit en deux zones :</p>
+<ul>
+<li><strong>en haut</strong>, l'en-tête de l'opération (date, Tiers, montant à ventiler) et la liste des parts déjà ajoutées (10 au maximum), avec un bouton <strong>Éditer</strong> en face de chacune ;</li>
+<li><strong>en bas</strong>, une zone de saisie : Catégorie (avec son bouton « + »), Sous-catégorie, Montant, Notes, puis <strong>Ajouter la ligne</strong> ou <strong>Effacer la saisie</strong>.</li>
+</ul>
+<p>Règles à connaître :</p>
+<ol>
+<li>Le montant d'une part se saisit <strong>toujours en positif</strong>. Le signe (dépense ou entrée) est repris de l'opération d'origine au moment de l'enregistrement.</li>
+<li><strong>Éditer</strong> retire immédiatement la part de la liste et la recharge dans la zone de saisie. Si vous ne cliquez pas ensuite sur « Ajouter la ligne », la part reste supprimée : c'est aujourd'hui le seul moyen de supprimer une part.</li>
+<li><strong>Terminer</strong> n'est accepté que si la somme des parts est <strong>exactement égale</strong> au montant de l'opération (au centime près). Sinon un message indique l'écart.</li>
+<li><strong>Annuler</strong> abandonne la saisie en cours sans rien enregistrer.</li>
+<li><strong>Supprimer cette ventilation</strong> (visible seulement si elle existait déjà) efface toutes ses parts et rend à l'opération sa catégorie d'avant la ventilation.</li>
+</ol>
+<figure class="diagramme"><svg class="schema" width="531" viewBox="0 0 531 441" role="img" aria-label="Schéma 3" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="fl3" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="pointe"/></marker></defs>
+<path class="arete" d="M191,190 C219,190 219,56 247,56" marker-end="url(#fl3)"/>
+<path class="arete" d="M191,190 C244,190 244,154 298,154" marker-end="url(#fl3)"/>
+<path class="arete" d="M191,190 C244,190 244,244 298,244" marker-end="url(#fl3)"/>
+<path class="arete" d="M191,190 C252,190 252,334 314,334" marker-end="url(#fl3)"/>
+<rect class="noeud" x="20" y="155" width="171" height="71" rx="8"/>
+<text class="txt t1" x="105" y="178.0" text-anchor="middle">Opération d&#x27;origine</text>
+<text class="txt" x="105" y="195.0" text-anchor="middle">TblOperations</text>
+<text class="txt" x="105" y="212.0" text-anchor="middle">catégorie : Ventilé</text>
+<rect class="noeud" x="247" y="20" width="245" height="71" rx="8"/>
+<text class="txt t1" x="369" y="43.0" text-anchor="middle">Colonnes</text>
+<text class="txt" x="369" y="60.0" text-anchor="middle">CategorieAvantVentilation</text>
+<text class="txt" x="369" y="77.0" text-anchor="middle">SousCategorieAvantVentilation</text>
+<rect class="noeud base" x="298" y="127" width="141" height="54" rx="16"/>
+<text class="txt t1" x="369" y="150.0" text-anchor="middle">Part 1</text>
+<text class="txt" x="369" y="167.0" text-anchor="middle">TblVentilations</text>
+<rect class="noeud base" x="298" y="217" width="141" height="54" rx="16"/>
+<text class="txt t1" x="369" y="240.0" text-anchor="middle">Part 2</text>
+<text class="txt" x="369" y="257.0" text-anchor="middle">TblVentilations</text>
+<rect class="noeud base" x="314" y="307" width="110" height="54" rx="16"/>
+<text class="txt t1" x="369" y="330.0" text-anchor="middle">Part n</text>
+<text class="txt" x="369" y="347.0" text-anchor="middle">max 10</text>
+<rect class="fond-etiquette" x="127" y="113" width="184" height="18" rx="4"/><text class="etiquette" x="219" y="126" text-anchor="middle">garde l&#x27;ancienne catégorie</text>
+<rect class="fond-etiquette" x="176" y="162" width="137" height="18" rx="4"/><text class="etiquette" x="244" y="175" text-anchor="middle">même ID_Transaction</text>
+<rect class="fond-etiquette" x="176" y="207" width="137" height="18" rx="4"/><text class="etiquette" x="244" y="220" text-anchor="middle">même ID_Transaction</text>
+<rect class="fond-etiquette" x="184" y="252" width="137" height="18" rx="4"/><text class="etiquette" x="252" y="265" text-anchor="middle">même ID_Transaction</text>
+</svg></figure>
+<p><strong>Ce que cela change dans les données :</strong></p>
+<ul>
+<li>l'opération d'origine reste dans TblOperations avec la catégorie <strong>« Ventilé »</strong> ; sa catégorie précédente est gardée dans les colonnes CategorieAvantVentilation / SousCategorieAvantVentilation ;</li>
+<li>chaque part devient une ligne de <strong>TblVentilations</strong>, reliée à l'opération par le même ID_Transaction. Elle porte aussi toutes les colonnes du suivi santé : une part « Frais, remb santé » est suivie exactement comme une opération normale.</li>
+</ul>
+<p><strong>Qui compte quoi.</strong> Le bilan mensuel (section 7) ne lit que TblOperations : une opération ventilée y compte une fois, pour son montant total. L'analyse budgétaire (section 9) fait l'inverse : elle <strong>remplace</strong> l'opération « Ventilé » par ses parts.</p>
+<p><strong>Attention :</strong> rouvrir une ventilation et cliquer sur Terminer réécrit toutes ses parts. Si l'une d'elles avait déjà été rapprochée dans le suivi santé, ce rapprochement est perdu et sera à refaire (un avertissement s'affiche avant une suppression).</p>
+<h2 id="4-le-mois-de-budget-et-les-décalages">4. Le mois de budget et les décalages</h2>
+<p>Chaque opération est rattachée à un <strong>mois de budget</strong> (colonnes Budget, MoisBudget, AnneeBudget), qui est par défaut le mois de sa date comptable. C'est ce mois que lisent le bilan mensuel, le filtre « Opérations du mois » et l'analyse budgétaire.</p>
+<p>Certaines opérations doivent compter pour un autre mois. Exemple typique : le salaire versé le 28 septembre sert à vivre en octobre, on le décale donc de +1 mois. Deux moyens existent.</p>
+<figure class="diagramme"><svg class="schema" width="758" viewBox="0 0 758 578" role="img" aria-label="Schéma 4" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="fl4" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="pointe"/></marker></defs>
+<path class="arete" d="M349,74 C349,109 349,109 349,144" marker-end="url(#fl4)"/>
+<path class="arete" d="M349,256 C349,300 116,300 116,344" marker-end="url(#fl4)"/>
+<path class="arete" d="M349,256 C349,300 356,300 356,344" marker-end="url(#fl4)"/>
+<path class="arete" d="M116,398 C116,441 349,441 349,484" marker-end="url(#fl4)"/>
+<path class="arete" d="M356,398 C356,441 349,441 349,484" marker-end="url(#fl4)"/>
+<path class="arete" d="M589,414 C589,450 349,450 349,484" marker-end="url(#fl4)"/>
+<rect class="noeud" x="294" y="20" width="110" height="54" rx="8"/>
+<text class="txt t1" x="349" y="43.0" text-anchor="middle">Opération</text>
+<text class="txt" x="349" y="60.0" text-anchor="middle">(import)</text>
+<polygon class="noeud decision" points="349,144 469,200 349,256 229,200"/>
+<text class="txt t1" x="349" y="187.8" text-anchor="middle">Une règle de</text>
+<text class="txt" x="349" y="204.8" text-anchor="middle">TblDecalagesBudget</text>
+<text class="txt" x="349" y="221.8" text-anchor="middle">correspond ?</text>
+<rect class="noeud" x="20" y="344" width="193" height="54" rx="8"/>
+<text class="txt t1" x="116" y="366.5" text-anchor="middle">Décalage de la</text>
+<text class="txt" x="116" y="383.5" text-anchor="middle">première règle trouvée</text>
+<rect class="noeud" x="249" y="344" width="215" height="54" rx="8"/>
+<text class="txt t1" x="356" y="366.5" text-anchor="middle">Aucun décalage :</text>
+<text class="txt" x="356" y="383.5" text-anchor="middle">mois de la date comptable</text>
+<rect class="noeud" x="264" y="484" width="171" height="54" rx="8"/>
+<text class="txt t1" x="349" y="507.5" text-anchor="middle">Budget, MoisBudget,</text>
+<text class="txt" x="349" y="524.5" text-anchor="middle">AnneeBudget</text>
+<rect class="noeud" x="500" y="326" width="178" height="88" rx="8"/>
+<text class="txt t1" x="589" y="349.5" text-anchor="middle">Bouton Décaler cette</text>
+<text class="txt" x="589" y="366.5" text-anchor="middle">opération</text>
+<text class="txt" x="589" y="383.5" text-anchor="middle">(écran de recherche)</text>
+<text class="txt" x="589" y="400.5" text-anchor="middle">écrit DecalageManuel</text>
+<rect class="fond-etiquette" x="217" y="290" width="32" height="18" rx="4"/><text class="etiquette" x="233" y="303" text-anchor="middle">oui</text>
+<rect class="fond-etiquette" x="337" y="290" width="32" height="18" rx="4"/><text class="etiquette" x="353" y="303" text-anchor="middle">non</text>
+<rect class="fond-etiquette" x="374" y="440" width="190" height="18" rx="4"/><text class="etiquette" x="469" y="452" text-anchor="middle">recalcule cette seule ligne</text>
+</svg></figure>
+<p><strong>1. Une règle générale – tableau TblDecalagesBudget (feuille Param, colonnes S à V)</strong></p>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Tiers</th>
+<th>Categorie</th>
+<th>SousCategorie</th>
+<th>Decalage</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>DRFIP OCCITANIE ET HTE</td>
+<td>Revenus</td>
+<td>Salaire/Revenus d'activite</td>
+<td>1</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>Une case <strong>laissée vide</strong> veut dire « n'importe quelle valeur » (un joker).</li>
+<li>Le décalage est un nombre entier de mois : 1, -1, 2…</li>
+<li>La comparaison ignore les majuscules. Si plusieurs lignes conviennent, c'est <strong>la première du tableau</strong> qui s'applique : placez les règles les plus précises en haut.</li>
+<li>La règle s'applique <strong>aux prochains imports</strong>. Elle ne recalcule pas les opérations déjà présentes.</li>
+</ul>
+<p>On peut remplir ce tableau à la main, ou depuis l'écran de recherche : sélectionner une ligne, puis bouton <strong>« Ajouter un décalage »</strong> (il reprend le Tiers, la catégorie et la sous-catégorie de la ligne et demande le nombre de mois).</p>
+<p><strong>2. Une seule opération – bouton « Décaler cette opération »</strong> (écran de recherche)</p>
+<p>Il recalcule le mois de budget de la ligne sélectionnée uniquement, entre -24 et +24 mois, et note la valeur dans la colonne <strong>DecalageManuel</strong>. Cette colonne sert de marque : un choix manuel doit toujours primer sur les règles générales.</p>
+<h2 id="5-le-suivi-santé">5. Le suivi santé</h2>
+<p>Le suivi santé vérifie, pour chaque consultation payée, que la Sécurité sociale et la mutuelle ont bien remboursé ce qu'elles devaient. Il ne concerne que les opérations dont la <strong>Sous-catégorie</strong> vaut <strong>« Frais, remb santé »</strong>, qu'elles soient dans TblOperations ou dans TblVentilations.</p>
+<h3 id="lidée-clé--la--clé-notes-">L'idée clé : la « clé Notes »</h3>
+<p>Pour relier une dépense à ses remboursements, toutes les lignes d'une même consultation portent <strong>exactement le même texte</strong> dans la colonne Notes, au format :</p>
+<p><code>aaaammjj;spécialité;bénéficiaire;montant</code></p>
+<p>Exemple : <code>20260915;Généraliste;Alexandre;30</code>. On saisit normalement ce texte dans l'application de la banque, qui le renvoie dans l'OFX. À l'import, le code lit la date (1er morceau) et la spécialité (2e morceau) pour remplir <strong>Date_consult</strong> et <strong>Spe_Consult</strong>. Une spécialité absente de la liste « Specialites » (Param) est rangée dans CommentaireSante au lieu de Spe_Consult.</p>
+<p>Si la date ne peut pas être lue (Notes vide ou mal écrit), Date_consult reçoit la valeur <strong>02/01/1900</strong>. C'est une « sentinelle » : une fausse date volontaire qui signifie « clé à réparer ».</p>
+<p>Un <strong>groupe</strong> = toutes les lignes qui partagent la même clé Notes :</p>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Tiers</th>
+<th>Montant (€)</th>
+<th>Notes</th>
+<th>Rôle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>15/09/2026</td>
+<td>DR MARTIN</td>
+<td>-30,00</td>
+<td>20260915;Généraliste;Alexandre;30</td>
+<td>Dépense</td>
+</tr>
+<tr>
+<td>22/09/2026</td>
+<td>CPAM</td>
+<td>20,00</td>
+<td>20260915;Généraliste;Alexandre;30</td>
+<td>Remboursement 1</td>
+</tr>
+<tr>
+<td>25/09/2026</td>
+<td>MUTUELLE</td>
+<td>9,00</td>
+<td>20260915;Généraliste;Alexandre;30</td>
+<td>Remboursement 2</td>
+</tr>
+</tbody>
+</table></div>
+<p><em>(Valeurs fictives, pour l'illustration.)</em></p>
+<h3 id="le-calcul--solde-et-statut">Le calcul : solde et statut</h3>
+<p>Pour chaque groupe, le module <code>mod_SuiviSante</code> calcule :</p>
+<div class="formule">SoldeSante = dépenses − remboursements − Franchise</div>
+<p>Dans l'exemple, avec une franchise de 1 € : 30 − (20 + 9) − 1 = 0. Un solde nul (à un demi-centime près) donne <strong>StatutSante = OK</strong>, sinon <strong>KO</strong>. Le statut est écrit sur toutes les lignes du groupe, le solde sur la ligne de dépense. Un groupe sans dépense (remboursement « orphelin ») reste KO.</p>
+<p>Un groupe n'est <strong>plus jamais recalculé</strong> quand sa dépense est OK, ou KO avec « Dépassement d'honoraires = Oui » (on accepte alors qu'il reste un reste à charge). Cela évite de reposer les mêmes questions à chaque import.</p>
+<h3 id="les-trois-étapes-dans-lordre">Les trois étapes, dans l'ordre</h3>
+<figure class="diagramme"><svg class="schema" width="706" viewBox="0 0 706 222" role="img" aria-label="Schéma 6" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="fl6" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="pointe"/></marker></defs>
+<path class="arete" d="M213,81 C241,81 241,81 269,81" marker-end="url(#fl6)"/>
+<path class="arete" d="M432,81 C460,81 460,81 488,81" marker-end="url(#fl6)"/>
+<path class="arete" d="M577,125 C577,170 350,170 350,125" marker-end="url(#fl6)"/>
+<rect class="noeud" x="20" y="20" width="193" height="122" rx="8"/>
+<text class="txt t1" x="116" y="43.0" text-anchor="middle">Étape 1 : réparer les</text>
+<text class="txt" x="116" y="60.0" text-anchor="middle">clés</text>
+<text class="txt" x="116" y="77.0" text-anchor="middle">VerifierNotesSante</text>
+<text class="txt" x="116" y="94.0" text-anchor="middle">frm_RapprochementNotes</text>
+<text class="txt" x="116" y="111.0" text-anchor="middle">puis</text>
+<text class="txt" x="116" y="128.0" text-anchor="middle">frm_GenerationCle</text>
+<rect class="noeud" x="269" y="37" width="163" height="88" rx="8"/>
+<text class="txt t1" x="350" y="60.0" text-anchor="middle">Étape 2 : calculer</text>
+<text class="txt" x="350" y="77.0" text-anchor="middle">CalculerSuiviSante</text>
+<text class="txt" x="350" y="94.0" text-anchor="middle">écrit StatutSante</text>
+<text class="txt" x="350" y="111.0" text-anchor="middle">et SoldeSante</text>
+<rect class="noeud" x="488" y="37" width="178" height="88" rx="8"/>
+<text class="txt t1" x="577" y="60.0" text-anchor="middle">Étape 3 : compléter</text>
+<text class="txt" x="577" y="77.0" text-anchor="middle">les cas KO</text>
+<text class="txt" x="577" y="94.0" text-anchor="middle">TraiterCasSuiviSante</text>
+<text class="txt" x="577" y="111.0" text-anchor="middle">frm_SuiviSante</text>
+<rect class="fond-etiquette" x="402" y="154" width="124" height="18" rx="4"/><text class="etiquette" x="464" y="167" text-anchor="middle">relance le calcul</text>
+</svg></figure>
+<p>On les lance après l'import (questions finales) ou à tout moment avec le bouton <strong>« Traitement des données de santé »</strong> de Synthese (macro <code>RetraiterSuiviSante</code>).</p>
+<ol>
+<li><strong>Réparer les clés manquantes</strong> (<code>VerifierNotesSante</code>). Chaque ligne santé dont Date_consult vaut la sentinelle vous est présentée dans <strong>frm_RapprochementNotes</strong>. Vous retrouvez la bonne clé parmi celles déjà connues, avec des filtres en cascade : Date (la plus récente d'abord) → Spécialité → Bénéficiaire → Montant. Trois boutons :<ul>
+<li><strong>Valider</strong> : la clé est écrite dans Notes, et Date_consult, Spe_Consult, Bénéficiaire sont remplis aussitôt. La ligne ne sera plus reproposée ;</li>
+<li><strong>Pas de correspondance</strong> : ouvre <strong>frm_GenerationCle</strong> pour créer une clé neuve (date, spécialité, bénéficiaire, montant, boutons « + » pour enrichir les listes), puis Générer et Valider ;</li>
+<li><strong>Passer</strong> : rien n'est modifié, la ligne reviendra au prochain lancement.</li>
+</ul>
+</li>
+<li><strong>Calculer</strong> (<code>CalculerSuiviSante</code>) : solde et statut de tous les groupes, comme décrit plus haut.</li>
+<li>
+<p><strong>Compléter les cas non soldés</strong> (<code>TraiterCasSuiviSante</code>). Chaque dépense KO, sans dépassement déclaré, s'affiche dans <strong>frm_SuiviSante</strong> avec ses remboursements (2 au plus) et le solde actuel. Vous renseignez :</p>
+<ul>
+<li>le <strong>Bénéficiaire</strong> (obligatoire) ;</li>
+<li>le <strong>Tiers corrigé</strong>, obligatoire seulement si le Tiers importé n'est pas dans la liste « Praticiens » (le champ est alors jaune). Pour une part ventilée, la correction s'écrit sur l'opération d'origine ;</li>
+<li>la <strong>Franchise</strong> retenue (0 si aucune) : le solde se recalcule sous vos yeux ;</li>
+<li><strong>Dépassement d'honoraires ?</strong> Oui/Non ;</li>
+<li>un <strong>Commentaire</strong> libre.</li>
+</ul>
+<p>« Valider ce cas » enregistre, relance le calcul et passe au suivant ; « Cas suivant » passe sans rien changer.</p>
+</li>
+</ol>
+<p><strong>Cas particulier :</strong> une clé dont la spécialité vaut « non reprise historique » passe directement en OK. Elle sert à neutraliser les anciennes opérations qu'on ne veut pas rapprocher.</p>
+<h3 id="consulter-et-corriger--lécran--suivi-santé-">Consulter et corriger : l'écran « Suivi santé »</h3>
+<p>Le bouton de suivi santé de Synthese (macro <code>Synthese_Care</code>, module <code>Mod_SyntheseCare</code>) ouvre l'écran de recherche (section 6) avec le préfiltre <strong>SuiviSante</strong>. Il remplace l'ancien écran frm_Resultat, qui ne trouvait plus aucune ligne depuis le passage aux deux niveaux de catégorie.</p>
+<p>Ce qui s'affiche :</p>
+<ul>
+<li>toutes les lignes en sous-catégorie <strong>« Frais, remb santé »</strong> ;</li>
+<li><strong>et</strong> toutes les lignes de catégorie <strong>« Santé, prévoyance »</strong>, quelle que soit leur sous-catégorie. C'est ce qui permet de repérer une dépense de santé rangée dans la mauvaise sous-catégorie ;</li>
+<li>les parts ventilées concernées, avec la date de l'opération d'origine (au lieu d'une date vide) et leurs propres colonnes santé ;</li>
+<li>les colonnes StatutSante, SoldeSante, Date_consult et Spe_Consult, qui restent masquées dans les autres préfiltres.</li>
+</ul>
+<p>La ligne au-dessus du tableau résume la situation, par exemple :</p>
+<p>« Suivi santé (catégorie Santé, prévoyance) -- 7 ligne(s) dont 1 part(s) ventilée(s) : 3 OK, 2 KO -- écart cumulé des dépenses KO : 45,00 €. »</p>
+<p>Comment la lire :</p>
+<ul>
+<li>les lignes « Santé, prévoyance » d'une autre sous-catégorie n'ont pas de statut santé. Elles ne comptent ni en OK ni en KO : ici, 7 − 3 − 2 = 2 lignes sont à vérifier ;</li>
+<li>l'écart cumulé additionne le SoldeSante des seules <strong>dépenses</strong> KO. Le solde n'étant écrit que sur la ligne de dépense d'un groupe, il n'est jamais compté deux fois ;</li>
+<li>le montant d'une ligne KO est en <strong>gras</strong> : rouge pour une dépense, vert pour un remboursement (la règle « positif = vert » est conservée).</li>
+</ul>
+<p><strong>Corriger une sous-catégorie depuis cet écran</strong> :</p>
+<ol>
+<li>Repérez la ligne mal rangée (par exemple « Santé, prévoyance » avec une sous-catégorie autre que « Frais, remb santé », et sans statut).</li>
+<li>Double-cliquez sur sa cellule <strong>Categorie</strong> ou <strong>SousCategorie</strong> : le formulaire de contrôle des catégories s'ouvre pour cette seule opération.</li>
+<li>Choisissez la bonne catégorie et la bonne sous-catégorie, puis « Terminer et continuer ».</li>
+<li>Les statuts santé sont recalculés sans message et l'écran se recharge, toujours en Suivi santé : la ligne a maintenant son statut OK ou KO.</li>
+<li>Si sa clé Notes n'a pas encore été vérifiée, lancez ensuite « Traitement des données de santé » pour la rapprocher.</li>
+</ol>
+<p>Une part ventilée ne se corrige pas par double-clic sur Categorie : on passe par la colonne Ventile (section 3).</p>
+<h2 id="6-lécran-de-recherche-des-opérations">6. L'écran de recherche des opérations</h2>
+<p><strong>frm_RechercheOperations</strong> est l'écran central : il affiche les opérations de TblOperations <strong>et</strong> les parts de TblVentilations dans un seul tableau, filtrable avec les flèches natives d'Excel, et permet de corriger sans ouvrir Import_data.</p>
+<h3 id="comment-louvrir--sept-entrées-sept--préfiltres-">Comment l'ouvrir : sept entrées, sept « préfiltres »</h3>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Bouton (feuille)</th>
+<th>Préfiltre</th>
+<th>Ce qui s'affiche</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Recherche globale (Synthese ou l'écran lui-même)</td>
+<td>aucun</td>
+<td>Toutes les opérations et toutes les parts</td>
+</tr>
+<tr>
+<td>Dernier import (Synthese, ou question en fin d'import)</td>
+<td>DernierImport</td>
+<td>Les opérations ajoutées par le dernier import</td>
+</tr>
+<tr>
+<td>Opérations du mois (Synthese)</td>
+<td>OperationsDuMois</td>
+<td>Le mois de budget choisi sur Synthese, au-dessus du seuil de montant</td>
+</tr>
+<tr>
+<td>Suivi santé (Synthese, macro Synthese_Care)</td>
+<td>SuiviSante</td>
+<td>Les lignes « Frais, remb santé » et toutes celles de catégorie « Santé, prévoyance », parts ventilées comprises, avec leurs colonnes santé (détail en section 5)</td>
+</tr>
+<tr>
+<td>Erreurs santé (Synthese)</td>
+<td>ErreursSante</td>
+<td>Les lignes dont Date_consult vaut la sentinelle 02/01/1900</td>
+</tr>
+<tr>
+<td>Voir le détail des entrées / dépenses (bilan mensuel)</td>
+<td>DetailTotal</td>
+<td>Les entrées (ou les dépenses) du mois du bilan</td>
+</tr>
+<tr>
+<td>Voir les opérations (analyse budgétaire)</td>
+<td>Analyse</td>
+<td>Les opérations et parts qui forment le chiffre sélectionné dans l'analyse (section 9)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Une ligne de texte au-dessus du tableau rappelle le filtre actif et le nombre de lignes. Les montants suivent la règle de couleur commune du classeur : vert pour une entrée d'argent, noir pour une dépense, gras pour une ligne « en alerte » (rouge si c'est une dépense). Sont en alerte les plus grosses dépenses en « Opérations du mois » (leur nombre se règle sur Synthese) et les lignes KO en « Suivi santé ». Si vous aviez posé un filtre de colonne, il est remis à l'identique après chaque rechargement.</p>
+<h3 id="les-colonnes">Les colonnes</h3>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Colonne</th>
+<th>Signification</th>
+<th>Modifiable ?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Valider</td>
+<td>Tapez « Oui » pour marquer une ligne à enregistrer</td>
+<td>Oui</td>
+</tr>
+<tr>
+<td>Date, Tiers, Montant</td>
+<td>Données de l'opération</td>
+<td>Non</td>
+</tr>
+<tr>
+<td>Categorie, SousCategorie</td>
+<td>Rangement</td>
+<td>Par double-clic sur Categorie ou SousCategorie</td>
+</tr>
+<tr>
+<td>Notes</td>
+<td>Libellé ou clé santé</td>
+<td>Oui, sauf une clé santé déjà valide (cellule grisée)</td>
+</tr>
+<tr>
+<td>Ventile</td>
+<td>« Oui » sur une part de ventilation</td>
+<td>Par double-clic</td>
+</tr>
+<tr>
+<td>Budget, StatutSante, SoldeSante, Date_consult, Spe_Consult</td>
+<td>Informations calculées</td>
+<td>Non</td>
+</tr>
+</tbody>
+</table></div>
+<p>Les colonnes techniques (identifiant, source O/V, numéro de ligne de ventilation) sont masquées. Une opération ventilée se retrouve donc de deux façons : par sa ligne d'origine (catégorie « Ventilé ») ou par chacune de ses parts (Ventile = Oui).</p>
+<h3 id="les-actions">Les actions</h3>
+<p>La barre de boutons de l'écran contient : Recherche globale, Appliquer les lignes marquées, Ajouter un décalage, Décaler cette opération, Rendre récurrente et Sortir.</p>
+<ul>
+<li><strong>Corriger des Notes en lot</strong> : modifiez les cellules Notes, mettez « Oui » dans Valider, puis cliquez sur <strong>« Appliquer les lignes marquées »</strong>. Les Notes sont écrites dans la bonne table, la marque « Oui » est effacée, puis la vérification et le calcul santé sont relancés.</li>
+<li><strong>Double-clic sur Categorie ou SousCategorie</strong> : ouvre le formulaire de contrôle des catégories pour cette seule opération, prérempli avec ses valeurs actuelles. À la validation, l'enregistrement est immédiat (sans passer par Valider), les statuts santé sont recalculés sans message et l'écran se recharge avec le même préfiltre. Sur une opération ventilée, un message vous renvoie vers la colonne Ventile.</li>
+<li><strong>Double-clic sur Ventile</strong> : démarre ou revoit une ventilation (section 3).</li>
+<li><strong>Ajouter un décalage</strong> / <strong>Décaler cette opération</strong> : voir section 4.</li>
+<li><strong>Rendre récurrente</strong> : ouvre le formulaire d'échéance prérempli avec la ligne sélectionnée (voir section 8). Disponible dans tous les préfiltres, donc aussi juste après un import.</li>
+<li><strong>Sortir</strong> : referme l'écran et revient sur Synthese. Quand l'écran a été ouvert depuis l'analyse budgétaire, « Sortir » revient sur l'analyse, qui est recalculée.</li>
+</ul>
+<p>Modifier directement une cellule Date, Tiers ou Montant de cet écran ne change <strong>rien</strong> dans les données : c'est un affichage, reconstruit à chaque recherche.</p>
+<h2 id="7-la-feuille-synthese-et-les-écrans-de-résultat">7. La feuille Synthese et les écrans de résultat</h2>
+<p>La feuille <strong>Synthese</strong> est le tableau de bord : vous y choisissez une période et des réglages, puis un bouton. Elle contient aussi le bloc « Prévisionnel de trésorerie » (section 8) et le bouton « Analyse budgétaire » (section 9).</p>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Cellule nommée</th>
+<th>Sens</th>
+<th>Utilisée par</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>critAnnee</td>
+<td>Année de budget</td>
+<td>Bilan mensuel, Opérations du mois, Détail des totaux, ouverture de l'analyse</td>
+</tr>
+<tr>
+<td>critMois</td>
+<td>Mois de budget</td>
+<td>Idem</td>
+</tr>
+<tr>
+<td>critNbLigne</td>
+<td>Nombre de grosses dépenses à surligner</td>
+<td>Écran de recherche</td>
+</tr>
+<tr>
+<td>critValMin</td>
+<td>Seuil de montant (en valeur absolue : -300 compte comme 300)</td>
+<td>Opérations du mois, Détail des totaux</td>
+</tr>
+<tr>
+<td>critTriChamp, critTri</td>
+<td>Champ et ordre de tri</td>
+<td>Plus utilisés : on trie avec les flèches de filtre</td>
+</tr>
+<tr>
+<td>soldeRefMontant, soldeRefDate</td>
+<td>Solde de référence et sa date</td>
+<td>Bloc prévisionnel (section 8)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Bilan mensuel</strong> (<code>Budget_Bilan_Mensuel</code>) : calcule, pour le mois de budget choisi, le total des entrées, le total des dépenses et la différence. Le résultat s'affiche dans la feuille frm_Resultat, avec deux boutons « Voir le détail des entrées » et « Voir le détail des dépenses » qui ouvrent l'écran de recherche. Ce bilan ne lit que TblOperations : une opération ventilée compte une fois, pour son montant total.</p>
+<p><strong>Suivi santé</strong> (<code>Synthese_Care</code>) : ouvre l'écran de recherche avec le préfiltre « Suivi santé », décrit en section 5. L'ancienne synthèse affichée dans frm_Resultat a été abandonnée le 07/10/2026.</p>
+<p>Tous ces écrans masquent Synthese pendant leur affichage ; le bouton <strong>Sortir</strong> la réaffiche.</p>
+<h2 id="8-léchéancier-et-le-prévisionnel-de-trésorerie">8. L'échéancier et le prévisionnel de trésorerie</h2>
+<p>L'échéancier garde la liste de ce qui <strong>va</strong> arriver sur le compte (loyer, abonnement, prêt, facture ponctuelle…) et en déduit un <strong>solde prévisionnel</strong> à 15 et 30 jours. Il est écrit dans <code>mod_Echeancier</code> (logique) et <code>mod_InstallEcheancier</code> (construction des feuilles). Il est <strong>optionnel</strong> : tant qu'il n'est pas installé, l'import et le reste du classeur fonctionnent comme avant.</p>
+<h3 id="les-principes-validés-le-09102026">Les principes (validés le 09/10/2026)</h3>
+<ul>
+<li><strong>Deux tableaux.</strong> <strong>TblRecurrences</strong> contient les <em>règles</em> (« loyer, tous les mois, le 5 »). <strong>TblEcheances</strong> contient les <em>occurrences à venir</em>, générées par les règles, ou saisies directement quand l'opération est ponctuelle.</li>
+<li><strong>Aucun historique.</strong> Quand une opération importée est rapprochée d'une échéance et que vous validez, l'échéance est <strong>supprimée</strong>. Seule l'opération reste, dans TblOperations. Si l'échéance venait d'une règle, la règle continue de produire les suivantes.</li>
+<li><strong>Une échéance non rapprochée reste</strong> dans la liste, reste comptée dans le solde prévisionnel, jusqu'à ce que vous la supprimiez vous-même.</li>
+<li><strong>Reconnaissance souple.</strong> Le rapprochement n'exige pas le Tiers : la Catégorie ou la Sous-catégorie peuvent suffire (achat dont on ne connaît pas le commerçant). La date peut être imprécise (précision « Mois »).</li>
+<li><strong>Le solde de départ est saisi par vous</strong>, car les exports OFX ne contiennent pas de solde.</li>
+</ul>
+<figure class="diagramme"><svg class="schema" width="779" viewBox="0 0 779 1049" role="img" aria-label="Schéma 7" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="fl7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="pointe"/></marker></defs>
+<path class="arete" d="M270,215 C270,250 177,250 177,285" marker-end="url(#fl7)"/>
+<path class="arete" d="M270,215 C270,250 395,250 395,285" marker-end="url(#fl7)"/>
+<path class="arete" d="M270,91 C270,126 270,126 270,161" marker-end="url(#fl7)"/>
+<path class="arete" d="M395,339 C395,374 270,374 270,409" marker-end="url(#fl7)"/>
+<path class="arete" d="M177,339 C177,444 163,444 163,550" marker-end="url(#fl7)"/>
+<path class="arete" d="M270,480 C270,515 163,515 163,550" marker-end="url(#fl7)"/>
+<path class="arete" d="M369,604 C369,639 384,639 384,674" marker-end="url(#fl7)"/>
+<path class="arete" d="M163,604 C163,639 384,639 384,674" marker-end="url(#fl7)"/>
+<path class="arete" d="M384,761 C384,796 270,796 270,831" marker-end="url(#fl7)"/>
+<path class="arete" d="M270,885 C270,920 270,920 270,955" marker-end="url(#fl7)"/>
+<path class="arete" d="M370,982 C430,982 430,444 366,444" marker-end="url(#fl7)"/>
+<path class="arete" d="M163,604 C163,647 116,647 116,690" marker-end="url(#fl7)"/>
+<rect class="noeud" x="177" y="161" width="185" height="54" rx="8"/>
+<text class="txt t1" x="270" y="184.0" text-anchor="middle">Saisie d&#x27;une échéance</text>
+<text class="txt" x="270" y="201.0" text-anchor="middle">frm_Echeance</text>
+<rect class="noeud" x="166" y="20" width="208" height="71" rx="8"/>
+<text class="txt t1" x="270" y="43.0" text-anchor="middle">Bouton Rendre récurrente</text>
+<text class="txt" x="270" y="60.0" text-anchor="middle">sur une opération</text>
+<text class="txt" x="270" y="77.0" text-anchor="middle">existante</text>
+<rect class="noeud" x="70" y="285" width="215" height="54" rx="8"/>
+<text class="txt t1" x="177" y="308.0" text-anchor="middle">Ponctuelle</text>
+<text class="txt" x="177" y="325.0" text-anchor="middle">1 ligne dans TblEcheances</text>
+<rect class="noeud base" x="321" y="285" width="148" height="54" rx="16"/>
+<text class="txt t1" x="395" y="308.0" text-anchor="middle">Règle récurrente</text>
+<text class="txt" x="395" y="325.0" text-anchor="middle">TblRecurrences</text>
+<rect class="noeud" x="173" y="409" width="193" height="71" rx="8"/>
+<text class="txt t1" x="270" y="432.0" text-anchor="middle">GenererHorizon</text>
+<text class="txt" x="270" y="449.0" text-anchor="middle">occurrences à 60 jours</text>
+<text class="txt" x="270" y="466.0" text-anchor="middle">au moins une par règle</text>
+<rect class="noeud base" x="81" y="550" width="163" height="54" rx="16"/>
+<text class="txt t1" x="163" y="573.0" text-anchor="middle">TblEcheances</text>
+<text class="txt" x="163" y="590.0" text-anchor="middle">opérations à venir</text>
+<rect class="noeud" x="280" y="550" width="178" height="54" rx="8"/>
+<text class="txt t1" x="369" y="573.0" text-anchor="middle">Import d&#x27;un relevé</text>
+<text class="txt" x="369" y="590.0" text-anchor="middle">nouvelles opérations</text>
+<polygon class="noeud decision" points="384,674 519,718 384,761 249,718"/>
+<text class="txt t1" x="384" y="713.5" text-anchor="middle">Opération et échéance</text>
+<text class="txt" x="384" y="730.5" text-anchor="middle">compatibles ?</text>
+<rect class="noeud" x="162" y="831" width="215" height="54" rx="8"/>
+<text class="txt t1" x="270" y="854.0" text-anchor="middle">Vous validez</text>
+<text class="txt" x="270" y="871.0" text-anchor="middle">(tout / un par un / rien)</text>
+<rect class="noeud" x="169" y="955" width="200" height="54" rx="8"/>
+<text class="txt t1" x="270" y="978.0" text-anchor="middle">Échéance supprimée</text>
+<text class="txt" x="270" y="995.0" text-anchor="middle">seule l&#x27;opération reste</text>
+<rect class="noeud" x="20" y="690" width="193" height="54" rx="8"/>
+<text class="txt t1" x="116" y="713.5" text-anchor="middle">Bloc Prévisionnel</text>
+<text class="txt" x="116" y="730.5" text-anchor="middle">de la feuille Synthese</text>
+<rect class="fond-etiquette" x="165" y="240" width="118" height="18" rx="4"/><text class="etiquette" x="223" y="253" text-anchor="middle">sans périodicité</text>
+<rect class="fond-etiquette" x="273" y="240" width="118" height="18" rx="4"/><text class="etiquette" x="332" y="253" text-anchor="middle">avec périodicité</text>
+<rect class="fond-etiquette" x="311" y="786" width="32" height="18" rx="4"/><text class="etiquette" x="327" y="799" text-anchor="middle">oui</text>
+<rect class="fond-etiquette" x="446" y="703" width="190" height="18" rx="4"/><text class="etiquette" x="541" y="716" text-anchor="middle">la règle recrée la suivante</text>
+<rect class="fond-etiquette" x="74" y="637" width="131" height="18" rx="4"/><text class="etiquette" x="139" y="650" text-anchor="middle">somme des montants</text>
+</svg></figure>
+<h3 id="installer-léchéancier">Installer l'échéancier</h3>
+<p>Une seule macro, <code>InstallerEcheancier</code>, à lancer une fois depuis la fenêtre Exécution d'Excel (détails en section 10). Elle crée les trois feuilles masquées (frm_Echeancier, frm_Recurrences, frm_Echeance), le bloc « Prévisionnel de trésorerie » sur Synthese (avec ses deux boutons) et le bouton « Rendre récurrente » de l'écran de recherche. <strong>Une étape manuelle est indispensable</strong> : coller dans le module de la feuille frm_Echeance le contenu de <code>CodeBehind_frm_Echeance.txt</code> (deux petits événements). La réinstallation est possible : si les listes contiennent des données, une confirmation est demandée avant de les reconstruire, car elles seraient <strong>perdues</strong>.</p>
+<h3 id="déclarer-une-échéance--le-formulaire-frm_echeance">Déclarer une échéance : le formulaire frm_Echeance</h3>
+<p>Bouton « Saisir une échéance » (Synthese ou listes). Les champs :</p>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>Rôle</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Libellé</td>
+<td>Nom affiché dans les listes. Facultatif : à défaut, on prend le Tiers, sinon la sous-catégorie, sinon la catégorie</td>
+</tr>
+<tr>
+<td>Tiers</td>
+<td>À choisir parmi les Tiers déjà connus dans TblOperations, ou à taper librement. Il est <strong>cherché dans le Tiers de l'opération importée</strong>, sans tenir compte des majuscules : un mot-clé suffit (ex. EDF)</td>
+</tr>
+<tr>
+<td>Catégorie / Sous-catégorie</td>
+<td>Listes déroulantes (la seconde dépend de la première). Choisir une sous-catégorie qui n'appartient qu'à une catégorie renseigne celle-ci. Boutons « + » pour en créer une</td>
+</tr>
+<tr>
+<td>Montant</td>
+<td><strong>Négatif</strong> pour une dépense, <strong>positif</strong> pour une entrée. Obligatoire, non nul. Une opération de signe contraire n'est jamais rapprochée</td>
+</tr>
+<tr>
+<td>Périodicité</td>
+<td>Vide ou Ponctuelle = opération unique. Hebdomadaire, Mensuelle, Trimestrielle, Annuelle = crée une règle</td>
+</tr>
+<tr>
+<td>Date prévue</td>
+<td>Date de l'opération, ou de la première pour une règle</td>
+</tr>
+<tr>
+<td>Date de fin</td>
+<td>Facultative, réservée aux règles. Vide = la règle ne s'arrête jamais</td>
+</tr>
+<tr>
+<td>Précision de la date</td>
+<td><strong>Jour</strong> ou <strong>Mois</strong> (voir ci-dessous)</td>
+</tr>
+<tr>
+<td>Tolérance</td>
+<td>Écart de montant accepté en % du montant prévu (10 par défaut ; 0 = montant exact)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Contrôles à la validation : il faut au moins le Tiers ou la Catégorie (sinon rien ne permettrait de reconnaître l'opération), une sous-catégorie suppose une catégorie, la catégorie et la sous-catégorie doivent exister dans les listes, la date de fin ne peut pas précéder la date prévue, la tolérance est comprise entre 0 et 100. En cas d'erreur, un message s'affiche sous le formulaire et rien n'est enregistré. <strong>Valider</strong> enregistre et referme ; <strong>Annuler</strong> demande confirmation.</p>
+<p><strong>Le jour d'ancrage.</strong> Pour une règle mensuelle, le jour du mois est conservé d'une occurrence à l'autre : un 31 devient le 28 en février, puis redevient 31 en mars (le jour ne « dérive » pas). Pour la précision « Mois », la date est ramenée au 1er du mois.</p>
+<p><strong>Rendre récurrente une opération existante.</strong> Dans l'écran de recherche (y compris juste après un import), sélectionnez une ligne puis « Rendre récurrente » : le formulaire s'ouvre prérempli (Tiers, catégorie, montant, périodicité mensuelle). La prochaine date est calculée sur le même jour du mois suivant, puis avancée jusqu'à une date future ; tout reste modifiable avant de valider.</p>
+<h3 id="les-règles-produisent-seules-les-occurrences">Les règles produisent seules les occurrences</h3>
+<p><code>GenererHorizon</code> complète TblEcheances pour chaque règle <strong>active</strong> : occurrences jusqu'à <strong>60 jours</strong> dans le futur, et <strong>toujours au moins une</strong>, même plus lointaine. La colonne DateProchaine de la règle mémorise la prochaine date à créer : une occurrence supprimée ou rapprochée n'est donc <strong>jamais recréée</strong> par erreur. Une règle dont la date de fin est atteinte et qui n'a plus aucune échéance est retirée de la liste. La génération se déclenche : à l'ouverture du classeur, à chaque import, à l'ouverture des listes, et après chaque saisie.</p>
+<h3 id="le-rapprochement-après-limport">Le rapprochement après l'import</h3>
+<p>Pour chaque opération qui vient d'être importée, une échéance est <strong>candidate</strong> si :</p>
+<ol>
+<li>le montant a le <strong>même signe</strong> et l'écart reste dans la tolérance de l'échéance ;</li>
+<li>la <strong>date</strong> est dans la fenêtre : précision Jour = de 5 jours avant à 10 jours après la date prévue (règle hebdomadaire : ±3 jours) ; précision Mois = n'importe quel jour du mois prévu ;</li>
+<li>le <strong>Tiers</strong> de l'opération contient le Tiers de l'échéance (si renseigné) ;</li>
+<li>la <strong>Catégorie / Sous-catégorie</strong> sont égales (si renseignées).</li>
+</ol>
+<p>Chaque opération et chaque échéance ne servent qu'une fois : on retient d'abord les paires les plus proches (écart de date, puis de montant). Un message liste les rapprochements proposés (12 au maximum affichés) :</p>
+<ul>
+<li><strong>Oui</strong> : tout valider (les échéances rapprochées disparaissent de la liste) ;</li>
+<li><strong>Non</strong> : examiner un par un ;</li>
+<li><strong>Annuler</strong> : ne rien rapprocher, les échéances restent à venir.</li>
+</ul>
+<h3 id="les-deux-listes">Les deux listes</h3>
+<ul>
+<li><strong>frm_Echeancier</strong> (échéances à venir) : on peut corriger les cellules directement ; modifier une échéance ne modifie pas sa règle. Boutons : <em>Ajouter une échéance</em>, <em>Supprimer la sélection</em>, <em>Voir les règles</em>, <em>Sortir</em>.</li>
+<li>Supprimer une échéance issue d'une règle ouvre un choix : <strong>Oui</strong> = supprimer seulement ces échéances (la règle continue, et recrée aussitôt la suivante si la liste de la règle est vide) ; <strong>Non</strong> = <strong>arrêter la récurrence</strong> à partir de la première échéance sélectionnée (la règle reçoit une date de fin et ses occurrences suivantes disparaissent : cas d'un remboursement anticipé) ; <strong>Annuler</strong> = ne rien faire.</li>
+<li><strong>frm_Recurrences</strong> (règles) : colonnes ID_Recurrence, Libelle, Tiers, Categorie, SousCategorie, Montant, Periodicite, DateProchaine, DateFin, PrecisionDate, JourAncre, TolerancePct, <strong>Actif</strong> (Oui/Non : Non = règle en pause). Boutons : <em>Ajouter une échéance</em>, <em>Actualiser les occurrences</em>, <em>Supprimer la règle</em>, <em>Voir les échéances</em>, <em>Sortir</em>.</li>
+<li>Modifier une règle ne s'applique qu'aux échéances créées ensuite. <strong>Actualiser les occurrences</strong> supprime les échéances actuellement dans la liste (même non rapprochées) puis les recrée avec les valeurs de la règle, en repartant de la plus ancienne. Une règle en pause perd ainsi ses échéances.</li>
+<li><em>Supprimer la règle</em> supprime aussi ses échéances à venir. Pour arrêter à une date précise, renseignez plutôt DateFin puis Actualiser.</li>
+</ul>
+<h3 id="le-bloc--prévisionnel-de-trésorerie--de-synthese">Le bloc « Prévisionnel de trésorerie » de Synthese</h3>
+<p>Ce bloc est fait de <strong>formules Excel</strong> : il se recalcule seul après chaque import ou saisie.</p>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Ligne</th>
+<th>Contenu</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Solde de réf.</td>
+<td><strong>Saisi par vous</strong> : le solde du compte relevé à une date donnée</td>
+</tr>
+<tr>
+<td>Date du solde</td>
+<td><strong>Saisie par vous</strong> : la date de ce solde</td>
+</tr>
+<tr>
+<td>Solde actuel</td>
+<td>Solde de réf. + somme des opérations postérieures à la date du solde (« à renseigner » tant que les deux cases sont vides)</td>
+</tr>
+<tr>
+<td>Solde à J+15</td>
+<td>Solde actuel + somme des échéances dont la date prévue est ≤ aujourd'hui + 15 jours</td>
+</tr>
+<tr>
+<td>Solde à J+30</td>
+<td>Idem à 30 jours</td>
+</tr>
+<tr>
+<td>Éch. en retard</td>
+<td><strong>Nombre</strong> d'échéances dont la date prévue est passée (pour une précision Mois, une fois le mois écoulé) : c'est à vous de les supprimer ou de les faire rapprocher</td>
+</tr>
+</tbody>
+</table></div>
+<p>Les boutons du bloc : <strong>Saisir une échéance</strong> et <strong>Voir l'échéancier</strong>. Les échéances en retard sont comptées dans les soldes prévisionnels tant qu'elles ne sont pas supprimées.</p>
+<h2 id="9-lanalyse-budgétaire">9. L'analyse budgétaire</h2>
+<p>L'écran <strong>frm_Analyse</strong> répond à trois questions : <em>où va mon argent ?</em> (répartition par catégorie), <em>comment évolue-t-il mois après mois ?</em> (évolution sur 12 mois) et <em>quelles opérations forment ce chiffre ?</em> (lien avec l'écran de recherche). Il est écrit dans <code>mod_Analyse</code> (calculs) et <code>mod_InstallAnalyse</code> (construction de la feuille). <strong>État au 11/10/2026 : première version écrite, non encore testée dans Excel</strong> (voir <code>TODO_SuiviBudgetaire.md</code>).</p>
+<figure class="diagramme"><svg class="schema" width="657" viewBox="0 0 657 644" role="img" aria-label="Schéma 8" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="fl8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="pointe"/></marker></defs>
+<path class="arete" d="M209,74 C209,109 209,109 209,144" marker-end="url(#fl8)"/>
+<path class="arete" d="M209,215 C209,250 209,250 209,285" marker-end="url(#fl8)"/>
+<path class="arete" d="M209,356 C209,391 105,391 105,426" marker-end="url(#fl8)"/>
+<path class="arete" d="M209,356 C209,391 312,391 312,426" marker-end="url(#fl8)"/>
+<path class="arete" d="M105,480 C105,515 209,515 209,550" marker-end="url(#fl8)"/>
+<path class="arete" d="M290,577 C350,577 350,453 191,453" marker-end="url(#fl8)"/>
+<rect class="noeud base" x="131" y="20" width="156" height="54" rx="16"/>
+<text class="txt t1" x="209" y="43.0" text-anchor="middle">TblOperations</text>
+<text class="txt" x="209" y="60.0" text-anchor="middle">+ TblVentilations</text>
+<rect class="noeud" x="116" y="144" width="185" height="71" rx="8"/>
+<text class="txt t1" x="209" y="167.0" text-anchor="middle">Une opération Ventilé</text>
+<text class="txt" x="209" y="184.0" text-anchor="middle">est remplacée</text>
+<text class="txt" x="209" y="201.0" text-anchor="middle">par ses parts</text>
+<rect class="noeud" x="127" y="285" width="163" height="71" rx="8"/>
+<text class="txt t1" x="209" y="308.0" text-anchor="middle">Filtres</text>
+<text class="txt" x="209" y="325.0" text-anchor="middle">mois de budget</text>
+<text class="txt" x="209" y="342.0" text-anchor="middle">catégories exclues</text>
+<rect class="noeud" x="20" y="426" width="171" height="54" rx="8"/>
+<text class="txt t1" x="105" y="449.0" text-anchor="middle">Tableau + graphique</text>
+<text class="txt" x="105" y="466.0" text-anchor="middle">de répartition</text>
+<rect class="noeud" x="227" y="426" width="171" height="54" rx="8"/>
+<text class="txt t1" x="312" y="449.0" text-anchor="middle">Tableau + graphique</text>
+<text class="txt" x="312" y="466.0" text-anchor="middle">d&#x27;évolution 12 mois</text>
+<rect class="noeud" x="127" y="550" width="163" height="54" rx="8"/>
+<text class="txt t1" x="209" y="573.0" text-anchor="middle">Écran de recherche</text>
+<text class="txt" x="209" y="590.0" text-anchor="middle">préfiltre Analyse</text>
+<rect class="fond-etiquette" x="88" y="505" width="137" height="18" rx="4"/><text class="etiquette" x="157" y="518" text-anchor="middle">Voir les opérations</text>
+<rect class="fond-etiquette" x="366" y="505" width="217" height="18" rx="4"/><text class="etiquette" x="474" y="518" text-anchor="middle">Sortir : l&#x27;analyse se recalcule</text>
+</svg></figure>
+<h3 id="ouvrir-et-régler-lécran">Ouvrir et régler l'écran</h3>
+<p>Bouton <strong>« Analyse budgétaire »</strong> de la feuille Synthese : l'écran s'ouvre avec l'année et le mois choisis sur Synthese, et calcule aussitôt.</p>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Paramètre</th>
+<th>Valeurs</th>
+<th>Effet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Période</td>
+<td><strong>Mois</strong> / <strong>Année</strong> / <strong>12 derniers mois</strong></td>
+<td>Mois = le mois de budget choisi ; Année = janvier à décembre de l'année choisie ; 12 derniers mois = les 12 mois se terminant au mois choisi</td>
+</tr>
+<tr>
+<td>Année de budget, Mois de budget</td>
+<td>listes déroulantes</td>
+<td>Période de référence</td>
+</tr>
+<tr>
+<td>Catégorie à détailler</td>
+<td>« (toutes) » ou une catégorie</td>
+<td>Toutes = vue par catégorie ; une catégorie = vue par ses sous-catégories</td>
+</tr>
+<tr>
+<td>Graphique de répartition</td>
+<td>Barres / Anneau</td>
+<td>Type du graphique de gauche</td>
+</tr>
+<tr>
+<td>Graphique d'évolution</td>
+<td>Barres empilées / Courbes</td>
+<td>Type du graphique du bas</td>
+</tr>
+<tr>
+<td>Catégories exclues</td>
+<td>6 emplacements</td>
+<td>Ces catégories ne sont <strong>jamais comptées</strong> (par défaut : « Virements internes » et « Revenus »)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Après un changement, cliquer sur <strong>Actualiser</strong>.</p>
+<h3 id="les-règles-de-calcul">Les règles de calcul</h3>
+<ul>
+<li><strong>Source</strong> : TblOperations + TblVentilations. Une opération « Ventilé » est <strong>remplacée par ses parts</strong> (sinon double comptage). Une part prend le <strong>mois de budget</strong> de l'opération d'origine ; les décalages de budget sont donc respectés.</li>
+<li><strong>Net par catégorie</strong> : pour chaque catégorie on additionne dépenses et remboursements sur la période. <strong>Seules les catégories dont le net est une dépense</strong> sont affichées : les revenus n'apparaissent pas. Les montants sont affichés en positif.</li>
+<li><strong>Répartition</strong> : tableau Catégorie (ou sous-catégorie) / Dépenses (€) / % du total / Nombre d'opérations, trié de la plus grosse à la plus petite, sur 30 lignes au plus (la dernière ligne regroupe le reste sous « Autres »), avec une ligne Total. Le graphique est en barres triées ou en anneau (8 premières catégories + « Autres »). Une phrase au-dessus résume : total, nombre de lignes, période.</li>
+<li><strong>Évolution</strong> : tableau des 8 plus grosses catégories (ou sous-catégories si une catégorie est détaillée) + « Autres », en colonnes sur 12 mois, avec totaux ; graphique en barres empilées ou en courbes.</li>
+</ul>
+<h3 id="les-boutons">Les boutons</h3>
+<ul>
+<li><strong>Actualiser</strong> : recalcule tout.</li>
+<li><strong>Détailler la sélection</strong> : cliquez d'abord sur une ligne du tableau de répartition ; la catégorie devient le filtre et le tableau et les graphiques passent à ses sous-catégories. Impossible sur « Autres » ou « (sans catégorie) » (ces lignes regroupent plusieurs valeurs), et une seule catégorie peut être détaillée à la fois.</li>
+<li><strong>Toutes les catégories</strong> : revient à la vue générale.</li>
+<li><strong>Voir les opérations</strong> : ouvre l'écran de recherche en préfiltre <strong>Analyse</strong> sur les opérations et parts de la ligne sélectionnée (ou, sans sélection, de tout le périmètre affiché). On y retrouve toutes les fonctions habituelles : recatégoriser, ventiler, décaler le budget… En quittant la recherche avec <strong>Sortir</strong>, l'analyse se réaffiche et <strong>se recalcule</strong> (une recatégorisation ou un décalage change les chiffres).</li>
+<li><strong>Sortir</strong> : revient sur Synthese.</li>
+</ul>
+<h3 id="analyse-ou-bilan-mensuel--pourquoi-deux-chiffres-">Analyse ou bilan mensuel : pourquoi deux chiffres ?</h3>
+<p>Le bilan mensuel (section 7) lit seulement TblOperations et compte une opération ventilée une fois. L'analyse remplace cette opération par ses parts, exclut des catégories, et ne retient que les catégories dont le net est une dépense. Les totaux peuvent donc différer légèrement : c'est normal, à ventilations et exclusions près.</p>
+<h2 id="10-installation-maintenance-et-outils-développeur">10. Installation, maintenance et outils développeur</h2>
+<h3 id="comment-le-code-est-organisé">Comment le code est organisé</h3>
+<p>Le classeur contient du code VBA (Alt+F11), versionné dans ce dépôt sous forme de fichiers <code>.bas</code>. Quelques règles de fonctionnement :</p>
+<ul>
+<li><strong><code>mod_VarGlobales</code></strong> : les noms de feuilles, de tableaux et les constantes partagées (un seul endroit à modifier si un nom change).</li>
+<li><strong><code>mod_InstallCommun</code></strong> : la boîte à outils de construction de tous les écrans (couleurs, hauteurs de lignes, boutons, étiquettes, bloc Instructions).</li>
+<li><strong><code>mod_Install…</code></strong> : un module de construction par écran (voir tableau ci-dessous). Ils ne servent qu'à <em>créer</em> les feuilles ; l'usage courant n'en a pas besoin.</li>
+<li><strong><code>mod_Display.FR()</code></strong> : tous les textes affichés passent par cette fonction, qui remplace des balises (<code>{e2}</code> pour é, <code>{a2}</code> pour à, <code>{e1}</code> pour è, <code>{ea}</code> pour ê, <code>{o2}</code> pour ô, <code>{i2}</code> pour î…) par les vrais accents. Cela évite tout problème d'encodage lors de l'import des fichiers dans l'éditeur VBA. Les commentaires, eux, sont en UTF-8.</li>
+<li><strong><code>mod_DataStructure</code></strong> : conversions « sécurisées » des cellules (<code>CellText</code>, <code>ToDouble</code>, <code>ToLong</code>) : une valeur inattendue ou une erreur Excel donne une valeur neutre au lieu d'un plantage.</li>
+<li><strong><code>mod_Criteres</code>, <code>mod_DonneesTable</code>, <code>mod_Rapports</code>, <code>mod_Actions</code></strong> : lecture des critères de Synthese, accès brut à TblOperations, surlignage des grosses dépenses, boutons génériques (dont Sortir).</li>
+<li><strong><code>ThisWorkbook</code></strong> : événements du classeur. À l'ouverture, <code>Workbook_Open</code> complète les occurrences de l'échéancier ; un double-clic est intercepté <strong>uniquement</strong> sur l'écran de recherche, colonnes Ventile, Categorie et SousCategorie (partout ailleurs Excel garde son comportement normal).</li>
+</ul>
+<h3 id="les-macros-dinstallation">Les macros d'installation</h3>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Écran / fonction</th>
+<th>Macro à lancer (Ctrl+G dans l'éditeur VBA)</th>
+<th>Remarques</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Contrôle des catégories</td>
+<td><code>CreerFeuilleControleCategories</code></td>
+<td>Code d'événements à coller (voir <code>CodeBehind_frm_ControleCategories.txt</code>)</td>
+</tr>
+<tr>
+<td>Nouvelle catégorie</td>
+<td><code>CreerFeuilleNouvelleCategorie</code></td>
+<td><code>CodeBehind_frm_NouvelleCategorie.txt</code></td>
+</tr>
+<tr>
+<td>Ventilation</td>
+<td><code>PreparerPhase4Ventilation</code>, <code>CreerFeuilleVentilation</code></td>
+<td>Prépare aussi TblVentilations et les colonnes d'annulation ; <code>CodeBehind_frm_Ventilation.txt</code></td>
+</tr>
+<tr>
+<td>Résolution des catégories</td>
+<td><code>CreerFeuilleResolutionCategories</code></td>
+<td><code>CodeBehind_frm_ResolutionCategories.txt</code> (le fichier <code>frmResolutionCategories.frm</code> est l'ancienne version, en fenêtre VBA classique)</td>
+</tr>
+<tr>
+<td>Rapprochement et génération de clé santé</td>
+<td><code>CreerFeuilleRapprochementNotes</code>, <code>CreerFeuilleGenerationCle</code></td>
+<td>Formulaires du suivi santé</td>
+</tr>
+<tr>
+<td>Suivi santé (cas non soldés)</td>
+<td><code>CreerFeuilleSuiviSante</code></td>
+<td></td>
+</tr>
+<tr>
+<td>Écran de recherche</td>
+<td><code>CreerFeuilleRechercheOperations</code></td>
+<td>Construit l'en-tête et les colonnes ; les lignes sont remplies à chaque ouverture</td>
+</tr>
+<tr>
+<td>Décalages de budget</td>
+<td><code>AjouterColonneDecalageManuel</code></td>
+<td>Ajoute la colonne technique DecalageManuel à TblOperations</td>
+</tr>
+<tr>
+<td>Échéancier</td>
+<td><code>InstallerEcheancier</code></td>
+<td>Coller <code>CodeBehind_frm_Echeance.txt</code> dans la feuille frm_Echeance</td>
+</tr>
+<tr>
+<td>Analyse budgétaire</td>
+<td><code>InstallerAnalyse</code></td>
+<td>Aucun code à coller</td>
+</tr>
+</tbody>
+</table></div>
+<p>Pour <strong>modifier à la main</strong> l'aspect d'un écran masqué : <code>AfficherFeuille…PourEdition</code> le rend visible, <code>MasquerFeuille…ApresEdition</code> le remasque (par exemple <code>AfficherFeuilleAnalysePourEdition</code>, <code>AfficherFormulaireEcheancePourEdition</code>). <strong>Attention :</strong> relancer la macro de création d'un écran le reconstruit (par exemple, pour l'analyse, les paramètres et la liste des catégories exclues reviennent aux valeurs par défaut).</p>
+<p><strong>Pourquoi du code à coller dans certaines feuilles ?</strong> Les événements d'une feuille (<code>Worksheet_Change</code>, <code>Worksheet_Deactivate</code>…) doivent obligatoirement être écrits dans le module de <strong>cette feuille</strong>. Les fichiers <code>CodeBehind_*.txt</code> contiennent ces quelques lignes, qui ne font qu'appeler le module principal. Procédure : Alt+F11 → repérer la feuille par son CodeName dans l'explorateur de projet (Ctrl+R) → double-clic → coller. <strong>Ne jamais coller ce code dans une autre feuille.</strong></p>
+<h3 id="les-outils-pour-développeur">Les outils pour développeur</h3>
+<ul>
+<li><strong><code>mod_ExportStructure</code></strong> (macros <code>ExporterUneFeuille</code>, <code>ExporterToutesLesFeuilles</code>, <code>ExporterStructureFeuille</code>) : « photographie » la structure réelle d'une feuille (largeurs, hauteurs, cellules fusionnées, tableaux, listes déroulantes, mises en forme conditionnelles, boutons, noms définis, réglages de fenêtre) dans un fichier texte <code>…_structure.txt</code>. Utile parce que les écrans sont construits par code puis souvent retouchés à la main : le fichier permet de remettre le code en accord avec la réalité. Il <strong>ne modifie rien</strong> et n'exporte <strong>jamais le contenu</strong> des tableaux (le dépôt est public : aucune opération bancaire ne doit s'y retrouver).</li>
+<li><strong><code>ImportUTF8</code></strong> (macro <code>ImportUTF8ConvertAndReplace</code>) : choisit un fichier <code>.bas</code> en UTF-8, le convertit en ANSI (fins de ligne normalisées), l'enregistre dans le dossier Téléchargements (<code>module_converti.bas</code>) et remplace le contenu du module VBA du même nom. Pratique pour mettre à jour un module depuis le dépôt.</li>
+<li><strong><code>TODO_SuiviBudgetaire.md</code></strong> : benchmark, décisions de conception et liste des tâches du module d'analyse (phases 0 à 5).</li>
+</ul>
+<h3 id="régénérer-le-guide-html">Régénérer le guide HTML</h3>
+<p><code>README.md</code> est la <strong>source</strong> ; <code>README.html</code> en est la conversion. Après toute modification du <code>.md</code>, lancer :</p>
+<pre><code class="language-bash">python build_docs.py
+</code></pre>
+<p>Le script (Python 3 et le paquet <code>markdown</code>, installable avec <code>pip install markdown</code>) produit un fichier HTML <strong>autonome</strong> : styles, schémas (dessinés en SVG à partir des blocs Mermaid du <code>.md</code>) et sommaire sont inclus, sans aucune dépendance en ligne.</p>
+<h2 id="glossaire">Glossaire</h2>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Terme</th>
+<th>Définition</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>OFX</td>
+<td>Format de fichier bancaire standard ; donne les opérations et leur identifiant, pas la catégorie.</td>
+</tr>
+<tr>
+<td>FITID / ID_Transaction</td>
+<td>Identifiant unique d'une opération donné par la banque ; sert d'anti-doublon et relie une opération à ses parts ventilées.</td>
+</tr>
+<tr>
+<td>Catégorie source</td>
+<td>La catégorie telle que la banque l'envoie dans le CSV.</td>
+</tr>
+<tr>
+<td>Catégorie / Sous-catégorie</td>
+<td>Le rangement à deux niveaux utilisé dans le classeur.</td>
+</tr>
+<tr>
+<td>Ventilation / part</td>
+<td>Découpage d'une opération en plusieurs montants de catégories différentes ; chaque morceau est une part (TblVentilations).</td>
+</tr>
+<tr>
+<td>« Ventilé »</td>
+<td>Catégorie technique donnée à l'opération d'origine une fois ventilée.</td>
+</tr>
+<tr>
+<td>Mois de budget</td>
+<td>Le mois auquel une opération est comptabilisée (souvent celui de la date comptable, parfois décalé).</td>
+</tr>
+<tr>
+<td>DecalageManuel</td>
+<td>Marque qui indique qu'un décalage de budget a été choisi à la main et doit primer sur les règles.</td>
+</tr>
+<tr>
+<td>Clé Notes</td>
+<td>Texte <code>aaaammjj;spécialité;bénéficiaire;montant</code> partagé par une dépense de santé et ses remboursements.</td>
+</tr>
+<tr>
+<td>Sentinelle (02/01/1900)</td>
+<td>Fausse date volontaire dans Date_consult qui signale une clé santé illisible.</td>
+</tr>
+<tr>
+<td>Groupe santé</td>
+<td>Ensemble des lignes partageant la même clé Notes.</td>
+</tr>
+<tr>
+<td>StatutSante</td>
+<td>OK si le groupe est soldé, KO sinon.</td>
+</tr>
+<tr>
+<td>SoldeSante</td>
+<td>Dépenses − remboursements − franchise, sur la ligne de dépense.</td>
+</tr>
+<tr>
+<td>Franchise</td>
+<td>Part retenue par l'assurance, saisie par vous ; jamais calculée par le code.</td>
+</tr>
+<tr>
+<td>Dépassement d'honoraires</td>
+<td>« Oui » = le reste à charge est accepté, le groupe n'est plus reproposé.</td>
+</tr>
+<tr>
+<td>Formulaire-feuille</td>
+<td>Feuille cachée qui sert de fenêtre de saisie et bloque la navigation tant qu'elle est ouverte.</td>
+</tr>
+<tr>
+<td>Préfiltre</td>
+<td>Le critère avec lequel l'écran de recherche est chargé (dernier import, mois, erreurs santé, analyse…).</td>
+</tr>
+<tr>
+<td>Échéance</td>
+<td>Opération à venir (une occurrence), ponctuelle ou issue d'une règle.</td>
+</tr>
+<tr>
+<td>Règle de récurrence</td>
+<td>Modèle qui produit seul des échéances (hebdomadaire, mensuelle, trimestrielle, annuelle).</td>
+</tr>
+<tr>
+<td>Précision de la date</td>
+<td>Jour = date attendue à quelques jours près ; Mois = n'importe quel jour du mois prévu.</td>
+</tr>
+<tr>
+<td>Tolérance</td>
+<td>Écart de montant accepté (en %) pour rapprocher une opération d'une échéance.</td>
+</tr>
+<tr>
+<td>Jour d'ancrage</td>
+<td>Jour du mois conservé d'une occurrence à l'autre d'une règle mensuelle.</td>
+</tr>
+<tr>
+<td>Rapprochement</td>
+<td>Association d'une opération importée à une échéance (échéancier) ou à une clé santé (suivi santé) : deux mécanismes distincts.</td>
+</tr>
+<tr>
+<td>Solde prévisionnel</td>
+<td>Solde actuel augmenté des échéances jusqu'à J+15 ou J+30.</td>
+</tr>
+<tr>
+<td>Net (analyse)</td>
+<td>Dépenses moins remboursements d'une catégorie sur la période ; seules les catégories à net négatif sont analysées.</td>
+</tr>
+<tr>
+<td>Catégories exclues</td>
+<td>Liste (modifiable sur l'écran d'analyse) des catégories jamais comptées, par défaut Virements internes et Revenus.</td>
+</tr>
+<tr>
+<td>CodeName</td>
+<td>Nom interne d'une feuille dans l'éditeur VBA, utile pour y coller un code d'événements.</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="points-relevés-à-la-lecture-du-code">Points relevés à la lecture du code</h2>
+<p>Ces constats sont apparus en rédigeant le guide. <strong>Aucun n'a été corrigé</strong> : ils sont listés pour décision.</p>
+<ol>
+<li><strong>Synthèse santé vide — traité le 07-08/10/2026.</strong> <code>Synthese_Care</code> ouvre désormais l'écran de recherche en préfiltre SuiviSante, qui teste la sous-catégorie et inclut les parts ventilées (section 5).</li>
+<li><strong>Constantes encore dupliquées.</strong> <code>NOM_FEUILLE_RAPPROCHEMENT</code>, <code>NOM_FEUILLE_GENERATION</code>, <code>NOM_FEUILLE_RESOLUTION</code> et <code>NOM_FEUILLE_SUIVI_SANTE</code> sont déclarées à la fois dans mod_VarGlobales et dans leur module d'installation. <code>VEN_FEUILLE</code> / <code>VEN_TABLE</code> sont aussi recopiées dans mod_SuiviSante, mod_RechercheOperations et mod_Analyse. <code>mod_Echeancier</code> utilise encore les textes littéraux <code>"Import_data"</code> / <code>"TblOperations"</code> au lieu des constantes.</li>
+<li><strong>Libellés santé encore codés en dur.</strong> mod_ImportOFX, mod_ControleCategories et mod_RechercheOperations utilisent les constantes <code>SOUS_CATEGORIE_SANTE</code> et <code>CATEGORIE_SANTE</code>. Les modules mod_SuiviSante (1 endroit), mod_FormulairesNotes (4), mod_SuiviSanteFormulaire (5), mod_Ventilation (1) et mod_Categories (1, plus <code>CategorieSanteNouvelle()</code> qui double <code>CATEGORIE_SANTE</code>) reconstruisent encore ces textes chacun de leur côté.</li>
+<li><strong>Deux points de la liste de suivi semblent déjà traités dans le code</strong>, à confirmer par un test :<ul>
+<li>« Montant des parts toujours positif » : mod_Ventilation écrit désormais le montant avec le signe de l'opération d'origine (ajout du 01/10) ;</li>
+<li>« Ventiler une nouvelle opération depuis la recherche » : un double-clic sur une cellule Ventile vide démarre maintenant une ventilation.</li>
+</ul>
+</li>
+<li><strong>Nettoyage à prévoir après la mise en production.</strong> Plusieurs en-têtes de modules (dont mod_SuiviSanteFormulaire et mod_FormulairesNotes) décrivent encore un fichier « 100 % ASCII » ou un suivi santé lancé automatiquement à chaque import. Le type <code>mod_Rapports.TOperation</code> n'est plus utilisé depuis la refonte de Synthese_Care.</li>
+<li><strong>Règles de décalage non rétroactives.</strong> Une règle ajoutée dans TblDecalagesBudget ne s'applique qu'aux imports suivants ; il n'existe pas de bouton pour recalculer le budget des opérations déjà présentes. C'est peut-être voulu, mais c'est à savoir.</li>
+<li><strong>Analyse budgétaire non testée.</strong> Les phases 1 à 3 sont codées mais aucune case de test du TODO n'est cochée (total de l'analyse = bilan mensuel, nombre de lignes de la recherche = nombre d'opérations du tableau, recalcul après recatégorisation). Restent à faire : moyenne glissante 3 mois, clic sur un mois, comparaison N-1, top hausses/baisses, budget cible (<code>TblBudgets</code>), et la génération de <code>frm_Analyse_structure.txt</code>.</li>
+<li><strong>Échéancier : installation en deux temps.</strong> Le code d'événements de <code>frm_Echeance</code> doit être collé à la main (comme pour les autres formulaires) ; sans lui, la liste des sous-catégories ne suit pas la catégorie choisie et la feuille n'est pas verrouillée.</li>
+<li><strong>Échéances en retard comptées dans les soldes.</strong> Les soldes à J+15 et J+30 incluent toutes les échéances dont la date prévue est avant l'horizon, <strong>y compris celles déjà passées et jamais rapprochées</strong>. C'est cohérent avec le principe « c'est à vous de les supprimer », mais un oubli de nettoyage fausse le prévisionnel (d'où le compteur « Éch. en retard »).</li>
+</ol>
+</main>
+</div>
+<a class="haut" href="#">&uarr; Haut</a>
+<!-- Généré par build_docs.py à partir de README.md : ne pas modifier ce fichier à la main. -->
+</body>
+</html>
