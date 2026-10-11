@@ -64,7 +64,7 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <main>
 <h1 id="suivi-financier--guide-de-fonctionnement">Suivi Financier – Guide de fonctionnement</h1>
 <p>Oct 11, 2026 · @Alexandre</p>
-<p>Ce guide explique ce que fait le classeur Excel de suivi des comptes : on importe les relevés de la banque, on range chaque opération dans une catégorie, on suit les remboursements de santé, on déclare les opérations à venir (échéancier), on analyse ses dépenses et on suit ses consommations d'eau, d'électricité et de gaz, puis on consulte et corrige depuis un écran de recherche. Il décrit le code de la branche Refonte_recherche du dépôt Suivi_Financier, dans son état du 11/10/2026 (dernier commit da794e7, « Analyse budgetaire »).</p>
+<p>Ce guide explique ce que fait le classeur Excel de suivi des comptes : on importe les relevés de la banque, on range chaque opération dans une catégorie, on suit les remboursements de santé, on déclare les opérations à venir (échéancier), on analyse ses dépenses et on suit ses consommations d'eau, d'électricité et de gaz, puis on consulte et corrige depuis un écran de recherche. Il décrit le code de la branche Refonte_recherche du dépôt Suivi_Financier, dans son état du 11/10/2026 (dernier commit f394b3e, « Synchronisation, sauvegarde et chiffrement »), complété par les évolutions de l'échéancier du 11/10/2026 (contrôle du solde, numéro de chèque).</p>
 <p>Ce document existe en deux formats, <strong>toujours identiques</strong> : <code>README.md</code> (lu sur GitHub, schémas Mermaid) et <code>README.html</code> (un seul fichier autonome, qui s'ouvre dans n'importe quel navigateur, sans connexion internet). Voir la section « Régénérer le guide HTML » en fin de document.</p>
 <h2 id="sommaire">Sommaire</h2>
 <ul>
@@ -77,7 +77,16 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <li><a href="#5-le-suivi-santé">5. Le suivi santé</a></li>
 <li><a href="#6-lécran-de-recherche-des-opérations">6. L'écran de recherche des opérations</a></li>
 <li><a href="#7-la-feuille-synthese-et-les-écrans-de-résultat">7. La feuille Synthese et les écrans de résultat</a></li>
-<li><a href="#8-léchéancier-et-le-prévisionnel-de-trésorerie">8. L'échéancier et le prévisionnel de trésorerie</a></li>
+<li><a href="#8-léchéancier-et-le-prévisionnel-de-trésorerie">8. L'échéancier et le prévisionnel de trésorerie</a><ul>
+<li><a href="#les-principes-validés-le-09102026">Les principes</a></li>
+<li><a href="#installer-léchéancier">Installer l'échéancier</a></li>
+<li><a href="#déclarer-une-échéance--le-formulaire-frm_echeance">Déclarer une échéance (formulaire, numéro de chèque)</a></li>
+<li><a href="#les-règles-produisent-seules-les-occurrences">Les règles produisent seules les occurrences</a></li>
+<li><a href="#le-rapprochement-après-limport">Le rapprochement après l'import</a></li>
+<li><a href="#les-deux-listes">Les deux listes</a></li>
+<li><a href="#le-bloc--prévisionnel-de-trésorerie--de-synthese">Le bloc « Prévisionnel de trésorerie » et le contrôle du solde</a></li>
+</ul>
+</li>
 <li><a href="#9-lanalyse-budgétaire">9. L'analyse budgétaire</a></li>
 <li><a href="#10-le-suivi-des-consommations">10. Le suivi des consommations</a></li>
 <li><a href="#11-installation-maintenance-et-outils-développeur">11. Installation, maintenance et outils développeur</a></li>
@@ -833,7 +842,8 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <li><strong>Aucun historique.</strong> Quand une opération importée est rapprochée d'une échéance et que vous validez, l'échéance est <strong>supprimée</strong>. Seule l'opération reste, dans TblOperations. Si l'échéance venait d'une règle, la règle continue de produire les suivantes.</li>
 <li><strong>Une échéance non rapprochée reste</strong> dans la liste, reste comptée dans le solde prévisionnel, jusqu'à ce que vous la supprimiez vous-même.</li>
 <li><strong>Reconnaissance souple.</strong> Le rapprochement n'exige pas le Tiers : la Catégorie ou la Sous-catégorie peuvent suffire (achat dont on ne connaît pas le commerçant). La date peut être imprécise (précision « Mois »).</li>
-<li><strong>Le solde de départ est saisi par vous</strong>, car les exports OFX ne contiennent pas de solde.</li>
+<li><strong>Le solde de départ est saisi par vous</strong>, car les exports OFX ne contiennent pas de solde. Un bouton le saisit <strong>avec un contrôle d'écart</strong> (voir plus bas).</li>
+<li><strong>Un chèque attendu se reconnaît à son numéro.</strong> Une échéance ponctuelle peut porter un numéro de chèque : il est contrôlé à la saisie (jamais déjà passé en banque, jamais déjà dans l'échéancier) et suffit à reconnaître l'opération à l'import.</li>
 </ul>
 <figure class="diagramme"><svg class="schema" width="779" viewBox="0 0 779 1049" role="img" aria-label="Schéma 7" xmlns="http://www.w3.org/2000/svg">
 <defs><marker id="fl7" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="pointe"/></marker></defs>
@@ -891,7 +901,7 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <rect class="fond-etiquette" x="74" y="637" width="131" height="18" rx="4"/><text class="etiquette" x="139" y="650" text-anchor="middle">somme des montants</text>
 </svg></figure>
 <h3 id="installer-léchéancier">Installer l'échéancier</h3>
-<p>Une seule macro, <code>InstallerEcheancier</code>, à lancer une fois depuis la fenêtre Exécution d'Excel (détails en section 11). Elle crée les trois feuilles masquées (frm_Echeancier, frm_Recurrences, frm_Echeance), le bloc « Prévisionnel de trésorerie » sur Synthese (avec ses deux boutons) et le bouton « Rendre récurrente » de l'écran de recherche. <strong>Une étape manuelle est indispensable</strong> : coller dans le module de la feuille frm_Echeance le contenu de <code>CodeBehind_frm_Echeance.txt</code> (deux petits événements). La réinstallation est possible : si les listes contiennent des données, une confirmation est demandée avant de les reconstruire, car elles seraient <strong>perdues</strong>.</p>
+<p>Une seule macro, <code>InstallerEcheancier</code>, à lancer une fois depuis la fenêtre Exécution d'Excel (détails en section 11). Elle crée les trois feuilles masquées (frm_Echeancier, frm_Recurrences, frm_Echeance), le bloc « Prévisionnel de trésorerie » sur Synthese (avec ses deux boutons) et le bouton « Rendre récurrente » de l'écran de recherche. <strong>Une étape manuelle est indispensable</strong> : coller dans le module de la feuille frm_Echeance le contenu de <code>CodeBehind_frm_Echeance.txt</code> (deux petits événements). <strong>La réinstallation est possible et conserve les données</strong> : les deux listes sont reconstruites (instructions, boutons, colonnes à jour) puis les lignes existantes sont remises en place <strong>colonne par colonne, d'après le nom de l'en-tête</strong> ; une colonne nouvelle reste simplement vide. Pour ne compléter que le bloc de la feuille Synthese (ligne d'écart, bouton « Saisir / contrôler le solde »), sans toucher aux listes, lancer <code>MettreAJourBlocSynthese</code> : le bloc est retrouvé par le nom <code>soldeRefMontant</code>, même s'il a été déplacé, et rien d'existant n'est réécrit, sauf les formules cassées (<code>#REF!</code>) : reconstruire la liste des échéances supprime puis recrée le tableau TblEcheances, ce qui casse les formules de Synthese qui le citent ; <code>InstallerEcheancier</code> et <code>MettreAJourBlocSynthese</code> les réécrivent alors automatiquement.</p>
 <h3 id="déclarer-une-échéance--le-formulaire-frm_echeance">Déclarer une échéance : le formulaire frm_Echeance</h3>
 <p>Bouton « Saisir une échéance » (Synthese ou listes). Les champs :</p>
 <div class="tableau"><table>
@@ -919,6 +929,10 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <td><strong>Négatif</strong> pour une dépense, <strong>positif</strong> pour une entrée. Obligatoire, non nul. Une opération de signe contraire n'est jamais rapprochée</td>
 </tr>
 <tr>
+<td>Numéro de chèque</td>
+<td>Facultatif, <strong>échéance ponctuelle uniquement</strong>. Chiffres seuls, 10 au maximum, sans espace. Contrôlé à la validation (voir ci-dessous)</td>
+</tr>
+<tr>
 <td>Périodicité</td>
 <td>Vide ou Ponctuelle = opération unique. Hebdomadaire, Mensuelle, Trimestrielle, Annuelle = crée une règle</td>
 </tr>
@@ -940,13 +954,20 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 </tr>
 </tbody>
 </table></div>
-<p>Contrôles à la validation : il faut au moins le Tiers ou la Catégorie (sinon rien ne permettrait de reconnaître l'opération), une sous-catégorie suppose une catégorie, la catégorie et la sous-catégorie doivent exister dans les listes, la date de fin ne peut pas précéder la date prévue, la tolérance est comprise entre 0 et 100. En cas d'erreur, un message s'affiche sous le formulaire et rien n'est enregistré. <strong>Valider</strong> enregistre et referme ; <strong>Annuler</strong> demande confirmation.</p>
+<p>Contrôles à la validation : il faut au moins le Tiers, la Catégorie <strong>ou le numéro de chèque</strong> (sinon rien ne permettrait de reconnaître l'opération), une sous-catégorie suppose une catégorie, la catégorie et la sous-catégorie doivent exister dans les listes, la date de fin ne peut pas précéder la date prévue, la tolérance est comprise entre 0 et 100, et, si un numéro de chèque est saisi : la périodicité doit être vide ou Ponctuelle, le numéro ne contient que des chiffres (10 au plus, pas uniquement des zéros), il n'est <strong>pas déjà passé en banque</strong> et <strong>pas déjà saisi dans l'échéancier</strong>. En cas d'erreur, un message s'affiche sous le formulaire et rien n'est enregistré. <strong>Valider</strong> enregistre et referme ; <strong>Annuler</strong> demande confirmation.</p>
 <p><strong>Le jour d'ancrage.</strong> Pour une règle mensuelle, le jour du mois est conservé d'une occurrence à l'autre : un 31 devient le 28 en février, puis redevient 31 en mars (le jour ne « dérive » pas). Pour la précision « Mois », la date est ramenée au 1er du mois.</p>
+<p><strong>Le numéro de chèque.</strong> Il sert à suivre un chèque émis et pas encore débité. Deux contrôles à la saisie, qui comparent les numéros <strong>sans tenir compte des zéros en tête</strong> (0001234 et 1234 sont le même chèque) :</p>
+<ol>
+<li><em>Déjà passé en banque</em> : le numéro existe dans la colonne <code>Num_Cheque</code> de TblOperations. Le message donne la date, le Tiers et le montant de l'opération trouvée.</li>
+<li><em>Déjà dans l'échéancier</em> : le numéro existe dans la colonne <code>NumCheque</code> de TblEcheances. Le message donne le libellé et la date de l'échéance.</li>
+</ol>
+<p>Le numéro apparaît dans la colonne <strong>NumCheque</strong> de frm_Echeancier. Il n'est pas permis pour une règle (un numéro de chèque est unique).</p>
+<p><strong>Contrôle silencieux dans la liste.</strong> Si vous modifiez un numéro directement dans frm_Echeancier, il est vérifié <strong>sans aucun message</strong>, en direct, par une mise en forme conditionnelle : la cellule devient <strong>rouge</strong> si le numéro est invalide (pas uniquement des chiffres) ou déjà passé en banque, <strong>orange</strong> s'il figure deux fois dans l'échéancier. Les numéros sont comparés comme des nombres (zéros en tête ignorés). Rien n'est bloqué : c'est un signal visuel, à vous d'agir. Une cellule rouge qui reste après un import signale un chèque passé en banque mais non rapproché. Installation : <code>InstallerEcheancier</code>, ou <code>MettreAJourControleCheques</code> pour poser seulement ce contrôle sur une liste existante.</p>
 <p><strong>Rendre récurrente une opération existante.</strong> Dans l'écran de recherche (y compris juste après un import), sélectionnez une ligne puis « Rendre récurrente » : le formulaire s'ouvre prérempli (Tiers, catégorie, montant, périodicité mensuelle). La prochaine date est calculée sur le même jour du mois suivant, puis avancée jusqu'à une date future ; tout reste modifiable avant de valider.</p>
 <h3 id="les-règles-produisent-seules-les-occurrences">Les règles produisent seules les occurrences</h3>
 <p><code>GenererHorizon</code> complète TblEcheances pour chaque règle <strong>active</strong> : occurrences jusqu'à <strong>60 jours</strong> dans le futur, et <strong>toujours au moins une</strong>, même plus lointaine. La colonne DateProchaine de la règle mémorise la prochaine date à créer : une occurrence supprimée ou rapprochée n'est donc <strong>jamais recréée</strong> par erreur. Une règle dont la date de fin est atteinte et qui n'a plus aucune échéance est retirée de la liste. La génération se déclenche : à l'ouverture du classeur, à chaque import, à l'ouverture des listes, et après chaque saisie.</p>
 <h3 id="le-rapprochement-après-limport">Le rapprochement après l'import</h3>
-<p>Pour chaque opération qui vient d'être importée, une échéance est <strong>candidate</strong> si :</p>
+<p>Pour chaque opération qui vient d'être importée, une échéance <strong>avec numéro de chèque</strong> est candidate dès que le numéro de l'opération (colonne <code>Num_Cheque</code>) est le même et que le montant a le même signe : ni la date, ni la tolérance, ni le Tiers ne sont examinés, et ces paires passent <strong>avant toutes les autres</strong>. Pour les autres échéances, une échéance est <strong>candidate</strong> si :</p>
 <ol>
 <li>le montant a le <strong>même signe</strong> et l'écart reste dans la tolérance de l'échéance ;</li>
 <li>la <strong>date</strong> est dans la fenêtre : précision Jour = de 5 jours avant à 10 jours après la date prévue (règle hebdomadaire : ±3 jours) ; précision Mois = n'importe quel jour du mois prévu ;</li>
@@ -961,7 +982,7 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 </ul>
 <h3 id="les-deux-listes">Les deux listes</h3>
 <ul>
-<li><strong>frm_Echeancier</strong> (échéances à venir) : on peut corriger les cellules directement ; modifier une échéance ne modifie pas sa règle. Boutons : <em>Ajouter une échéance</em>, <em>Supprimer la sélection</em>, <em>Voir les règles</em>, <em>Sortir</em>.</li>
+<li><strong>frm_Echeancier</strong> (échéances à venir) : colonnes ID_Echeance, ID_Recurrence, Libelle, Tiers, Categorie, SousCategorie, Montant, <strong>NumCheque</strong>, DatePrevue, PrecisionDate, Periodicite, TolerancePct. On peut corriger les cellules directement ; modifier une échéance ne modifie pas sa règle. Boutons : <em>Ajouter une échéance</em>, <em>Supprimer la sélection</em>, <em>Voir les règles</em>, <em>Sortir</em>.</li>
 <li>Supprimer une échéance issue d'une règle ouvre un choix : <strong>Oui</strong> = supprimer seulement ces échéances (la règle continue, et recrée aussitôt la suivante si la liste de la règle est vide) ; <strong>Non</strong> = <strong>arrêter la récurrence</strong> à partir de la première échéance sélectionnée (la règle reçoit une date de fin et ses occurrences suivantes disparaissent : cas d'un remboursement anticipé) ; <strong>Annuler</strong> = ne rien faire.</li>
 <li><strong>frm_Recurrences</strong> (règles) : colonnes ID_Recurrence, Libelle, Tiers, Categorie, SousCategorie, Montant, Periodicite, DateProchaine, DateFin, PrecisionDate, JourAncre, TolerancePct, <strong>Actif</strong> (Oui/Non : Non = règle en pause). Boutons : <em>Ajouter une échéance</em>, <em>Actualiser les occurrences</em>, <em>Supprimer la règle</em>, <em>Voir les échéances</em>, <em>Sortir</em>.</li>
 <li>Modifier une règle ne s'applique qu'aux échéances créées ensuite. <strong>Actualiser les occurrences</strong> supprime les échéances actuellement dans la liste (même non rapprochées) puis les recrée avec les valeurs de la règle, en repartant de la plus ancienne. Une règle en pause perd ainsi ses échéances.</li>
@@ -1001,19 +1022,77 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <td>Éch. en retard</td>
 <td><strong>Nombre</strong> d'échéances dont la date prévue est passée (pour une précision Mois, une fois le mois écoulé) : c'est à vous de les supprimer ou de les faire rapprocher</td>
 </tr>
+<tr>
+<td>Écart du solde</td>
+<td>Écart constaté lors de la <strong>dernière saisie du solde</strong> par le bouton « Saisir / contrôler le solde » (vide tant qu'aucun contrôle n'a eu lieu)</td>
+</tr>
 </tbody>
 </table></div>
-<p>Les boutons du bloc : <strong>Saisir une échéance</strong> et <strong>Voir l'échéancier</strong>. Les échéances en retard sont comptées dans les soldes prévisionnels tant qu'elles ne sont pas supprimées.</p>
+<p>Les boutons du bloc : <strong>Saisir une échéance</strong>, <strong>Voir l'échéancier</strong> et <strong>Saisir / contrôler le solde</strong>. Les échéances en retard sont comptées dans les soldes prévisionnels tant qu'elles ne sont pas supprimées.</p>
+<h4 id="quelles-opérations-comptent-dans-le-solde-actuel-">Quelles opérations comptent dans le solde actuel ?</h4>
+<p>Le solde actuel = solde de référence + somme des opérations dont la <strong>date comptable est strictement postérieure</strong> à la date du solde. Les opérations datées du jour du solde ou avant sont considérées comme déjà comprises dans le solde saisi. Conséquences :</p>
+<ul>
+<li>importer un <strong>historique ancien</strong> (opérations datées au plus tard de la date du solde) ne change rien au solde ;</li>
+<li>importer des opérations <strong>plus récentes</strong> les ajoute automatiquement : on ne ressaisit pas le solde à chaque import ;</li>
+<li>la date à saisir est celle <strong>du solde tel que la banque l'affiche</strong>, pas forcément celle de l'import. Une date trop ancienne compte deux fois les opérations intermédiaires ;</li>
+<li>une opération enregistrée tardivement par la banque, mais datée avant le solde, est ignorée ; corriger ou supprimer une opération déjà comptée change le solde calculé.</li>
+</ul>
+<h4 id="le-contrôle-décart-à-la-saisie-du-solde">Le contrôle d'écart à la saisie du solde</h4>
+<p>Le bouton « Saisir / contrôler le solde » demande le solde affiché par la banque puis sa date. S'il existait déjà un solde de référence, le classeur calcule le solde qu'il <strong>attendait</strong> à cette date (ancien solde + opérations enregistrées depuis, ou ancien solde − opérations entre les deux dates si la nouvelle date est antérieure) et affiche l'<strong>écart</strong> avec la valeur saisie. Un écart non nul révèle une opération non importée ou en double, une date de solde mal choisie, ou une opération modifiée depuis. Vous décidez ensuite d'enregistrer ou non le nouveau solde ; l'écart est conservé dans la ligne « Écart du solde ». Le premier solde saisi n'est pas contrôlable (rien à comparer).</p>
+<figure class="diagramme"><svg class="schema" width="566" viewBox="0 0 566 941" role="img" aria-label="Schéma 8" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="fl8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="pointe"/></marker></defs>
+<path class="arete" d="M253,74 C253,109 253,109 253,144" marker-end="url(#fl8)"/>
+<path class="arete" d="M253,198 C253,233 253,233 253,268" marker-end="url(#fl8)"/>
+<path class="arete" d="M253,355 C253,390 131,390 131,425" marker-end="url(#fl8)"/>
+<path class="arete" d="M131,496 C131,531 253,531 253,566" marker-end="url(#fl8)"/>
+<path class="arete" d="M253,620 C253,655 253,655 253,690" marker-end="url(#fl8)"/>
+<path class="arete" d="M253,355 C253,394 382,394 382,434" marker-end="url(#fl8)"/>
+<path class="arete" d="M382,488 C382,667 353,667 353,847" marker-end="url(#fl8)"/>
+<path class="arete" d="M253,777 C253,812 353,812 353,847" marker-end="url(#fl8)"/>
+<path class="arete" d="M253,777 C253,816 150,816 150,856" marker-end="url(#fl8)"/>
+<rect class="noeud" x="160" y="20" width="185" height="54" rx="8"/>
+<text class="txt t1" x="253" y="43.0" text-anchor="middle">Saisir / contrôler le</text>
+<text class="txt" x="253" y="60.0" text-anchor="middle">solde</text>
+<rect class="noeud" x="179" y="144" width="148" height="54" rx="8"/>
+<text class="txt t1" x="253" y="167.0" text-anchor="middle">Solde banque</text>
+<text class="txt" x="253" y="184.0" text-anchor="middle">et date du solde</text>
+<polygon class="noeud decision" points="253,268 388,312 253,355 118,312"/>
+<text class="txt t1" x="253" y="307.5" text-anchor="middle">Un solde de référence</text>
+<text class="txt" x="253" y="324.5" text-anchor="middle">existe déjà ?</text>
+<rect class="noeud" x="20" y="425" width="222" height="71" rx="8"/>
+<text class="txt t1" x="131" y="448.0" text-anchor="middle">Solde attendu à cette date</text>
+<text class="txt" x="131" y="465.0" text-anchor="middle">ancien solde + opérations</text>
+<text class="txt" x="131" y="482.0" text-anchor="middle">depuis</text>
+<rect class="noeud" x="168" y="566" width="171" height="54" rx="8"/>
+<text class="txt t1" x="253" y="589.0" text-anchor="middle">Écart = solde saisi</text>
+<text class="txt" x="253" y="606.0" text-anchor="middle">moins solde attendu</text>
+<polygon class="noeud decision" points="253,690 373,734 253,777 133,734"/>
+<text class="txt t1" x="253" y="729.5" text-anchor="middle">Enregistrer</text>
+<text class="txt" x="253" y="746.5" text-anchor="middle">le nouveau solde ?</text>
+<rect class="noeud base" x="267" y="847" width="171" height="54" rx="16"/>
+<text class="txt t1" x="353" y="870.0" text-anchor="middle">Solde de référence</text>
+<text class="txt" x="353" y="887.0" text-anchor="middle">et écart mis à jour</text>
+<rect class="noeud" x="278" y="434" width="208" height="54" rx="8"/>
+<text class="txt t1" x="382" y="456.5" text-anchor="middle">Premier solde</text>
+<text class="txt" x="382" y="473.5" text-anchor="middle">enregistré sans contrôle</text>
+<rect class="noeud" x="68" y="856" width="163" height="37" rx="8"/>
+<text class="txt" x="150" y="878.5" text-anchor="middle">Rien n&#x27;est modifié</text>
+<rect class="fond-etiquette" x="176" y="380" width="32" height="18" rx="4"/><text class="etiquette" x="192" y="393" text-anchor="middle">oui</text>
+<rect class="fond-etiquette" x="302" y="384" width="32" height="18" rx="4"/><text class="etiquette" x="318" y="397" text-anchor="middle">non</text>
+<rect class="fond-etiquette" x="287" y="802" width="32" height="18" rx="4"/><text class="etiquette" x="303" y="815" text-anchor="middle">oui</text>
+<rect class="fond-etiquette" x="185" y="806" width="32" height="18" rx="4"/><text class="etiquette" x="201" y="819" text-anchor="middle">non</text>
+</svg></figure>
+<p>Attention : les deux cases « Solde de réf. » et « Date du solde » restent modifiables à la main, mais une saisie directe <strong>contourne le contrôle</strong> ; utilisez le bouton.</p>
 <h2 id="9-lanalyse-budgétaire">9. L'analyse budgétaire</h2>
 <p>L'écran <strong>frm_Analyse</strong> répond à trois questions : <em>où va mon argent ?</em> (répartition par catégorie), <em>comment évolue-t-il mois après mois ?</em> (évolution sur 12 mois) et <em>quelles opérations forment ce chiffre ?</em> (lien avec l'écran de recherche). Il est écrit dans <code>mod_Analyse</code> (calculs) et <code>mod_InstallAnalyse</code> (construction de la feuille). <strong>État au 11/10/2026 : première version écrite, non encore testée dans Excel</strong> (voir <code>TODO_SuiviBudgetaire.md</code>).</p>
-<figure class="diagramme"><svg class="schema" width="657" viewBox="0 0 657 644" role="img" aria-label="Schéma 8" xmlns="http://www.w3.org/2000/svg">
-<defs><marker id="fl8" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="pointe"/></marker></defs>
-<path class="arete" d="M209,74 C209,109 209,109 209,144" marker-end="url(#fl8)"/>
-<path class="arete" d="M209,215 C209,250 209,250 209,285" marker-end="url(#fl8)"/>
-<path class="arete" d="M209,356 C209,391 105,391 105,426" marker-end="url(#fl8)"/>
-<path class="arete" d="M209,356 C209,391 312,391 312,426" marker-end="url(#fl8)"/>
-<path class="arete" d="M105,480 C105,515 209,515 209,550" marker-end="url(#fl8)"/>
-<path class="arete" d="M290,577 C350,577 350,453 191,453" marker-end="url(#fl8)"/>
+<figure class="diagramme"><svg class="schema" width="657" viewBox="0 0 657 644" role="img" aria-label="Schéma 9" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="fl9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="pointe"/></marker></defs>
+<path class="arete" d="M209,74 C209,109 209,109 209,144" marker-end="url(#fl9)"/>
+<path class="arete" d="M209,215 C209,250 209,250 209,285" marker-end="url(#fl9)"/>
+<path class="arete" d="M209,356 C209,391 105,391 105,426" marker-end="url(#fl9)"/>
+<path class="arete" d="M209,356 C209,391 312,391 312,426" marker-end="url(#fl9)"/>
+<path class="arete" d="M105,480 C105,515 209,515 209,550" marker-end="url(#fl9)"/>
+<path class="arete" d="M290,577 C350,577 350,453 191,453" marker-end="url(#fl9)"/>
 <rect class="noeud base" x="131" y="20" width="156" height="54" rx="16"/>
 <text class="txt t1" x="209" y="43.0" text-anchor="middle">TblOperations</text>
 <text class="txt" x="209" y="60.0" text-anchor="middle">+ TblVentilations</text>
@@ -1100,13 +1179,13 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <p>Le bilan mensuel (section 7) lit seulement TblOperations et compte une opération ventilée une fois. L'analyse remplace cette opération par ses parts, exclut des catégories, et ne retient que les catégories dont le net est une dépense. Les totaux peuvent donc différer légèrement : c'est normal, à ventilations et exclusions près.</p>
 <h2 id="10-le-suivi-des-consommations">10. Le suivi des consommations</h2>
 <p>L'écran <strong>frm_Consommations</strong> répond à une question : <em>combien consomme-t-on d'eau, d'électricité et de gaz, à quel prix, et comment cela évolue-t-il mois après mois ?</em> Il est écrit dans <code>mod_Consommations</code> (logique) et <code>mod_InstallConsommations</code> (construction des feuilles). <strong>État au 11/10/2026 : première version écrite, non encore testée dans Excel</strong> (voir <code>TODO_SuiviConsommations.md</code>). Le suivi est <strong>optionnel</strong> et <strong>indépendant des opérations bancaires</strong> : il a ses propres tableaux et ne lit ni TblOperations ni TblVentilations.</p>
-<figure class="diagramme"><svg class="schema" width="300" viewBox="0 0 300 644" role="img" aria-label="Schéma 9" xmlns="http://www.w3.org/2000/svg">
-<defs><marker id="fl9" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="pointe"/></marker></defs>
-<path class="arete" d="M120,74 C120,109 120,109 120,144" marker-end="url(#fl9)"/>
-<path class="arete" d="M120,198 C120,233 120,233 120,268" marker-end="url(#fl9)"/>
-<path class="arete" d="M120,74 C120,242 120,242 120,409" marker-end="url(#fl9)"/>
-<path class="arete" d="M120,339 C120,374 120,374 120,409" marker-end="url(#fl9)"/>
-<path class="arete" d="M120,463 C120,498 120,498 120,533" marker-end="url(#fl9)"/>
+<figure class="diagramme"><svg class="schema" width="300" viewBox="0 0 300 644" role="img" aria-label="Schéma 10" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="fl10" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="pointe"/></marker></defs>
+<path class="arete" d="M120,74 C120,109 120,109 120,144" marker-end="url(#fl10)"/>
+<path class="arete" d="M120,198 C120,233 120,233 120,268" marker-end="url(#fl10)"/>
+<path class="arete" d="M120,74 C120,242 120,242 120,409" marker-end="url(#fl10)"/>
+<path class="arete" d="M120,339 C120,374 120,374 120,409" marker-end="url(#fl10)"/>
+<path class="arete" d="M120,463 C120,498 120,498 120,533" marker-end="url(#fl10)"/>
 <rect class="noeud base" x="20" y="20" width="200" height="54" rx="16"/>
 <text class="txt t1" x="120" y="43.0" text-anchor="middle">TblContrats</text>
 <text class="txt" x="120" y="60.0" text-anchor="middle">opérateur, unité, dates</text>
@@ -1334,6 +1413,16 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <td>Coller <code>CodeBehind_frm_Echeance.txt</code> dans la feuille frm_Echeance</td>
 </tr>
 <tr>
+<td>Contrôle des chèques de la liste (seul)</td>
+<td><code>MettreAJourControleCheques</code></td>
+<td>Pose la mise en forme conditionnelle de la colonne NumCheque sans reconstruire la liste</td>
+</tr>
+<tr>
+<td>Bloc prévisionnel de Synthese (seul)</td>
+<td><code>MettreAJourBlocSynthese</code></td>
+<td>Ajoute au bloc ce qui manque (ligne d'écart, bouton de contrôle du solde) ; <strong>n'écrase rien d'existant</strong> : libellés, valeurs, formules, formats, noms et boutons déjà présents (même déplacés à la main) restent tels quels</td>
+</tr>
+<tr>
 <td>Analyse budgétaire</td>
 <td><code>InstallerAnalyse</code></td>
 <td>Aucun code à coller</td>
@@ -1345,7 +1434,7 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 </tr>
 </tbody>
 </table></div>
-<p>Pour <strong>modifier à la main</strong> l'aspect d'un écran masqué : <code>AfficherFeuille…PourEdition</code> le rend visible, <code>MasquerFeuille…ApresEdition</code> le remasque (par exemple <code>AfficherFeuilleAnalysePourEdition</code>, <code>AfficherFormulaireEcheancePourEdition</code>, <code>AfficherFeuilleConsommationsPourEdition</code>). <strong>Attention :</strong> relancer la macro de création d'un écran le reconstruit (par exemple, pour l'analyse, les paramètres et la liste des catégories exclues reviennent aux valeurs par défaut).</p>
+<p>Pour <strong>modifier à la main</strong> l'aspect d'un écran masqué : <code>AfficherFeuille…PourEdition</code> le rend visible, <code>MasquerFeuille…ApresEdition</code> le remasque (par exemple <code>AfficherFeuilleAnalysePourEdition</code>, <code>AfficherFormulaireEcheancePourEdition</code>, <code>AfficherFeuilleConsommationsPourEdition</code>). <strong>Attention :</strong> relancer la macro de création d'un écran le reconstruit (par exemple, pour l'analyse, les paramètres et la liste des catégories exclues reviennent aux valeurs par défaut). Exception : les deux listes de l'échéancier conservent leurs lignes (remises en place par le nom des colonnes).</p>
 <p><strong>Pourquoi du code à coller dans certaines feuilles ?</strong> Les événements d'une feuille (<code>Worksheet_Change</code>, <code>Worksheet_Deactivate</code>…) doivent obligatoirement être écrits dans le module de <strong>cette feuille</strong>. Les fichiers <code>CodeBehind_*.txt</code> contiennent ces quelques lignes, qui ne font qu'appeler le module principal. Procédure : Alt+F11 → repérer la feuille par son CodeName dans l'explorateur de projet (Ctrl+R) → double-clic → coller. <strong>Ne jamais coller ce code dans une autre feuille.</strong></p>
 <h3 id="les-outils-pour-développeur">Les outils pour développeur</h3>
 <ul>
@@ -1530,6 +1619,18 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <td>Solde actuel augmenté des échéances jusqu'à J+15 ou J+30.</td>
 </tr>
 <tr>
+<td>Solde de référence</td>
+<td>Solde réel du compte saisi par vous, avec sa date ; le solde actuel s'en déduit en ajoutant les opérations postérieures à cette date.</td>
+</tr>
+<tr>
+<td>Écart du solde</td>
+<td>Différence, à la saisie d'un nouveau solde, entre le solde saisi et celui que le classeur attendait ; sert à détecter une opération manquante ou en double.</td>
+</tr>
+<tr>
+<td>Numéro de chèque (échéance)</td>
+<td>Numéro d'un chèque émis et pas encore débité ; refusé s'il est déjà passé en banque ou déjà dans l'échéancier, et il identifie à lui seul l'opération à l'import.</td>
+</tr>
+<tr>
 <td>Net (analyse)</td>
 <td>Dépenses moins remboursements d'une catégorie sur la période ; seules les catégories à net négatif sont analysées.</td>
 </tr>
@@ -1580,6 +1681,8 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <li><strong>Échéancier : installation en deux temps.</strong> Le code d'événements de <code>frm_Echeance</code> doit être collé à la main (comme pour les autres formulaires) ; sans lui, la liste des sous-catégories ne suit pas la catégorie choisie et la feuille n'est pas verrouillée.</li>
 <li><strong>Échéances en retard comptées dans les soldes.</strong> Les soldes à J+15 et J+30 incluent toutes les échéances dont la date prévue est avant l'horizon, <strong>y compris celles déjà passées et jamais rapprochées</strong>. C'est cohérent avec le principe « c'est à vous de les supprimer », mais un oubli de nettoyage fausse le prévisionnel (d'où le compteur « Éch. en retard »).</li>
 <li><strong>Suivi des consommations non testé.</strong> Tout le code est écrit mais n'a jamais tourné dans Excel (aucune case de test du TODO n'est cochée). Les outils de lecture de tableau (<code>ObtenirTable</code>, <code>TableVide</code>, <code>LireColonne</code>…) sont <strong>recopiés</strong> de <code>mod_Echeancier</code> dans <code>mod_Consommations</code>, où ils sont privés : une factorisation est possible. La colonne <code>Operateur</code> de TblReleves est une formule (<code>LOOKUP</code>) qui dépend de TblContrats : si elle reste vide, le suivi fonctionne quand même, car le graphique retrouve l'opérateur par le code.</li>
+<li><strong>Numéro de chèque : contrôle de la liste = signal visuel, pas un blocage.</strong> Dans frm_Echeancier, la colonne NumCheque est colorée (rouge / orange) mais une valeur incorrecte reste acceptée ; seul le formulaire frm_Echeance refuse. De plus, une échéance avec numéro est rapprochée par ce seul numéro : une erreur de frappe sur le numéro empêche le rapprochement (l'échéance reste alors à venir).</li>
+<li><strong>Contrôle du solde : contournable à la main.</strong> Les cellules « Solde de réf. » et « Date du solde » ne sont pas protégées ; une saisie directe ne déclenche pas le calcul d'écart. Le contrôle repose sur l'usage du bouton « Saisir / contrôler le solde ».</li>
 </ol>
 </main>
 </div>

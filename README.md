@@ -2,7 +2,7 @@
 
 Oct 11, 2026 · @Alexandre
 
-Ce guide explique ce que fait le classeur Excel de suivi des comptes : on importe les relevés de la banque, on range chaque opération dans une catégorie, on suit les remboursements de santé, on déclare les opérations à venir (échéancier), on analyse ses dépenses et on suit ses consommations d'eau, d'électricité et de gaz, puis on consulte et corrige depuis un écran de recherche. Il décrit le code de la branche Refonte\_recherche du dépôt Suivi\_Financier, dans son état du 11/10/2026 (dernier commit da794e7, « Analyse budgetaire »).
+Ce guide explique ce que fait le classeur Excel de suivi des comptes : on importe les relevés de la banque, on range chaque opération dans une catégorie, on suit les remboursements de santé, on déclare les opérations à venir (échéancier), on analyse ses dépenses et on suit ses consommations d'eau, d'électricité et de gaz, puis on consulte et corrige depuis un écran de recherche. Il décrit le code de la branche Refonte\_recherche du dépôt Suivi\_Financier, dans son état du 11/10/2026 (dernier commit f394b3e, « Synchronisation, sauvegarde et chiffrement »), complété par les évolutions de l'échéancier du 11/10/2026 (contrôle du solde, numéro de chèque).
 
 Ce document existe en deux formats, **toujours identiques** : `README.md` (lu sur GitHub, schémas Mermaid) et `README.html` (un seul fichier autonome, qui s'ouvre dans n'importe quel navigateur, sans connexion internet). Voir la section « Régénérer le guide HTML » en fin de document.
 
@@ -18,6 +18,13 @@ Ce document existe en deux formats, **toujours identiques** : `README.md` (lu su
 - [6. L'écran de recherche des opérations](#6-lécran-de-recherche-des-opérations)
 - [7. La feuille Synthese et les écrans de résultat](#7-la-feuille-synthese-et-les-écrans-de-résultat)
 - [8. L'échéancier et le prévisionnel de trésorerie](#8-léchéancier-et-le-prévisionnel-de-trésorerie)
+    - [Les principes](#les-principes-validés-le-09102026)
+    - [Installer l'échéancier](#installer-léchéancier)
+    - [Déclarer une échéance (formulaire, numéro de chèque)](#déclarer-une-échéance--le-formulaire-frm_echeance)
+    - [Les règles produisent seules les occurrences](#les-règles-produisent-seules-les-occurrences)
+    - [Le rapprochement après l'import](#le-rapprochement-après-limport)
+    - [Les deux listes](#les-deux-listes)
+    - [Le bloc « Prévisionnel de trésorerie » et le contrôle du solde](#le-bloc--prévisionnel-de-trésorerie--de-synthese)
 - [9. L'analyse budgétaire](#9-lanalyse-budgétaire)
 - [10. Le suivi des consommations](#10-le-suivi-des-consommations)
 - [11. Installation, maintenance et outils développeur](#11-installation-maintenance-et-outils-développeur)
@@ -436,7 +443,8 @@ L'échéancier garde la liste de ce qui **va** arriver sur le compte (loyer, abo
 - **Aucun historique.** Quand une opération importée est rapprochée d'une échéance et que vous validez, l'échéance est **supprimée**. Seule l'opération reste, dans TblOperations. Si l'échéance venait d'une règle, la règle continue de produire les suivantes.
 - **Une échéance non rapprochée reste** dans la liste, reste comptée dans le solde prévisionnel, jusqu'à ce que vous la supprimiez vous-même.
 - **Reconnaissance souple.** Le rapprochement n'exige pas le Tiers : la Catégorie ou la Sous-catégorie peuvent suffire (achat dont on ne connaît pas le commerçant). La date peut être imprécise (précision « Mois »).
-- **Le solde de départ est saisi par vous**, car les exports OFX ne contiennent pas de solde.
+- **Le solde de départ est saisi par vous**, car les exports OFX ne contiennent pas de solde. Un bouton le saisit **avec un contrôle d'écart** (voir plus bas).
+- **Un chèque attendu se reconnaît à son numéro.** Une échéance ponctuelle peut porter un numéro de chèque : il est contrôlé à la saisie (jamais déjà passé en banque, jamais déjà dans l'échéancier) et suffit à reconnaître l'opération à l'import.
 
 ```mermaid
 flowchart TB
@@ -467,7 +475,7 @@ flowchart TB
 
 ### Installer l'échéancier
 
-Une seule macro, `InstallerEcheancier`, à lancer une fois depuis la fenêtre Exécution d'Excel (détails en section 11). Elle crée les trois feuilles masquées (frm\_Echeancier, frm\_Recurrences, frm\_Echeance), le bloc « Prévisionnel de trésorerie » sur Synthese (avec ses deux boutons) et le bouton « Rendre récurrente » de l'écran de recherche. **Une étape manuelle est indispensable** : coller dans le module de la feuille frm\_Echeance le contenu de `CodeBehind_frm_Echeance.txt` (deux petits événements). La réinstallation est possible : si les listes contiennent des données, une confirmation est demandée avant de les reconstruire, car elles seraient **perdues**.
+Une seule macro, `InstallerEcheancier`, à lancer une fois depuis la fenêtre Exécution d'Excel (détails en section 11). Elle crée les trois feuilles masquées (frm\_Echeancier, frm\_Recurrences, frm\_Echeance), le bloc « Prévisionnel de trésorerie » sur Synthese (avec ses deux boutons) et le bouton « Rendre récurrente » de l'écran de recherche. **Une étape manuelle est indispensable** : coller dans le module de la feuille frm\_Echeance le contenu de `CodeBehind_frm_Echeance.txt` (deux petits événements). **La réinstallation est possible et conserve les données** : les deux listes sont reconstruites (instructions, boutons, colonnes à jour) puis les lignes existantes sont remises en place **colonne par colonne, d'après le nom de l'en-tête** ; une colonne nouvelle reste simplement vide. Pour ne compléter que le bloc de la feuille Synthese (ligne d'écart, bouton « Saisir / contrôler le solde »), sans toucher aux listes, lancer `MettreAJourBlocSynthese` : le bloc est retrouvé par le nom `soldeRefMontant`, même s'il a été déplacé, et rien d'existant n'est réécrit, sauf les formules cassées (`#REF!`) : reconstruire la liste des échéances supprime puis recrée le tableau TblEcheances, ce qui casse les formules de Synthese qui le citent ; `InstallerEcheancier` et `MettreAJourBlocSynthese` les réécrivent alors automatiquement.
 
 ### Déclarer une échéance : le formulaire frm\_Echeance
 
@@ -479,15 +487,25 @@ Bouton « Saisir une échéance » (Synthese ou listes). Les champs :
 | Tiers | À choisir parmi les Tiers déjà connus dans TblOperations, ou à taper librement. Il est **cherché dans le Tiers de l'opération importée**, sans tenir compte des majuscules : un mot-clé suffit (ex. EDF) |
 | Catégorie / Sous-catégorie | Listes déroulantes (la seconde dépend de la première). Choisir une sous-catégorie qui n'appartient qu'à une catégorie renseigne celle-ci. Boutons « + » pour en créer une |
 | Montant | **Négatif** pour une dépense, **positif** pour une entrée. Obligatoire, non nul. Une opération de signe contraire n'est jamais rapprochée |
+| Numéro de chèque | Facultatif, **échéance ponctuelle uniquement**. Chiffres seuls, 10 au maximum, sans espace. Contrôlé à la validation (voir ci-dessous) |
 | Périodicité | Vide ou Ponctuelle = opération unique. Hebdomadaire, Mensuelle, Trimestrielle, Annuelle = crée une règle |
 | Date prévue | Date de l'opération, ou de la première pour une règle |
 | Date de fin | Facultative, réservée aux règles. Vide = la règle ne s'arrête jamais |
 | Précision de la date | **Jour** ou **Mois** (voir ci-dessous) |
 | Tolérance | Écart de montant accepté en % du montant prévu (10 par défaut ; 0 = montant exact) |
 
-Contrôles à la validation : il faut au moins le Tiers ou la Catégorie (sinon rien ne permettrait de reconnaître l'opération), une sous-catégorie suppose une catégorie, la catégorie et la sous-catégorie doivent exister dans les listes, la date de fin ne peut pas précéder la date prévue, la tolérance est comprise entre 0 et 100. En cas d'erreur, un message s'affiche sous le formulaire et rien n'est enregistré. **Valider** enregistre et referme ; **Annuler** demande confirmation.
+Contrôles à la validation : il faut au moins le Tiers, la Catégorie **ou le numéro de chèque** (sinon rien ne permettrait de reconnaître l'opération), une sous-catégorie suppose une catégorie, la catégorie et la sous-catégorie doivent exister dans les listes, la date de fin ne peut pas précéder la date prévue, la tolérance est comprise entre 0 et 100, et, si un numéro de chèque est saisi : la périodicité doit être vide ou Ponctuelle, le numéro ne contient que des chiffres (10 au plus, pas uniquement des zéros), il n'est **pas déjà passé en banque** et **pas déjà saisi dans l'échéancier**. En cas d'erreur, un message s'affiche sous le formulaire et rien n'est enregistré. **Valider** enregistre et referme ; **Annuler** demande confirmation.
 
 **Le jour d'ancrage.** Pour une règle mensuelle, le jour du mois est conservé d'une occurrence à l'autre : un 31 devient le 28 en février, puis redevient 31 en mars (le jour ne « dérive » pas). Pour la précision « Mois », la date est ramenée au 1er du mois.
+
+**Le numéro de chèque.** Il sert à suivre un chèque émis et pas encore débité. Deux contrôles à la saisie, qui comparent les numéros **sans tenir compte des zéros en tête** (0001234 et 1234 sont le même chèque) :
+
+1. *Déjà passé en banque* : le numéro existe dans la colonne `Num_Cheque` de TblOperations. Le message donne la date, le Tiers et le montant de l'opération trouvée.
+2. *Déjà dans l'échéancier* : le numéro existe dans la colonne `NumCheque` de TblEcheances. Le message donne le libellé et la date de l'échéance.
+
+Le numéro apparaît dans la colonne **NumCheque** de frm\_Echeancier. Il n'est pas permis pour une règle (un numéro de chèque est unique).
+
+**Contrôle silencieux dans la liste.** Si vous modifiez un numéro directement dans frm\_Echeancier, il est vérifié **sans aucun message**, en direct, par une mise en forme conditionnelle : la cellule devient **rouge** si le numéro est invalide (pas uniquement des chiffres) ou déjà passé en banque, **orange** s'il figure deux fois dans l'échéancier. Les numéros sont comparés comme des nombres (zéros en tête ignorés). Rien n'est bloqué : c'est un signal visuel, à vous d'agir. Une cellule rouge qui reste après un import signale un chèque passé en banque mais non rapproché. Installation : `InstallerEcheancier`, ou `MettreAJourControleCheques` pour poser seulement ce contrôle sur une liste existante.
 
 **Rendre récurrente une opération existante.** Dans l'écran de recherche (y compris juste après un import), sélectionnez une ligne puis « Rendre récurrente » : le formulaire s'ouvre prérempli (Tiers, catégorie, montant, périodicité mensuelle). La prochaine date est calculée sur le même jour du mois suivant, puis avancée jusqu'à une date future ; tout reste modifiable avant de valider.
 
@@ -497,7 +515,7 @@ Contrôles à la validation : il faut au moins le Tiers ou la Catégorie (sinon 
 
 ### Le rapprochement après l'import
 
-Pour chaque opération qui vient d'être importée, une échéance est **candidate** si :
+Pour chaque opération qui vient d'être importée, une échéance **avec numéro de chèque** est candidate dès que le numéro de l'opération (colonne `Num_Cheque`) est le même et que le montant a le même signe : ni la date, ni la tolérance, ni le Tiers ne sont examinés, et ces paires passent **avant toutes les autres**. Pour les autres échéances, une échéance est **candidate** si :
 
 1. le montant a le **même signe** et l'écart reste dans la tolérance de l'échéance ;
 2. la **date** est dans la fenêtre : précision Jour = de 5 jours avant à 10 jours après la date prévue (règle hebdomadaire : ±3 jours) ; précision Mois = n'importe quel jour du mois prévu ;
@@ -512,7 +530,7 @@ Chaque opération et chaque échéance ne servent qu'une fois : on retient d'abo
 
 ### Les deux listes
 
-- **frm\_Echeancier** (échéances à venir) : on peut corriger les cellules directement ; modifier une échéance ne modifie pas sa règle. Boutons : *Ajouter une échéance*, *Supprimer la sélection*, *Voir les règles*, *Sortir*.
+- **frm\_Echeancier** (échéances à venir) : colonnes ID\_Echeance, ID\_Recurrence, Libelle, Tiers, Categorie, SousCategorie, Montant, **NumCheque**, DatePrevue, PrecisionDate, Periodicite, TolerancePct. On peut corriger les cellules directement ; modifier une échéance ne modifie pas sa règle. Boutons : *Ajouter une échéance*, *Supprimer la sélection*, *Voir les règles*, *Sortir*.
   - Supprimer une échéance issue d'une règle ouvre un choix : **Oui** = supprimer seulement ces échéances (la règle continue, et recrée aussitôt la suivante si la liste de la règle est vide) ; **Non** = **arrêter la récurrence** à partir de la première échéance sélectionnée (la règle reçoit une date de fin et ses occurrences suivantes disparaissent : cas d'un remboursement anticipé) ; **Annuler** = ne rien faire.
 - **frm\_Recurrences** (règles) : colonnes ID\_Recurrence, Libelle, Tiers, Categorie, SousCategorie, Montant, Periodicite, DateProchaine, DateFin, PrecisionDate, JourAncre, TolerancePct, **Actif** (Oui/Non : Non = règle en pause). Boutons : *Ajouter une échéance*, *Actualiser les occurrences*, *Supprimer la règle*, *Voir les échéances*, *Sortir*.
   - Modifier une règle ne s'applique qu'aux échéances créées ensuite. **Actualiser les occurrences** supprime les échéances actuellement dans la liste (même non rapprochées) puis les recrée avec les valeurs de la règle, en repartant de la plus ancienne. Une règle en pause perd ainsi ses échéances.
@@ -530,8 +548,42 @@ Ce bloc est fait de **formules Excel** : il se recalcule seul après chaque impo
 | Solde à J+15 | Solde actuel + somme des échéances dont la date prévue est ≤ aujourd'hui + 15 jours |
 | Solde à J+30 | Idem à 30 jours |
 | Éch. en retard | **Nombre** d'échéances dont la date prévue est passée (pour une précision Mois, une fois le mois écoulé) : c'est à vous de les supprimer ou de les faire rapprocher |
+| Écart du solde | Écart constaté lors de la **dernière saisie du solde** par le bouton « Saisir / contrôler le solde » (vide tant qu'aucun contrôle n'a eu lieu) |
 
-Les boutons du bloc : **Saisir une échéance** et **Voir l'échéancier**. Les échéances en retard sont comptées dans les soldes prévisionnels tant qu'elles ne sont pas supprimées.
+Les boutons du bloc : **Saisir une échéance**, **Voir l'échéancier** et **Saisir / contrôler le solde**. Les échéances en retard sont comptées dans les soldes prévisionnels tant qu'elles ne sont pas supprimées.
+
+#### Quelles opérations comptent dans le solde actuel ?
+
+Le solde actuel = solde de référence + somme des opérations dont la **date comptable est strictement postérieure** à la date du solde. Les opérations datées du jour du solde ou avant sont considérées comme déjà comprises dans le solde saisi. Conséquences :
+
+- importer un **historique ancien** (opérations datées au plus tard de la date du solde) ne change rien au solde ;
+- importer des opérations **plus récentes** les ajoute automatiquement : on ne ressaisit pas le solde à chaque import ;
+- la date à saisir est celle **du solde tel que la banque l'affiche**, pas forcément celle de l'import. Une date trop ancienne compte deux fois les opérations intermédiaires ;
+- une opération enregistrée tardivement par la banque, mais datée avant le solde, est ignorée ; corriger ou supprimer une opération déjà comptée change le solde calculé.
+
+#### Le contrôle d'écart à la saisie du solde
+
+Le bouton « Saisir / contrôler le solde » demande le solde affiché par la banque puis sa date. S'il existait déjà un solde de référence, le classeur calcule le solde qu'il **attendait** à cette date (ancien solde + opérations enregistrées depuis, ou ancien solde − opérations entre les deux dates si la nouvelle date est antérieure) et affiche l'**écart** avec la valeur saisie. Un écart non nul révèle une opération non importée ou en double, une date de solde mal choisie, ou une opération modifiée depuis. Vous décidez ensuite d'enregistrer ou non le nouveau solde ; l'écart est conservé dans la ligne « Écart du solde ». Le premier solde saisi n'est pas contrôlable (rien à comparer).
+
+```mermaid
+flowchart TB
+    BOUTON["Saisir / contrôler le solde"]
+    SAISIE["Solde banque<br/>et date du solde"]
+    ANCIEN{"Un solde de référence<br/>existe déjà ?"}
+    CALCUL["Solde attendu à cette date<br/>ancien solde + opérations depuis"]
+    ECART["Écart = solde saisi<br/>moins solde attendu"]
+    DECISION{"Enregistrer<br/>le nouveau solde ?"}
+    ENREG[("Solde de référence<br/>et écart mis à jour")]
+    PREMIER["Premier solde<br/>enregistré sans contrôle"]
+    ABANDON["Rien n'est modifié"]
+    BOUTON --> SAISIE --> ANCIEN
+    ANCIEN -->|"oui"| CALCUL --> ECART --> DECISION
+    ANCIEN -->|"non"| PREMIER --> ENREG
+    DECISION -->|"oui"| ENREG
+    DECISION -->|"non"| ABANDON
+```
+
+Attention : les deux cases « Solde de réf. » et « Date du solde » restent modifiables à la main, mais une saisie directe **contourne le contrôle** ; utilisez le bouton.
 
 ## 9. L'analyse budgétaire
 
@@ -705,10 +757,12 @@ Le classeur contient du code VBA (Alt+F11), versionné dans ce dépôt sous form
 | Écran de recherche | `CreerFeuilleRechercheOperations` | Construit l'en-tête et les colonnes ; les lignes sont remplies à chaque ouverture |
 | Décalages de budget | `AjouterColonneDecalageManuel` | Ajoute la colonne technique DecalageManuel à TblOperations |
 | Échéancier | `InstallerEcheancier` | Coller `CodeBehind_frm_Echeance.txt` dans la feuille frm\_Echeance |
+| Contrôle des chèques de la liste (seul) | `MettreAJourControleCheques` | Pose la mise en forme conditionnelle de la colonne NumCheque sans reconstruire la liste |
+| Bloc prévisionnel de Synthese (seul) | `MettreAJourBlocSynthese` | Ajoute au bloc ce qui manque (ligne d'écart, bouton de contrôle du solde) ; **n'écrase rien d'existant** : libellés, valeurs, formules, formats, noms et boutons déjà présents (même déplacés à la main) restent tels quels |
 | Analyse budgétaire | `InstallerAnalyse` | Aucun code à coller |
 | Suivi des consommations | `InstallerConsommations` | Coller `CodeBehind_frm_Releve.txt` dans frm\_Releve et `CodeBehind_frm_Contrat.txt` dans frm\_Contrat (ne pas les confondre avec les listes frm\_Releves et frm\_Contrats) |
 
-Pour **modifier à la main** l'aspect d'un écran masqué : `AfficherFeuille…PourEdition` le rend visible, `MasquerFeuille…ApresEdition` le remasque (par exemple `AfficherFeuilleAnalysePourEdition`, `AfficherFormulaireEcheancePourEdition`, `AfficherFeuilleConsommationsPourEdition`). **Attention :** relancer la macro de création d'un écran le reconstruit (par exemple, pour l'analyse, les paramètres et la liste des catégories exclues reviennent aux valeurs par défaut).
+Pour **modifier à la main** l'aspect d'un écran masqué : `AfficherFeuille…PourEdition` le rend visible, `MasquerFeuille…ApresEdition` le remasque (par exemple `AfficherFeuilleAnalysePourEdition`, `AfficherFormulaireEcheancePourEdition`, `AfficherFeuilleConsommationsPourEdition`). **Attention :** relancer la macro de création d'un écran le reconstruit (par exemple, pour l'analyse, les paramètres et la liste des catégories exclues reviennent aux valeurs par défaut). Exception : les deux listes de l'échéancier conservent leurs lignes (remises en place par le nom des colonnes).
 
 **Pourquoi du code à coller dans certaines feuilles ?** Les événements d'une feuille (`Worksheet_Change`, `Worksheet_Deactivate`…) doivent obligatoirement être écrits dans le module de **cette feuille**. Les fichiers `CodeBehind_*.txt` contiennent ces quelques lignes, qui ne font qu'appeler le module principal. Procédure : Alt+F11 → repérer la feuille par son CodeName dans l'explorateur de projet (Ctrl+R) → double-clic → coller. **Ne jamais coller ce code dans une autre feuille.**
 
@@ -812,6 +866,9 @@ Limite : la boîte de saisie de la passphrase est une `InputBox`, qui n'offre pa
 | Jour d'ancrage | Jour du mois conservé d'une occurrence à l'autre d'une règle mensuelle. |
 | Rapprochement | Association d'une opération importée à une échéance (échéancier) ou à une clé santé (suivi santé) : deux mécanismes distincts. |
 | Solde prévisionnel | Solde actuel augmenté des échéances jusqu'à J+15 ou J+30. |
+| Solde de référence | Solde réel du compte saisi par vous, avec sa date ; le solde actuel s'en déduit en ajoutant les opérations postérieures à cette date. |
+| Écart du solde | Différence, à la saisie d'un nouveau solde, entre le solde saisi et celui que le classeur attendait ; sert à détecter une opération manquante ou en double. |
+| Numéro de chèque (échéance) | Numéro d'un chèque émis et pas encore débité ; refusé s'il est déjà passé en banque ou déjà dans l'échéancier, et il identifie à lui seul l'opération à l'import. |
 | Net (analyse) | Dépenses moins remboursements d'une catégorie sur la période ; seules les catégories à net négatif sont analysées. |
 | Catégories exclues | Liste (modifiable sur l'écran d'analyse) des catégories jamais comptées, par défaut Virements internes et Revenus. |
 | Contrat (consommation) | Un type de consommation chez un opérateur entre deux dates ; en créer un nouveau clôture l'ancien : c'est ainsi qu'on change d'opérateur. |
@@ -837,3 +894,5 @@ Ces constats sont apparus en rédigeant le guide. **Aucun n'a été corrigé** :
 8. **Échéancier : installation en deux temps.** Le code d'événements de `frm_Echeance` doit être collé à la main (comme pour les autres formulaires) ; sans lui, la liste des sous-catégories ne suit pas la catégorie choisie et la feuille n'est pas verrouillée.
 9. **Échéances en retard comptées dans les soldes.** Les soldes à J+15 et J+30 incluent toutes les échéances dont la date prévue est avant l'horizon, **y compris celles déjà passées et jamais rapprochées**. C'est cohérent avec le principe « c'est à vous de les supprimer », mais un oubli de nettoyage fausse le prévisionnel (d'où le compteur « Éch. en retard »).
 10. **Suivi des consommations non testé.** Tout le code est écrit mais n'a jamais tourné dans Excel (aucune case de test du TODO n'est cochée). Les outils de lecture de tableau (`ObtenirTable`, `TableVide`, `LireColonne`…) sont **recopiés** de `mod_Echeancier` dans `mod_Consommations`, où ils sont privés : une factorisation est possible. La colonne `Operateur` de TblReleves est une formule (`LOOKUP`) qui dépend de TblContrats : si elle reste vide, le suivi fonctionne quand même, car le graphique retrouve l'opérateur par le code.
+11. **Numéro de chèque : contrôle de la liste = signal visuel, pas un blocage.** Dans frm\_Echeancier, la colonne NumCheque est colorée (rouge / orange) mais une valeur incorrecte reste acceptée ; seul le formulaire frm\_Echeance refuse. De plus, une échéance avec numéro est rapprochée par ce seul numéro : une erreur de frappe sur le numéro empêche le rapprochement (l'échéance reste alors à venir).
+12. **Contrôle du solde : contournable à la main.** Les cellules « Solde de réf. » et « Date du solde » ne sont pas protégées ; une saisie directe ne déclenche pas le calcul d'écart. Le contrôle repose sur l'usage du bouton « Saisir / contrôler le solde ».

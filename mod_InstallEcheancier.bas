@@ -84,9 +84,9 @@ Private Function ConstruireListeEcheances(ByVal wsPrecedente As Worksheet) As Bo
     Dim t As String
 
     entetes = Array("ID_Echeance", "ID_Recurrence", "Libelle", "Tiers", "Categorie", "SousCategorie", "Montant", _
-                    "DatePrevue", "PrecisionDate", "Periodicite", "TolerancePct")
-    largeurs = Array(12, 13, 28, 24, 20, 24, 11, 12, 13, 14, 12)
-    formats = Array("0", "0", "@", "@", "@", "@", "#,##0.00", "dd/mm/yyyy", "@", "@", "0")
+                    "NumCheque", "DatePrevue", "PrecisionDate", "Periodicite", "TolerancePct")
+    largeurs = Array(12, 13, 28, 24, 20, 24, 11, 13, 12, 13, 14, 12)
+    formats = Array("0", "0", "@", "@", "@", "@", "#,##0.00", "@", "dd/mm/yyyy", "@", "@", "0")
 
     boutons = Array( _
         mod_Display.FR("Ajouter une {e2}ch{e2}ance"), "SaisirEcheance", "btnAjouterEcheance", 118, _
@@ -103,6 +103,7 @@ Private Function ConstruireListeEcheances(ByVal wsPrecedente As Worksheet) As Bo
     t = t & "est compt{e2}e dans '{E2}ch. en retard' de [f:Synthese] (pour une pr{e2}cision Mois, une fois le mois {e2}coul{e2}) : c'est {a2} vous de la supprimer."
     t = t & Chr(10) & "Vous pouvez corriger directement les cellules (montant, date, tiers...). [c:PrecisionDate] vaut Jour ou Mois (Mois : l'op{e2}ration "
     t = t & "peut arriver n'importe quel jour du mois de [c:DatePrevue], mais l'{e2}ch{e2}ance est compt{e2}e dans le solde pr{e2}visionnel d{e1}s le 1er du mois). [c:TolerancePct] : {e2}cart de montant accept{e2} pour le rapprochement. "
+    t = t & "[c:NumCheque] : num{e2}ro du ch{e1}que attendu (vide si aucun) ; son contr{o2}le est automatique et silencieux (aucun message) : la cellule devient rouge si le num{e2}ro est invalide ou d{e2}j{a2} pass{e2} en banque, orange s'il figure deux fois dans cette liste. "
     t = t & "[c:ID_Recurrence] indique la r{e1}gle d'origine (vide pour une op{e2}ration ponctuelle) ; modifier une {e2}ch{e2}ance ne modifie pas sa r{e1}gle."
     t = t & Chr(10) & "Boutons :"
     t = t & Chr(10) & "- [b:Ajouter une {e2}ch{e2}ance] : ouvre le formulaire de saisie."
@@ -173,8 +174,12 @@ Private Function ConstruireListe(ByVal nomFeuille As String, ByVal nomTable As S
     Dim nb As Long, i As Long
     Dim gauche As Double
     Dim donneesPresentes As Boolean
+    Dim sauve As Variant, enteteSauve As Variant
+    Dim nbSauve As Long, k As Long, r As Long, jEnt As Long
+    Dim colonne() As Variant
 
-    ' Garde-fou : ne jamais écraser des données sans le dire.
+    ' Garde-fou : les données déjà saisies sont CONSERVÉES. Elles sont mises de côté, la feuille est
+    ' reconstruite, puis chaque colonne est remise par son NOM (une colonne nouvelle reste vide).
     Set wsExistante = mod_InstallCommun.TrouverFeuille(nomFeuille)
     If Not wsExistante Is Nothing Then
         On Error Resume Next
@@ -186,9 +191,9 @@ Private Function ConstruireListe(ByVal nomFeuille As String, ByVal nomTable As S
             End If
         End If
         If donneesPresentes Then
-            If MsgBox(mod_Display.FR("La feuille '") & nomFeuille & mod_Display.FR("' contient d{e2}j{a2} des donn{e2}es.") & vbCrLf & _
-                      mod_Display.FR("La reconstruire les EFFACERAIT. Continuer ?"), _
-                      vbYesNo + vbExclamation, mod_Display.FR("Donn{e2}es existantes")) = vbNo Then Exit Function
+            sauve = lo.DataBodyRange.Value2
+            enteteSauve = lo.HeaderRowRange.Value2
+            nbSauve = UBound(sauve, 1)
         End If
     End If
 
@@ -217,6 +222,7 @@ Private Function ConstruireListe(ByVal nomFeuille As String, ByVal nomTable As S
     lo.Name = nomTable
     lo.TableStyle = ""
     lo.ShowAutoFilter = False
+    If nbSauve > 1 Then lo.Resize ws.Range(ws.Cells(LIGNE_ENTETE_LISTE, 2), ws.Cells(LIGNE_ENTETE_LISTE + nbSauve, nb + 1))
     mod_InstallCommun.PoserEnteteTableau lo.HeaderRowRange
     For i = 1 To nb
         lo.ListColumns(i).DataBodyRange.NumberFormat = formats(LBound(formats) + i - 1)
@@ -227,6 +233,29 @@ Private Function ConstruireListe(ByVal nomFeuille As String, ByVal nomTable As S
         .Borders.Color = mod_InstallCommun.CoulBordureSaisie()
         .Interior.Color = mod_InstallCommun.CoulFondSaisie()
     End With
+
+    ' Remise en place des données conservées, colonne par colonne (par le nom de l'en-tête).
+    If nbSauve > 0 Then
+        For i = 1 To nb
+            jEnt = 0
+            For k = 1 To UBound(enteteSauve, 2)
+                If CStr(enteteSauve(1, k)) = CStr(entetes(LBound(entetes) + i - 1)) Then
+                    jEnt = k
+                    Exit For
+                End If
+            Next k
+            If jEnt > 0 Then
+                ReDim colonne(1 To nbSauve, 1 To 1)
+                For r = 1 To nbSauve
+                    colonne(r, 1) = sauve(r, jEnt)
+                Next r
+                lo.ListColumns(i).DataBodyRange.Value2 = colonne
+            End If
+        Next i
+    End If
+
+    ' Contrôle silencieux des numéros de chèque (colonne NumCheque de la liste des échéances).
+    If nomTable = mod_VarGlobales.NOM_TABLE_ECHEANCES Then PoserControleCheques ws, lo
 
     ' Boutons (en dernier : ils se placent d'après les hauteurs de lignes)
     gauche = ws.Cells(1, 2).Left
@@ -281,24 +310,27 @@ Private Function ConstruireFormulaire(ByVal wsPrecedente As Worksheet) As Boolea
     mod_InstallCommun.PoserEtiquette ws.Range("B10"), mod_Display.FR("Montant (- = d{e2}pense)")
     mod_InstallCommun.PoserChampSaisie ws.Range(mod_Echeancier.EF_ADR_MONTANT), "#,##0.00"
 
-    mod_InstallCommun.PoserEtiquette ws.Range("B11"), mod_Display.FR("P{e2}riodicit{e2}")
+    mod_InstallCommun.PoserEtiquette ws.Range("B11"), mod_Display.FR("Num{e2}ro de ch{e1}que (facultatif)")
+    mod_InstallCommun.PoserChampSaisie ws.Range(mod_Echeancier.EF_ADR_CHEQUE), "@"
+
+    mod_InstallCommun.PoserEtiquette ws.Range("B12"), mod_Display.FR("P{e2}riodicit{e2}")
     mod_InstallCommun.PoserChampSaisie ws.Range(mod_Echeancier.EF_ADR_PERIODE), "@"
 
-    mod_InstallCommun.PoserEtiquette ws.Range("B12"), mod_Display.FR("Date pr{e2}vue (ou 1{e1}re date)")
+    mod_InstallCommun.PoserEtiquette ws.Range("B13"), mod_Display.FR("Date pr{e2}vue (ou 1{e1}re date)")
     mod_InstallCommun.PoserChampSaisie ws.Range(mod_Echeancier.EF_ADR_DATE), "dd/mm/yyyy"
 
-    mod_InstallCommun.PoserEtiquette ws.Range("B13"), mod_Display.FR("Date de fin (facultative)")
+    mod_InstallCommun.PoserEtiquette ws.Range("B14"), mod_Display.FR("Date de fin (facultative)")
     mod_InstallCommun.PoserChampSaisie ws.Range(mod_Echeancier.EF_ADR_DATEFIN), "dd/mm/yyyy"
 
-    mod_InstallCommun.PoserEtiquette ws.Range("B14"), mod_Display.FR("Pr{e2}cision de la date")
+    mod_InstallCommun.PoserEtiquette ws.Range("B15"), mod_Display.FR("Pr{e2}cision de la date")
     mod_InstallCommun.PoserChampSaisie ws.Range(mod_Echeancier.EF_ADR_PRECISION), "@"
 
-    mod_InstallCommun.PoserEtiquette ws.Range("B15"), mod_Display.FR("Tol{e2}rance sur le montant (%)")
+    mod_InstallCommun.PoserEtiquette ws.Range("B16"), mod_Display.FR("Tol{e2}rance sur le montant (%)")
     mod_InstallCommun.PoserChampSaisie ws.Range(mod_Echeancier.EF_ADR_TOLERANCE), "0"
 
-    ws.Rows(16).RowHeight = mod_InstallCommun.FRM_H_SEP
+    ws.Rows(17).RowHeight = mod_InstallCommun.FRM_H_SEP
 
-    mod_InstallCommun.PoserMessage ws.Range("B17:E17")
+    mod_InstallCommun.PoserMessage ws.Range("B18:E18")
     ws.Range(mod_Echeancier.EF_ADR_MESSAGE).Font.Color = RGB(192, 80, 0)
 
     ' --- Listes techniques (périodicités, précisions) : colonnes masquées ---
@@ -346,13 +378,17 @@ Private Function TexteInstructionsFormulaire() As String
     Dim t As String
 
     t = "Ce formulaire d{e2}clare une op{e2}ration {a2} venir. Quand une op{e2}ration import{e2}e lui correspond, l'import propose de les rapprocher."
-    t = t & Chr(10) & "Reconnaissance : renseignez au moins le [c:Tiers] ou la [c:Cat{e2}gorie] (les deux si vous voulez). Le [c:Tiers] se choisit dans la liste "
+    t = t & Chr(10) & "Reconnaissance : renseignez au moins le [c:Tiers], la [c:Cat{e2}gorie] ou le [c:Num{e2}ro de ch{e1}que] (plusieurs si vous voulez). Le [c:Tiers] se choisit dans la liste "
     t = t & "des Tiers d{e2}j{a2} connus dans les op{e2}rations, ou se tape librement : il est cherch{e2} dans le Tiers de l'op{e2}ration import{e2}e, "
     t = t & "sans tenir compte des majuscules, donc un mot-cl{e2} suffit (ex. EDF). La [c:Cat{e2}gorie] et la [c:Sous-cat{e2}gorie] se choisissent "
     t = t & "dans les listes (la liste des sous-cat{e2}gories d{e2}pend de la cat{e2}gorie choisie ; sans cat{e2}gorie, elles sont toutes propos{e2}es, "
     t = t & "et choisir une sous-cat{e2}gorie qui n'appartient qu'{a2} une cat{e2}gorie renseigne celle-ci). "
     t = t & "Si vous renseignez plusieurs crit{e1}res (Tiers, Cat{e2}gorie, Sous-cat{e2}gorie), l'op{e2}ration doit tous les respecter."
     t = t & Chr(10) & "[c:Montant] : n{e2}gatif pour une d{e2}pense, positif pour une entr{e2}e d'argent ; une op{e2}ration de signe contraire n'est jamais rapproch{e2}e."
+    t = t & Chr(10) & "[c:Num{e2}ro de ch{e1}que] : facultatif, pour une op{e2}ration unique seulement. Chiffres uniquement (10 au maximum). "
+    t = t & "Le formulaire refuse un num{e2}ro d{e2}j{a2} pass{e2} en banque ou d{e2}j{a2} saisi dans l'{e2}ch{e2}ancier. "
+    t = t & "Avec un num{e2}ro, l'op{e2}ration est reconnue {a2} l'import par ce seul num{e2}ro (le signe du montant doit concorder) : "
+    t = t & "le Tiers, la Cat{e2}gorie, la date et la tol{e2}rance ne sont plus examin{e2}s."
     t = t & Chr(10) & "[c:P{e2}riodicit{e2}] : laiss{e2}e vide (ou Ponctuelle), l'op{e2}ration est unique. Hebdomadaire, Mensuelle, Trimestrielle ou Annuelle "
     t = t & "cr{e2}e une r{e1}gle qui produit seule les {e2}ch{e2}ances suivantes, sans limite, jusqu'{a2} ce que vous la supprimiez, "
     t = t & "la mettiez en pause ou qu'elle atteigne sa date de fin."
@@ -383,10 +419,11 @@ End Function
 Private Sub ConstruireBlocSynthese()
 
     Dim ws As Worksheet
-    Dim l As Long
-    Dim btn As Button
+    Dim l As Long, k As Long
+    Dim libelles(0 To 7) As String
+    Dim neuf(0 To 7) As Boolean
     Dim coulBloc As Long
-    Dim f As String
+    Dim f As String, c3 As String
 
     Set ws = mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
     If ws Is Nothing Then
@@ -394,73 +431,301 @@ Private Sub ConstruireBlocSynthese()
         Exit Sub
     End If
 
-    l = SYN_LIGNE_TITRE
+    ' NON DESTRUCTIF : le bloc a pu être déplacé ou retouché à la main. Sa position est retrouvée
+    ' par le nom soldeRefMontant ; ce qui existe déjà (libellés, valeurs saisies, formules, formats,
+    ' noms, boutons) n'est JAMAIS réécrit, seul ce qui manque est ajouté.
+    l = LigneTitreBloc(ws)
     coulBloc = RGB(141, 180, 226)   ' même bleu que les paramètres de la feuille
 
-    ws.Range(ws.Cells(l, 1), ws.Cells(l + 6, 2)).Interior.Color = coulBloc
-    ws.Cells(l, 1).Value = mod_Display.FR("Pr{e2}visionnel de tr{e2}sorerie")
-    ws.Cells(l, 1).Font.Bold = True
-    ws.Cells(l + 1, 1).Value = mod_Display.FR("Solde de r{e2}f.")
-    ws.Cells(l + 2, 1).Value = "Date du solde"
-    ws.Cells(l + 3, 1).Value = "Solde actuel"
-    ws.Cells(l + 4, 1).Value = mod_Display.FR("Solde {a2} J+15")
-    ws.Cells(l + 5, 1).Value = mod_Display.FR("Solde {a2} J+30")
-    ws.Cells(l + 6, 1).Value = mod_Display.FR("{E2}ch. en retard")
+    libelles(0) = mod_Display.FR("Pr{e2}visionnel de tr{e2}sorerie")
+    libelles(1) = mod_Display.FR("Solde de r{e2}f.")
+    libelles(2) = "Date du solde"
+    libelles(3) = "Solde actuel"
+    libelles(4) = mod_Display.FR("Solde {a2} J+15")
+    libelles(5) = mod_Display.FR("Solde {a2} J+30")
+    libelles(6) = mod_Display.FR("{E2}ch. en retard")
+    libelles(7) = mod_Display.FR("{E2}cart du solde")
 
-    ' Cellules de saisie
-    With ws.Cells(l + 1, 2)
-        .NumberFormat = "#,##0.00"
-        .Interior.Color = mod_InstallCommun.CoulFondSaisie()
-        .Locked = False
-    End With
-    With ws.Cells(l + 2, 2)
-        .NumberFormat = "dd/mm/yyyy"
-        .Interior.Color = mod_InstallCommun.CoulFondSaisie()
-        .Locked = False
-    End With
-    ThisWorkbook.Names.Add Name:="soldeRefMontant", RefersTo:="=" & ws.Name & "!" & ws.Cells(l + 1, 2).Address(True, True)
-    ThisWorkbook.Names.Add Name:="soldeRefDate", RefersTo:="=" & ws.Name & "!" & ws.Cells(l + 2, 2).Address(True, True)
+    For k = 0 To 7
+        If IsEmpty(ws.Cells(l + k, 1).Value) Then
+            neuf(k) = True
+            ws.Range(ws.Cells(l + k, 1), ws.Cells(l + k, 2)).Interior.Color = coulBloc
+            ws.Cells(l + k, 1).Value = libelles(k)
+        End If
+    Next k
+    If neuf(0) Then ws.Cells(l, 1).Font.Bold = True
+
+    ' Cellules de saisie (mise en forme seulement si la ligne vient d'être créée)
+    If neuf(1) Then
+        With ws.Cells(l + 1, 2)
+            .NumberFormat = "#,##0.00"
+            .Interior.Color = mod_InstallCommun.CoulFondSaisie()
+            .Locked = False
+        End With
+    End If
+    If neuf(2) Then
+        With ws.Cells(l + 2, 2)
+            .NumberFormat = "dd/mm/yyyy"
+            .Interior.Color = mod_InstallCommun.CoulFondSaisie()
+            .Locked = False
+        End With
+    End If
+
+    AjouterNomSiAbsent "soldeRefMontant", ws.Cells(l + 1, 2)
+    AjouterNomSiAbsent "soldeRefDate", ws.Cells(l + 2, 2)
+    ' Écart constaté lors de la dernière saisie du solde (voir mod_Echeancier.SaisirSoldeReference)
+    AjouterNomSiAbsent "soldeEcart", ws.Cells(l + 7, 2)
+    If neuf(7) Then
+        With ws.Cells(l + 7, 2)
+            .NumberFormat = "#,##0.00;[Red]-#,##0.00"
+            .Interior.Color = mod_InstallCommun.CoulFondLecture()
+            .HorizontalAlignment = xlRight
+        End With
+    End If
 
     ' Formules (syntaxe anglaise pour .Formula, quelle que soit la langue d'Excel)
-    f = "=IF(OR(soldeRefMontant="""",soldeRefDate=""""),""" & mod_Display.FR("{a2} renseigner") & """," & _
-        "soldeRefMontant+SUMIFS(" & "TblOperations" & "[Montant]," & _
-        "TblOperations" & "[Date_Comptable],"">""&soldeRefDate))"
-    ws.Cells(l + 3, 2).Formula = f
-
-    ws.Cells(l + 4, 2).Formula = "=IF(ISNUMBER(" & ws.Cells(l + 3, 2).Address(False, False) & ")," & _
-        ws.Cells(l + 3, 2).Address(False, False) & "+SUMIFS(" & mod_VarGlobales.NOM_TABLE_ECHEANCES & "[Montant]," & _
-        mod_VarGlobales.NOM_TABLE_ECHEANCES & "[DatePrevue],""<=""&(TODAY()+15)),"""")"
-    ws.Cells(l + 5, 2).Formula = "=IF(ISNUMBER(" & ws.Cells(l + 3, 2).Address(False, False) & ")," & _
-        ws.Cells(l + 3, 2).Address(False, False) & "+SUMIFS(" & mod_VarGlobales.NOM_TABLE_ECHEANCES & "[Montant]," & _
-        mod_VarGlobales.NOM_TABLE_ECHEANCES & "[DatePrevue],""<=""&(TODAY()+30)),"""")"
+    c3 = ws.Cells(l + 3, 2).Address(False, False)
+    If FormuleAReparer(ws.Cells(l + 3, 2)) Then
+        f = "=IF(OR(soldeRefMontant="""",soldeRefDate=""""),""" & mod_Display.FR("{a2} renseigner") & """," & _
+            "soldeRefMontant+SUMIFS(TblOperations[Montant],TblOperations[Date_Comptable],"">""&soldeRefDate))"
+        ws.Cells(l + 3, 2).Formula = f
+    End If
+    If FormuleAReparer(ws.Cells(l + 4, 2)) Then
+        ws.Cells(l + 4, 2).Formula = "=IF(ISNUMBER(" & c3 & ")," & c3 & "+SUMIFS(" & mod_VarGlobales.NOM_TABLE_ECHEANCES & _
+            "[Montant]," & mod_VarGlobales.NOM_TABLE_ECHEANCES & "[DatePrevue],""<=""&(TODAY()+15)),"""")"
+    End If
+    If FormuleAReparer(ws.Cells(l + 5, 2)) Then
+        ws.Cells(l + 5, 2).Formula = "=IF(ISNUMBER(" & c3 & ")," & c3 & "+SUMIFS(" & mod_VarGlobales.NOM_TABLE_ECHEANCES & _
+            "[Montant]," & mod_VarGlobales.NOM_TABLE_ECHEANCES & "[DatePrevue],""<=""&(TODAY()+30)),"""")"
+    End If
     ' En retard = date prévue passée ; pour une précision "Mois", seulement une fois le mois écoulé.
-    ws.Cells(l + 6, 2).Formula = "=SUMPRODUCT((" & mod_VarGlobales.NOM_TABLE_ECHEANCES & "[DatePrevue]<>"""")*((" & _
-        mod_VarGlobales.NOM_TABLE_ECHEANCES & "[DatePrevue]+(" & mod_VarGlobales.NOM_TABLE_ECHEANCES & "[PrecisionDate]=""Mois"")*(DATE(YEAR(" & _
-        mod_VarGlobales.NOM_TABLE_ECHEANCES & "[DatePrevue]),MONTH(" & mod_VarGlobales.NOM_TABLE_ECHEANCES & "[DatePrevue])+1,0)-" & _
-        mod_VarGlobales.NOM_TABLE_ECHEANCES & "[DatePrevue]))<TODAY()))"
+    If FormuleAReparer(ws.Cells(l + 6, 2)) Then
+        ws.Cells(l + 6, 2).Formula = "=SUMPRODUCT((" & mod_VarGlobales.NOM_TABLE_ECHEANCES & "[DatePrevue]<>"""")*((" & _
+            mod_VarGlobales.NOM_TABLE_ECHEANCES & "[DatePrevue]+(" & mod_VarGlobales.NOM_TABLE_ECHEANCES & "[PrecisionDate]=""Mois"")*(DATE(YEAR(" & _
+            mod_VarGlobales.NOM_TABLE_ECHEANCES & "[DatePrevue]),MONTH(" & mod_VarGlobales.NOM_TABLE_ECHEANCES & "[DatePrevue])+1,0)-" & _
+            mod_VarGlobales.NOM_TABLE_ECHEANCES & "[DatePrevue]))<TODAY()))"
+    End If
+    For k = 3 To 5
+        If neuf(k) Then
+            With ws.Cells(l + k, 2)
+                .NumberFormat = "#,##0.00;[Red]-#,##0.00"
+                .Interior.Color = mod_InstallCommun.CoulFondLecture()
+                .HorizontalAlignment = xlRight
+            End With
+        End If
+    Next k
+    If neuf(6) Then
+        With ws.Cells(l + 6, 2)
+            .NumberFormat = "0"
+            .Interior.Color = mod_InstallCommun.CoulFondLecture()
+            .HorizontalAlignment = xlRight
+        End With
+    End If
 
-    With ws.Range(ws.Cells(l + 3, 2), ws.Cells(l + 5, 2))
-        .NumberFormat = "#,##0.00;[Red]-#,##0.00"
-        .Interior.Color = mod_InstallCommun.CoulFondLecture()
-        .HorizontalAlignment = xlRight
-    End With
-    With ws.Cells(l + 6, 2)
-        .NumberFormat = "0"
-        .Interior.Color = mod_InstallCommun.CoulFondLecture()
-        .HorizontalAlignment = xlRight
-    End With
+    PoserBoutonsSynthese ws, l
 
-    ' Boutons
-    SupprimerBoutonSiExiste ws, "btnSaisirEcheance"
-    SupprimerBoutonSiExiste ws, "btnVoirEcheancier"
-    Set btn = ws.Buttons.Add(ws.Cells(l + 1, 3).Left + 6, ws.Cells(l + 1, 3).Top, 170, 20)
-    btn.Caption = mod_Display.FR("Saisir une {e2}ch{e2}ance")
-    btn.OnAction = "SaisirEcheance"
-    btn.Name = "btnSaisirEcheance"
-    Set btn = ws.Buttons.Add(ws.Cells(l + 3, 3).Left + 6, ws.Cells(l + 3, 3).Top, 170, 20)
-    btn.Caption = mod_Display.FR("Voir l'{e2}ch{e2}ancier")
-    btn.OnAction = "AfficherEcheancier"
-    btn.Name = "btnVoirEcheancier"
+End Sub
+
+' Une cellule est à (re)écrire si elle n'a pas de formule, ou si sa formule est cassée (#REF!).
+' Cas typique : reconstruire une liste de l'échéancier supprime puis recrée le tableau Excel
+' (TblEcheances) ; les formules de Synthese qui le citaient deviennent alors #REF! et sont
+' réécrites ici, sans toucher au format ni aux autres cellules.
+Private Function FormuleAReparer(ByVal cellule As Range) As Boolean
+    If Not cellule.HasFormula Then
+        FormuleAReparer = True
+    ElseIf InStr(1, cellule.Formula, "#REF!", vbTextCompare) > 0 Then
+        FormuleAReparer = True
+    End If
+End Function
+
+' Ligne du titre du bloc : celle au-dessus de la cellule nommée soldeRefMontant si elle existe
+' (le bloc a pu être déplacé), sinon la position par défaut.
+Private Function LigneTitreBloc(ByVal ws As Worksheet) As Long
+    Dim n As Name
+    On Error Resume Next
+    Set n = ThisWorkbook.Names("soldeRefMontant")
+    If Not n Is Nothing Then LigneTitreBloc = n.RefersToRange.Row - 1
+    On Error GoTo 0
+    If LigneTitreBloc < 1 Then LigneTitreBloc = SYN_LIGNE_TITRE
+End Function
+
+Private Sub AjouterNomSiAbsent(ByVal nom As String, ByVal cellule As Range)
+    Dim n As Name
+    On Error Resume Next
+    Set n = ThisWorkbook.Names(nom)
+    On Error GoTo 0
+    If n Is Nothing Then
+        ThisWorkbook.Names.Add Name:=nom, RefersTo:="=" & cellule.Worksheet.Name & "!" & cellule.Address(True, True)
+    End If
+End Sub
+
+Private Function FormeSiExiste(ByVal ws As Worksheet, ByVal nom As String) As Shape
+    On Error Resume Next
+    Set FormeSiExiste = ws.Shapes(nom)
+    On Error GoTo 0
+End Function
+
+Private Function AjouterBoutonSynthese(ByVal ws As Worksheet, ByVal nom As String, ByVal legende As String, _
+                                       ByVal macro As String, ByVal gauche As Double, ByVal haut As Double, _
+                                       ByVal largeur As Double, ByVal hauteur As Double) As Shape
+    Dim btn As Button
+    Set btn = ws.Buttons.Add(gauche, haut, largeur, hauteur)
+    btn.Caption = legende
+    btn.OnAction = macro
+    btn.Name = nom
+    Set AjouterBoutonSynthese = ws.Shapes(nom)
+End Function
+
+' Boutons du bloc. Les boutons déjà présents ne sont jamais déplacés ni recréés. Le bouton
+' "Saisir / contrôler le solde" se place sous "Voir l'échéancier", à la même largeur et au même
+' pas vertical que les deux premiers ; le cadre qui entoure ces boutons (Gestion prévisionnelle)
+' est agrandi vers le bas si nécessaire pour l'englober.
+Private Sub PoserBoutonsSynthese(ByVal ws As Worksheet, ByVal l As Long)
+
+    Dim bS As Shape, bV As Shape, bSolde As Shape
+    Dim pas As Double, haut As Double
+
+    Set bS = FormeSiExiste(ws, "btnSaisirEcheance")
+    If bS Is Nothing Then
+        Set bS = AjouterBoutonSynthese(ws, "btnSaisirEcheance", mod_Display.FR("Saisir une {e2}ch{e2}ance"), "SaisirEcheance", _
+                                       ws.Cells(l + 1, 3).Left + 6, ws.Cells(l + 1, 3).Top, 170, 20)
+    End If
+    Set bV = FormeSiExiste(ws, "btnVoirEcheancier")
+    If bV Is Nothing Then
+        Set bV = AjouterBoutonSynthese(ws, "btnVoirEcheancier", mod_Display.FR("Voir l'{e2}ch{e2}ancier"), "AfficherEcheancier", _
+                                       ws.Cells(l + 3, 3).Left + 6, ws.Cells(l + 3, 3).Top, 170, 20)
+    End If
+
+    If FormeSiExiste(ws, "btnSaisirSolde") Is Nothing Then
+        pas = bV.Top - bS.Top
+        If pas < bV.Height + 4 Then pas = bV.Height + 7
+        haut = bV.Top + pas
+        Set bSolde = AjouterBoutonSynthese(ws, "btnSaisirSolde", mod_Display.FR("Saisir / contr{o2}ler le solde"), "SaisirSoldeReference", _
+                                           bV.Left, haut, bV.Width, bV.Height)
+        ElargirCadre ws, bV, haut + bV.Height
+    End If
+
+End Sub
+
+' Agrandit vers le bas le plus petit cadre (forme automatique) qui contient la forme de référence,
+' pour qu'il englobe aussi un bouton ajouté dessous.
+Private Sub ElargirCadre(ByVal ws As Worksheet, ByVal ref As Shape, ByVal basVoulu As Double)
+
+    Dim sh As Shape, cadre As Shape
+    Dim aire As Double, aireMin As Double
+
+    For Each sh In ws.Shapes
+        If sh.Type = 1 Then        ' 1 = msoAutoShape (cadre arrondi, pas un bouton ni une zone de texte)
+            If sh.Left <= ref.Left And sh.Top <= ref.Top And _
+               sh.Left + sh.Width >= ref.Left + ref.Width And sh.Top + sh.Height >= ref.Top + ref.Height Then
+                aire = sh.Width * sh.Height
+                If cadre Is Nothing Or aire < aireMin Then
+                    Set cadre = sh
+                    aireMin = aire
+                End If
+            End If
+        End If
+    Next sh
+
+    If cadre Is Nothing Then Exit Sub
+    If cadre.Top + cadre.Height < basVoulu + 8 Then cadre.Height = basVoulu + 8 - cadre.Top
+
+End Sub
+
+' Reconstruit seulement le bloc de la feuille Synthese (formules, écart, boutons), sans toucher
+' aux listes ni aux valeurs déjà saisies (solde de référence, date). Sans danger : à lancer après
+' une mise à jour du code pour obtenir les nouveaux boutons ou formules.
+Public Sub MettreAJourBlocSynthese()
+    ConstruireBlocSynthese
+    MsgBox mod_Display.FR("Le bloc Pr{e2}visionnel de la feuille Synthese a {e2}t{e2} mis {a2} jour."), vbInformation
+End Sub
+
+' =====================================================================================
+' CONTRÔLE SILENCIEUX DES NUMÉROS DE CHÈQUE (colonne NumCheque de TblEcheances)
+' =====================================================================================
+' Aucune macro, aucun message : une mise en forme conditionnelle colore la cellule, en direct,
+' à chaque modification du tableau.
+'   ROUGE  : numéro invalide (pas uniquement des chiffres) ou DÉJÀ PASSÉ EN BANQUE
+'            (présent dans la colonne Num_Cheque de TblOperations).
+'   ORANGE : numéro présent plusieurs fois dans l'échéancier.
+' Les numéros sont comparés comme des nombres : 0001234 et 1234 sont le même chèque.
+' Deux noms définis servent aux formules (une mise en forme conditionnelle n'accepte pas
+' les références de tableau directes) : ChequesEcheances et ChequesBanque.
+Private Sub PoserControleCheques(ByVal ws As Worksheet, ByVal lo As ListObject)
+
+    Dim rng As Range
+    Dim ref As String, fRouge As String, fOrange As String
+    Dim fc As Object
+
+    On Error GoTo Fin      ' ne jamais bloquer l'installation pour une mise en forme
+
+    ThisWorkbook.Names.Add Name:="ChequesEcheances", RefersTo:="=" & lo.Name & "[NumCheque]"
+    On Error Resume Next
+    ThisWorkbook.Names.Add Name:="ChequesBanque", RefersTo:="=TblOperations[Num_Cheque]"
+    If Err.Number <> 0 Then
+        Err.Clear
+        ThisWorkbook.Names.Add Name:="ChequesBanque", RefersTo:="=""""", Visible:=True   ' pas de tableau d'opérations : liste vide
+    End If
+    On Error GoTo Fin
+
+    Set rng = lo.ListColumns("NumCheque").DataBodyRange
+
+    ' Les références relatives d'une mise en forme conditionnelle posée par programme sont
+    ' interprétées par rapport à la cellule active : on se place donc sur la première cellule.
+    ws.Activate
+    rng.Cells(1, 1).Select
+    ref = rng.Cells(1, 1).Address(False, False)
+
+    rng.FormatConditions.Delete
+
+    fRouge = "=AND(" & ref & "<>"""",IF(ISERROR(--" & ref & "),TRUE," & _
+             "SUMPRODUCT(--(IFERROR(--ChequesBanque,-1)=--" & ref & "))>0))"
+    fOrange = "=AND(" & ref & "<>"""",NOT(ISERROR(--" & ref & ")),SUMPRODUCT(--(IFERROR(--ChequesEcheances,-1)=--" & ref & "))>1)"
+
+    Set fc = rng.FormatConditions.Add(Type:=xlExpression, Formula1:=fRouge)
+    fc.Interior.Color = RGB(255, 199, 206)
+    fc.Font.Color = RGB(156, 0, 6)
+    fc.StopIfTrue = True
+
+    Set fc = rng.FormatConditions.Add(Type:=xlExpression, Formula1:=fOrange)
+    fc.Interior.Color = RGB(255, 235, 156)
+    fc.Font.Color = RGB(156, 87, 0)
+
+Fin:
+End Sub
+
+' Pose (ou repose) seulement le contrôle des chèques sur une liste déjà installée, sans la
+' reconstruire : à lancer après une mise à jour du code. Sans danger pour les données.
+Public Sub MettreAJourControleCheques()
+
+    Dim ws As Worksheet, wsPrec As Worksheet
+    Dim lo As ListObject
+    Dim etat As XlSheetVisibility
+
+    Set ws = mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_ECHEANCIER)
+    If ws Is Nothing Then
+        MsgBox mod_Display.FR("L'{e2}ch{e2}ancier n'est pas install{e2}. Ex{e2}cutez d'abord la macro InstallerEcheancier."), vbExclamation
+        Exit Sub
+    End If
+    On Error Resume Next
+    Set lo = ws.ListObjects(mod_VarGlobales.NOM_TABLE_ECHEANCES)
+    On Error GoTo 0
+    If lo Is Nothing Then Exit Sub
+    If mod_Echeancier.ColonneAbsente(lo, "NumCheque") Then
+        MsgBox mod_Display.FR("La colonne NumCheque n'existe pas encore : lancez InstallerEcheancier."), vbExclamation
+        Exit Sub
+    End If
+
+    Set wsPrec = ActiveSheet
+    etat = ws.Visible
+    ws.Visible = xlSheetVisible
+    PoserControleCheques ws, lo
+    ws.Visible = etat
+    On Error Resume Next
+    wsPrec.Activate
+    On Error GoTo 0
+
+    MsgBox mod_Display.FR("Le contr{o2}le des num{e2}ros de ch{e1}que est en place."), vbInformation
 
 End Sub
 

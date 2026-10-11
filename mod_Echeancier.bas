@@ -64,12 +64,13 @@ Public Const EF_ADR_TIERS As String = "C7"
 Public Const EF_ADR_CAT As String = "C8"
 Public Const EF_ADR_SOUS As String = "C9"
 Public Const EF_ADR_MONTANT As String = "C10"
-Public Const EF_ADR_PERIODE As String = "C11"
-Public Const EF_ADR_DATE As String = "C12"
-Public Const EF_ADR_DATEFIN As String = "C13"
-Public Const EF_ADR_PRECISION As String = "C14"
-Public Const EF_ADR_TOLERANCE As String = "C15"
-Public Const EF_ADR_MESSAGE As String = "B17"      ' zone fusionnée B17:E17
+Public Const EF_ADR_CHEQUE As String = "C11"
+Public Const EF_ADR_PERIODE As String = "C12"
+Public Const EF_ADR_DATE As String = "C13"
+Public Const EF_ADR_DATEFIN As String = "C14"
+Public Const EF_ADR_PRECISION As String = "C15"
+Public Const EF_ADR_TOLERANCE As String = "C16"
+Public Const EF_ADR_MESSAGE As String = "B18"      ' zone fusionnée B18:E18
 ' Zones techniques masquées du formulaire : sous-catégories (Z), périodicités (AA), précisions (AB).
 Public Const EF_COL_AIDE_SOUS As Long = 26
 Public Const EF_COL_AIDE_PERIODE As Long = 27
@@ -86,6 +87,7 @@ Public Type TypeEcheance
     Categorie As String
     SousCategorie As String
     Montant As Double          ' signé : négatif = dépense, positif = entrée d'argent
+    NumCheque As String        ' facultatif, échéance ponctuelle uniquement ("" = pas de chèque)
     Periodicite As String
     DatePrevue As Date
     DateFin As Date            ' 0 = pas de date de fin (règle sans limite); sans effet pour une ponctuelle
@@ -132,6 +134,11 @@ Private Function ColIdx(ByVal lo As ListObject, ByVal nomCol As String) As Long
     On Error Resume Next
     ColIdx = lo.ListColumns(nomCol).Index
     On Error GoTo 0
+End Function
+
+' Vrai si le tableau n'a pas de colonne de ce nom (utilisé par mod_InstallEcheancier).
+Public Function ColonneAbsente(ByVal lo As ListObject, ByVal nomCol As String) As Boolean
+    ColonneAbsente = (ColIdx(lo, nomCol) = 0)
 End Function
 
 ' Un tableau Excel a toujours au moins une ligne : "vide" = une seule ligne dont la
@@ -296,6 +303,7 @@ Private Sub AjouterOccurrence(ByVal loE As ListObject, ByRef e As TypeEcheance, 
         .Cells(1, ColIdx(loE, "Categorie")).Value = e.Categorie
         .Cells(1, ColIdx(loE, "SousCategorie")).Value = e.SousCategorie
         .Cells(1, ColIdx(loE, "Montant")).Value = e.Montant
+        If ColIdx(loE, "NumCheque") > 0 Then .Cells(1, ColIdx(loE, "NumCheque")).Value = e.NumCheque
         .Cells(1, ColIdx(loE, "DatePrevue")).Value = e.DatePrevue
         .Cells(1, ColIdx(loE, "PrecisionDate")).Value = e.PrecisionDate
         .Cells(1, ColIdx(loE, "Periodicite")).Value = e.Periodicite
@@ -368,6 +376,7 @@ Public Sub GenererHorizon()
                 periode = mod_DataStructure.CellText(rg.Cells(1, ColIdx(loR, "Periodicite")).Value2)
                 ancre = mod_DataStructure.ToLong(rg.Cells(1, cJour).Value2)
 
+                e.NumCheque = ""
                 e.Libelle = mod_DataStructure.CellText(rg.Cells(1, ColIdx(loR, "Libelle")).Value2)
                 e.Tiers = mod_DataStructure.CellText(rg.Cells(1, ColIdx(loR, "Tiers")).Value2)
                 e.Categorie = mod_DataStructure.CellText(rg.Cells(1, ColIdx(loR, "Categorie")).Value2)
@@ -468,8 +477,9 @@ Private Sub Rapprocher(ByRef listeID() As String, ByVal nb As Long)
 
     Dim loOps As ListObject, loE As ListObject
     Dim dictNouveaux As Object
-    Dim cID() As Variant, cDt() As Variant, cTiers() As Variant, cMont() As Variant, cCat() As Variant, cSous() As Variant
+    Dim cID() As Variant, cDt() As Variant, cTiers() As Variant, cMont() As Variant, cCat() As Variant, cSous() As Variant, cChq() As Variant
     Dim eV As Variant
+    Dim chqE As String, chqOp As String, iChq As Long
     Dim opIdx() As Long
     Dim nOp As Long, nE As Long
     Dim i As Long, o As Long, k As Long, p As Long
@@ -507,6 +517,7 @@ Private Sub Rapprocher(ByRef listeID() As String, ByVal nb As Long)
     cMont = LireColonne(loOps, "Montant")
     cCat = LireColonne(loOps, "Categorie")
     cSous = LireColonne(loOps, "SousCategorie")
+    cChq = LireColonneSure(loOps, "Num_Cheque")
 
     ReDim opIdx(1 To nb)
     For i = 1 To UBound(cID)
@@ -526,6 +537,7 @@ Private Sub Rapprocher(ByRef listeID() As String, ByVal nb As Long)
     iCat = ColIdx(loE, "Categorie"): iSous = ColIdx(loE, "SousCategorie"): iMont = ColIdx(loE, "Montant")
     iDate = ColIdx(loE, "DatePrevue"): iPrec = ColIdx(loE, "PrecisionDate"): iPer = ColIdx(loE, "Periodicite")
     iTol = ColIdx(loE, "TolerancePct")
+    iChq = ColIdx(loE, "NumCheque")      ' 0 si la colonne n'existe pas encore
 
     ' --- Toutes les paires compatibles ---
     ReDim pO(1 To 1): ReDim pE(1 To 1): ReDim pS(1 To 1)
@@ -535,14 +547,30 @@ Private Sub Rapprocher(ByRef listeID() As String, ByVal nb As Long)
         tiersOp = mod_DataStructure.CellText(cTiers(opIdx(o)))
         catOp = mod_DataStructure.CellText(cCat(opIdx(o)))
         sousOp = mod_DataStructure.CellText(cSous(opIdx(o)))
+        chqOp = NormaliserCheque(cChq(opIdx(o)))
         For i = 1 To nE
             If mod_DataStructure.CellText(eV(i, iId)) <> "" Then
                 dE = VersDate(eV(i, iDate))
                 mEch = mod_DataStructure.ToDouble(eV(i, iMont))
                 prec = mod_DataStructure.CellText(eV(i, iPrec))
                 periode = mod_DataStructure.CellText(eV(i, iPer))
+                chqE = ""
+                If iChq > 0 Then chqE = NormaliserCheque(eV(i, iChq))
                 If dE <> 0 And mEch <> 0 Then
-                    If FenetreOk(dOp, dE, prec, periode) And _
+                    If chqE <> "" Then
+                        ' Échéance avec numéro de chèque : le numéro identifie l'opération, à lui seul
+                        ' (ni la date, ni la tolérance, ni le Tiers ne sont examinés). Seul le signe du
+                        ' montant doit concorder. Ces paires passent avant toutes les autres (score -1).
+                        If chqOp = chqE And (mOp > 0) = (mEch > 0) Then
+                            nP = nP + 1
+                            If nP > UBound(pO) Then
+                                ReDim Preserve pO(1 To nP): ReDim Preserve pE(1 To nP): ReDim Preserve pS(1 To nP)
+                            End If
+                            pO(nP) = o
+                            pE(nP) = i
+                            pS(nP) = -1
+                        End If
+                    ElseIf FenetreOk(dOp, dE, prec, periode) And _
                        MontantOk(mOp, mEch, ToleranceDe(eV(i, iTol))) And _
                        TextesOk(tiersOp, catOp, sousOp, mod_DataStructure.CellText(eV(i, iTiers)), _
                                 mod_DataStructure.CellText(eV(i, iCat)), mod_DataStructure.CellText(eV(i, iSous))) Then
@@ -628,6 +656,88 @@ Private Sub Rapprocher(ByRef listeID() As String, ByVal nb As Long)
     Next i
 
 End Sub
+
+' Lit une colonne si elle existe ; sinon renvoie un tableau de cellules vides (même taille).
+Private Function LireColonneSure(ByVal lo As ListObject, ByVal nomCol As String) As Variant()
+    Dim r() As Variant
+    If ColIdx(lo, nomCol) > 0 Then
+        LireColonneSure = LireColonne(lo, nomCol)
+    Else
+        ReDim r(1 To lo.ListRows.Count)
+        LireColonneSure = r
+    End If
+End Function
+
+' Numéro de chèque "comparable" : chiffres seuls, sans zéros en tête ("" si vide ou invalide).
+' Sert à comparer le numéro saisi avec celui de la banque, quelle que soit la façon de l'écrire.
+Private Function NormaliserCheque(ByVal v As Variant) As String
+    Dim t As String, r As String, c As String
+    Dim i As Long
+    t = mod_DataStructure.CellText(v)
+    For i = 1 To Len(t)
+        c = Mid$(t, i, 1)
+        If c >= "0" And c <= "9" Then r = r & c
+    Next i
+    Do While Left$(r, 1) = "0"
+        r = Mid$(r, 2)
+    Loop
+    NormaliserCheque = r
+End Function
+
+' Si ce numéro de chèque est déjà passé en banque (colonne Num_Cheque de TblOperations),
+' renvoie la description de l'opération ; sinon "".
+Private Function ChequeDejaPasse(ByVal numNormalise As String) As String
+
+    Dim lo As ListObject
+    Dim cChq() As Variant, cDt() As Variant, cTiers() As Variant, cMont() As Variant
+    Dim i As Long
+
+    On Error Resume Next
+    Set lo = ThisWorkbook.Worksheets("Import_data").ListObjects("TblOperations")
+    On Error GoTo 0
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    If ColIdx(lo, "Num_Cheque") = 0 Then Exit Function
+
+    cChq = LireColonne(lo, "Num_Cheque")
+    For i = 1 To UBound(cChq)
+        If NormaliserCheque(cChq(i)) = numNormalise Then
+            cDt = LireColonne(lo, "Date_Comptable")
+            cTiers = LireColonne(lo, "Tiers")
+            cMont = LireColonne(lo, "Montant")
+            ChequeDejaPasse = Format(VersDate(cDt(i)), "dd/mm/yyyy") & ", " & _
+                              mod_DataStructure.CellText(cTiers(i)) & ", " & _
+                              Format(mod_DataStructure.ToDouble(cMont(i)), "#,##0.00")
+            Exit Function
+        End If
+    Next i
+
+End Function
+
+' Si ce numéro de chèque est déjà saisi dans l'échéancier, renvoie la description de
+' l'échéance ; sinon "".
+Private Function ChequeDansEcheancier(ByVal numNormalise As String) As String
+
+    Dim lo As ListObject
+    Dim cChq() As Variant, cLib() As Variant, cDt() As Variant
+    Dim i As Long
+
+    Set lo = TableEcheances()
+    If lo Is Nothing Then Exit Function
+    If TableVide(lo) Then Exit Function
+    If ColIdx(lo, "NumCheque") = 0 Then Exit Function
+
+    cChq = LireColonne(lo, "NumCheque")
+    For i = 1 To UBound(cChq)
+        If NormaliserCheque(cChq(i)) = numNormalise Then
+            cLib = LireColonne(lo, "Libelle")
+            cDt = LireColonne(lo, "DatePrevue")
+            ChequeDansEcheancier = mod_DataStructure.CellText(cLib(i)) & ", " & Format(VersDate(cDt(i)), "dd/mm/yyyy")
+            Exit Function
+        End If
+    Next i
+
+End Function
 
 Private Function FenetreOk(ByVal dOp As Date, ByVal dE As Date, ByVal prec As String, ByVal periode As String) As Boolean
     Dim ecart As Double
@@ -837,6 +947,7 @@ Private Sub RemplirChampsEch(ByVal ws As Worksheet, ByRef e As TypeEcheance)
     ws.Range(EF_ADR_CAT).Value = e.Categorie
     ws.Range(EF_ADR_SOUS).Value = e.SousCategorie
     If e.Montant <> 0 Then ws.Range(EF_ADR_MONTANT).Value = e.Montant Else ws.Range(EF_ADR_MONTANT).ClearContents
+    ws.Range(EF_ADR_CHEQUE).Value = e.NumCheque
     ws.Range(EF_ADR_PERIODE).Value = e.Periodicite
     If e.DatePrevue <> 0 Then ws.Range(EF_ADR_DATE).Value = e.DatePrevue Else ws.Range(EF_ADR_DATE).ClearContents
     If e.DateFin <> 0 Then ws.Range(EF_ADR_DATEFIN).Value = e.DateFin Else ws.Range(EF_ADR_DATEFIN).ClearContents
@@ -1172,6 +1283,7 @@ Public Sub EchValider()
     Dim ws As Worksheet
     Dim lib As String, tiers As String, cat As String, sous As String, periode As String, prec As String
     Dim vMont As Variant, vDate As Variant, vFin As Variant, vTol As Variant
+    Dim chq As String, chqNorm As String, trouve As String, k As Long, chiffres As Boolean
     Dim listeCat() As String, listeSous() As String
     Dim e As TypeEcheance
 
@@ -1184,14 +1296,15 @@ Public Sub EchValider()
     cat = mod_DataStructure.CellText(ws.Range(EF_ADR_CAT).Value)
     sous = mod_DataStructure.CellText(ws.Range(EF_ADR_SOUS).Value)
     vMont = ws.Range(EF_ADR_MONTANT).Value
+    chq = mod_DataStructure.CellText(ws.Range(EF_ADR_CHEQUE).Value)
     periode = mod_DataStructure.CellText(ws.Range(EF_ADR_PERIODE).Value)
     vDate = ws.Range(EF_ADR_DATE).Value
     vFin = ws.Range(EF_ADR_DATEFIN).Value
     prec = mod_DataStructure.CellText(ws.Range(EF_ADR_PRECISION).Value)
     vTol = ws.Range(EF_ADR_TOLERANCE).Value
 
-    If tiers = "" And cat = "" Then
-        AfficherMessageEch ws, "Renseignez au moins le Tiers ou la Cat{e2}gorie : c'est ce qui permettra de reconna{i2}tre l'op{e2}ration quand elle sera import{e2}e."
+    If tiers = "" And cat = "" And chq = "" Then
+        AfficherMessageEch ws, "Renseignez au moins le Tiers, la Cat{e2}gorie ou le num{e2}ro de ch{e1}que : c'est ce qui permettra de reconna{i2}tre l'op{e2}ration quand elle sera import{e2}e."
         Exit Sub
     End If
     If cat = "" And sous <> "" Then
@@ -1232,6 +1345,35 @@ Public Sub EchValider()
             AfficherMessageEch ws, "Choisissez une p{e2}riodicit{e2} dans la liste."
             Exit Sub
     End Select
+    If chq <> "" Then
+        If periode <> PERIODE_PONCTUELLE Then
+            AfficherMessageEch ws, "Un num{e2}ro de ch{e1}que ne concerne qu'une op{e2}ration unique : effacez-le, ou laissez la p{e2}riodicit{e2} vide."
+            Exit Sub
+        End If
+        chiffres = True
+        For k = 1 To Len(chq)
+            If Mid$(chq, k, 1) < "0" Or Mid$(chq, k, 1) > "9" Then chiffres = False
+        Next k
+        If Not chiffres Or Len(chq) > 10 Then
+            AfficherMessageEch ws, "Le num{e2}ro de ch{e1}que ne doit contenir que des chiffres (10 au maximum), sans espace."
+            Exit Sub
+        End If
+        chqNorm = NormaliserCheque(chq)
+        If chqNorm = "" Then
+            AfficherMessageEch ws, "Ce num{e2}ro de ch{e1}que n'est pas valide (il ne peut pas {ea}tre z{e2}ro)."
+            Exit Sub
+        End If
+        trouve = ChequeDejaPasse(chqNorm)
+        If trouve <> "" Then
+            AfficherMessageEch ws, "Ce ch{e1}que est d{e2}j{a2} pass{e2} en banque (op{e2}ration du " & trouve & ")."
+            Exit Sub
+        End If
+        trouve = ChequeDansEcheancier(chqNorm)
+        If trouve <> "" Then
+            AfficherMessageEch ws, "Ce num{e2}ro de ch{e1}que est d{e2}j{a2} saisi dans l'{e2}ch{e2}ancier (" & trouve & ")."
+            Exit Sub
+        End If
+    End If
     If prec <> PRECISION_JOUR And prec <> PRECISION_MOIS Then
         AfficherMessageEch ws, "Choisissez la pr{e2}cision de la date dans la liste (Jour ou Mois)."
         Exit Sub
@@ -1282,6 +1424,7 @@ Public Sub EchValider()
         e.Libelle = cat
     End If
     e.Montant = CDbl(vMont)
+    e.NumCheque = chq
     e.Periodicite = periode
     e.DatePrevue = CDate(vDate)
     If IsEmpty(vFin) Then e.DateFin = 0 Else e.DateFin = CDate(vFin)
@@ -1678,3 +1821,118 @@ Public Sub ActualiserRecurrences()
     MsgBox mod_Display.FR("Les occurrences des r{e2}gles ont {e2}t{e2} recalcul{e2}es."), vbInformation, mod_Display.FR("R{e2}currences")
 
 End Sub
+
+
+' =====================================================================================
+' SOLDE DE RÉFÉRENCE AVEC CONTRÔLE D'ÉCART (bouton de la feuille Synthese)
+' =====================================================================================
+' L'opérateur saisit le solde réel du compte (tel que la banque l'affiche) et sa date.
+' Avant d'enregistrer, le programme calcule le solde que le classeur attendait à cette date
+' (ancien solde de référence + opérations enregistrées depuis) et affiche l'ÉCART avec le
+' solde saisi : un écart non nul révèle une opération manquante ou en double, une date de
+' solde mal choisie, ou une opération modifiée depuis. L'opérateur décide ensuite
+' d'enregistrer ou non le nouveau solde. Le dernier écart reste affiché sur Synthese.
+Public Sub SaisirSoldeReference()
+
+    Dim ws As Worksheet
+    Dim loOps As ListObject
+    Dim ancienM As Variant, ancienD As Variant
+    Dim sMont As String, sDate As String, defMont As String
+    Dim nouveauM As Double, calcule As Double, ecart As Double
+    Dim nouvelleD As Date, ancD As Date
+    Dim controle As Boolean
+    Dim sep As String
+    Dim msg As String
+    Dim titre As String
+
+    titre = mod_Display.FR("Solde de r{e2}f{e2}rence")
+
+    Set ws = mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+    If ws Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    Set loOps = ThisWorkbook.Worksheets("Import_data").ListObjects("TblOperations")
+    ancienM = ws.Range("soldeRefMontant").Value
+    ancienD = ws.Range("soldeRefDate").Value
+    On Error GoTo 0
+    If Not IsEmpty(ancienM) Then
+        If IsNumeric(ancienM) Then defMont = Format(CDbl(ancienM), "0.00")
+    End If
+
+    sMont = InputBox(mod_Display.FR("Solde du compte tel que votre banque l'affiche (en euros, n{e2}gatif si le compte est {a2} d{e2}couvert) :"), titre, defMont)
+    If Trim$(sMont) = "" Then Exit Sub
+    sep = Application.International(xlDecimalSeparator)
+    sMont = Replace(Replace(Replace(Trim$(sMont), " ", ""), ".", sep), ",", sep)
+    If Not IsNumeric(sMont) Then
+        MsgBox mod_Display.FR("Le montant saisi n'est pas un nombre."), vbExclamation, titre
+        Exit Sub
+    End If
+    nouveauM = CDbl(sMont)
+
+    sDate = InputBox(mod_Display.FR("Date de ce solde (jj/mm/aaaa) : c'est la date {a2} laquelle la banque affiche ce solde, pas forc{e2}ment celle de l'import. Les op{e2}rations dat{e2}es de ce jour ou avant sont consid{e2}r{e2}es comme d{e2}j{a2} comprises dans le solde."), _
+                     titre, Format(Date, "dd/mm/yyyy"))
+    If Trim$(sDate) = "" Then Exit Sub
+    If Not IsDate(sDate) Then
+        MsgBox mod_Display.FR("La date saisie n'est pas valide."), vbExclamation, titre
+        Exit Sub
+    End If
+    nouvelleD = CDate(sDate)
+
+    ' --- contrôle : possible seulement s'il existe déjà un solde de référence ---
+    If Not IsEmpty(ancienM) And Not IsEmpty(ancienD) Then
+        If IsNumeric(ancienM) And IsDate(ancienD) And Not loOps Is Nothing Then
+            ancD = CDate(ancienD)
+            If nouvelleD >= ancD Then
+                calcule = CDbl(ancienM) + SommeOperations(loOps, ancD, nouvelleD)
+            Else
+                calcule = CDbl(ancienM) - SommeOperations(loOps, nouvelleD, ancD)
+            End If
+            ecart = Round(nouveauM - calcule, 2)
+            controle = True
+        End If
+    End If
+
+    If controle Then
+        msg = mod_Display.FR("Solde calcul{e2} par le classeur au ") & Format(nouvelleD, "dd/mm/yyyy") & " : " & Format(calcule, "#,##0.00") & " EUR" & vbCrLf & _
+              mod_Display.FR("Solde saisi : ") & Format(nouveauM, "#,##0.00") & " EUR" & vbCrLf & _
+              mod_Display.FR("{E2}cart : ") & Format(ecart, "#,##0.00") & " EUR" & vbCrLf & vbCrLf
+        If ecart = 0 Then
+            msg = msg & mod_Display.FR("Aucun {e2}cart : les op{e2}rations enregistr{e2}es sont coh{e2}rentes avec votre banque.")
+        Else
+            msg = msg & mod_Display.FR("Un {e2}cart peut venir : d'une op{e2}ration non import{e2}e ou import{e2}e en double, d'une date de solde mal choisie, ") & _
+                        mod_Display.FR("ou d'une op{e2}ration modifi{e2}e ou supprim{e2}e depuis le dernier solde.")
+        End If
+        msg = msg & vbCrLf & vbCrLf & mod_Display.FR("Enregistrer ce solde comme nouveau solde de r{e2}f{e2}rence ?")
+        If MsgBox(msg, vbYesNo + IIf(ecart = 0, vbInformation, vbExclamation), titre) = vbNo Then Exit Sub
+    End If
+
+    ws.Range("soldeRefMontant").Value = nouveauM
+    ws.Range("soldeRefDate").Value = nouvelleD
+    On Error Resume Next
+    If controle Then ws.Range("soldeEcart").Value = ecart Else ws.Range("soldeEcart").ClearContents
+    On Error GoTo 0
+
+    If Not controle Then
+        MsgBox mod_Display.FR("Solde de r{e2}f{e2}rence enregistr{e2}. Aucun contr{o2}le n'a {e2}t{e2} possible (c'est le premier solde saisi)."), vbInformation, titre
+    End If
+
+End Sub
+
+' Somme des montants des opérations dont la date comptable est > dDebut et <= dFin.
+Private Function SommeOperations(ByVal lo As ListObject, ByVal dDebut As Date, ByVal dFin As Date) As Double
+
+    Dim cMont() As Variant, cDt() As Variant
+    Dim i As Long
+    Dim d As Date
+    Dim total As Double
+
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    cMont = LireColonne(lo, "Montant")
+    cDt = LireColonne(lo, "Date_Comptable")
+    For i = 1 To UBound(cMont)
+        d = VersDate(cDt(i))
+        If d > dDebut And d <= dFin Then total = total + mod_DataStructure.ToDouble(cMont(i))
+    Next i
+    SommeOperations = total
+
+End Function
