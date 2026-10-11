@@ -2,7 +2,7 @@
 
 Oct 11, 2026 · @Alexandre
 
-Ce guide explique ce que fait le classeur Excel de suivi des comptes : on importe les relevés de la banque, on range chaque opération dans une catégorie, on suit les remboursements de santé, on déclare les opérations à venir (échéancier) et on analyse ses dépenses, puis on consulte et corrige depuis un écran de recherche. Il décrit le code de la branche Refonte\_recherche du dépôt Suivi\_Financier, dans son état du 11/10/2026 (dernier commit da794e7, « Analyse budgetaire »).
+Ce guide explique ce que fait le classeur Excel de suivi des comptes : on importe les relevés de la banque, on range chaque opération dans une catégorie, on suit les remboursements de santé, on déclare les opérations à venir (échéancier), on analyse ses dépenses et on suit ses consommations d'eau, d'électricité et de gaz, puis on consulte et corrige depuis un écran de recherche. Il décrit le code de la branche Refonte\_recherche du dépôt Suivi\_Financier, dans son état du 11/10/2026 (dernier commit da794e7, « Analyse budgetaire »).
 
 Ce document existe en deux formats, **toujours identiques** : `README.md` (lu sur GitHub, schémas Mermaid) et `README.html` (un seul fichier autonome, qui s'ouvre dans n'importe quel navigateur, sans connexion internet). Voir la section « Régénérer le guide HTML » en fin de document.
 
@@ -19,7 +19,8 @@ Ce document existe en deux formats, **toujours identiques** : `README.md` (lu su
 - [7. La feuille Synthese et les écrans de résultat](#7-la-feuille-synthese-et-les-écrans-de-résultat)
 - [8. L'échéancier et le prévisionnel de trésorerie](#8-léchéancier-et-le-prévisionnel-de-trésorerie)
 - [9. L'analyse budgétaire](#9-lanalyse-budgétaire)
-- [10. Installation, maintenance et outils développeur](#10-installation-maintenance-et-outils-développeur)
+- [10. Le suivi des consommations](#10-le-suivi-des-consommations)
+- [11. Installation, maintenance et outils développeur](#11-installation-maintenance-et-outils-développeur)
 - [Glossaire](#glossaire)
 - [Points relevés à la lecture du code](#points-relevés-à-la-lecture-du-code)
 
@@ -50,7 +51,7 @@ Une opération entre une seule fois, par l'import, et n'est écrite qu'après vo
 
 ## Les feuilles et tableaux du classeur
 
-Toutes les données vivent dans deux tableaux Excel : **TblOperations** (une ligne par opération bancaire) et **TblVentilations** (les « parts » d'une opération découpée). L'échéancier a ses deux propres tableaux (**TblEcheances** et **TblRecurrences**). Les autres feuilles servent soit de réglages, soit d'écrans de saisie.
+Toutes les données vivent dans deux tableaux Excel : **TblOperations** (une ligne par opération bancaire) et **TblVentilations** (les « parts » d'une opération découpée). L'échéancier a ses deux propres tableaux (**TblEcheances** et **TblRecurrences**), et le suivi des consommations les siens (**TblReleves** et **TblContrats**). Les autres feuilles servent soit de réglages, soit d'écrans de saisie.
 
 Un point de vocabulaire utile dès le départ : un **tableau Excel** (ou *ListObject*) est une plage mise en forme avec « Insérer > Tableau ». Le code retrouve toujours ses colonnes par leur **nom d'en-tête**, jamais par leur numéro : on peut donc déplacer une colonne sans rien casser, mais il ne faut **jamais la renommer**.
 
@@ -74,6 +75,11 @@ Un point de vocabulaire utile dès le départ : un **tableau Excel** (ou *ListOb
 | frm\_Recurrences | **TblRecurrences** | Liste des règles de récurrence | À la demande |
 | frm\_Echeance | Formulaire | Saisir une échéance ou une règle | À la demande |
 | frm\_Analyse | 2 tableaux + 2 graphiques | Analyse budgétaire | À la demande |
+| frm\_Consommations | Tableau mensuel + graphique | Évolution des consommations d'eau, d'électricité et de gaz | À la demande |
+| frm\_Releves | **TblReleves** | Liste des périodes de consommation (quantité, prix, abonnement) | À la demande |
+| frm\_Releve | Formulaire | Saisir une période de consommation | À la demande |
+| frm\_Contrats | **TblContrats** | Liste des contrats (opérateurs) | À la demande |
+| frm\_Contrat | Formulaire | Saisir un contrat ou changer d'opérateur | À la demande |
 | TechDernierImport | Liste d'identifiants | Mémorise le dernier import | Très masquée (technique) |
 
 **Pourquoi des « formulaires » en feuilles et pas de vraies fenêtres ?** Les fenêtres VBA classiques (*UserForm*) s'affichaient mal sur un poste à plusieurs écrans (problème d'échelle d'affichage, « DPI »). Chaque formulaire est donc une feuille cachée qui s'affiche le temps de la saisie. Tant qu'elle est ouverte, Excel vous empêche d'aller sur un autre onglet : c'est voulu, cela imite une fenêtre « modale ». On en sort uniquement par ses boutons (Terminer, Valider, Annuler, Sortir…).
@@ -400,7 +406,7 @@ Modifier directement une cellule Date, Tiers ou Montant de cet écran ne change 
 
 ## 7. La feuille Synthese et les écrans de résultat
 
-La feuille **Synthese** est le tableau de bord : vous y choisissez une période et des réglages, puis un bouton. Elle contient aussi le bloc « Prévisionnel de trésorerie » (section 8) et le bouton « Analyse budgétaire » (section 9).
+La feuille **Synthese** est le tableau de bord : vous y choisissez une période et des réglages, puis un bouton. Elle contient aussi le bloc « Prévisionnel de trésorerie » (section 8) et les boutons « Analyse budgétaire » (section 9) et « Consommations » (section 10).
 
 | Cellule nommée | Sens | Utilisée par |
 | --- | --- | --- |
@@ -458,7 +464,7 @@ flowchart TB
 
 ### Installer l'échéancier
 
-Une seule macro, `InstallerEcheancier`, à lancer une fois depuis la fenêtre Exécution d'Excel (détails en section 10). Elle crée les trois feuilles masquées (frm\_Echeancier, frm\_Recurrences, frm\_Echeance), le bloc « Prévisionnel de trésorerie » sur Synthese (avec ses deux boutons) et le bouton « Rendre récurrente » de l'écran de recherche. **Une étape manuelle est indispensable** : coller dans le module de la feuille frm\_Echeance le contenu de `CodeBehind_frm_Echeance.txt` (deux petits événements). La réinstallation est possible : si les listes contiennent des données, une confirmation est demandée avant de les reconstruire, car elles seraient **perdues**.
+Une seule macro, `InstallerEcheancier`, à lancer une fois depuis la fenêtre Exécution d'Excel (détails en section 11). Elle crée les trois feuilles masquées (frm\_Echeancier, frm\_Recurrences, frm\_Echeance), le bloc « Prévisionnel de trésorerie » sur Synthese (avec ses deux boutons) et le bouton « Rendre récurrente » de l'écran de recherche. **Une étape manuelle est indispensable** : coller dans le module de la feuille frm\_Echeance le contenu de `CodeBehind_frm_Echeance.txt` (deux petits événements). La réinstallation est possible : si les listes contiennent des données, une confirmation est demandée avant de les reconstruire, car elles seraient **perdues**.
 
 ### Déclarer une échéance : le formulaire frm\_Echeance
 
@@ -577,7 +583,99 @@ Après un changement, cliquer sur **Actualiser**.
 
 Le bilan mensuel (section 7) lit seulement TblOperations et compte une opération ventilée une fois. L'analyse remplace cette opération par ses parts, exclut des catégories, et ne retient que les catégories dont le net est une dépense. Les totaux peuvent donc différer légèrement : c'est normal, à ventilations et exclusions près.
 
-## 10. Installation, maintenance et outils développeur
+## 10. Le suivi des consommations
+
+L'écran **frm\_Consommations** répond à une question : *combien consomme-t-on d'eau, d'électricité et de gaz, à quel prix, et comment cela évolue-t-il mois après mois ?* Il est écrit dans `mod_Consommations` (logique) et `mod_InstallConsommations` (construction des feuilles). **État au 11/10/2026 : première version écrite, non encore testée dans Excel** (voir `TODO_SuiviConsommations.md`). Le suivi est **optionnel** et **indépendant des opérations bancaires** : il a ses propres tableaux et ne lit ni TblOperations ni TblVentilations.
+
+```mermaid
+flowchart TB
+    CONTRAT[("TblContrats<br/>opérateur, unité, dates")]
+    SAISIE["frm_Releve<br/>saisie d'une période"]
+    RELEVE[("TblReleves<br/>période, quantité,<br/>prix, abonnement")]
+    CALC["Répartition par mois<br/>au prorata des jours"]
+    ECRAN["frm_Consommations<br/>tableau mensuel + graphique"]
+    CONTRAT -->|"opérateur, unité, abonnement de départ"| SAISIE
+    SAISIE --> RELEVE
+    CONTRAT --> CALC
+    RELEVE --> CALC --> ECRAN
+```
+
+### Les principes (décidés le 11/10/2026)
+
+- **Quatre types de consommation** : Adduction eau, Recyclage eau, Fourniture élec, Fourniture gaz. Chacun a une unité par défaut (m³ pour l'eau, kWh pour l'électricité et le gaz), modifiable dans le contrat.
+- **Un contrat = un type chez un opérateur, entre deux dates.** Changer d'opérateur, c'est ajouter un nouveau contrat : le contrat en cours est clôturé la veille. L'historique reste complet, et chaque relevé retrouve son opérateur grâce à ses dates.
+- **Le prix de l'unité et l'abonnement sont portés par chaque relevé**, pas par le contrat. Un tarif qui change en cours de contrat (ou un abonnement qui évolue) est donc historisé. Le contrat ne sert que de valeur de départ pour l'abonnement ; le formulaire propose le dernier prix et le dernier abonnement connus, et vous pouvez les ajuster.
+- **Les périodes sont libres** (début et fin saisis, fin incluse). Quand le prix de l'unité change plusieurs fois au cours d'une même facture, on saisit **un relevé par prix**, avec le même numéro de facture.
+- **Pas de rapprochement bancaire** dans cette version : les relevés sont saisis à la main d'après les factures.
+
+### Installer le suivi
+
+Une seule macro, `InstallerConsommations`, à lancer une fois (détails en section 11). Elle crée les cinq feuilles masquées (frm\_Consommations, frm\_Releves, frm\_Releve, frm\_Contrats, frm\_Contrat) et le bouton **« Consommations »** de Synthese (sous le bouton d'analyse, déplaçable à la main). **Une étape manuelle est indispensable** : coller dans le module de la feuille frm\_Releve le contenu de `CodeBehind_frm_Releve.txt`, et dans celui de frm\_Contrat le contenu de `CodeBehind_frm_Contrat.txt` (deux petits événements chacun). La réinstallation est possible : si les listes contiennent des données, une confirmation est demandée avant de les reconstruire, car elles seraient **perdues**.
+
+### Déclarer un contrat
+
+Bouton **Contrats** de l'écran, puis **Ajouter un contrat** (formulaire frm\_Contrat) :
+
+| Champ | Rôle |
+| --- | --- |
+| Type de consommation | Un des quatre types (liste) |
+| Opérateur (fournisseur) | Texte libre : il sert de légende au graphique |
+| Unité de mesure | Proposée selon le type, modifiable |
+| Début du contrat / Fin du contrat | La fin est facultative : vide = contrat en cours |
+| Abonnement mensuel | Valeur de départ proposée dans les relevés |
+| Référence / N° de compteur | Facultatif |
+
+**Changement d'opérateur.** Il suffit de créer le nouveau contrat avec sa date de début. S'il existe un contrat en cours du même type qui commence avant, le programme propose de le clôturer **la veille** du nouveau. Si vous refusez, un message demande de fixer une date de fin : un seul contrat peut être en cours pour un type. Deux contrats d'un même type ne peuvent pas se chevaucher. Les relevés déjà saisis gardent leur ancien opérateur.
+
+### Saisir un relevé
+
+Bouton **Saisir un relevé** (formulaire frm\_Releve). Dès que le type est choisi, l'opérateur et l'unité s'affichent d'après le contrat en vigueur à la date de début, et le formulaire propose la date de début (le lendemain du dernier relevé du type), le dernier prix et le dernier abonnement connus pour ce contrat.
+
+| Champ | Rôle |
+| --- | --- |
+| Début / Fin de la période (incluse) | Dates libres |
+| Quantité consommée | En unités du contrat |
+| Prix de l'unité | Hors abonnement, en euros par unité ; 0 accepté (eau recyclée par exemple) |
+| Abonnement mensuel | Par mois ; modifiable à chaque relevé |
+| N° de facture, Commentaire | Facultatifs |
+
+Trois montants se calculent **en direct** en bas du formulaire : consommation (quantité × prix), abonnement de la période, et total. Le formulaire refuse un relevé dont la période chevauche un autre relevé du même type, déborde de son contrat, ou n'a pas de contrat à sa date de début.
+
+**Une facture dont le prix change.** Exemple fictif : une facture d'électricité couvre tout le mois de juin, mais le prix du kWh change le 16. On saisit un premier relevé du 01/06 au 15/06 (sa quantité, son prix), puis on clique sur **Valider + suivant** : le formulaire se rouvre sur la période du 16/06, avec les mêmes prix et le même numéro de facture, prêt pour la seconde quantité et le nouveau prix.
+
+### Les deux listes
+
+- **frm\_Releves** (tableau TblReleves) : tous les relevés. Les cellules jaunes se corrigent directement ; les colonnes grises sont calculées : `Operateur` (contrat en vigueur à la date de début), `NbMois`, `Abonnement` et `Montant`. Boutons : Ajouter un relevé, Supprimer la sélection, Contrats, Retour.
+- **frm\_Contrats** (tableau TblContrats) : tous les contrats. Supprimer un contrat ne supprime pas ses relevés : ils apparaissent alors avec l'opérateur « (sans contrat) ».
+
+Attention : une correction faite **directement dans la liste** n'est pas contrôlée (chevauchement, contrat) ; seul le formulaire fait ces vérifications.
+
+### L'écran frm\_Consommations
+
+Bouton **« Consommations »** de la feuille Synthese. Il affiche un tableau mensuel (mois, quantité, prix unitaire, abonnement, montant, opérateur) avec une ligne de total, et un graphique. Après un changement de paramètre, cliquer sur **Actualiser**.
+
+| Paramètre | Valeurs | Effet |
+| --- | --- | --- |
+| Type | (tous) ou un des quatre types | Un type : une série par opérateur. (tous) : une série par type |
+| Indicateur | Quantité / Prix unitaire / Abonnement / Montant total | Ce que montre le graphique. Pour (tous), seuls l'abonnement et le montant sont comparables (les unités diffèrent) : le montant est alors affiché |
+| Période | 12 / 36 / 60 / 120 derniers mois / Année | Les mois se terminant au mois choisi, ou l'année civile entière |
+| Année, Mois (fin de période) | listes déroulantes | Période de référence |
+| Forme du graphique | Barres / Courbes / Barres + courbe du prix | Barres empilées par série ; la forme mixte (un type choisi) montre l'indicateur en barres et le prix unitaire en courbe sur l'axe de droite, pour distinguer « je consomme plus » de « le tarif a monté » |
+| Répartition des relevés | Au prorata des jours / Mois de fin du relevé | Voir ci-dessous |
+
+### Les règles de calcul
+
+- **Nombre de mois d'une période.** Pour chaque mois touché, on compte les jours couverts divisés par les jours du mois, puis on additionne. Un mois complet vaut donc exactement 1, quelle que soit sa longueur, et plusieurs relevés qui se partagent un même mois totalisent exactement 1.
+- **Abonnement d'un relevé** = abonnement mensuel × nombre de mois. **Montant d'un relevé** = quantité × prix de l'unité + abonnement.
+- **Répartition « Au prorata des jours »** (par défaut) : chaque relevé est étalé sur les mois qu'il couvre. La quantité et la consommation facturée suivent les jours couverts ; l'abonnement suit la part de chaque mois couverte. L'autre choix impute tout le relevé au mois de sa date de fin ; il montre les factures « telles que reçues », avec des pics pour les relevés longs.
+- **Prix unitaire d'un mois** = moyenne pondérée par les quantités (quantité × prix, divisé par la quantité), abonnement exclu. Un mois sans consommation n'a pas de prix.
+- **Séries du graphique** : six au plus ; au-delà, les suivantes sont regroupées sous « Autres ».
+
+### Ce qui n'est pas encore fait
+
+Voir `TODO_SuiviConsommations.md` : comparaison avec l'année précédente (N-1), économie réalisée par le recyclage de l'eau (volume recyclé × prix de l'adduction), total annuel et variation, rapprochement avec les opérations bancaires, et la génération des fichiers `…_structure.txt` des nouvelles feuilles.
+
+## 11. Installation, maintenance et outils développeur
 
 ### Comment le code est organisé
 
@@ -605,8 +703,9 @@ Le classeur contient du code VBA (Alt+F11), versionné dans ce dépôt sous form
 | Décalages de budget | `AjouterColonneDecalageManuel` | Ajoute la colonne technique DecalageManuel à TblOperations |
 | Échéancier | `InstallerEcheancier` | Coller `CodeBehind_frm_Echeance.txt` dans la feuille frm\_Echeance |
 | Analyse budgétaire | `InstallerAnalyse` | Aucun code à coller |
+| Suivi des consommations | `InstallerConsommations` | Coller `CodeBehind_frm_Releve.txt` dans frm\_Releve et `CodeBehind_frm_Contrat.txt` dans frm\_Contrat (ne pas les confondre avec les listes frm\_Releves et frm\_Contrats) |
 
-Pour **modifier à la main** l'aspect d'un écran masqué : `AfficherFeuille…PourEdition` le rend visible, `MasquerFeuille…ApresEdition` le remasque (par exemple `AfficherFeuilleAnalysePourEdition`, `AfficherFormulaireEcheancePourEdition`). **Attention :** relancer la macro de création d'un écran le reconstruit (par exemple, pour l'analyse, les paramètres et la liste des catégories exclues reviennent aux valeurs par défaut).
+Pour **modifier à la main** l'aspect d'un écran masqué : `AfficherFeuille…PourEdition` le rend visible, `MasquerFeuille…ApresEdition` le remasque (par exemple `AfficherFeuilleAnalysePourEdition`, `AfficherFormulaireEcheancePourEdition`, `AfficherFeuilleConsommationsPourEdition`). **Attention :** relancer la macro de création d'un écran le reconstruit (par exemple, pour l'analyse, les paramètres et la liste des catégories exclues reviennent aux valeurs par défaut).
 
 **Pourquoi du code à coller dans certaines feuilles ?** Les événements d'une feuille (`Worksheet_Change`, `Worksheet_Deactivate`…) doivent obligatoirement être écrits dans le module de **cette feuille**. Les fichiers `CodeBehind_*.txt` contiennent ces quelques lignes, qui ne font qu'appeler le module principal. Procédure : Alt+F11 → repérer la feuille par son CodeName dans l'explorateur de projet (Ctrl+R) → double-clic → coller. **Ne jamais coller ce code dans une autre feuille.**
 
@@ -615,6 +714,7 @@ Pour **modifier à la main** l'aspect d'un écran masqué : `AfficherFeuille…P
 - **`mod_ExportStructure`** (macros `ExporterUneFeuille`, `ExporterToutesLesFeuilles`, `ExporterStructureFeuille`) : « photographie » la structure réelle d'une feuille (largeurs, hauteurs, cellules fusionnées, tableaux, listes déroulantes, mises en forme conditionnelles, boutons, noms définis, réglages de fenêtre) dans un fichier texte `…_structure.txt`. Utile parce que les écrans sont construits par code puis souvent retouchés à la main : le fichier permet de remettre le code en accord avec la réalité. Il **ne modifie rien** et n'exporte **jamais le contenu** des tableaux (le dépôt est public : aucune opération bancaire ne doit s'y retrouver).
 - **`ImportUTF8`** (macro `ImportUTF8ConvertAndReplace`) : choisit un fichier `.bas` en UTF-8, le convertit en ANSI (fins de ligne normalisées), l'enregistre dans le dossier Téléchargements (`module_converti.bas`) et remplace le contenu du module VBA du même nom. Pratique pour mettre à jour un module depuis le dépôt.
 - **`TODO_SuiviBudgetaire.md`** : benchmark, décisions de conception et liste des tâches du module d'analyse (phases 0 à 5).
+- **`TODO_SuiviConsommations.md`** : décisions de conception et liste des tâches du suivi des consommations.
 
 ### Régénérer le guide HTML
 
@@ -656,6 +756,10 @@ Le script (Python 3 et le paquet `markdown`, installable avec `pip install markd
 | Solde prévisionnel | Solde actuel augmenté des échéances jusqu'à J+15 ou J+30. |
 | Net (analyse) | Dépenses moins remboursements d'une catégorie sur la période ; seules les catégories à net négatif sont analysées. |
 | Catégories exclues | Liste (modifiable sur l'écran d'analyse) des catégories jamais comptées, par défaut Virements internes et Revenus. |
+| Contrat (consommation) | Un type de consommation chez un opérateur entre deux dates ; en créer un nouveau clôture l'ancien : c'est ainsi qu'on change d'opérateur. |
+| Relevé (consommation) | Une période libre avec sa quantité, son prix d'unité et son abonnement mensuel ; une facture à plusieurs prix donne plusieurs relevés. |
+| Nombre de mois (NbMois) | Somme, sur les mois touchés par une période, des jours couverts divisés par les jours du mois ; un mois complet vaut 1. |
+| Répartition au prorata | Étalement d'un relevé sur les mois qu'il couvre, selon les jours couverts, pour le graphique des consommations. |
 | CodeName | Nom interne d'une feuille dans l'éditeur VBA, utile pour y coller un code d'événements. |
 
 ## Points relevés à la lecture du code
@@ -673,3 +777,4 @@ Ces constats sont apparus en rédigeant le guide. **Aucun n'a été corrigé** :
 7. **Analyse budgétaire non testée.** Les phases 1 à 3 sont codées mais aucune case de test du TODO n'est cochée (total de l'analyse = bilan mensuel, nombre de lignes de la recherche = nombre d'opérations du tableau, recalcul après recatégorisation). Restent à faire : moyenne glissante 3 mois, clic sur un mois, comparaison N-1, top hausses/baisses, budget cible (`TblBudgets`), et la génération de `frm_Analyse_structure.txt`.
 8. **Échéancier : installation en deux temps.** Le code d'événements de `frm_Echeance` doit être collé à la main (comme pour les autres formulaires) ; sans lui, la liste des sous-catégories ne suit pas la catégorie choisie et la feuille n'est pas verrouillée.
 9. **Échéances en retard comptées dans les soldes.** Les soldes à J+15 et J+30 incluent toutes les échéances dont la date prévue est avant l'horizon, **y compris celles déjà passées et jamais rapprochées**. C'est cohérent avec le principe « c'est à vous de les supprimer », mais un oubli de nettoyage fausse le prévisionnel (d'où le compteur « Éch. en retard »).
+10. **Suivi des consommations non testé.** Tout le code est écrit mais n'a jamais tourné dans Excel (aucune case de test du TODO n'est cochée). Les outils de lecture de tableau (`ObtenirTable`, `TableVide`, `LireColonne`…) sont **recopiés** de `mod_Echeancier` dans `mod_Consommations`, où ils sont privés : une factorisation est possible. La colonne `Operateur` de TblReleves est une formule (`LOOKUP`) qui dépend de TblContrats : si elle reste vide, le suivi fonctionne quand même, car le graphique retrouve l'opérateur par le code.

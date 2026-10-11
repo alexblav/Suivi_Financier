@@ -200,6 +200,21 @@ Public Const NOM_TABLE_RECURRENCES As String = "TblRecurrences"
 Public Const NOM_FEUILLE_ANALYSE As String = "frm_Analyse"
 
 '' -------------------------------------------------------------------------------------
+'' SUIVI DES CONSOMMATIONS : eau, électricité, gaz (ajout 11/10/2026, voir
+'' mod_Consommations et mod_InstallConsommations)
+'' -------------------------------------------------------------------------------------
+'' Cinq feuilles masquées (ouvertes par des boutons, comme les autres écrans frm_*) :
+'' l'écran graphique, la liste des relevés, la liste des contrats et leurs deux
+'' formulaires de saisie. Les deux tableaux portent les noms ci-dessous.
+Public Const NOM_FEUILLE_CONSO As String = "frm_Consommations"
+Public Const NOM_FEUILLE_RELEVES As String = "frm_Releves"
+Public Const NOM_FEUILLE_RELEVE As String = "frm_Releve"
+Public Const NOM_FEUILLE_CONTRATS As String = "frm_Contrats"
+Public Const NOM_FEUILLE_CONTRAT As String = "frm_Contrat"
+Public Const NOM_TABLE_RELEVES As String = "TblReleves"
+Public Const NOM_TABLE_CONTRATS As String = "TblContrats"
+
+'' -------------------------------------------------------------------------------------
 '' EXPORT DE LA STRUCTURE DES FEUILLES (ajout 08/10/2026, voir mod_ExportStructure)
 '' -------------------------------------------------------------------------------------
 ' Sous-dossier créé à côté du classeur pour recevoir les fichiers d'export (un
