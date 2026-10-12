@@ -298,6 +298,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ' et nombre de lignes pointees affichees (resume de la ligne du filtre actif).
     Dim nbColRO As Long
     Dim colPointeRO As Long
+    Dim colChequeRO As Long             ' colonne Num_Cheque de l'écran (0 si écran non reconstruit)
     Dim nbPointees As Long
 
     ' Mémorise le préfiltre actif : RevoirVentilationRO le réutilise pour
@@ -309,6 +310,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     Set tblRecherche = ws.ListObjects(mod_VarGlobales.NOM_TABLE_RECHERCHE)
     nbColRO = tblRecherche.ListColumns.Count
     colPointeRO = IndexColRO(tblRecherche, mod_VarGlobales.NOM_COL_POINTE)
+    colChequeRO = IndexColRO(tblRecherche, "Num_Cheque")
 
     Set tbl = mod_DonneesTable.GetOperationsTable()
     If tbl Is Nothing Then
@@ -545,6 +547,9 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
             resultat(ligneEcran, colPointeRO) = mod_Pointage.TextePointage(mod_Pointage.TexteEnPointage(tblData(i, colPointe)))
         End If
 
+        ' Chèque (ajout 12/10/2026)
+        If colChequeRO <> 0 And colCheque <> 0 Then resultat(ligneEcran, colChequeRO) = mod_DataStructure.CellText(tblData(i, colCheque))
+
         ' PHASE 6 : colonnes issues des anciens écrans "Synthese_*", toujours
         ' renseignées (même si masquées pour ce préfiltre). C'est sans conséquence
         ' et évite de relire TblOperations si l'opérateur change les colonnes
@@ -625,6 +630,13 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
                 End If
             End If
 
+            ' Chèque (ajout 12/10/2026) : une part reprend celui de son opération d'origine.
+            If colChequeRO <> 0 And colCheque <> 0 Then
+                If indexParIDPourTiers.Exists(idParentVen) Then
+                    resultat(ligneEcran, colChequeRO) = mod_DataStructure.CellText(tblData(indexParIDPourTiers(idParentVen), colCheque))
+                End If
+            End If
+
             ' Ajout 07/10/2026 : en mode suivi santé, on affiche aussi les colonnes
             ' santé de la part ventilée, lues dans TblVentilations (qui porte les
             ' mêmes colonnes que TblOperations depuis l'extension de la Phase 4).
@@ -648,6 +660,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ' --- Redimensionner le tableau, puis écrire les données en bloc ---
     tblRecherche.Resize tblRecherche.HeaderRowRange.Resize(nbTotal + 1, nbColRO)
     tblRecherche.ListColumns("ID_Transaction").DataBodyRange.NumberFormat = "@"   ' <- ajout : AVANT l'écriture, sinon Excel convertit les longs ID en nombre
+    If colChequeRO <> 0 Then tblRecherche.ListColumns(colChequeRO).DataBodyRange.NumberFormat = "@"   ' avant l'écriture
     tblRecherche.DataBodyRange.value = resultat
 
     tblRecherche.ListColumns("Date").DataBodyRange.NumberFormat = "dd/mm/yyyy"
@@ -1046,7 +1059,7 @@ Private Sub EcrireListeTechniqueRO(ByVal ws As Worksheet, ByRef listeValeurs() A
     ' PHASE 6 : déplacée de "N" à "R" : la colonne N est désormais une vraie
     ' colonne du tableau (SoldeSante); la zone technique doit rester au-delà
     ' de sa dernière colonne (P).
-    Const COL_TECHNIQUE As String = "R"
+    Const COL_TECHNIQUE As String = "T"   ' (était R avant l'ajout de la colonne Num_Cheque, 12/10/2026)
     Dim i As Long
 
     ws.Range(COL_TECHNIQUE & "1:" & COL_TECHNIQUE & "1000").ClearContents
@@ -1296,7 +1309,9 @@ Public Sub RevoirVentilationRO()
     If colSousCategorie <> 0 Then sousActuelleOp = mod_DataStructure.CellText(donneesOp(ligneParent, colSousCategorie))
 
     Dim ventilationSupprimee As Boolean
-    ok = mod_Ventilation.OuvrirVentilation(idTransaction, dateOp, tiersOp, "", montantOp, catActuelleOp, sousActuelleOp, ventilationSupprimee)
+    Dim chequeOp As String
+    If colCheque <> 0 Then chequeOp = mod_DataStructure.CellText(donneesOp(ligneParent, colCheque))
+    ok = mod_Ventilation.OuvrirVentilation(idTransaction, dateOp, tiersOp, "", montantOp, catActuelleOp, sousActuelleOp, ventilationSupprimee, chequeOp)
 
     ws.Activate
 

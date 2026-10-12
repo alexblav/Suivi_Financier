@@ -308,7 +308,7 @@ Private Function ConstruireFormulaire(ByVal wsPrecedente As Worksheet) As Boolea
     mod_InstallCommun.PoserChampSaisie ws.Range(mod_Echeancier.EF_ADR_SOUS), "@"
 
     mod_InstallCommun.PoserEtiquette ws.Range("B10"), mod_Display.FR("Montant (- = d{e2}pense)")
-    mod_InstallCommun.PoserChampSaisie ws.Range(mod_Echeancier.EF_ADR_MONTANT), "#,##0.00"
+    mod_InstallCommun.PoserChampMontant ws.Range(mod_Echeancier.EF_ADR_MONTANT), "#,##0.00"
 
     mod_InstallCommun.PoserEtiquette ws.Range("B11"), mod_Display.FR("Num{e2}ro de ch{e1}que (facultatif)")
     mod_InstallCommun.PoserChampSaisie ws.Range(mod_Echeancier.EF_ADR_CHEQUE), "@"
@@ -317,10 +317,10 @@ Private Function ConstruireFormulaire(ByVal wsPrecedente As Worksheet) As Boolea
     mod_InstallCommun.PoserChampSaisie ws.Range(mod_Echeancier.EF_ADR_PERIODE), "@"
 
     mod_InstallCommun.PoserEtiquette ws.Range("B13"), mod_Display.FR("Date pr{e2}vue (ou 1{e1}re date)")
-    mod_InstallCommun.PoserChampSaisie ws.Range(mod_Echeancier.EF_ADR_DATE), "dd/mm/yyyy"
+    mod_InstallCommun.PoserChampDate ws.Range(mod_Echeancier.EF_ADR_DATE)
 
     mod_InstallCommun.PoserEtiquette ws.Range("B14"), mod_Display.FR("Date de fin (facultative)")
-    mod_InstallCommun.PoserChampSaisie ws.Range(mod_Echeancier.EF_ADR_DATEFIN), "dd/mm/yyyy"
+    mod_InstallCommun.PoserChampDate ws.Range(mod_Echeancier.EF_ADR_DATEFIN)
 
     mod_InstallCommun.PoserEtiquette ws.Range("B15"), mod_Display.FR("Pr{e2}cision de la date")
     mod_InstallCommun.PoserChampSaisie ws.Range(mod_Echeancier.EF_ADR_PRECISION), "@"

@@ -438,7 +438,7 @@ Private Sub GC_ConstruireBlocGeneration(ByVal ws As Worksheet)
     ' --- Date de consultation ---
     mod_InstallCommun.PoserEtiquette ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_DATE_CONSULT), "Date consultation"
     Set rng = ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_DATE_CONSULT)
-    mod_InstallCommun.PoserChampSaisie rng, "dd/mm/yyyy"
+    mod_InstallCommun.PoserChampDate rng
     mod_InstallCommun.PoserNom ws, "gcDateConsult", rng
 
     ' --- Spécialité (liste Specialites; le bouton "+" est posé avec les autres boutons) ---

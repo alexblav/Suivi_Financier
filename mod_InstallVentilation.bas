@@ -75,6 +75,9 @@ Public Const VEN_ADR_POINTE As String = "E6"
 Public Const VEN_ADR_TIERS As String = "C7"
 Public Const VEN_ADR_LIBELLE As String = "C8"
 Public Const VEN_ADR_MONTANT As String = "C9"
+' Chèque (ajout 12/10/2026) : étiquette "Chèque" en D9, valeur en E9, sur la ligne du montant
+' (C9 n'est donc plus fusionnée avec D9:E9).
+Public Const VEN_ADR_CHEQUE As String = "E9"
 Public Const VEN_ADR_CATACTUELLE As String = "C10"
 
 Public Const VEN_ADR_MONTANT_A_VENTILER As String = "C12"
@@ -316,7 +319,9 @@ Private Sub ConstruireInformations(ByVal ws As Worksheet)
     mod_Pointage.PoserChampPointage ws, ws.Range("D6"), ws.Range(VEN_ADR_POINTE)
     mod_InstallCommun.PoserChampLecture ws.Range("C7:E7"), "@"
     mod_InstallCommun.PoserChampLecture ws.Range("C8:E8"), "@", True
-    mod_InstallCommun.PoserChampLecture ws.Range("C9:E9"), "@"
+    mod_InstallCommun.PoserChampLecture ws.Range("C9"), "@"
+    mod_InstallCommun.PoserEtiquette ws.Range("D9"), mod_Display.FR("Ch{e1}que")
+    mod_InstallCommun.PoserChampLecture ws.Range(VEN_ADR_CHEQUE), "@"
     mod_InstallCommun.PoserChampLecture ws.Range("C10:E10"), "@"
     ws.Range(VEN_ADR_MONTANT).Font.Bold = True
 
@@ -399,7 +404,7 @@ Private Sub ConstruireFormulaireSaisie(ByVal ws As Worksheet)
 
     ' --- Montant ---
     mod_InstallCommun.PoserEtiquette ws.Range("B31"), "Montant"
-    mod_InstallCommun.PoserChampSaisie ws.Range(VEN_ADR_SAISIE_MONTANT), "#,##0.00"
+    mod_InstallCommun.PoserChampMontant ws.Range(VEN_ADR_SAISIE_MONTANT), "#,##0.00", mod_InstallCommun.MONTANT_POSITIF
 
     ' --- Notes (commentaire libre, ajout du 01/10/2026, point 3) ------------------------
     ' Cellule volontairement SIMPLE, NON FUSIONNÉE (comme Categorie/Sous-categorie/

@@ -244,6 +244,7 @@ Public Sub ImporterOperationsOFX()
             opsControle(kCtrl, mod_ControleCategories.CTRL_OP_MONTANT) = resultats(kCtrl, COL_MONTANT)
             opsControle(kCtrl, mod_ControleCategories.CTRL_OP_CATSOURCE) = resultats(kCtrl, COL_CATEGORIE)
             opsControle(kCtrl, mod_ControleCategories.CTRL_OP_ID) = resultats(kCtrl, COL_ID)
+            opsControle(kCtrl, mod_ControleCategories.CTRL_OP_CHEQUE) = resultats(kCtrl, COL_NUM_CHEQUE)
         Next kCtrl
 
         If Not mod_ControleCategories.ControlerCategories(opsControle, nbAjoutees, catFinaleCtrl, sousFinaleCtrl, _

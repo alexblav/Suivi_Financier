@@ -107,7 +107,9 @@ Public Const RO_COL_DATECONSULT As Long = 15
 Public Const RO_COL_SPECONSULT As Long = 16
 ' POINTAGE (ajout 11/10/2026) : 17e colonne du tableau, toujours visible
 Public Const RO_COL_POINTE As Long = 17
-Public Const RO_NB_COLONNES As Long = 17
+' CHEQUE (ajout 12/10/2026) : 18e colonne du tableau, toujours visible (N° de chèque de l'opération)
+Public Const RO_COL_CHEQUE As Long = 18
+Public Const RO_NB_COLONNES As Long = 18
 
 
 ' =====================================================================================
@@ -145,8 +147,9 @@ Sub CreerFeuilleRechercheOperations()
     ' dynamiquement à chaque appel, selon le préfiltre demandé (DefinirColonnesVisibles).
     ws.Range("L:P").EntireColumn.Hidden = True
 
-    ' Liste technique des catégories (colonne R), alimentée à chaque recherche.
-    ws.Columns("R").Hidden = True
+    ' Liste technique des catégories (colonne T depuis l'ajout de Num_Cheque en R), alimentée
+    ' à chaque recherche.
+    ws.Columns("T").Hidden = True
 
     mod_InstallCommun.TerminerFeuille ws, wsPrecedente
     Application.ScreenUpdating = True
@@ -237,7 +240,7 @@ Private Function RO_ConstruireEnteteTableau(ByVal ws As Worksheet) As ListObject
 
     noms = Array("Valider", "Date", "Tiers", "Montant", "Categorie", "SousCategorie", "Notes", "Ventile", _
                  "ID_Transaction", "SourceLigne", "LigneVentilation", "Budget", "StatutSante", "SoldeSante", _
-                 "Date_consult", "Spe_consult", mod_VarGlobales.NOM_COL_POINTE)
+                 "Date_consult", "Spe_consult", mod_VarGlobales.NOM_COL_POINTE, "Num_Cheque")
 
     For i = 0 To UBound(noms)
         ws.Cells(RO_LIGNE_ENTETES, i + 1).Value = noms(i)

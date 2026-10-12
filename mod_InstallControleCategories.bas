@@ -60,6 +60,8 @@ Public Const CTRL_ADR_POINTE As String = "E8"
 Public Const CTRL_ADR_TIERS As String = "C9"      ' modifiable (sauf opération de santé)
 Public Const CTRL_ADR_LIBELLE As String = "C10"   ' modifiable (sauf opération de santé)
 Public Const CTRL_ADR_MONTANT As String = "C11"
+' Chèque (ajout 12/10/2026) : étiquette en D11, valeur en E11, sur la ligne du montant.
+Public Const CTRL_ADR_CHEQUE As String = "E11"
 Public Const CTRL_ADR_SOURCE As String = "C12"    ' catégorie envoyée par la banque
 
 ' Zones de saisie de l'opérateur
@@ -179,6 +181,8 @@ Private Sub ConstruireInformations(ByVal ws As Worksheet)
     mod_InstallCommun.PoserChampSaisie ws.Range(CTRL_ADR_LIBELLE), "@", True
     mod_InstallCommun.PoserChampLecture ws.Range(CTRL_ADR_MONTANT), "@"
     ws.Range(CTRL_ADR_MONTANT).Font.Bold = True
+    mod_InstallCommun.PoserEtiquette ws.Range("D11"), mod_Display.FR("Ch{e1}que")
+    mod_InstallCommun.PoserChampLecture ws.Range(CTRL_ADR_CHEQUE), "@"
     mod_InstallCommun.PoserChampLecture ws.Range(CTRL_ADR_SOURCE), "@"
 
 End Sub

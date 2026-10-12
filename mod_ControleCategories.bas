@@ -57,7 +57,9 @@ Public Const CTRL_OP_CATSOURCE As Long = 5
 '                             l'écran de recherche y met le pointage actuel de l'opération.
 Public Const CTRL_OP_ID As Long = 6
 Public Const CTRL_OP_POINTE As Long = 7
-Public Const CTRL_OP_NBCOL As Long = 7
+' ops(i, CTRL_OP_CHEQUE)    = numéro de chèque (texte, facultatif; ajout 12/10/2026)
+Public Const CTRL_OP_CHEQUE As Long = 8
+Public Const CTRL_OP_NBCOL As Long = 8
 
 ' --- Réglage : présenter aussi les opérations "non rangées" après un OUI ? ------------
 Private Const CTRL_FORCER_NON_RANGEES As Boolean = True
@@ -440,6 +442,7 @@ Public Function ModifierCategorieOperation(ByVal tblOp As ListObject, ByVal lign
     ops(1, CTRL_OP_ID) = mod_DataStructure.CellText(donneesLigne(1, colID))
     ' Pointage actuel de l'opération (ajout 11/10/2026) ; vide si la colonne n'est pas installée.
     If colPointe <> 0 Then ops(1, CTRL_OP_POINTE) = donneesLigne(1, colPointe)
+    If colCheque <> 0 Then ops(1, CTRL_OP_CHEQUE) = mod_DataStructure.CellText(donneesLigne(1, colCheque))
 
     If Not ControlerCategories(ops, 1, catFinale, sousFinale, catAvantVen, sousAvantVen, _
                                tiersFinaleInutilise, libelleFinaleInutilise, _
@@ -611,6 +614,8 @@ Private Sub AfficherOperation(ByVal ws As Worksheet)
     ws.Range(CTRL_ADR_COMPTEUR).value = mod_InstallCommun.TexteCompteur(g_CtrlPos, g_CtrlNbAffiches)   ' format commun "Operation: x/y" (09/10/2026)
     ws.Range(CTRL_ADR_DATE).value = FormaterDate(g_CtrlOps(i, CTRL_OP_DATE))
     ws.Range(CTRL_ADR_MONTANT).value = Format(mod_DataStructure.ToDouble(g_CtrlOps(i, CTRL_OP_MONTANT)), "#,##0.00") & " " & ChrW(8364)
+    ' Chèque (ajout 12/10/2026) : seulement si l'écran a été reconstruit (sinon E11 est fusionnée).
+    If Not ws.Range(CTRL_ADR_CHEQUE).MergeCells Then ws.Range(CTRL_ADR_CHEQUE).value = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_CHEQUE))
     ws.Range(CTRL_ADR_SOURCE).value = Source
     ' Libelle du champ adapte au mode (09/10/2026) : categorie bancaire a l'import, categorie
     ' d'origine en edition directe depuis l'ecran de recherche.
@@ -1100,7 +1105,8 @@ Public Sub ControleVentiler()
             mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_TIERS)), _
             mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_LIBELLE)), _
             mod_DataStructure.ToDouble(g_CtrlOps(i, CTRL_OP_MONTANT)), _
-            g_CtrlCat(i), g_CtrlSous(i), ventilationSupprimee)
+            g_CtrlCat(i), g_CtrlSous(i), ventilationSupprimee, _
+            mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_CHEQUE)))
 
     g_CtrlVerrouActif = True
     ws.Activate

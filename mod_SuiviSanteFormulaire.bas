@@ -487,6 +487,7 @@ Private Sub AfficherCasCourant(ws As Worksheet)
         ws.Range("ssTiersCorrige").value = ""
     End If
     ws.Range("ssFranchise").value = cas.franchiseActuelle
+    mod_InstallCommun.PoserValidationMontant ws.Range("ssFranchise"), mod_InstallCommun.MONTANT_POSITIF_OU_NUL
     ws.Range("ssDepassement").value = ""
     ws.Range("ssCommentaire").value = cas.commentaireActuel
 
@@ -704,10 +705,12 @@ Public Sub ValiderCasSuiviSante()
     franchiseTexte = Trim(CStr(ws.Range("ssFranchise").value))
     If franchiseTexte = "" Then
         franchise = 0
-    ElseIf IsNumeric(franchiseTexte) Then
-        franchise = mod_DataStructure.ToDouble(ws.Range("ssFranchise").value)
-    Else
-        MsgBox mod_Display.FR("La Franchise doit {ea}tre un nombre (0 si aucune)."), vbExclamation
+    ElseIf Not mod_DataStructure.TryLireMontant(ws.Range("ssFranchise").value, franchise) Then
+        MsgBox mod_Display.FR("La Franchise n'est pas valide (0 si aucune).") & vbCrLf & vbCrLf & _
+               mod_DataStructure.MessageMontantAttendu(), vbExclamation
+        Exit Sub
+    ElseIf franchise < 0 Then
+        MsgBox mod_Display.FR("La Franchise ne peut pas {ea}tre n{e2}gative (0 si aucune)."), vbExclamation
         Exit Sub
     End If
 

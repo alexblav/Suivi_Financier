@@ -133,7 +133,8 @@ Public Function OuvrirVentilation(ByVal idTransaction As String, ByVal dateOp As
                                   ByVal tiers As String, ByVal libelle As String, _
                                   ByVal montantOp As Double, _
                                   ByVal categorieActuelle As String, ByVal sousCategorieActuelle As String, _
-                                  Optional ByRef ventilationSupprimee As Boolean) As Boolean
+                                  Optional ByRef ventilationSupprimee As Boolean, _
+                                  Optional ByVal numCheque As String = "") As Boolean
 
     Dim ws As Worksheet
     Dim evAvant As Boolean
@@ -176,7 +177,7 @@ Public Function OuvrirVentilation(ByVal idTransaction As String, ByVal dateOp As
     ws.Shapes("btnVenSupprimerVentilation").Visible = g_VenEtaitDejaVentilee
     On Error GoTo Erreur
 
-    RemplirEntete ws, dateOp, tiers, libelle, montantOp, categorieActuelle, sousCategorieActuelle
+    RemplirEntete ws, dateOp, tiers, libelle, montantOp, categorieActuelle, sousCategorieActuelle, numCheque
     ' Pointage de l'operation (ajout 11/10/2026, voir mod_Pointage). Pendant un import,
     ' l'operation n'est pas encore dans TblOperations : le champ est alors grise.
     mod_Pointage.AfficherPointageFormulaire ws, ws.Range(VEN_ADR_POINTE), idTransaction
@@ -190,6 +191,7 @@ Public Function OuvrirVentilation(ByVal idTransaction As String, ByVal dateOp As
     ws.Range(VEN_ADR_SAISIE_SOUS).value = ""
     ws.Range(VEN_ADR_SAISIE_MONTANT).value = ""
     ws.Range(VEN_ADR_SAISIE_MESSAGE).value = ""
+    mod_InstallCommun.PoserValidationMontant ws.Range(VEN_ADR_SAISIE_MONTANT), mod_InstallCommun.MONTANT_POSITIF
     PoserValidationSaisieCategorie ws
     If categorieActuelle <> "" And categorieActuelle <> CategorieVentilePublique() Then
         ws.Range(VEN_ADR_SAISIE_CAT).value = categorieActuelle
@@ -240,7 +242,8 @@ End Function
 ' =====================================================================================
 Private Sub RemplirEntete(ByVal ws As Worksheet, ByVal dateOp As Variant, ByVal tiers As String, _
                           ByVal libelle As String, ByVal montantOp As Double, _
-                          ByVal categorieActuelle As String, ByVal sousCategorieActuelle As String)
+                          ByVal categorieActuelle As String, ByVal sousCategorieActuelle As String, _
+                          Optional ByVal numCheque As String = "")
 
     Dim evenementsAvant As Boolean
     Dim numErr As Long
@@ -254,6 +257,9 @@ Private Sub RemplirEntete(ByVal ws As Worksheet, ByVal dateOp As Variant, ByVal 
     ws.Range(VEN_ADR_TIERS).value = tiers
     ws.Range(VEN_ADR_LIBELLE).value = libelle
     ws.Range(VEN_ADR_MONTANT).value = Format(montantOp, "#,##0.00") & " " & ChrW(8364)
+    ' Chèque (ajout 12/10/2026) : la cellule n'est écrite que si l'écran a été reconstruit
+    ' (sur l'ancien écran, E9 fait encore partie de la zone fusionnée C9:E9).
+    If Not ws.Range(VEN_ADR_CHEQUE).MergeCells Then ws.Range(VEN_ADR_CHEQUE).value = numCheque
 
     catAffichee = categorieActuelle
     If sousCategorieActuelle <> "" Then catAffichee = catAffichee & " / " & sousCategorieActuelle
@@ -471,6 +477,7 @@ Public Sub VenAjouterLigne()
     Dim cat As String, sous As String
     Dim notes As String
     Dim Montant As Variant
+    Dim montantLu As Double
     Dim listeCat() As String, listeSous() As String
     Dim indiceCible As Long
 
@@ -480,7 +487,7 @@ Public Sub VenAjouterLigne()
 
     cat = mod_DataStructure.CellText(ws.Range(VEN_ADR_SAISIE_CAT).value)
     sous = mod_DataStructure.CellText(ws.Range(VEN_ADR_SAISIE_SOUS).value)
-    Montant = ws.Range(VEN_ADR_SAISIE_MONTANT).Value2
+    Montant = ws.Range(VEN_ADR_SAISIE_MONTANT).Value   ' .Value (et non .Value2) : une date tapée par erreur doit être reconnue comme telle et refusée
     ' Ajout 01/10/2026 (champ Notes) : commentaire libre, facultatif, disponible pour
     ' CHAQUE ligne de la ventilation (pas seulement les lignes "sante").
     notes = mod_DataStructure.CellText(ws.Range(VEN_ADR_SAISIE_NOTES).value)
@@ -489,7 +496,11 @@ Public Sub VenAjouterLigne()
         ws.Range(VEN_ADR_SAISIE_MESSAGE).value = mod_Display.FR("La cat{e2}gorie est obligatoire.")
         Exit Sub
     End If
-    If Not IsNumeric(Montant) Or CDbl(Montant) <= 0 Then
+    If Not mod_DataStructure.TryLireMontant(Montant, montantLu) Then
+        ws.Range(VEN_ADR_SAISIE_MESSAGE).value = mod_Display.FR("Le montant n'est pas valide. ") & mod_DataStructure.MessageMontantAttendu()
+        Exit Sub
+    End If
+    If montantLu <= 0 Then
         ws.Range(VEN_ADR_SAISIE_MESSAGE).value = mod_Display.FR("Le montant doit {ea}tre un nombre positif.")
         Exit Sub
     End If
@@ -528,7 +539,7 @@ Public Sub VenAjouterLigne()
 
     g_VenLigneCat(indiceCible) = cat
     g_VenLigneSous(indiceCible) = sous
-    g_VenLigneMontant(indiceCible) = CDbl(Montant)
+    g_VenLigneMontant(indiceCible) = montantLu
     g_VenLigneNotes(indiceCible) = notes
 
     g_VenIndexEdition = 0

@@ -59,6 +59,11 @@ Public Const FRM_BTN_ECART As Double = 2        ' espace entre deux boutons
 Public Const FRM_BTN_L As Double = 82.5         ' largeur standard d'un bouton
 Public Const FRM_BTN_PLUS As Double = 26        ' largeur d'un bouton "+"
 
+' --- Sens attendu d'un montant (PoserChampMontant / PoserValidationMontant) ------------
+Public Const MONTANT_LIBRE As Long = 0           ' tout nombre (négatif = dépense)
+Public Const MONTANT_POSITIF As Long = 1         ' strictement supérieur à 0
+Public Const MONTANT_POSITIF_OU_NUL As Long = 2  ' supérieur ou égal à 0
+
 ' --- Types de balises du bloc Instructions ---------------------------------------------
 Private Const T_BOUTON As Long = 1
 Private Const T_CHAMP As Long = 2
@@ -404,6 +409,9 @@ End Sub
 Public Sub PoserChampLecture(ByVal plage As Range, Optional ByVal formatNombre As String = "", _
                              Optional ByVal multiLigne As Boolean = False)
     If plage.Cells.Count > 1 Then plage.Merge
+    On Error Resume Next
+    plage.Validation.Delete   ' un champ repasse en lecture seule ne garde pas son garde-fou de saisie
+    On Error GoTo 0
     With plage
         If formatNombre <> "" Then .NumberFormat = formatNombre
         .Interior.Color = CoulFondLecture()
@@ -444,6 +452,77 @@ Public Sub PoserChampSaisie(ByVal plage As Range, Optional ByVal formatNombre As
         .Borders.Color = CoulBordureSaisie()
     End With
     If multiLigne Then plage.Rows(1).RowHeight = FRM_H_MULTI
+End Sub
+
+' -------------------------------------------------------------------------------------
+' CHAMPS DATE ET MONTANT AVEC GARDE-FOUS (validation de donnees Excel)
+' -------------------------------------------------------------------------------------
+' La validation affiche une bulle d'aide (format attendu) quand l'operateur clique sur la
+' cellule, et REFUSE toute valeur incorrecte des la saisie, avec un message explicite.
+' Elle ne protege pas du copier-coller : les controles des boutons relisent donc aussi la
+' saisie avec mod_DataStructure.TryLireDate / TryLireMontant.
+Public Sub PoserChampDate(ByVal plage As Range, Optional ByVal multiLigne As Boolean = False)
+    PoserChampSaisie plage, "dd/mm/yyyy", multiLigne
+    PoserValidationDate plage
+End Sub
+
+Public Sub PoserChampMontant(ByVal plage As Range, Optional ByVal formatNombre As String = "#,##0.00", _
+                             Optional ByVal sens As Long = MONTANT_LIBRE)
+    PoserChampSaisie plage, formatNombre
+    PoserValidationMontant plage, sens
+End Sub
+
+' Validation seule (sans toucher a la mise en forme) : utilisable pour reposer le garde-fou
+' a chaque ouverture d'un formulaire, comme les listes deroulantes.
+Public Sub PoserValidationDate(ByVal plage As Range)
+    Dim cible As Range
+    Set cible = plage.Cells(1, 1).MergeArea
+    On Error GoTo Echec
+    With cible.Validation
+        .Delete
+        .Add Type:=xlValidateDate, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, _
+             Formula1:=CStr(mod_DataStructure.DATE_MIN_SAISIE), Formula2:=CStr(mod_DataStructure.DATE_MAX_SAISIE)
+        .IgnoreBlank = True
+        .ShowInput = True
+        .InputTitle = "Date"
+        .InputMessage = "Format : JJ/MM/AAAA (exemple : 15/03/2027)."
+        .ShowError = True
+        .ErrorTitle = mod_Display.FR("Date invalide")
+        .ErrorMessage = mod_Display.FR("Cette date n'est pas valide. Format attendu : JJ/MM/AAAA (exemple : 15/03/2027), entre 2000 et 2100.")
+    End With
+    Exit Sub
+Echec:
+    ' La validation est un confort : son echec ne doit jamais bloquer l'ouverture du formulaire.
+End Sub
+
+Public Sub PoserValidationMontant(ByVal plage As Range, Optional ByVal sens As Long = MONTANT_LIBRE)
+    Dim cible As Range
+    Dim aide As String
+    Set cible = plage.Cells(1, 1).MergeArea
+    On Error GoTo Echec
+    With cible.Validation
+        .Delete
+        Select Case sens
+            Case MONTANT_POSITIF
+                .Add Type:=xlValidateDecimal, AlertStyle:=xlValidAlertStop, Operator:=xlGreater, Formula1:="0"
+                aide = mod_Display.FR("Nombre positif, sans symbole ni unit{e2} (exemple : 98,43).")
+            Case MONTANT_POSITIF_OU_NUL
+                .Add Type:=xlValidateDecimal, AlertStyle:=xlValidAlertStop, Operator:=xlGreaterEqual, Formula1:="0"
+                aide = mod_Display.FR("Nombre positif ou nul, sans symbole ni unit{e2} (exemple : 98,43).")
+            Case Else
+                .Add Type:=xlValidateDecimal, AlertStyle:=xlValidAlertStop, Operator:=xlBetween, Formula1:="-1000000000", Formula2:="1000000000"
+                aide = mod_Display.FR("Nombre, n{e2}gatif pour une d{e2}pense (exemple : -98,43).")
+        End Select
+        .IgnoreBlank = True
+        .ShowInput = True
+        .InputTitle = "Montant"
+        .InputMessage = aide
+        .ShowError = True
+        .ErrorTitle = mod_Display.FR("Valeur invalide")
+        .ErrorMessage = aide & mod_Display.FR(" Les lettres, symboles et dates sont refus{e2}s.")
+    End With
+    Exit Sub
+Echec:
 End Sub
 
 ' Titre d'un bloc du formulaire (par exemple "Opération concernée") : texte fusionné,

@@ -955,6 +955,12 @@ Private Sub RemplirChampsEch(ByVal ws As Worksheet, ByRef e As TypeEcheance)
     ws.Range(EF_ADR_TOLERANCE).Value = e.TolerancePct
     ws.Range(EF_ADR_MESSAGE).Value = ""
 
+    ' Garde-fous de saisie (dates, montant, tolérance), reposés à chaque ouverture.
+    mod_InstallCommun.PoserValidationMontant ws.Range(EF_ADR_MONTANT)
+    mod_InstallCommun.PoserValidationDate ws.Range(EF_ADR_DATE)
+    mod_InstallCommun.PoserValidationDate ws.Range(EF_ADR_DATEFIN)
+    mod_InstallCommun.PoserValidationMontant ws.Range(EF_ADR_TOLERANCE), mod_InstallCommun.MONTANT_POSITIF_OU_NUL
+
     ' Tiers : liste des Tiers connus dans les opérations (saisie libre acceptée : un mot-clé suffit).
     RemplirListeTiersEch ws
     ' Catégorie : liste stricte, comme dans les autres formulaires; le bouton + en crée une nouvelle.
@@ -1283,6 +1289,8 @@ Public Sub EchValider()
     Dim ws As Worksheet
     Dim lib As String, tiers As String, cat As String, sous As String, periode As String, prec As String
     Dim vMont As Variant, vDate As Variant, vFin As Variant, vTol As Variant
+    Dim nMont As Double, nTol As Double
+    Dim dPrevue As Date, dFinLue As Date
     Dim chq As String, chqNorm As String, trouve As String, k As Long, chiffres As Boolean
     Dim listeCat() As String, listeSous() As String
     Dim e As TypeEcheance
@@ -1329,11 +1337,11 @@ Public Sub EchValider()
         AfficherMessageEch ws, "Le montant est obligatoire (n{e2}gatif pour une d{e2}pense, positif pour une entr{e2}e d'argent)."
         Exit Sub
     End If
-    If Not IsNumeric(vMont) Then
-        AfficherMessageEch ws, "Le montant doit {ea}tre un nombre."
+    If Not mod_DataStructure.TryLireMontant(vMont, nMont) Then
+        AfficherMessageEch ws, "Le montant n'est pas valide. " & mod_DataStructure.MessageMontantAttendu()
         Exit Sub
     End If
-    If CDbl(vMont) = 0 Then
+    If nMont = 0 Then
         AfficherMessageEch ws, "Le montant ne peut pas {ea}tre nul."
         Exit Sub
     End If
@@ -1382,8 +1390,8 @@ Public Sub EchValider()
         AfficherMessageEch ws, "La date est obligatoire."
         Exit Sub
     End If
-    If Not IsDate(vDate) Then
-        AfficherMessageEch ws, "La date n'est pas valide (exemple : 15/03/2027)."
+    If Not mod_DataStructure.TryLireDate(vDate, dPrevue) Then
+        AfficherMessageEch ws, "La date n'est pas valide. " & mod_DataStructure.MessageDateAttendue()
         Exit Sub
     End If
     If Not IsEmpty(vFin) Then
@@ -1391,21 +1399,21 @@ Public Sub EchValider()
             AfficherMessageEch ws, "Une date de fin n'a de sens que pour une op{e2}ration r{e2}currente : effacez-la, ou choisissez une p{e2}riodicit{e2}."
             Exit Sub
         End If
-        If Not IsDate(vFin) Then
-            AfficherMessageEch ws, "La date de fin n'est pas valide (exemple : 15/03/2028)."
+        If Not mod_DataStructure.TryLireDate(vFin, dFinLue) Then
+            AfficherMessageEch ws, "La date de fin n'est pas valide. " & mod_DataStructure.MessageDateAttendue()
             Exit Sub
         End If
-        If CDate(vFin) < CDate(vDate) Then
+        If dFinLue < dPrevue Then
             AfficherMessageEch ws, "La date de fin ne peut pas {ea}tre ant{e2}rieure {a2} la date pr{e2}vue."
             Exit Sub
         End If
     End If
     If Not IsEmpty(vTol) Then
-        If Not IsNumeric(vTol) Then
-            AfficherMessageEch ws, "La tol{e2}rance doit {ea}tre un nombre (pourcentage)."
+        If Not mod_DataStructure.TryLireMontant(vTol, nTol) Then
+            AfficherMessageEch ws, "La tol{e2}rance doit {ea}tre un nombre (pourcentage, exemple : 10)."
             Exit Sub
         End If
-        If CDbl(vTol) < 0 Or CDbl(vTol) > 100 Then
+        If nTol < 0 Or nTol > 100 Then
             AfficherMessageEch ws, "La tol{e2}rance doit {ea}tre comprise entre 0 et 100."
             Exit Sub
         End If
@@ -1423,13 +1431,13 @@ Public Sub EchValider()
     Else
         e.Libelle = cat
     End If
-    e.Montant = CDbl(vMont)
+    e.Montant = nMont
     e.NumCheque = chq
     e.Periodicite = periode
-    e.DatePrevue = CDate(vDate)
-    If IsEmpty(vFin) Then e.DateFin = 0 Else e.DateFin = CDate(vFin)
+    e.DatePrevue = dPrevue
+    If IsEmpty(vFin) Then e.DateFin = 0 Else e.DateFin = dFinLue
     e.PrecisionDate = prec
-    If IsEmpty(vTol) Then e.TolerancePct = TOLERANCE_DEFAUT Else e.TolerancePct = CDbl(vTol)
+    If IsEmpty(vTol) Then e.TolerancePct = TOLERANCE_DEFAUT Else e.TolerancePct = nTol
 
     g_EchRes = e
     g_EchValide = True
@@ -1841,7 +1849,6 @@ Public Sub SaisirSoldeReference()
     Dim nouveauM As Double, calcule As Double, ecart As Double
     Dim nouvelleD As Date, ancD As Date
     Dim controle As Boolean
-    Dim sep As String
     Dim msg As String
     Dim titre As String
 
@@ -1861,22 +1868,19 @@ Public Sub SaisirSoldeReference()
 
     sMont = InputBox(mod_Display.FR("Solde du compte tel que votre banque l'affiche (en euros, n{e2}gatif si le compte est {a2} d{e2}couvert) :"), titre, defMont)
     If Trim$(sMont) = "" Then Exit Sub
-    sep = Application.International(xlDecimalSeparator)
-    sMont = Replace(Replace(Replace(Trim$(sMont), " ", ""), ".", sep), ",", sep)
-    If Not IsNumeric(sMont) Then
-        MsgBox mod_Display.FR("Le montant saisi n'est pas un nombre."), vbExclamation, titre
+    If Not mod_DataStructure.TryLireMontant(sMont, nouveauM) Then
+        MsgBox mod_Display.FR("Le montant saisi n'est pas valide.") & vbCrLf & vbCrLf & mod_DataStructure.MessageMontantAttendu(), vbExclamation, titre
         Exit Sub
     End If
-    nouveauM = CDbl(sMont)
 
     sDate = InputBox(mod_Display.FR("Date de ce solde (jj/mm/aaaa) : c'est la date {a2} laquelle la banque affiche ce solde, pas forc{e2}ment celle de l'import. Les op{e2}rations dat{e2}es de ce jour ou avant sont consid{e2}r{e2}es comme d{e2}j{a2} comprises dans le solde."), _
                      titre, Format(Date, "dd/mm/yyyy"))
     If Trim$(sDate) = "" Then Exit Sub
-    If Not IsDate(sDate) Then
-        MsgBox mod_Display.FR("La date saisie n'est pas valide."), vbExclamation, titre
+    If Not mod_DataStructure.TryLireDate(sDate, nouvelleD) Then
+        MsgBox mod_Display.FR("La date saisie n'est pas valide.") & vbCrLf & vbCrLf & mod_DataStructure.MessageDateAttendue(), vbExclamation, titre
         Exit Sub
     End If
-    nouvelleD = CDate(sDate)
+    nouvelleD = Int(nouvelleD)
 
     ' --- contrôle : possible seulement s'il existe déjà un solde de référence ---
     If Not IsEmpty(ancienM) And Not IsEmpty(ancienD) Then

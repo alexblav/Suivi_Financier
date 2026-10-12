@@ -273,21 +273,21 @@ Private Function ConstruireFormulaireReleve(ByVal wsPrecedente As Worksheet) As 
     mod_InstallCommun.PoserChampLecture ws.Range("C7:E7"), "@"
 
     mod_InstallCommun.PoserEtiquette ws.Range("B8"), mod_Display.FR("D{e2}but de la p{e2}riode")
-    mod_InstallCommun.PoserChampSaisie ws.Range(mod_Consommations.RF_ADR_DEBUT), "dd/mm/yyyy"
+    mod_InstallCommun.PoserChampDate ws.Range(mod_Consommations.RF_ADR_DEBUT)
 
     mod_InstallCommun.PoserEtiquette ws.Range("B9"), mod_Display.FR("Fin de la p{e2}riode (incluse)")
-    mod_InstallCommun.PoserChampSaisie ws.Range(mod_Consommations.RF_ADR_FIN), "dd/mm/yyyy"
+    mod_InstallCommun.PoserChampDate ws.Range(mod_Consommations.RF_ADR_FIN)
 
     mod_InstallCommun.PoserEtiquette ws.Range("B10"), mod_Display.FR("Quantit{e2} consomm{e2}e")
-    mod_InstallCommun.PoserChampSaisie ws.Range(mod_Consommations.RF_ADR_QTE), "#,##0.00"
+    mod_InstallCommun.PoserChampMontant ws.Range(mod_Consommations.RF_ADR_QTE), "#,##0.00", mod_InstallCommun.MONTANT_POSITIF_OU_NUL
     mod_InstallCommun.PoserChampLecture ws.Range(mod_Consommations.RF_ADR_UNITE), "@"
 
     mod_InstallCommun.PoserEtiquette ws.Range("B11"), mod_Display.FR("Prix de l'unit{e2}")
-    mod_InstallCommun.PoserChampSaisie ws.Range(mod_Consommations.RF_ADR_PRIX), "#,##0.0000"
+    mod_InstallCommun.PoserChampMontant ws.Range(mod_Consommations.RF_ADR_PRIX), "#,##0.0000", mod_InstallCommun.MONTANT_POSITIF_OU_NUL
     mod_InstallCommun.PoserChampLecture ws.Range(mod_Consommations.RF_ADR_UNITE_PRIX), "@"
 
     mod_InstallCommun.PoserEtiquette ws.Range("B12"), "Abonnement mensuel"
-    mod_InstallCommun.PoserChampSaisie ws.Range(mod_Consommations.RF_ADR_ABO), "#,##0.00"
+    mod_InstallCommun.PoserChampMontant ws.Range(mod_Consommations.RF_ADR_ABO), "#,##0.00", mod_InstallCommun.MONTANT_POSITIF_OU_NUL
     mod_InstallCommun.PoserChampLecture ws.Range(mod_Consommations.RF_ADR_UNITE_ABO), "@"
 
     mod_InstallCommun.PoserEtiquette ws.Range("B13"), mod_Display.FR("N{o2} de facture (facultatif)")
@@ -403,13 +403,13 @@ Private Function ConstruireFormulaireContrat(ByVal wsPrecedente As Worksheet) As
     mod_InstallCommun.PoserChampSaisie ws.Range(mod_Consommations.CF_ADR_UNITE), "@"
 
     mod_InstallCommun.PoserEtiquette ws.Range("B9"), mod_Display.FR("D{e2}but du contrat")
-    mod_InstallCommun.PoserChampSaisie ws.Range(mod_Consommations.CF_ADR_DEBUT), "dd/mm/yyyy"
+    mod_InstallCommun.PoserChampDate ws.Range(mod_Consommations.CF_ADR_DEBUT)
 
     mod_InstallCommun.PoserEtiquette ws.Range("B10"), "Fin du contrat (facultative)"
-    mod_InstallCommun.PoserChampSaisie ws.Range(mod_Consommations.CF_ADR_FIN), "dd/mm/yyyy"
+    mod_InstallCommun.PoserChampDate ws.Range(mod_Consommations.CF_ADR_FIN)
 
     mod_InstallCommun.PoserEtiquette ws.Range("B11"), "Abonnement mensuel (" & ChrW(8364) & ")"
-    mod_InstallCommun.PoserChampSaisie ws.Range(mod_Consommations.CF_ADR_ABO), "#,##0.00"
+    mod_InstallCommun.PoserChampMontant ws.Range(mod_Consommations.CF_ADR_ABO), "#,##0.00", mod_InstallCommun.MONTANT_POSITIF_OU_NUL
 
     mod_InstallCommun.PoserEtiquette ws.Range("B12"), mod_Display.FR("R{e2}f{e2}rence / N{o2} de compteur")
     mod_InstallCommun.PoserChampSaisie ws.Range("C12:E12"), "@"

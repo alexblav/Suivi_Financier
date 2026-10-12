@@ -373,9 +373,15 @@ Private Function VersJour(ByVal v As Variant) As Double
     End If
 End Function
 
-Private Function EstNombre(ByVal v As Variant) As Boolean
-    If IsError(v) Or IsEmpty(v) Then Exit Function
-    EstNombre = IsNumeric(v)
+' Vrai si la cellule contient quelque chose (autre que des espaces) : permet de distinguer
+' un champ laisse vide d'un champ rempli avec une valeur invalide.
+Private Function SaisieNonVide(ByVal v As Variant) As Boolean
+    If IsEmpty(v) Or IsNull(v) Then Exit Function
+    If IsError(v) Then
+        SaisieNonVide = True
+    Else
+        SaisieNonVide = (Trim$(CStr(v)) <> "")
+    End If
 End Function
 
 Private Function TexteDate(ByVal jour As Double) As String
@@ -1291,6 +1297,13 @@ Private Sub RemplirChampsRel(ByVal ws As Worksheet, ByRef r As TypeReleve)
     ws.Range(RF_ADR_COMMENT).Value = r.Commentaire
     ws.Range(RF_ADR_MESSAGE).Value = ""
 
+    ' Garde-fous de saisie reposés à chaque ouverture (dates, quantité, prix, abonnement).
+    mod_InstallCommun.PoserValidationDate ws.Range(RF_ADR_DEBUT)
+    mod_InstallCommun.PoserValidationDate ws.Range(RF_ADR_FIN)
+    mod_InstallCommun.PoserValidationMontant ws.Range(RF_ADR_QTE), mod_InstallCommun.MONTANT_POSITIF_OU_NUL
+    mod_InstallCommun.PoserValidationMontant ws.Range(RF_ADR_PRIX), mod_InstallCommun.MONTANT_POSITIF_OU_NUL
+    mod_InstallCommun.PoserValidationMontant ws.Range(RF_ADR_ABO), mod_InstallCommun.MONTANT_POSITIF_OU_NUL
+
     ' Opérateur et unités (sans toucher aux prix saisis).
     RelRemplirContexte ws, False
 
@@ -1408,6 +1421,8 @@ Private Sub RelValiderCommun(ByVal suivant As Boolean)
     Dim typ As String
     Dim dDeb As Double, dFin As Double
     Dim vQte As Variant, vPrix As Variant, vAbo As Variant
+    Dim nQte As Double, nPrix As Double, nAbo As Double
+    Dim dTmp As Date
     Dim k As Long, j As Long
     Dim e As TypeReleve
 
@@ -1426,6 +1441,14 @@ Private Sub RelValiderCommun(ByVal suivant As Boolean)
         AfficherMessageRel ws, "Choisissez le type de consommation dans la liste."
         Exit Sub
     End If
+    If SaisieNonVide(ws.Range(RF_ADR_DEBUT).Value) And Not mod_DataStructure.TryLireDate(ws.Range(RF_ADR_DEBUT).Value, dTmp) Then
+        AfficherMessageRel ws, "La date de d{e2}but n'est pas valide. " & mod_DataStructure.MessageDateAttendue()
+        Exit Sub
+    End If
+    If SaisieNonVide(ws.Range(RF_ADR_FIN).Value) And Not mod_DataStructure.TryLireDate(ws.Range(RF_ADR_FIN).Value, dTmp) Then
+        AfficherMessageRel ws, "La date de fin n'est pas valide. " & mod_DataStructure.MessageDateAttendue()
+        Exit Sub
+    End If
     If dDeb = 0 Then
         AfficherMessageRel ws, "Renseignez la date de d{e2}but de la p{e2}riode."
         Exit Sub
@@ -1438,28 +1461,36 @@ Private Sub RelValiderCommun(ByVal suivant As Boolean)
         AfficherMessageRel ws, "La date de fin est ant{e2}rieure {a2} la date de d{e2}but."
         Exit Sub
     End If
-    If Not EstNombre(vQte) Then
+    If Not SaisieNonVide(vQte) Then
         AfficherMessageRel ws, "Renseignez la quantit{e2} consomm{e2}e (0 si aucune)."
         Exit Sub
     End If
-    If CDbl(vQte) < 0 Then
+    If Not mod_DataStructure.TryLireMontant(vQte, nQte) Then
+        AfficherMessageRel ws, "La quantit{e2} n'est pas valide. " & mod_DataStructure.MessageMontantAttendu()
+        Exit Sub
+    End If
+    If nQte < 0 Then
         AfficherMessageRel ws, "La quantit{e2} ne peut pas {ea}tre n{e2}gative."
         Exit Sub
     End If
-    If Not EstNombre(vPrix) Then
+    If Not SaisieNonVide(vPrix) Then
         AfficherMessageRel ws, "Renseignez le prix de l'unit{e2} (0 si l'unit{e2} est gratuite)."
         Exit Sub
     End If
-    If CDbl(vPrix) < 0 Then
+    If Not mod_DataStructure.TryLireMontant(vPrix, nPrix, 4) Then
+        AfficherMessageRel ws, "Le prix de l'unit{e2} n'est pas valide (4 d{e2}cimales au maximum). " & mod_DataStructure.MessageMontantAttendu()
+        Exit Sub
+    End If
+    If nPrix < 0 Then
         AfficherMessageRel ws, "Le prix de l'unit{e2} ne peut pas {ea}tre n{e2}gatif."
         Exit Sub
     End If
-    If IsEmpty(vAbo) Then
-        vAbo = 0
-    ElseIf Not EstNombre(vAbo) Then
-        AfficherMessageRel ws, "L'abonnement mensuel doit {ea}tre un nombre."
+    If Not SaisieNonVide(vAbo) Then
+        nAbo = 0
+    ElseIf Not mod_DataStructure.TryLireMontant(vAbo, nAbo) Then
+        AfficherMessageRel ws, "L'abonnement mensuel n'est pas valide. " & mod_DataStructure.MessageMontantAttendu()
         Exit Sub
-    ElseIf CDbl(vAbo) < 0 Then
+    ElseIf nAbo < 0 Then
         AfficherMessageRel ws, "L'abonnement mensuel ne peut pas {ea}tre n{e2}gatif."
         Exit Sub
     End If
@@ -1489,9 +1520,9 @@ Private Sub RelValiderCommun(ByVal suivant As Boolean)
     e.Typ = typ
     e.Debut = CDate(dDeb)
     e.Fin = CDate(dFin)
-    e.Qte = CDbl(vQte)
-    e.Prix = CDbl(vPrix)
-    e.AboMensuel = CDbl(vAbo)
+    e.Qte = nQte
+    e.Prix = nPrix
+    e.AboMensuel = nAbo
     e.Facture = mod_DataStructure.CellText(ws.Range(RF_ADR_FACTURE).Value)
     e.Commentaire = mod_DataStructure.CellText(ws.Range(RF_ADR_COMMENT).Value)
 
@@ -1620,6 +1651,9 @@ Private Function OuvrirFormContrat(ByRef c As TypeContrat, ByRef ligneAClore As 
     If c.AboMensuel <> 0 Then ws.Range(CF_ADR_ABO).Value = c.AboMensuel Else ws.Range(CF_ADR_ABO).ClearContents
     ws.Range(CF_ADR_REFERENCE).Value = c.Reference
     ws.Range(CF_ADR_MESSAGE).Value = ""
+    mod_InstallCommun.PoserValidationDate ws.Range(CF_ADR_DEBUT)
+    mod_InstallCommun.PoserValidationDate ws.Range(CF_ADR_FIN)
+    mod_InstallCommun.PoserValidationMontant ws.Range(CF_ADR_ABO), mod_InstallCommun.MONTANT_POSITIF_OU_NUL
     Application.EnableEvents = evenementsAvant
 
     ws.Visible = xlSheetVisible
@@ -1694,6 +1728,8 @@ Public Sub CtrValider()
     Dim typ As String, oper As String
     Dim dDeb As Double, dFin As Double, jFin As Double
     Dim vAbo As Variant
+    Dim nAbo As Double
+    Dim dTmp As Date
     Dim j As Long, aClore As Long
     Dim e As TypeContrat
 
@@ -1715,6 +1751,14 @@ Public Sub CtrValider()
         AfficherMessageCtr ws, "Renseignez l'op{e2}rateur (fournisseur)."
         Exit Sub
     End If
+    If SaisieNonVide(ws.Range(CF_ADR_DEBUT).Value) And Not mod_DataStructure.TryLireDate(ws.Range(CF_ADR_DEBUT).Value, dTmp) Then
+        AfficherMessageCtr ws, "La date de d{e2}but n'est pas valide. " & mod_DataStructure.MessageDateAttendue()
+        Exit Sub
+    End If
+    If SaisieNonVide(ws.Range(CF_ADR_FIN).Value) And Not mod_DataStructure.TryLireDate(ws.Range(CF_ADR_FIN).Value, dTmp) Then
+        AfficherMessageCtr ws, "La date de fin n'est pas valide. " & mod_DataStructure.MessageDateAttendue()
+        Exit Sub
+    End If
     If dDeb = 0 Then
         AfficherMessageCtr ws, "Renseignez la date de d{e2}but du contrat."
         Exit Sub
@@ -1723,12 +1767,12 @@ Public Sub CtrValider()
         AfficherMessageCtr ws, "La date de fin est ant{e2}rieure {a2} la date de d{e2}but."
         Exit Sub
     End If
-    If IsEmpty(vAbo) Then
-        vAbo = 0
-    ElseIf Not EstNombre(vAbo) Then
-        AfficherMessageCtr ws, "L'abonnement mensuel doit {ea}tre un nombre."
+    If Not SaisieNonVide(vAbo) Then
+        nAbo = 0
+    ElseIf Not mod_DataStructure.TryLireMontant(vAbo, nAbo) Then
+        AfficherMessageCtr ws, "L'abonnement mensuel n'est pas valide. " & mod_DataStructure.MessageMontantAttendu()
         Exit Sub
-    ElseIf CDbl(vAbo) < 0 Then
+    ElseIf nAbo < 0 Then
         AfficherMessageCtr ws, "L'abonnement mensuel ne peut pas {ea}tre n{e2}gatif."
         Exit Sub
     End If
@@ -1774,7 +1818,7 @@ Public Sub CtrValider()
     If e.Unite = "" Then e.Unite = UniteDefaut(typ)
     e.Debut = CDate(dDeb)
     If dFin <> 0 Then e.Fin = CDate(dFin)
-    e.AboMensuel = CDbl(vAbo)
+    e.AboMensuel = nAbo
     e.Reference = mod_DataStructure.CellText(ws.Range(CF_ADR_REFERENCE).Value)
 
     g_CtrRes = e

@@ -812,7 +812,8 @@ Private Function ChangerCategorieVentilationSante(ByVal ligneVen As Long) As Str
 
     ' Même appel que mod_RechercheOperations.RevoirVentilationRO.
     If Not mod_Ventilation.OuvrirVentilation(idTransaction, dateParent, tiersParent, "", montantParent, _
-                                             categorieParent, sousCategorieParent, ventilationSupprimee) Then
+                                             categorieParent, sousCategorieParent, ventilationSupprimee, _
+                                             mod_DataStructure.CellText(chequeParent)) Then
         If Not ventilationSupprimee Then Exit Function    ' annulation : rien n'a changé
         ' Ventilation supprimée : l'opération parente reprend sa catégorie d'avant
         ' ventilation (procédure existante, rendue publique pour l'occasion).
@@ -905,7 +906,18 @@ Private Function AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal S
     ws.Range("gcDateConsult").value = ""
     ws.Range("gcSpecialite").value = ""
     ws.Range("gcBeneficiaire").value = ""
-    ws.Range("gcMontant").value = Abs(montantCtx)
+    ' Montant de la clé (champ 4) = montant de la DÉPENSE remboursée. Pour une dépense (montant
+    ' négatif), il est repris de l'opération : champ grisé. Pour un REMBOURSEMENT (montant positif)
+    ' dont la dépense n'a pas été trouvée dans la liste (mauvaise catégorie, etc.), le montant de
+    ' l'opération n'est pas celui de la clé : le champ est laissé vide, jaune, à saisir
+    ' (ajout du 12/10/2026). Les champs sont reposés à chaque ouverture, sans réinstallation.
+    If montantCtx > 0 Then
+        mod_InstallCommun.PoserChampMontant ws.Range("gcMontant"), "#,##0.00 " & ChrW(8364), mod_InstallCommun.MONTANT_POSITIF
+        ws.Range("gcMontant").value = ""
+    Else
+        mod_InstallCommun.PoserChampLecture ws.Range("gcMontant"), "#,##0.00 " & ChrW(8364)
+        ws.Range("gcMontant").value = Abs(montantCtx)
+    End If
     ws.Range("gcCleGeneree").value = ""
 
     ws.Visible = xlSheetVisible
@@ -914,6 +926,7 @@ Private Function AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal S
 
     ' Listes deroulantes reposees a chaque ouverture (09/10/2026) : ne dependent plus
     ' d'une validation posee une fois pour toutes a l'installation.
+    mod_InstallCommun.PoserValidationDate ws.Range("gcDateConsult")   ' garde-fou date reposé aussi sans réinstallation
     mod_InstallCommun.PoserListeDeroulante ws.Range("gcSpecialite"), "Specialites"
     mod_InstallCommun.PoserListeDeroulante ws.Range("gcBeneficiaire"), "Beneficiaires"
 
@@ -957,8 +970,12 @@ Public Sub GenererCleNotes()
     specialite = Trim(CStr(ws.Range("gcSpecialite").value))
     beneficiaire = Trim(CStr(ws.Range("gcBeneficiaire").value))
 
-    If Not IsDate(dateConsult) Then
-        MsgBox FR("Merci de saisir une Date_consult valide (JJ/MM/AAAA)."), vbExclamation
+    Dim jourConsult As Date
+    Dim montantSaisi As Double
+
+    If Not mod_DataStructure.TryLireDate(dateConsult, jourConsult) Then
+        MsgBox FR("La date de consultation est absente ou invalide.") & vbCrLf & vbCrLf & _
+               mod_DataStructure.MessageDateAttendue(), vbExclamation
         Exit Sub
     End If
     If specialite = "" Then
@@ -970,9 +987,24 @@ Public Sub GenererCleNotes()
         Exit Sub
     End If
 
-    montantTexte = mod_DataStructure.CellText(ws.Range("gcMontant").value)
+    ' Montant saisi (remboursement) ou repris de l'opération : doit être un nombre > 0.
+    ' On le normalise en valeur absolue pour que la clé soit toujours de la forme "98,43".
+    If Not mod_DataStructure.TryLireMontant(ws.Range("gcMontant").value, montantSaisi) Then
+        MsgBox FR("Le montant de la d{e2}pense est absent ou invalide.") & vbCrLf & vbCrLf & _
+               mod_DataStructure.MessageMontantAttendu(), vbExclamation
+        Exit Sub
+    End If
+    If montantSaisi = 0 Then
+        MsgBox FR("Le montant de la d{e2}pense doit {ea}tre diff{e2}rent de z{e2}ro."), vbExclamation
+        Exit Sub
+    End If
+    If montantSaisi < 0 Then
+        MsgBox FR("Saisissez le montant de la d{e2}pense en positif (sans signe moins)."), vbExclamation
+        Exit Sub
+    End If
+    montantTexte = CStr(montantSaisi)
 
-    cle = Format(CDate(dateConsult), "yyyymmdd") & ";" & specialite & ";" & beneficiaire & ";" & montantTexte
+    cle = Format(jourConsult, "yyyymmdd") & ";" & specialite & ";" & beneficiaire & ";" & montantTexte
 
     ws.Range("gcCleGeneree").value = cle
     ws.Range("gcCleGeneree").Copy   ' copie dans le presse-papiers (comme Ctrl+C sur la cellule)

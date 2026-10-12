@@ -297,7 +297,7 @@ Private Sub SS_ConstruireBlocSaisie(ByVal ws As Worksheet)
     ' --- Franchise (saisie numérique libre, valeur par défaut : 0) ---
     mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_FRANCHISE), "Franchise"
     Set rng = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_FRANCHISE)
-    mod_InstallCommun.PoserChampSaisie rng, "#,##0.00 " & ChrW(8364)
+    mod_InstallCommun.PoserChampMontant rng, "#,##0.00 " & ChrW(8364), mod_InstallCommun.MONTANT_POSITIF_OU_NUL
     mod_InstallCommun.PoserNom ws, "ssFranchise", rng
 
     ' --- Dépassement validé ? (liste Oui/Non, pertinent seulement si le solde n'est pas nul) ---
