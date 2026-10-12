@@ -60,6 +60,13 @@ End Type
 ' ayant lancé la boucle d'attente sache quoi faire lorsqu'elle se termine.
 Private derniereAction As String
 
+' Vrai UNIQUEMENT pendant qu'une boucle d'attente (rapprochement ou génération de clé) tourne
+' réellement. Les boutons des deux feuilles ne font que poser derniereAction et baisser
+' g_SaisieEnCours : si aucune boucle n'écoute (macro interrompue par une erreur ou par
+' "Fin", projet VBA réinitialisé...), le clic ne ferait rien en silence. Cette variable
+' permet de le détecter (voir BoucleActive). Une réinitialisation du projet la remet à Faux.
+Private attenteActive As Boolean
+
 ' =====================================================================================
 ' MACRO PRINCIPALE - point d'entrée de la phase 4b
 ' =====================================================================================
@@ -532,6 +539,8 @@ Private Function AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVa
 
     ' --- Boucle d'attente modale + sondage (cascade des 4 filtres) ---
     g_SaisieEnCours = True
+    attenteActive = True
+    On Error GoTo ErreurBoucle
     Do While g_SaisieEnCours
         DoEvents
 
@@ -572,6 +581,8 @@ Private Function AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVa
             ws.Range("rnCleTrouvee").value = ""
         End If
     Loop
+    On Error GoTo 0
+    attenteActive = False
 
     Sheets("Synthese").Activate
     ws.Visible = xlSheetVeryHidden
@@ -613,6 +624,22 @@ Private Function AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVa
         Case "Sortir"
             End
     End Select
+    Exit Function
+
+ErreurBoucle:
+    ' Erreur survenue PENDANT l'attente (ajout du 12/10/2026) : sans ce traitement, la macro
+    ' s'arrêtait, l'écran restait affiché et ses boutons n'avaient plus aucun effet.
+    Dim msgErr As String
+    msgErr = "Erreur " & Err.Number & " : " & Err.Description
+    attenteActive = False
+    g_SaisieEnCours = False
+    On Error Resume Next
+    ws.Visible = xlSheetVeryHidden
+    Sheets("Synthese").Activate
+    On Error GoTo 0
+    MsgBox FR("Le rapprochement des notes s'est interrompu sur une erreur :") & vbCrLf & msgErr & vbCrLf & vbCrLf & _
+           FR("L'op{e2}ration n'a pas {e2}t{e2} modifi{e2}e. Relancez VerifierNotesSante."), vbCritical
+    End
 
 End Function
 
@@ -621,7 +648,25 @@ End Function
 ' BOUTONS de frm_RapprochementNotes
 ' =====================================================================================
 ' Ces actions modifient derniereAction afin d'indiquer le choix de l'opérateur.
+' Vrai si une boucle d'attente écoute réellement les boutons. Sinon (macro interrompue,
+' projet VBA réinitialisé), l'écran affiché est un écran "orphelin" : on le masque et on
+' prévient l'opérateur au lieu de laisser le clic sans effet. (ajout du 12/10/2026)
+Private Function BoucleActive() As Boolean
+    If attenteActive Then
+        BoucleActive = True
+        Exit Function
+    End If
+    g_SaisieEnCours = False
+    On Error Resume Next
+    ActiveSheet.Visible = xlSheetVeryHidden
+    Sheets("Synthese").Activate
+    On Error GoTo 0
+    MsgBox FR("Cet {e2}cran n'est plus rattach{e2} {a2} un traitement en cours (le traitement a {e2}t{e2} interrompu). Rien n'a {e2}t{e2} modifi{e2}." & _
+              " Relancez VerifierNotesSante (Ctrl+G) pour reprendre."), vbExclamation
+End Function
+
 Public Sub ValiderRapprochementNotes()
+    If Not BoucleActive() Then Exit Sub
     Dim ws As Worksheet
     Set ws = ThisWorkbook.Worksheets(mod_InstallFormulairesNotes.NOM_FEUILLE_RAPPROCHEMENT)
 
@@ -635,6 +680,7 @@ Public Sub ValiderRapprochementNotes()
 End Sub
 
 Public Sub PasDeCorrespondanceNotes()
+    If Not BoucleActive() Then Exit Sub
     derniereAction = "PasDeCorrespondance"
     g_SaisieEnCours = False
 End Sub
@@ -643,6 +689,7 @@ End Sub
 ' Date_consult conserve la valeur sentinelle; la ligne sera donc reproposée
 ' au prochain appel de VerifierNotesSante ou au prochain import.
 Public Sub PasserRapprochementNotes()
+    If Not BoucleActive() Then Exit Sub
     derniereAction = "Passer"
     g_SaisieEnCours = False
 End Sub
@@ -652,6 +699,7 @@ End Sub
 ' (opération normale ou ligne de ventilation). Voir la section
 ' "CHANGER LA CATÉGORIE" plus bas pour le détail.
 Public Sub ChangerCategorieRapprochementNotes()
+    If Not BoucleActive() Then Exit Sub
     derniereAction = "ChangerCategorie"
     g_SaisieEnCours = False
 End Sub
@@ -779,11 +827,13 @@ End Function
 ' Date_consult conserve la valeur sentinelle; la ligne sera donc reproposée
 ' au prochain appel de VerifierNotesSante ou au prochain import.
 Public Sub SortirRapprochementNotes()
+    If Not BoucleActive() Then Exit Sub
     derniereAction = "Sortir"
     g_SaisieEnCours = False
 End Sub
 
 Public Sub PasserGenerationCle()
+    If Not BoucleActive() Then Exit Sub
     derniereAction = "Passer"
     g_SaisieEnCours = False
 End Sub
@@ -791,6 +841,7 @@ End Sub
 ' Bouton "Retour" (ajout 09/10/2026) : revient sur frm_RapprochementNotes pour la MEME
 ' operation, sans rien modifier (erreur de clic sur "Pas de correspondance").
 Public Sub RetourGenerationCle()
+    If Not BoucleActive() Then Exit Sub
     derniereAction = "Retour"
     g_SaisieEnCours = False
 End Sub
@@ -868,9 +919,11 @@ Private Function AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal S
 
     derniereAction = ""
     g_SaisieEnCours = True
+    attenteActive = True
     Do While g_SaisieEnCours
         DoEvents
     Loop
+    attenteActive = False
 
     ws.Visible = xlSheetVeryHidden
 
@@ -927,6 +980,7 @@ Public Sub GenererCleNotes()
 End Sub
 
 Public Sub ValiderGenerationCle()
+    If Not BoucleActive() Then Exit Sub
 
     Dim ws As Worksheet
     Set ws = ThisWorkbook.Worksheets(mod_InstallFormulairesNotes.NOM_FEUILLE_GENERATION)

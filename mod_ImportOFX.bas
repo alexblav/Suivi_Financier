@@ -298,6 +298,13 @@ Public Sub ImporterOperationsOFX()
         ' dans mod_VarGlobales.SOUS_CATEGORIE_SANTE afin de n'avoir qu'un seul endroit
         ' à modifier si ce libellé change.
         If sousFinaleCtrl(i) = mod_VarGlobales.SOUS_CATEGORIE_SANTE Then   ' "Frais, remb santé"
+            ' CORRECTIF du 12/10/2026 : certaines notes arrivent préfixées du nom de la
+            ' sous-catégorie ("Frais, remb santé - 20260807;Ophtalmologue;Dédé;98,43").
+            ' Le segment 0 n'est alors pas une date et la ligne tombe à tort dans
+            ' frm_RapprochementNotes. On retire ce préfixe, et on réécrit la note nettoyée
+            ' (c'est resultats(i, COL_LIBELLE) qui est enregistré dans la colonne Notes).
+            libelleFinal = RetirerPrefixeSanteNotes(libelleFinal)
+            resultats(i, COL_LIBELLE) = libelleFinal
             segment0 = SegmentTexte(libelleFinal, ";", 0)
             If EstDateValide(segment0) Then
                 dateConsult = DateSerial(CInt(Left(segment0, 4)), CInt(Mid(segment0, 5, 2)), CInt(Right(segment0, 2)))
@@ -759,6 +766,20 @@ Public Function SegmentTexte(texte As String, separateur As String, index As Int
     Else
         SegmentTexte = ""
     End If
+End Function
+
+' Retire d'une note santé un préfixe "<sous-catégorie> - " placé devant la clé
+' ("Frais, remb santé - 20260807;..." -> "20260807;..."). Sans effet si la note ne
+' commence pas par ce préfixe suivi d'une clé commençant par une date AAAAMMJJ.
+Public Function RetirerPrefixeSanteNotes(ByVal texte As String) As String
+    Dim t As String, reste As String
+    t = Trim(texte)
+    RetirerPrefixeSanteNotes = t
+    If LCase$(Left$(t, Len(mod_VarGlobales.SOUS_CATEGORIE_SANTE))) <> LCase$(mod_VarGlobales.SOUS_CATEGORIE_SANTE) Then Exit Function
+    reste = LTrim$(Mid$(t, Len(mod_VarGlobales.SOUS_CATEGORIE_SANTE) + 1))
+    If Left$(reste, 1) <> "-" Then Exit Function
+    reste = Trim$(Mid$(reste, 2))
+    If EstDateValide(SegmentTexte(reste, ";", 0)) Then RetirerPrefixeSanteNotes = reste
 End Function
 
 ' Teste si un texte représente une date valide et non absurde.

@@ -725,17 +725,32 @@ Private Function DemanderPassphrase(ByVal erreur As Boolean) As Boolean
           T("Saisissez-la (elle ne sera demand{e2}e qu'une fois pour cette session) :")
     If erreur Then msg = T("Passphrase incorrecte.") & vbCrLf & vbCrLf & msg
 
+    ' Pendant la synchronisation l'écran est gelé (ScreenUpdating = False) : on le réactive le temps
+    ' de la saisie, sinon le formulaire modal peut rester invisible et le classeur semble bloqué.
+    Application.ScreenUpdating = True
+    Application.StatusBar = False
+    DoEvents
+
     On Error Resume Next
     Set f = VBA.UserForms.Add("frm_Passphrase")      ' liaison tardive : compile même si le formulaire est absent
-    On Error GoTo 0
     If Not f Is Nothing Then
-        f.Preparer msg
-        f.Show vbModal
-        If f.Valide Then v = f.Saisie
-        Unload f
-    Else
-        v = InputBox(msg, TITRE)
+        f.StartUpPosition = 2                         ' centré sur l'écran (pas sur la fenêtre Excel, peut-être cachée)
+        Err.Clear
+        f.Controls("lblMessage").Caption = msg        ' texte d'explication, posé directement sur l'étiquette
+        f.Preparer msg                                ' remise à zéro de la saisie
+        If Err.Number = 0 Then f.Show vbModal
+        If Err.Number = 0 Then
+            If f.Valide Then v = f.Saisie
+            Unload f
+        Else
+            Err.Clear                                 ' formulaire défaillant : repli sur l'InputBox
+            Set f = Nothing
+        End If
     End If
+    On Error GoTo 0
+    If f Is Nothing Then v = InputBox(msg, TITRE)
+
+    Application.ScreenUpdating = False
 
     If Len(v) > 0 Then mPassphrase = v: DemanderPassphrase = True
 End Function

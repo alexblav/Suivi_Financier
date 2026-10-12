@@ -14,40 +14,57 @@ Option Explicit
 
 Public Sub InstallerFormPassphrase()
 
-    Dim vbp As Object, comp As Object, c As Object
+    Dim vbp As Object, comp As Object, c As Object, etape As String
 
     On Error GoTo Echec
+    etape = "acces au projet VBA"
     Set vbp = ThisWorkbook.VBProject
 
     On Error Resume Next
     Set comp = vbp.VBComponents("frm_Passphrase")
     On Error GoTo Echec
-    If Not comp Is Nothing Then vbp.VBComponents.Remove comp
+    If Not comp Is Nothing Then
+        etape = "suppression de l'ancien formulaire"
+        vbp.VBComponents.Remove comp
+        Set comp = Nothing
+    End If
 
+    etape = "creation du formulaire"
     Set comp = vbp.VBComponents.Add(3)              ' 3 = vbext_ct_MSForm
     comp.Name = "frm_Passphrase"
     comp.Properties("Caption") = "Passphrase"
-    comp.Properties("Width") = 300
-    comp.Properties("Height") = 130
+    etape = "taille du formulaire"
+    comp.Properties("Width") = 440
+    comp.Properties("Height") = 200
 
+    etape = "etiquette"
     Set c = comp.Designer.Controls.Add("Forms.Label.1", "lblMessage", True)
-    c.Left = 12: c.Top = 10: c.Width = 270: c.Height = 40
-    c.Caption = ""
+    c.Left = 12: c.Top = 10: c.Width = 410: c.Height = 52
+    PoserPolice c, 12
+    c.Caption = "Saisissez la passphrase."
+    c.WordWrap = True
 
+    etape = "champ de saisie"
     Set c = comp.Designer.Controls.Add("Forms.TextBox.1", "txtPass", True)
-    c.Left = 12: c.Top = 56: c.Width = 270: c.Height = 18
+    c.Left = 12: c.Top = 70: c.Width = 410: c.Height = 28
+    PoserPolice c, 14
     c.PasswordChar = "*"
 
+    etape = "bouton OK"
     Set c = comp.Designer.Controls.Add("Forms.CommandButton.1", "btnOK", True)
-    c.Left = 130: c.Top = 86: c.Width = 70: c.Height = 22
+    c.Left = 222: c.Top = 112: c.Width = 98: c.Height = 32
+    PoserPolice c, 12
     c.Caption = "OK"
     c.Default = True
 
+    etape = "bouton Annuler"
     Set c = comp.Designer.Controls.Add("Forms.CommandButton.1", "btnAnnuler", True)
-    c.Left = 212: c.Top = 86: c.Width = 70: c.Height = 22
+    c.Left = 326: c.Top = 112: c.Width = 98: c.Height = 32
+    PoserPolice c, 12
     c.Caption = "Annuler"
     c.Cancel = True
 
+    etape = "code du formulaire"
     comp.CodeModule.AddFromString CodeFormulaire()
 
     MsgBox "Le formulaire frm_Passphrase est installe." & vbCrLf & _
@@ -55,9 +72,16 @@ Public Sub InstallerFormPassphrase()
     Exit Sub
 
 Echec:
-    MsgBox "Installation impossible : " & Err.Description & vbCrLf & vbCrLf & _
-           "Verifiez Fichier > Options > Centre de gestion de la confidentialite > Parametres des macros :" & vbCrLf & _
-           "cocher 'Acces approuve au modele d'objet du projet VBA'.", vbExclamation, "Passphrase"
+    MsgBox "Installation impossible a l'etape : " & etape & vbCrLf & _
+           "Erreur " & Err.Number & " : " & Err.Description & vbCrLf & vbCrLf & _
+           "Si l'erreur concerne l'acces au projet VBA, verifiez Fichier > Options > Centre de gestion de la" & vbCrLf & _
+           "confidentialite > Parametres des macros : 'Acces approuve au modele d'objet du projet VBA'.", vbExclamation, "Passphrase"
+End Sub
+
+' La police est cosmetique : si elle ne peut pas etre reglee, l'installation continue.
+Private Sub PoserPolice(ByVal c As Object, ByVal taille As Single)
+    On Error Resume Next
+    c.Font.Size = taille
 End Sub
 
 Private Function CodeFormulaire() As String
