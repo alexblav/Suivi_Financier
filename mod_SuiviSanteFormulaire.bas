@@ -153,13 +153,16 @@ Private Sub ChargerListeCasSuiviSante()
     Dim nbLigne As Long, j As Long
 
     Dim notesVues As Object   ' Scripting.Dictionary : évite de retraiter deux fois le même groupe
+    Dim venIds As Object      ' Scripting.Dictionary : ID_Transaction des opérations ventilées
     Dim cleNotes As String
+    Dim idOp As String
 
     ' --- PHASE 6 : jeu de tableaux memoire pour TblVentilations, facultatif ---
     Dim tblVen As ListObject
     Dim donneesVen As Variant
     Dim nbLignesVen As Long
     Dim venDisponible As Boolean
+    Dim colVenID As Long
     Dim colVenSousCat As Long, colVenMontant As Long, colVenNotes As Long, colVenDate As Long
     Dim colVenStatut As Long, colVenHonoraire As Long, colVenBenef As Long, colVenFranchise As Long
     Dim colVenCommentaire As Long, colVenDateConsult As Long, colVenSpeConsult As Long
@@ -182,6 +185,7 @@ Private Sub ChargerListeCasSuiviSante()
     Set tblVen = ObtenirTableVentilationsSSF()
     If Not tblVen Is Nothing Then
         If Not tblVen.DataBodyRange Is Nothing Then
+            colVenID = IndexColVentilationSSF(tblVen, "ID_Transaction")
             colVenSousCat = IndexColVentilationSSF(tblVen, "SousCategorie")
             colVenMontant = IndexColVentilationSSF(tblVen, "Montant")
             colVenNotes = IndexColVentilationSSF(tblVen, "Notes")
@@ -192,7 +196,7 @@ Private Sub ChargerListeCasSuiviSante()
             colVenCommentaire = IndexColVentilationSSF(tblVen, "CommentaireSante")
             colVenDateConsult = IndexColVentilationSSF(tblVen, "Date_consult")
             colVenSpeConsult = IndexColVentilationSSF(tblVen, "Spe_Consult")
-            If colVenSousCat <> 0 And colVenMontant <> 0 And colVenNotes <> 0 And colVenStatut <> 0 And _
+            If colVenID <> 0 And colVenSousCat <> 0 And colVenMontant <> 0 And colVenNotes <> 0 And colVenStatut <> 0 And _
                colVenHonoraire <> 0 And colVenBenef <> 0 And colVenFranchise <> 0 And colVenCommentaire <> 0 And _
                colVenDateConsult <> 0 And colVenSpeConsult <> 0 Then
                 donneesVen = tblVen.DataBodyRange.value
@@ -204,38 +208,52 @@ Private Sub ChargerListeCasSuiviSante()
 
     Set notesVues = CreateObject("Scripting.Dictionary")
 
+    ' Repérage des opérations ventilées (ID_Transaction présents dans TblVentilations).
+    Set venIds = CreateObject("Scripting.Dictionary")
+    If venDisponible Then
+        For j = 1 To nbLignesVen
+            idOp = mod_DataStructure.CellText(donneesVen(j, colVenID))
+            If idOp <> "" Then
+                If Not venIds.Exists(idOp) Then venIds.Add idOp, True
+            End If
+        Next j
+    End If
+
     ' =====================================================================
-    ' Boucle externe : un tour par ligne "Frais, remb santé" de TblOperations
-    ' rencontrée, plus un tour par ligne de TblVentilations si elle n'a pas
-    ' déjà été vue via une ligne de TblOperations du même groupe (Notes).
+    ' Boucle externe : on suit l'ordre d'apparition de TblOperations. Une
+    ' opération ventilée est remplacée, À SA PLACE, par ses lignes de
+    ' TblVentilations ; on revient ensuite à TblOperations. Un groupe (Notes)
+    ' n'est proposé qu'une fois, à sa première apparition.
     ' =====================================================================
     For nbLigne = 1 To nbLignesTable
-        If mod_DataStructure.CellText(tblData(nbLigne, colSousCategorie)) = CategorieSanteFormulaire() Then
+        idOp = mod_DataStructure.CellText(tblData(nbLigne, colID))
+
+        If idOp <> "" And venIds.Exists(idOp) Then
+            For j = 1 To nbLignesVen
+                If mod_DataStructure.CellText(donneesVen(j, colVenID)) = idOp Then
+                    If mod_DataStructure.CellText(donneesVen(j, colVenSousCat)) = CategorieSanteFormulaire() Then
+                        cleNotes = mod_DataStructure.CellText(donneesVen(j, colVenNotes))
+                        If Not notesVues.Exists(cleNotes) Then
+                            notesVues.Add cleNotes, True
+                            TraiterGroupeSiKO cleNotes, tblData, nbLignesTable, _
+                                venDisponible, donneesVen, nbLignesVen, tblVen, venIds, colVenID, _
+                                colVenSousCat, colVenMontant, colVenNotes, colVenStatut, colVenHonoraire, _
+                                colVenBenef, colVenFranchise, colVenCommentaire, colVenDateConsult, colVenSpeConsult
+                        End If
+                    End If
+                End If
+            Next j
+        ElseIf mod_DataStructure.CellText(tblData(nbLigne, colSousCategorie)) = CategorieSanteFormulaire() Then
             cleNotes = mod_DataStructure.CellText(tblData(nbLigne, colNotes))
             If Not notesVues.Exists(cleNotes) Then
                 notesVues.Add cleNotes, True
                 TraiterGroupeSiKO cleNotes, tblData, nbLignesTable, _
-                    venDisponible, donneesVen, nbLignesVen, tblVen, _
+                    venDisponible, donneesVen, nbLignesVen, tblVen, venIds, colVenID, _
                     colVenSousCat, colVenMontant, colVenNotes, colVenStatut, colVenHonoraire, _
                     colVenBenef, colVenFranchise, colVenCommentaire, colVenDateConsult, colVenSpeConsult
             End If
         End If
     Next nbLigne
-
-    If venDisponible Then
-        For nbLigne = 1 To nbLignesVen
-            If mod_DataStructure.CellText(donneesVen(nbLigne, colVenSousCat)) = CategorieSanteFormulaire() Then
-                cleNotes = mod_DataStructure.CellText(donneesVen(nbLigne, colVenNotes))
-                If Not notesVues.Exists(cleNotes) Then
-                    notesVues.Add cleNotes, True
-                    TraiterGroupeSiKO cleNotes, tblData, nbLignesTable, _
-                        venDisponible, donneesVen, nbLignesVen, tblVen, _
-                        colVenSousCat, colVenMontant, colVenNotes, colVenStatut, colVenHonoraire, _
-                        colVenBenef, colVenFranchise, colVenCommentaire, colVenDateConsult, colVenSpeConsult
-                End If
-            End If
-        Next nbLigne
-    End If
 
 End Sub
 
@@ -250,23 +268,59 @@ End Sub
 ' =====================================================================================
 Private Sub TraiterGroupeSiKO(ByVal cleNotes As String, ByRef tblDataLocal As Variant, ByVal nbLignesTable As Long, _
         ByVal venDisponible As Boolean, ByRef donneesVen As Variant, ByVal nbLignesVen As Long, ByRef tblVen As ListObject, _
+        ByRef venIds As Object, ByVal colVenID As Long, _
         ByVal colVenSousCat As Long, ByVal colVenMontant As Long, ByVal colVenNotes As Long, ByVal colVenStatut As Long, _
         ByVal colVenHonoraire As Long, ByVal colVenBenef As Long, ByVal colVenFranchise As Long, _
         ByVal colVenCommentaire As Long, ByVal colVenDateConsult As Long, ByVal colVenSpeConsult As Long)
 
-    Dim j As Long
-    Dim ligneDep As Long, sourceDep As String
+    Dim j As Long, v As Long
+    Dim idOp As String
+    Dim montantLigne As Double
+    Dim ligneDep As Long, sourceDep As String, parentDep As Long
     Dim r1d As Variant, r1m As Double, r2d As Variant, r2m As Double, nbR As Long
 
     ligneDep = 0
     sourceDep = "O"
+    parentDep = 0
     nbR = 0
     r1m = 0
     r2m = 0
 
-    ' --- Membres du groupe cote TblOperations ---
+    ' --- Membres du groupe, dans l'ordre d'apparition de TblOperations. Une
+    '     opération ventilée est remplacée par ses lignes de TblVentilations (la
+    '     date d'un remboursement ventilé est celle de son opération parente). ---
     For j = 1 To nbLignesTable
-        If mod_DataStructure.CellText(tblDataLocal(j, colSousCategorie)) = CategorieSanteFormulaire() Then
+        idOp = mod_DataStructure.CellText(tblDataLocal(j, colID))
+
+        If venDisponible And idOp <> "" And venIds.Exists(idOp) Then
+            For v = 1 To nbLignesVen
+                If mod_DataStructure.CellText(donneesVen(v, colVenID)) = idOp Then
+                    If mod_DataStructure.CellText(donneesVen(v, colVenSousCat)) = CategorieSanteFormulaire() Then
+                        If mod_DataStructure.CellText(donneesVen(v, colVenNotes)) = cleNotes Then
+                            If IsNumeric(donneesVen(v, colVenMontant)) Then
+                                montantLigne = mod_DataStructure.ToDouble(donneesVen(v, colVenMontant))
+                                If montantLigne < 0 Then
+                                    If ligneDep = 0 Then
+                                        ligneDep = v
+                                        sourceDep = "V"
+                                        parentDep = j
+                                    End If
+                                Else
+                                    nbR = nbR + 1
+                                    If nbR = 1 Then
+                                        r1d = tblDataLocal(j, colDate)
+                                        r1m = montantLigne
+                                    ElseIf nbR = 2 Then
+                                        r2d = tblDataLocal(j, colDate)
+                                        r2m = montantLigne
+                                    End If
+                                End If
+                            End If
+                        End If
+                    End If
+                End If
+            Next v
+        ElseIf mod_DataStructure.CellText(tblDataLocal(j, colSousCategorie)) = CategorieSanteFormulaire() Then
             If mod_DataStructure.CellText(tblDataLocal(j, colNotes)) = cleNotes Then
                 If IsNumeric(tblDataLocal(j, colMontant)) Then
                     If mod_DataStructure.ToDouble(tblDataLocal(j, colMontant)) < 0 Then
@@ -288,30 +342,6 @@ Private Sub TraiterGroupeSiKO(ByVal cleNotes As String, ByRef tblDataLocal As Va
             End If
         End If
     Next j
-
-    ' --- Membres du groupe cote TblVentilations (PHASE 6) ---
-    If venDisponible Then
-        For j = 1 To nbLignesVen
-            If mod_DataStructure.CellText(donneesVen(j, colVenSousCat)) = CategorieSanteFormulaire() Then
-                If mod_DataStructure.CellText(donneesVen(j, colVenNotes)) = cleNotes Then
-                    If IsNumeric(donneesVen(j, colVenMontant)) Then
-                        If mod_DataStructure.ToDouble(donneesVen(j, colVenMontant)) < 0 Then
-                            If ligneDep = 0 Then
-                                ligneDep = j
-                                sourceDep = "V"
-                            End If
-                        Else
-                            ' Une ligne de ventilation positive (remboursement ventile)
-                            ' n'a pas de date propre : on ne l'utilise pas pour
-                            ' l'affichage Remb1/Remb2 (cas non prévu par la règle
-                            ' métier actuelle : un remboursement de mutuelle n'est
-                            ' jamais ventilé), mais on ne plante pas pour autant.
-                        End If
-                    End If
-                End If
-            End If
-        Next j
-    End If
 
     If ligneDep = 0 Then Exit Sub
 
@@ -360,12 +390,11 @@ Private Sub TraiterGroupeSiKO(ByVal cleNotes As String, ByRef tblDataLocal As Va
         speConsultCtx = mod_DataStructure.CellText(donneesVen(ligneDep, colVenSpeConsult))
         notesCtx = mod_DataStructure.CellText(donneesVen(ligneDep, colVenNotes))
         numChequeCtx = ""
-        ' Date et Tiers n'existent pas dans TblVentilations : on va les
-        ' chercher sur l'opération parente (TblOperations), via ID_Transaction.
-        If Not TrouverParentVentilationSSF(tblVen, donneesVen, ligneDep, parentLigneOp, dateDepense, tiersDepense) Then
-            dateDepense = ""
-            tiersDepense = "(operation parente introuvable)"
-        End If
+        ' Date et Tiers n'existent pas dans TblVentilations : on les lit sur
+        ' l'opération parente (TblOperations), repérée pendant le parcours du groupe.
+        parentLigneOp = parentDep
+        dateDepense = tblDataLocal(parentDep, colDate)
+        tiersDepense = mod_DataStructure.CellText(tblDataLocal(parentDep, colTiers))
     End If
 
     nbCas = nbCas + 1
@@ -826,6 +855,34 @@ Private Sub PointerGroupeSante(ByRef cas As TCasSuiviSante)
                 If IsNumeric(donnees(i, colMontant)) Then
                     If mod_DataStructure.ToDouble(donnees(i, colMontant)) > 0 Then
                         mod_Pointage.EcrirePointage mod_DataStructure.CellText(donnees(i, colID)), True
+                    End If
+                End If
+            End If
+        End If
+    Next i
+
+    ' Remboursements VENTILES du meme groupe : on pointe leur operation parente
+    ' (ID_Transaction), seule porteuse de la colonne Pointe.
+    Dim tblVen As ListObject
+    Dim donneesVen As Variant
+    Dim colVenID As Long, colVenSousCat As Long, colVenNotes As Long, colVenMontant As Long
+
+    Set tblVen = ObtenirTableVentilationsSSF()
+    If tblVen Is Nothing Then Exit Sub
+    If tblVen.DataBodyRange Is Nothing Then Exit Sub
+    colVenID = IndexColVentilationSSF(tblVen, "ID_Transaction")
+    colVenSousCat = IndexColVentilationSSF(tblVen, "SousCategorie")
+    colVenNotes = IndexColVentilationSSF(tblVen, "Notes")
+    colVenMontant = IndexColVentilationSSF(tblVen, "Montant")
+    If colVenID = 0 Or colVenSousCat = 0 Or colVenNotes = 0 Or colVenMontant = 0 Then Exit Sub
+    donneesVen = tblVen.DataBodyRange.value
+
+    For i = 1 To UBound(donneesVen, 1)
+        If mod_DataStructure.CellText(donneesVen(i, colVenSousCat)) = CategorieSanteFormulaire() Then
+            If mod_DataStructure.CellText(donneesVen(i, colVenNotes)) = cas.notesCtx Then
+                If IsNumeric(donneesVen(i, colVenMontant)) Then
+                    If mod_DataStructure.ToDouble(donneesVen(i, colVenMontant)) > 0 Then
+                        mod_Pointage.EcrirePointage mod_DataStructure.CellText(donneesVen(i, colVenID)), True
                     End If
                 End If
             End If

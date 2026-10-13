@@ -833,7 +833,12 @@ Private Function DecrireFiltreActifRO(ByVal prefiltre As String, ByVal param As 
             texte = FR("Op{e2}rations du mois budg{e2}taire ") & Format(critMois, "00") & "/" & critAnnee & "."
 
         Case "ErreursSante"
-            texte = FR("Op{e2}rations avec une date de consultation invalide.")
+            ' Revu : le texte précise le critère exact (date de consultation = 02/01/1900,
+            ' valeur sentinelle de l'import OFX), le périmètre (TblOperations seule, sans
+            ' les parts ventilées, tous mois confondus) et le nombre de lignes trouvées.
+            texte = FR("Erreurs d'import sant{e2} -- op{e2}rations dont la date de consultation n'a pas pu {ea}tre lue dans les Notes ") & _
+                    FR("(date = 02/01/1900) -- tous mois confondus, parts ventil{e2}es exclues -- ") & _
+                    nbTotal & FR(" ligne(s) {a2} corriger.")
 
         Case "DetailTotal"
             If CStr(param) = "Positif" Then
