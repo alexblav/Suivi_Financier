@@ -342,6 +342,15 @@ Private Function ObtenirTableVentilationsFN() As ListObject
     Set ObtenirTableVentilationsFN = t
 End Function
 
+' Vrai si le nom defini (portee feuille) existe sur la feuille.
+Private Function NomExisteSurFeuilleFN(ByVal ws As Worksheet, ByVal nom As String) As Boolean
+    Dim n As Name
+    On Error Resume Next
+    Set n = ws.Names(nom)
+    On Error GoTo 0
+    NomExisteSurFeuilleFN = Not n Is Nothing
+End Function
+
 Private Function IndexColSiExisteFN(ByVal t As ListObject, ByVal nomColonne As String) As Long
     On Error Resume Next
     IndexColSiExisteFN = t.ListColumns(nomColonne).index
@@ -364,7 +373,8 @@ Private Function TrouverContexteParentVentilation(ByVal ligneVen As Long, ByRef 
                                                    ByRef donneesVen As Variant, _
                                                    ByRef dateAff As Variant, ByRef tiersAff As String, _
                                                    ByRef chequeAff As Variant, _
-                                                   Optional ByRef ligneParentTrouvee As Long = 0) As Boolean
+                                                   Optional ByRef ligneParentTrouvee As Long = 0, _
+                                                   Optional ByRef notesAff As String = "") As Boolean
     Dim colVenID As Long
     Dim idCible As String
     Dim tblOp As ListObject
@@ -376,6 +386,7 @@ Private Function TrouverContexteParentVentilation(ByVal ligneVen As Long, ByRef 
     tiersAff = ""
     chequeAff = ""
     ligneParentTrouvee = 0     ' ajout du 07/10/2026
+    notesAff = ""              ' ajout du 13/10/2026 (bloc "Opération parente" de frm_GenerationCle)
 
     colVenID = IndexColSiExisteFN(tblVen, "ID_Transaction")
     If colVenID = 0 Then Exit Function
@@ -393,6 +404,7 @@ Private Function TrouverContexteParentVentilation(ByVal ligneVen As Long, ByRef 
             dateAff = donneesOp(i, colDate)
             tiersAff = mod_DataStructure.CellText(donneesOp(i, colTiers))
             chequeAff = donneesOp(i, colCheque)
+            notesAff = mod_DataStructure.CellText(donneesOp(i, colNotes))
             ligneParentTrouvee = i     ' ajout du 07/10/2026
             TrouverContexteParentVentilation = True
             Exit Function
@@ -866,7 +878,10 @@ Private Function AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal S
     Dim donneesVen As Variant
     Dim colVenNotes As Long, colVenMontant As Long
     Dim idCtx As String                          ' ID_Transaction de l'operation (ajout 11/10/2026, pointage)
+    Dim notesParent As String, ligneParent As Long   ' bloc "Operation parente" (ajout 13/10/2026)
+    Dim parentTrouve As Boolean
 
+    parentTrouve = False
     If Source = "O" Then
         dateCtx = donneesOp(ligneDepense, colDate)
         tiersCtx = mod_DataStructure.CellText(donneesOp(ligneDepense, colTiers))
@@ -882,25 +897,61 @@ Private Function AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal S
         notesCtx = mod_DataStructure.CellText(donneesVen(ligneDepense, colVenNotes))
         montantCtx = mod_DataStructure.ToDouble(donneesVen(ligneDepense, colVenMontant))
         If IndexColSiExisteFN(tblVen, "ID_Transaction") <> 0 Then idCtx = mod_DataStructure.CellText(donneesVen(ligneDepense, IndexColSiExisteFN(tblVen, "ID_Transaction")))
-        If Not TrouverContexteParentVentilation(ligneDepense, tblVen, donneesVen, dateCtx, tiersCtx, chequeCtx) Then
+        If Not TrouverContexteParentVentilation(ligneDepense, tblVen, donneesVen, dateCtx, tiersCtx, chequeCtx, ligneParent, notesParent) Then
             dateCtx = ""
             tiersCtx = "(operation parente introuvable)"
             chequeCtx = ""
+        Else
+            parentTrouve = True
         End If
     End If
 
     Set ws = ThisWorkbook.Worksheets(mod_InstallFormulairesNotes.NOM_FEUILLE_GENERATION)
 
-    ws.Range("gcDateOp").value = dateCtx
-    If Source = "V" Then
-        ws.Range("gcTiersOp").value = tiersCtx & FR(" [ligne de ventilation]")
-    Else
-        ws.Range("gcTiersOp").value = tiersCtx
+    ' Bloc "Operation parente" (ajout 13/10/2026) : visible seulement pour une depense ventilee.
+    ' Ignore si l'ecran n'a pas ete reconstruit avec ce bloc (macro CreerFeuilleGenerationCle).
+    If NomExisteSurFeuilleFN(ws, "gcParentNotes") Then
+        ws.Rows(mod_InstallFormulairesNotes.GC_LIGNE_PARENT_TITRE & ":" & mod_InstallFormulairesNotes.GC_LIGNE_PARENT_FIN).Hidden = (Source <> "V")
+        ' Bloc de l'operation elle-meme : "Operation concernee" (normale) ou "Operation ventilee"
+        ' (part de ventilation : montant de la part a la place du cheque, Date/Tiers masques car
+        ' ils appartiennent a l'operation parente).
+        With ws
+            If Source = "V" Then
+                .Cells(mod_InstallFormulairesNotes.GC_LIGNE_TITRE_OPERATION, 2).value = FR("Op{e2}ration ventil{e2}e")
+                .Cells(mod_InstallFormulairesNotes.GC_LIGNE_CHEQUE, 2).value = "Montant"
+                .Range("gcNumCheque").NumberFormat = "#,##0.00 " & ChrW(8364)
+            Else
+                .Cells(mod_InstallFormulairesNotes.GC_LIGNE_TITRE_OPERATION, 2).value = FR("Op{e2}ration concern{e2}e")
+                .Cells(mod_InstallFormulairesNotes.GC_LIGNE_CHEQUE, 2).value = FR("Num. ch{e1}que")
+                .Range("gcNumCheque").NumberFormat = "@"
+            End If
+            .Rows(mod_InstallFormulairesNotes.GC_LIGNE_OPERATION).Hidden = (Source = "V")
+        End With
+        If Source = "V" Then
+            If parentTrouve Then
+                ws.Range("gcParentDate").value = dateCtx
+                ws.Range("gcParentTiers").value = tiersCtx
+                ws.Range("gcParentCheque").value = chequeCtx
+                ws.Range("gcParentNotes").value = notesParent
+            Else
+                ws.Range("gcParentDate").value = ""
+                ws.Range("gcParentTiers").value = tiersCtx
+                ws.Range("gcParentCheque").value = ""
+                ws.Range("gcParentNotes").value = ""
+            End If
+        End If
     End If
+
+    ws.Range("gcDateOp").value = dateCtx
+    ws.Range("gcTiersOp").value = tiersCtx
     ws.Range("gcNotes").value = notesCtx
     ' Pointage de l'operation (ajout 11/10/2026), voir AfficherRapprochementPourLigne.
     mod_Pointage.AfficherPointageParNom ws, "gcPointe", idCtx
-    ws.Range("gcNumCheque").value = chequeCtx
+    If Source = "V" And NomExisteSurFeuilleFN(ws, "gcParentNotes") Then
+        ws.Range("gcNumCheque").value = montantCtx     ' montant de la part (le cheque est dans le bloc parent)
+    Else
+        ws.Range("gcNumCheque").value = chequeCtx
+    End If
     ws.Range("gcLigneEnCours").value = ligneDepense
 
     ws.Range("gcDateConsult").value = ""
@@ -1018,7 +1069,7 @@ Public Sub ValiderGenerationCle()
     Set ws = ThisWorkbook.Worksheets(mod_InstallFormulairesNotes.NOM_FEUILLE_GENERATION)
 
     If Trim(CStr(ws.Range("gcCleGeneree").value)) = "" Then
-        MsgBox FR("Clique d'abord sur 'G{e2}n{e2}rer'."), vbExclamation
+        MsgBox FR("Cliquez d'abord sur 'G{e2}n{e2}rer'."), vbExclamation
         Exit Sub
     End If
 

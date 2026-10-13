@@ -701,18 +701,10 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     '     concaténé avec des virgules; voir l'explication en tête de fichier.
     EcrireListeTechniqueRO ws, listeValeurs, nbValeurs
 
-    With tblRecherche.ListColumns("Categorie").DataBodyRange.Validation
-        .Delete
-        If nbValeurs > 0 Then
-            .Add Type:=xlValidateList, AlertStyle:=xlValidAlertWarning, Formula1:="=ListeValeursRechercheOperations"
-        End If
-    End With
-    With tblRecherche.ListColumns("SousCategorie").DataBodyRange.Validation
-        .Delete
-        If nbValeurs > 0 Then
-            .Add Type:=xlValidateList, AlertStyle:=xlValidAlertWarning, Formula1:="=ListeValeursRechercheOperations"
-        End If
-    End With
+    ' Correctif 12/10/2026 : Categorie ne liste que les catégories (ListeCategories, comme
+    ' les autres formulaires) et SousCategorie que les sous-catégories de la catégorie de
+    ' LA MÊME LIGNE (liste dépendante, voir PoserListesCategorieSousCategorieRO).
+    PoserListesCategorieSousCategorieRO ws, tblRecherche
 
     ' --- Griser les cellules Notes déjà verrouillées (clé santé valide) et colorer
     ' en vert les montants positifs (PHASE 6 : demande généralisée à TOUS les
@@ -1048,6 +1040,72 @@ Private Sub AjouterValeurUnique(ByVal valeur As String, ByRef vues As Object, By
     ReDim Preserve listeValeurs(1 To nbValeurs)
     listeValeurs(nbValeurs) = valeur
 End Sub
+
+' Pose les listes déroulantes liées Categorie / SousCategorie sur le tableau de recherche.
+' Zone technique (colonnes U = catégorie, V = sous-catégorie, triée par catégorie) issue
+' de TblCategories; la liste de la sous-catégorie est une plage OFFSET/MATCH relative à
+' la cellule Categorie de la même ligne.
+Private Sub PoserListesCategorieSousCategorieRO(ByVal ws As Worksheet, ByVal tbl As ListObject)
+
+    Const COL_CAT As String = "U"
+    Const COL_SOUS As String = "V"
+    Dim cats() As String, sous() As String
+    Dim i As Long, j As Long, r As Long
+    Dim rngCat As Range, rngSous As Range
+    Dim adrCat As String, plageU As String, plageV As String
+
+    If tbl.DataBodyRange Is Nothing Then Exit Sub
+
+    ws.Range(COL_CAT & "1:" & COL_SOUS & "2000").ClearContents
+    ws.Range(COL_CAT & "1:" & COL_SOUS & "2000").NumberFormat = "@"
+    ws.Columns(COL_CAT).Hidden = True
+    ws.Columns(COL_SOUS).Hidden = True
+
+    r = 1
+    On Error Resume Next
+    cats = mod_Categories.ObtenirCategories()
+    i = LBound(cats)
+    If Err.Number <> 0 Then Err.Clear: i = 1: ReDim cats(1 To 0)
+    On Error GoTo 0
+    For i = LBound(cats) To UBound(cats)
+        Erase sous
+        On Error Resume Next
+        sous = mod_Categories.ObtenirSousCategories(cats(i))
+        j = UBound(sous)
+        If Err.Number <> 0 Then Err.Clear: j = 0
+        On Error GoTo 0
+        If j > 0 Then
+            Dim k As Long
+            For k = LBound(sous) To UBound(sous)
+                r = r + 1
+                ws.Range(COL_CAT & r).value = cats(i)
+                ws.Range(COL_SOUS & r).value = sous(k)
+            Next k
+        End If
+    Next i
+
+    Set rngCat = tbl.ListColumns("Categorie").DataBodyRange
+    Set rngSous = tbl.ListColumns("SousCategorie").DataBodyRange
+
+    With rngCat.Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertWarning, Formula1:="=ListeCategories"
+    End With
+
+    With rngSous.Validation
+        .Delete
+        If r > 1 Then
+            adrCat = rngCat.Cells(1, 1).Address(False, True)   ' ex. E5 (colonne fixe, ligne relative)
+            plageU = "'" & ws.Name & "'!$" & COL_CAT & "$1:$" & COL_CAT & "$2000"
+            plageV = "'" & ws.Name & "'!$" & COL_SOUS & "$1"
+            .Add Type:=xlValidateList, AlertStyle:=xlValidAlertWarning, _
+                 Formula1:="=OFFSET(" & plageV & ",MATCH(" & adrCat & "," & plageU & ",0)-1,0,COUNTIF(" & plageU & "," & adrCat & "),1)"
+            .IgnoreBlank = True
+        End If
+    End With
+
+End Sub
+
 
 ' Écrit la liste unique (Catégorie et SousCategorie confondues) dans une colonne
 ' technique HORS du tableau structuré (au-delà de sa dernière colonne), au format

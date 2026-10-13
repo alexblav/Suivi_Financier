@@ -770,6 +770,10 @@ Public Sub ValiderCasSuiviSante()
         End If
     End If
 
+    ' --- Pointage (ajout 13/10/2026) : valider un cas = l'operation est analysee. La depense
+    '     et ses 1 ou 2 remboursements passent a "Pointe = Oui". ---
+    PointerGroupeSante cas
+
     ' --- On relance le calcul automatique de la phase 1 : StatutSante et
     '     SoldeSante seront immédiatement recalculés avec la Franchise et
     '     l'Honoraire qui viennent d'être renseignés. On réutilise la logique
@@ -784,6 +788,49 @@ Public Sub ValiderCasSuiviSante()
         indexCasCourant = indexCasCourant + 1
         Call AfficherCasCourant(ws)
     End If
+
+End Sub
+
+
+' =====================================================================================
+' PointerGroupeSante : passe "Pointe" a Oui pour toutes les operations du groupe valide
+' (ajout 13/10/2026) : l'operation de la depense (pour une depense ventilee : son operation
+' parente) et les remboursements positifs de TblOperations qui partagent les memes Notes.
+' Sans effet si la colonne Pointe n'est pas installee (macro AjouterColonnePointage).
+' =====================================================================================
+Private Sub PointerGroupeSante(ByRef cas As TCasSuiviSante)
+
+    Dim tblOp As ListObject
+    Dim donnees As Variant
+    Dim i As Long
+
+    If Not mod_Pointage.PointageInstalle() Then Exit Sub
+
+    If cas.Source = "V" Then
+        mod_Pointage.EcrirePointage mod_Pointage.IdDeLigneOperation(cas.parentLigneOp), True
+    Else
+        mod_Pointage.EcrirePointage mod_Pointage.IdDeLigneOperation(cas.ligneDepense), True
+    End If
+
+    If cas.notesCtx = "" Then Exit Sub     ' sans Notes, aucun remboursement identifiable
+
+    Set tblOp = mod_DonneesTable.GetOperationsTable()
+    If tblOp Is Nothing Then Exit Sub
+    If tblOp.DataBodyRange Is Nothing Then Exit Sub
+    mod_Display.RecupIndexCol
+    donnees = tblOp.DataBodyRange.value
+
+    For i = 1 To UBound(donnees, 1)
+        If mod_DataStructure.CellText(donnees(i, colSousCategorie)) = CategorieSanteFormulaire() Then
+            If mod_DataStructure.CellText(donnees(i, colNotes)) = cas.notesCtx Then
+                If IsNumeric(donnees(i, colMontant)) Then
+                    If mod_DataStructure.ToDouble(donnees(i, colMontant)) > 0 Then
+                        mod_Pointage.EcrirePointage mod_DataStructure.CellText(donnees(i, colID)), True
+                    End If
+                End If
+            End If
+        End If
+    Next i
 
 End Sub
 

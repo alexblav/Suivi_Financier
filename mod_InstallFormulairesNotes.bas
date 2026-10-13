@@ -94,16 +94,24 @@ Public Const RN_COL_LISTE_CLES As String = "P"   ' clé brute associée à chaqu
 Private Const GC_LIGNE_BOUTONS As Long = 2
 Private Const GC_LIGNE_INSTRUCTIONS As Long = 4
 Private Const GC_LIGNE_CORPS As Long = 6
-Private Const GC_LIGNE_TITRE_OPERATION As Long = 6
-Private Const GC_LIGNE_OPERATION As Long = 7            ' Date / Tiers
-Private Const GC_LIGNE_CHEQUE As Long = 8               ' Num. chèque / Notes
-Private Const GC_LIGNE_POINTE As Long = 9               ' Pointé (ajout 11/10/2026, voir mod_Pointage)
-Private Const GC_LIGNE_TITRE_GENERATION As Long = 11
-Private Const GC_LIGNE_DATE_CONSULT As Long = 12
-Private Const GC_LIGNE_SPECIALITE As Long = 13
-Private Const GC_LIGNE_BENEFICIAIRE As Long = 14
-Private Const GC_LIGNE_MONTANT As Long = 15
-Private Const GC_LIGNE_CLE_GENEREE As Long = 17
+' Bloc "Opération parente" (ajout 13/10/2026) : lignes 6 à 9, MASQUÉ pour une opération non ventilée
+' (voir mod_FormulairesNotes.AfficherGenerationPourLigne ; ces lignes sont publiques pour cela).
+Public Const GC_LIGNE_PARENT_TITRE As Long = 6
+Private Const GC_LIGNE_PARENT_OPERATION As Long = 7     ' Date / Tiers
+Private Const GC_LIGNE_PARENT_CHEQUE As Long = 8        ' Num. chèque / Notes
+Public Const GC_LIGNE_PARENT_FIN As Long = 9            ' fine ligne de séparation (masquée avec le bloc)
+' Bloc "Opération concernée" (devient "Opération ventilée" pour une part de ventilation :
+' le titre, la ligne Date/Tiers et le libellé Num. chèque -> Montant sont adaptés à l'affichage).
+Public Const GC_LIGNE_TITRE_OPERATION As Long = 10
+Public Const GC_LIGNE_OPERATION As Long = 11            ' Date / Tiers
+Public Const GC_LIGNE_CHEQUE As Long = 12               ' Num. chèque (ou Montant de la part) / Notes
+Private Const GC_LIGNE_POINTE As Long = 13              ' Pointé (ajout 11/10/2026, voir mod_Pointage)
+Private Const GC_LIGNE_TITRE_GENERATION As Long = 15
+Private Const GC_LIGNE_DATE_CONSULT As Long = 16
+Private Const GC_LIGNE_SPECIALITE As Long = 17
+Private Const GC_LIGNE_BENEFICIAIRE As Long = 18
+Private Const GC_LIGNE_MONTANT As Long = 19
+Private Const GC_LIGNE_CLE_GENEREE As Long = 21
 
 
 ' =====================================================================================
@@ -342,6 +350,7 @@ Sub CreerFeuilleGenerationCle()
 
     GC_ConstruireEntete ws
     GC_ConstruireBlocOperation ws
+    GC_ConstruireBlocParent ws
     GC_ConstruireBlocGeneration ws
     GC_ConstruireBoutons ws     ' en dernier : les boutons se placent d'après les hauteurs de lignes
 
@@ -386,6 +395,8 @@ Private Function GC_TexteInstructions() As String
     t = t & "(seule une modification manuelle dans [f:Import_Data] pourrait la faire r{e2}appara{i2}tre)."
     t = t & Chr(10) & "[c:Point{e2}] indique si l'op{e2}ration est d{e2}j{a2} analys{e2}e (Oui) ; il se modifie ici et s'enregistre tout de suite "
     t = t & "(retirer un pointage demande confirmation)."
+    t = t & Chr(10) & "Pour une d{e2}pense ventil{e2}e, deux blocs sont affich{e2}s : [c:Op{e2}ration parente] (date, tiers, ch{e1}que et notes de l'op{e2}ration bancaire d'origine) "
+    t = t & "et [c:Op{e2}ration ventil{e2}e] (montant et notes de la part concern{e2}e), pour faciliter le rapprochement."
     t = t & Chr(10) & "- [b:Passer] : laisse cette op{e2}ration de c{o2}t{e2} pour y revenir plus tard (utile si vous n'{ea}tes pas certain des informations)."
     t = t & Chr(10) & "- [b:Retour] : revient sur [f:frm_RapprochementNotes] pour la m{ea}me op{e2}ration, sans rien modifier (par exemple apr{e1}s une erreur de clic sur [b:Pas de correspondance])."
     t = t & Chr(10) & "- [b:+] (en face de [c:Sp{e2}cialit{e2}] et [c:B{e2}n{e2}ficiaire]) : ajoute une nouvelle valeur {a2} la liste."
@@ -424,6 +435,36 @@ Private Sub GC_ConstruireBlocOperation(ByVal ws As Worksheet)
         ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_POINTE), "gcPointe"
 
     ws.Rows(GC_LIGNE_POINTE + 1).RowHeight = mod_InstallCommun.FRM_H_SEP
+
+End Sub
+
+' Bloc "Opération parente (ventilation)" (ajout 13/10/2026), lecture seule : affiche l'opération
+' bancaire d'origine d'une dépense ventilée, pour faciliter le rapprochement. Masqué (lignes
+' GC_LIGNE_PARENT_TITRE à GC_LIGNE_PARENT_FIN) quand l'opération n'est pas ventilée.
+'   12 : Date | Tiers     13 : Num. chèque | Notes (2 lignes)
+Private Sub GC_ConstruireBlocParent(ByVal ws As Worksheet)
+
+    mod_InstallCommun.PoserTitreBloc ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_PARENT_TITRE & ":" & FN_COL_VALEUR_3 & GC_LIGNE_PARENT_TITRE), _
+                                     mod_Display.FR("Op{e2}ration parente (ventilation)")
+
+    mod_InstallCommun.PoserEtiquette ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_PARENT_OPERATION), "Date"
+    mod_InstallCommun.PoserEtiquette ws.Range(FN_COL_LIBELLE_2 & GC_LIGNE_PARENT_OPERATION), "Tiers"
+    mod_InstallCommun.PoserChampLecture ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_PARENT_OPERATION), "dd/mm/yyyy"
+    mod_InstallCommun.PoserChampLecture ws.Range(FN_COL_VALEUR_2 & GC_LIGNE_PARENT_OPERATION & ":" & FN_COL_VALEUR_3 & GC_LIGNE_PARENT_OPERATION), "@"
+    mod_InstallCommun.PoserNom ws, "gcParentDate", ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_PARENT_OPERATION)
+    mod_InstallCommun.PoserNom ws, "gcParentTiers", ws.Range(FN_COL_VALEUR_2 & GC_LIGNE_PARENT_OPERATION)
+
+    mod_InstallCommun.PoserEtiquette ws.Range(FN_COL_LIBELLE_1 & GC_LIGNE_PARENT_CHEQUE), mod_Display.FR("Num. ch{e1}que")
+    mod_InstallCommun.PoserEtiquette ws.Range(FN_COL_LIBELLE_2 & GC_LIGNE_PARENT_CHEQUE), "Notes"
+    ws.Range(FN_COL_LIBELLE_2 & GC_LIGNE_PARENT_CHEQUE).VerticalAlignment = xlTop
+    mod_InstallCommun.PoserChampLecture ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_PARENT_CHEQUE), "@", True
+    mod_InstallCommun.PoserChampLecture ws.Range(FN_COL_VALEUR_2 & GC_LIGNE_PARENT_CHEQUE & ":" & FN_COL_VALEUR_3 & GC_LIGNE_PARENT_CHEQUE), "@", True
+    mod_InstallCommun.PoserNom ws, "gcParentCheque", ws.Range(FN_COL_VALEUR_1 & GC_LIGNE_PARENT_CHEQUE)
+    mod_InstallCommun.PoserNom ws, "gcParentNotes", ws.Range(FN_COL_VALEUR_2 & GC_LIGNE_PARENT_CHEQUE)
+    ws.Rows(GC_LIGNE_PARENT_CHEQUE).RowHeight = 27
+    ws.Rows(GC_LIGNE_CHEQUE).RowHeight = 27
+
+    ws.Rows(GC_LIGNE_PARENT_FIN).RowHeight = mod_InstallCommun.FRM_H_SEP
 
 End Sub
 
