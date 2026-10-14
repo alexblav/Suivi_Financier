@@ -752,7 +752,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ' (virgule décimale) ; ChrW(8364) est le symbole euro.
     If prefiltre = "SuiviSante" Then
         complementSante = mod_Display.FR(" dont ") & nbIndicesVen & _
-                          mod_Display.FR(" part(s) ventil{e2}e(s) : ") & nbOK & " OK, " & nbKO & " KO -- " & _
+                          mod_Display.FR(" part(s) ventil{e2}e(s) : ") & nbOK & " OK, " & nbKO & " KO, " & (nbTotal - nbOK - nbKO) & FR(" sans statut sant{e2} -- ") & _
                           mod_Display.FR("{e2}cart cumul{e2} des d{e2}penses KO : ") & _
                           Format(ecartKO, "#,##0.00") & " " & ChrW(8364)
     End If
@@ -790,8 +790,8 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ' Ajout 11/10/2026 : resume du pointage (a analyser = lignes sans "Oui").
     If colPointeRO <> 0 Then
         ws.Range(mod_InstallRechercheOperations.RO_ADR_FILTRE).value = _
-            ws.Range(mod_InstallRechercheOperations.RO_ADR_FILTRE).value & mod_Display.FR(" Point{e2}es : ") & _
-            nbPointees & "/" & nbTotal & "."
+            ws.Range(mod_InstallRechercheOperations.RO_ADR_FILTRE).value & " " & nbPointees & _
+            mod_Display.FR(" ligne(s) point{e2}e(s) sur ") & nbTotal & "."
     End If
 
     ' On remet en place le(s) filtre(s) que l'operateur avait poses avant cette
@@ -861,7 +861,11 @@ Private Function DecrireFiltreActifRO(ByVal prefiltre As String, ByVal param As 
             ' Les lignes "Santé, prévoyance" d'une autre sous-catégorie n'ont pas de
             ' statut santé : elles ne sont comptées ni en OK ni en KO (ici 7 - 3 - 2 = 2
             ' lignes à vérifier).
-            texte = FR("Suivi sant{e2} (cat{e2}gorie ") & mod_VarGlobales.CATEGORIE_SANTE & ") -- " & _
+            ' Revu 13/10/2026 : la phrase énonce le filtre exact (sous-catégorie OU
+            ' catégorie, opérations ET parts ventilées, tous mois) avant les compteurs.
+            texte = FR("Suivi sant{e2} -- lignes dont la sous-cat{e2}gorie est """) & mod_VarGlobales.SOUS_CATEGORIE_SANTE & _
+                    FR(""" OU la cat{e2}gorie est """) & mod_VarGlobales.CATEGORIE_SANTE & _
+                    FR(""" (op{e2}rations et parts ventil{e2}es, tous mois confondus) -- ") & _
                     nbTotal & FR(" ligne(s)") & complementSante & "."
         Case Else
             ' Sécurité : un préfiltre non prévu ici ne doit pas faire échouer

@@ -814,6 +814,20 @@ Public Sub PoserNom(ByVal ws As Worksheet, ByVal nom As String, ByVal cellule As
     ws.Names.Add Name:=nom, RefersTo:=cellule
 End Sub
 
+' Nom défini pour une liste déroulante dont la longueur varie : la plage commence en
+' (ligneDeb, col) et s'arrête après la dernière valeur écrite (sans trou) avant ligneMax.
+Public Sub PoserNomListeDynamique(ByVal ws As Worksheet, ByVal nom As String, ByVal col As Long, _
+                                  ByVal ligneDeb As Long, ByVal ligneMax As Long)
+    Dim debut As String, plage As String
+    debut = ws.Cells(ligneDeb, col).Address(True, True)
+    plage = ws.Range(ws.Cells(ligneDeb, col), ws.Cells(ligneMax, col)).Address(True, True)
+    On Error Resume Next
+    ThisWorkbook.Names(nom).Delete
+    On Error GoTo 0
+    ThisWorkbook.Names.Add Name:=nom, RefersTo:="=OFFSET('" & ws.Name & "'!" & debut & _
+        ",0,0,MAX(1,COUNTA('" & ws.Name & "'!" & plage & ")),1)"
+End Sub
+
 
 ' =====================================================================================
 ' OUTILS INTERNES ET OUTILS DÉVELOPPEUR

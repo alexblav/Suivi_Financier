@@ -304,6 +304,7 @@ Private Sub AjouterOccurrence(ByVal loE As ListObject, ByRef e As TypeEcheance, 
         .Cells(1, ColIdx(loE, "SousCategorie")).Value = e.SousCategorie
         .Cells(1, ColIdx(loE, "Montant")).Value = e.Montant
         If ColIdx(loE, "NumCheque") > 0 Then .Cells(1, ColIdx(loE, "NumCheque")).Value = e.NumCheque
+        .Cells(1, ColIdx(loE, "DatePrevue")).NumberFormat = "dd/mm/yyyy"
         .Cells(1, ColIdx(loE, "DatePrevue")).Value = e.DatePrevue
         .Cells(1, ColIdx(loE, "PrecisionDate")).Value = e.PrecisionDate
         .Cells(1, ColIdx(loE, "Periodicite")).Value = e.Periodicite
@@ -336,7 +337,10 @@ Public Sub GenererHorizon()
     Set loE = TableEcheances()
     Set loR = TableRecurrences()
     If loE Is Nothing Or loR Is Nothing Then Exit Sub
-    If TableVide(loR) Then Exit Sub
+    If TableVide(loR) Then
+        TrierEcheances
+        Exit Sub
+    End If
 
     limite = Date + ECH_HORIZON_JOURS
 
@@ -413,6 +417,32 @@ Public Sub GenererHorizon()
         If termine(i) Then loR.ListRows(i).Delete
     Next i
 
+    TrierEcheances
+
+End Sub
+
+' Force le format JJ/MM/AAAA sur la colonne DatePrevue, puis trie la liste par date prévue
+' croissante (la plus proche en haut ; les dates vides en bas).
+Public Sub TrierEcheances()
+
+    Dim lo As ListObject
+    Dim c As Long
+
+    On Error GoTo Fin
+    Set lo = TableEcheances()
+    If lo Is Nothing Then Exit Sub
+    If TableVide(lo) Then Exit Sub
+    c = ColIdx(lo, "DatePrevue")
+    If c = 0 Then Exit Sub
+
+    lo.ListColumns(c).DataBodyRange.NumberFormat = "dd/mm/yyyy"
+    With lo.Sort
+        .SortFields.Clear
+        .SortFields.Add Key:=lo.ListColumns(c).DataBodyRange, SortOn:=xlSortOnValues, Order:=xlAscending
+        .Header = xlYes
+        .Apply
+    End With
+Fin:
 
 End Sub
 

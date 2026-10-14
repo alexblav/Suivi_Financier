@@ -211,6 +211,12 @@ Public Const NOM_TABLE_RECURRENCES As String = "TblRecurrences"
 Public Const NOM_FEUILLE_ANALYSE As String = "frm_Analyse"
 
 '' -------------------------------------------------------------------------------------
+'' EVOLUTION DES DEPENSES DANS LE TEMPS (ajout 14/10/2026, voir mod_Evolution et
+'' mod_InstallEvolution). Ecran autonome, ouvert par son propre bouton de Synthese.
+'' -------------------------------------------------------------------------------------
+Public Const NOM_FEUILLE_EVOLUTION As String = "frm_Evolution"
+
+'' -------------------------------------------------------------------------------------
 '' SUIVI DES CONSOMMATIONS : eau, électricité, gaz (ajout 11/10/2026, voir
 '' mod_Consommations et mod_InstallConsommations)
 '' -------------------------------------------------------------------------------------

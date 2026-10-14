@@ -7,8 +7,8 @@ Option Explicit
 ' ANALYSE BUDGÉTAIRE - V1 (construction). La logique est dans mod_Analyse.
 '
 ' Une seule macro à lancer : InstallerAnalyse. Elle crée :
-'   1. la feuille frm_Analyse (masquée) : paramètres, tableau de répartition, tableau
-'      d'évolution sur 12 mois, deux graphiques, boutons ;
+'   1. la feuille frm_Analyse (masquée) : paramètres, tableau et graphique de répartition,
+'      boutons (l'évolution dans le temps est dans frm_Evolution : mod_InstallEvolution) ;
 '   2. le bouton "Analyse budgétaire" sur la feuille Synthese (sous le bloc prévisionnel,
 '      déplaçable à la main).
 ' Aucun code n'est à coller dans la feuille (pas d'événements) : tout passe par des boutons.
@@ -39,8 +39,8 @@ Public Sub InstallerAnalyse()
 
     Application.ScreenUpdating = False
 
-    ' A marge ; B libellés ; C à N : 12 mois de l'évolution ; O : total. Le tableau de
-    ' répartition occupe B:E, son graphique G:O.
+    ' A marge ; B libellés ; C à O : champs et graphique. Le tableau de répartition
+    ' occupe B:E, son graphique G:O.
     mod_InstallCommun.MettreEnForme ws, Array(2, 34, 14, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 10, 11), 100
 
     mod_InstallCommun.PoserHauteursEntete ws, 1, False
@@ -49,8 +49,7 @@ Public Sub InstallerAnalyse()
     ConstruireListesTechniques ws
     ConstruireParametres ws
     ConstruireTableauRepartition ws
-    ConstruireTableauEvolution ws
-    ConstruireGraphiques ws
+    ConstruireGraphique ws
 
     ' Colonnes techniques (listes déroulantes, données de l'anneau) : masquées.
     ws.Range(ws.Columns(mod_Analyse.AN_COL_LISTE_CAT), ws.Columns(mod_Analyse.AN_COL_LISTE_ANNEE)).EntireColumn.Hidden = True
@@ -76,7 +75,8 @@ Private Function TexteInstructions() As String
         "[b:Voir les op{e2}rations] ouvre [f:frm_RechercheOperations] sur les op{e2}rations de la ligne s{e2}lectionn{e2}e " & _
         "(ou de tout l'affichage si aucune ligne n'est s{e2}lectionn{e2}e) ; au retour, l'analyse est recalcul{e2}e. " & _
         "Les montants sont des d{e2}penses nettes des remboursements, par mois de budget. " & _
-        "Les cat{e2}gories de la liste [c:Cat{e2}gories exclues] ne sont jamais compt{e2}es."
+        "Les cat{e2}gories de la liste [c:Cat{e2}gories exclues] ne sont jamais compt{e2}es (cliquez une case : la liste " & _
+        "des cat{e2}gories s'affiche)."
 End Function
 
 
@@ -97,9 +97,6 @@ Private Sub ConstruireListesTechniques(ByVal ws As Worksheet)
     ws.Cells(2, mod_Analyse.AN_COL_LISTE_GRAPH).Value = mod_Analyse.LibBarres()
     ws.Cells(3, mod_Analyse.AN_COL_LISTE_GRAPH).Value = mod_Analyse.LibAnneau()
 
-    ws.Cells(2, mod_Analyse.AN_COL_LISTE_EVO).Value = mod_Analyse.LibEvoBarres()
-    ws.Cells(3, mod_Analyse.AN_COL_LISTE_EVO).Value = mod_Analyse.LibEvoCourbes()
-
     For i = 1 To 12
         ws.Cells(1 + i, mod_Analyse.AN_COL_LISTE_MOIS).Value = i
     Next i
@@ -109,12 +106,13 @@ Private Sub ConstruireListesTechniques(ByVal ws As Worksheet)
 
     PoserNomListe "ListePeriodeAnalyse", ws, mod_Analyse.AN_COL_LISTE_PERIODE, 2, 4
     PoserNomListe "ListeGraphAnalyse", ws, mod_Analyse.AN_COL_LISTE_GRAPH, 2, 3
-    PoserNomListe "ListeEvoAnalyse", ws, mod_Analyse.AN_COL_LISTE_EVO, 2, 3
     PoserNomListe "ListeMoisAnalyse", ws, mod_Analyse.AN_COL_LISTE_MOIS, 2, 13
 
     ' Listes dont la longueur varie (remplies par mod_Analyse à chaque actualisation).
-    PoserNomDynamique "ListeCategoriesAnalyse", ws, mod_Analyse.AN_COL_LISTE_CAT, 300
-    PoserNomDynamique "ListeAnneesAnalyse", ws, mod_Analyse.AN_COL_LISTE_ANNEE, 60
+    mod_InstallCommun.PoserNomListeDynamique ws, "ListeCategoriesAnalyse", mod_Analyse.AN_COL_LISTE_CAT, 2, 300
+    mod_InstallCommun.PoserNomListeDynamique ws, "ListeAnneesAnalyse", mod_Analyse.AN_COL_LISTE_ANNEE, 2, 60
+    ' Catégories exclues : même colonne que ci-dessus, sans la ligne "(toutes)".
+    mod_InstallCommun.PoserNomListeDynamique ws, "ListeCategoriesExclAnalyse", mod_Analyse.AN_COL_LISTE_CAT, 3, 300
 
 End Sub
 
@@ -124,17 +122,6 @@ Private Sub PoserNomListe(ByVal nom As String, ByVal ws As Worksheet, ByVal col 
     On Error GoTo 0
     ThisWorkbook.Names.Add Name:=nom, RefersTo:="='" & ws.Name & "'!" & _
         ws.Range(ws.Cells(ligneDeb, col), ws.Cells(ligneFin, col)).Address(True, True)
-End Sub
-
-' Plage qui s'adapte au nombre de valeurs écrites à partir de la ligne 2.
-Private Sub PoserNomDynamique(ByVal nom As String, ByVal ws As Worksheet, ByVal col As Long, ByVal ligneMax As Long)
-    Dim debut As String, plage As String
-    debut = ws.Cells(2, col).Address(True, True)
-    plage = ws.Range(ws.Cells(2, col), ws.Cells(ligneMax, col)).Address(True, True)
-    On Error Resume Next
-    ThisWorkbook.Names(nom).Delete
-    On Error GoTo 0
-    ThisWorkbook.Names.Add Name:=nom, RefersTo:="=OFFSET('" & ws.Name & "'!" & debut & ",0,0,MAX(1,COUNTA('" & ws.Name & "'!" & plage & ")),1)"
 End Sub
 
 
@@ -152,9 +139,8 @@ Private Sub ConstruireParametres(ByVal ws As Worksheet)
     mod_InstallCommun.PoserEtiquette ws.Range("B9"), "Mois de budget"
     mod_InstallCommun.PoserEtiquette ws.Range("B10"), mod_Display.FR("Cat{e2}gorie {a2} d{e2}tailler")
     mod_InstallCommun.PoserEtiquette ws.Range("B11"), mod_Display.FR("Graphique de r{e2}partition")
-    mod_InstallCommun.PoserEtiquette ws.Range("B12"), mod_Display.FR("Graphique d'{e2}volution")
 
-    For l = 7 To 12
+    For l = 7 To 11
         mod_InstallCommun.PoserChampSaisie ws.Range(ws.Cells(l, 3), ws.Cells(l, 5))
     Next l
 
@@ -163,19 +149,18 @@ Private Sub ConstruireParametres(ByVal ws As Worksheet)
     ws.Range(mod_Analyse.AN_ADR_MOIS).Value = Month(Date)
     ws.Range(mod_Analyse.AN_ADR_CATEGORIE).Value = mod_Analyse.LibToutes()
     ws.Range(mod_Analyse.AN_ADR_GRAPH).Value = mod_Analyse.LibBarres()
-    ws.Range(mod_Analyse.AN_ADR_GRAPH_EVO).Value = mod_Analyse.LibEvoBarres()
 
     mod_InstallCommun.PoserListeDeroulante ws.Range(mod_Analyse.AN_ADR_PERIODE), "ListePeriodeAnalyse"
     mod_InstallCommun.PoserListeDeroulante ws.Range(mod_Analyse.AN_ADR_ANNEE), "ListeAnneesAnalyse"
     mod_InstallCommun.PoserListeDeroulante ws.Range(mod_Analyse.AN_ADR_MOIS), "ListeMoisAnalyse"
     mod_InstallCommun.PoserListeDeroulante ws.Range(mod_Analyse.AN_ADR_CATEGORIE), "ListeCategoriesAnalyse"
     mod_InstallCommun.PoserListeDeroulante ws.Range(mod_Analyse.AN_ADR_GRAPH), "ListeGraphAnalyse"
-    mod_InstallCommun.PoserListeDeroulante ws.Range(mod_Analyse.AN_ADR_GRAPH_EVO), "ListeEvoAnalyse"
 
     ' Catégories exclues : colonnes G à I, lignes 7 à 12 (6 emplacements, modifiables).
     mod_InstallCommun.PoserTitreBloc ws.Range("G6:I6"), mod_Display.FR("Cat{e2}gories exclues")
     For l = mod_Analyse.AN_LIGNE_EXCL_DEB To mod_Analyse.AN_LIGNE_EXCL_FIN
         mod_InstallCommun.PoserChampSaisie ws.Range(ws.Cells(l, mod_Analyse.AN_COL_EXCL), ws.Cells(l, mod_Analyse.AN_COL_EXCL + 2))
+        mod_InstallCommun.PoserListeDeroulante ws.Cells(l, mod_Analyse.AN_COL_EXCL), "ListeCategoriesExclAnalyse"
     Next l
     ws.Cells(mod_Analyse.AN_LIGNE_EXCL_DEB, mod_Analyse.AN_COL_EXCL).Value = "Virements internes"
     ws.Cells(mod_Analyse.AN_LIGNE_EXCL_DEB + 1, mod_Analyse.AN_COL_EXCL).Value = "Revenus"
@@ -217,35 +202,9 @@ End Sub
 
 
 ' =====================================================================================
-' Tableau d'évolution (B:O)
+' Graphique (ses séries sont posées par mod_Analyse à chaque actualisation)
 ' =====================================================================================
-Private Sub ConstruireTableauEvolution(ByVal ws As Worksheet)
-
-    Dim lEnt As Long, lDeb As Long, lFin As Long, lTot As Long
-
-    lEnt = mod_Analyse.AN_LIGNE_ENTETE_EVO
-    lDeb = lEnt + 1
-    lFin = lEnt + mod_Analyse.AN_NB_LIGNES_EVO
-    lTot = mod_Analyse.AN_LIGNE_TOTAL_EVO
-
-    mod_InstallCommun.PoserTitreBloc ws.Range(ws.Cells(mod_Analyse.AN_LIGNE_TITRE_EVO, 2), ws.Cells(mod_Analyse.AN_LIGNE_TITRE_EVO, 15)), _
-        mod_Display.FR("{E2}volution mensuelle des d{e2}penses (12 mois, en ") & ChrW(8364) & ")"
-
-    mod_InstallCommun.PoserEnteteTableau ws.Range(ws.Cells(lEnt, 2), ws.Cells(lEnt, 15))
-    ws.Range(ws.Cells(lEnt, 3), ws.Cells(lEnt, 15)).HorizontalAlignment = xlRight
-
-    mod_InstallCommun.PoserCorpsTableauLecture ws.Range(ws.Cells(lDeb, 2), ws.Cells(lTot, 15))
-    ws.Range(ws.Cells(lDeb, 3), ws.Cells(lTot, 15)).NumberFormat = "#,##0"
-    ws.Range(ws.Cells(lTot, 2), ws.Cells(lTot, 15)).Font.Bold = True
-    ws.Range(ws.Cells(lDeb, 15), ws.Cells(lTot, 15)).Font.Bold = True
-
-End Sub
-
-
-' =====================================================================================
-' Graphiques (leurs séries sont posées par mod_Analyse à chaque actualisation)
-' =====================================================================================
-Private Sub ConstruireGraphiques(ByVal ws As Worksheet)
+Private Sub ConstruireGraphique(ByVal ws As Worksheet)
 
     Dim co As ChartObject
     Dim r As Range
@@ -258,14 +217,6 @@ Private Sub ConstruireGraphiques(ByVal ws As Worksheet)
     co.Chart.PlotVisibleOnly = False      ' les données de l'anneau sont dans des colonnes masquées
     co.Chart.HasTitle = True
     co.Chart.ChartTitle.Text = mod_Display.FR("R{e2}partition des d{e2}penses")
-
-    ' Évolution : sous le tableau d'évolution
-    Set r = ws.Range(ws.Cells(mod_Analyse.AN_LIGNE_TOTAL_EVO + 2, 2), ws.Cells(mod_Analyse.AN_LIGNE_TOTAL_EVO + 30, 15))
-    Set co = ws.ChartObjects.Add(r.Left, r.Top, r.Width, r.Height)
-    co.Name = mod_Analyse.AN_GRAPH_EVOLUTION
-    co.Chart.ChartType = xlColumnStacked
-    co.Chart.HasTitle = True
-    co.Chart.ChartTitle.Text = mod_Display.FR("{E2}volution mensuelle des d{e2}penses")
 
 End Sub
 
