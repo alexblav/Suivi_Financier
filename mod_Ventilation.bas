@@ -422,7 +422,7 @@ Sortie:
 End Sub
 
 Public Sub VenVerrouiller(ByVal ws As Worksheet)
-    If g_VenVerrouActif Then ws.Activate
+    If g_VenVerrouActif And Not mod_Aide.AideOuverte() Then ws.Activate
 End Sub
 
 
@@ -780,7 +780,7 @@ Private Sub FermerFeuilleVen(ByVal ws As Worksheet)
     g_VenVerrouActif = False
 
     ws.Range(ws.Cells(2, VEN_COL_AIDE), ws.Cells(VEN_LIGNE_AIDE_MAX, VEN_COL_AIDE)).ClearContents
-    ws.Visible = xlSheetVeryHidden
+    mod_Aide.MasquerFormulaire ws
 
 End Sub
 

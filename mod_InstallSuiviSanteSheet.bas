@@ -353,6 +353,7 @@ Private Sub SS_ConstruireBoutons(ByVal ws As Worksheet)
         "ValiderCasSuiviSante", "btnValiderCasSuiviSante", mod_InstallCommun.FRM_BTN_L
     mod_InstallCommun.AjouterBoutonEntete ws, SS_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapSortir(), _
         "SortirSuiviSante", "btnSortirSuiviSante", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonAide ws, SS_LIGNE_BOUTONS, gauche
 
     ' --- Boutons "+" : ajoutent une valeur aux listes Bénéficiaires et Praticiens ---
     mod_InstallCommun.AjouterBoutonCellule ws, ws.Range(SS_COL_LIBELLE_3 & SS_LIGNE_BENEFICIAIRE), mod_InstallCommun.CapAjouter(), _

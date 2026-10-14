@@ -231,6 +231,7 @@ Private Sub ConstruireBoutons(ByVal ws As Worksheet)
         "ControleTerminer", "btnCtrlTerminer", mod_InstallCommun.FRM_BTN_L
     mod_InstallCommun.AjouterBoutonEntete ws, CTRL_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapAnnuler(), _
         "ControleAnnuler", "btnCtrlAnnuler", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonAide ws, CTRL_LIGNE_BOUTONS, gauche
 
     ' --- Bouton "Ventiler" (phase 4), à côté du champ Montant ---
     ' Il ouvre la feuille frm_Ventilation (voir mod_InstallVentilation); la logique se

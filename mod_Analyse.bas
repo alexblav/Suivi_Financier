@@ -576,7 +576,7 @@ Public Sub SortirAnalyse()
         wsSyn.Visible = xlSheetVisible
         wsSyn.Activate
     End If
-    If Not ws Is Nothing Then ws.Visible = xlSheetVeryHidden
+    If Not ws Is Nothing Then mod_Aide.MasquerFormulaire ws
 End Sub
 
 ' Retour de l'écran de recherche : on réaffiche l'analyse et on la recalcule (la
@@ -688,7 +688,7 @@ Public Sub VoirOperationsAnalyse()
     mod_RechercheOperations.RechercherOperations "Analyse", cat & "|" & sous & "|" & deb & "|" & fin & "|" & listeExcl
 
     ' L'écran de recherche prend la place de l'analyse (même principe que les autres formulaires).
-    If ActiveSheet.Name = mod_VarGlobales.NOM_FEUILLE_RECHERCHE Then ws.Visible = xlSheetVeryHidden
+    If ActiveSheet.Name = mod_VarGlobales.NOM_FEUILLE_RECHERCHE Then mod_Aide.MasquerFormulaire ws
 
 End Sub
 

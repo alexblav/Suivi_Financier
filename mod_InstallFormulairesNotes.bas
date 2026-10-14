@@ -323,6 +323,7 @@ Private Sub RN_ConstruireBoutons(ByVal ws As Worksheet)
         "PasserRapprochementNotes", "btnPasserRapprochement", 120
     mod_InstallCommun.AjouterBoutonEntete ws, RN_LIGNE_BOUTONS_2, gauche, mod_InstallCommun.CapSortir(), _
         "SortirRapprochementNotes", "btnSortirRapprochement", 112.5
+    mod_InstallCommun.AjouterBoutonAide ws, RN_LIGNE_BOUTONS_2, gauche
 
     mod_InstallCommun.AjouterBoutonCellule ws, ws.Range(FN_COL_LIBELLE_3 & RN_LIGNE_CATEGORIE), mod_Display.FR("Changer la cat{e2}gorie"), _
         "ChangerCategorieRapprochementNotes", "btnChangerCategorie", 120.7
@@ -524,6 +525,7 @@ Private Sub GC_ConstruireBoutons(ByVal ws As Worksheet)
         "PasserGenerationCle", "btnPasserGeneration", mod_InstallCommun.FRM_BTN_L
     mod_InstallCommun.AjouterBoutonEntete ws, GC_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapRetour(), _
         "RetourGenerationCle", "btnRetourGeneration", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonAide ws, GC_LIGNE_BOUTONS, gauche
 
     mod_InstallCommun.AjouterBoutonCellule ws, ws.Range(FN_COL_LIBELLE_3 & GC_LIGNE_SPECIALITE), mod_InstallCommun.CapAjouter(), _
         "AjouterSpecialite", "btnAjouterSpecialite", mod_InstallCommun.FRM_BTN_PLUS

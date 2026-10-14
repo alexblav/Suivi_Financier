@@ -1310,7 +1310,7 @@ End Function
 
 ' Verrou "modal" : tant que le formulaire est ouvert, impossible de le quitter en changeant d'onglet.
 Public Sub EchVerrouiller(ByVal ws As Worksheet)
-    If g_EchVerrouActif Then ws.Activate
+    If g_EchVerrouActif And Not mod_Aide.AideOuverte() Then ws.Activate
 End Sub
 
 ' --- Bouton "Valider" ---
@@ -1511,7 +1511,7 @@ Private Sub FermerFeuilleEch(ByVal ws As Worksheet)
     g_EchVerrouActif = False
     ws.Range(ws.Cells(2, EF_COL_AIDE_SOUS), ws.Cells(EF_LIGNE_AIDE_MAX, EF_COL_AIDE_SOUS)).ClearContents
     ws.Range(ws.Cells(2, EF_COL_AIDE_TIERS), ws.Cells(EF_LIGNE_AIDE_TIERS_MAX, EF_COL_AIDE_TIERS)).ClearContents
-    ws.Visible = xlSheetVeryHidden
+    mod_Aide.MasquerFormulaire ws
 End Sub
 
 Private Function ExisteDansListe(ByRef liste() As String, ByVal valeur As String) As Boolean
@@ -1563,7 +1563,7 @@ Private Sub AfficherListe(ByVal nomFeuille As String)
     mod_InstallCommun.MasquerQuadrillage
 
     Set autre = mod_InstallCommun.TrouverFeuille(nomAutre)
-    If Not autre Is Nothing Then autre.Visible = xlSheetVeryHidden
+    If Not autre Is Nothing Then mod_Aide.MasquerFormulaire autre
 
 End Sub
 
@@ -1577,7 +1577,7 @@ Public Sub SortirEcheancier()
     On Error Resume Next
     ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_SYNTHESE).Activate
     On Error GoTo 0
-    ws.Visible = xlSheetVeryHidden
+    mod_Aide.MasquerFormulaire ws
 
 End Sub
 

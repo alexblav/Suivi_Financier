@@ -205,6 +205,7 @@ Private Sub ConstruireBoutons(ByVal ws As Worksheet)
         "ReinitialiserSelectionsEvolution", "btnReinitialiserEvolution", 160
     mod_InstallCommun.AjouterBoutonEntete ws, LIGNE_BOUTONS, gauche, mod_InstallCommun.CapSortir(), _
         "SortirEvolution", "btnSortirEvolution", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonAide ws, LIGNE_BOUTONS, gauche
 
 End Sub
 

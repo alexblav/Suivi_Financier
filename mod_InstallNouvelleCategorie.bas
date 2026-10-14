@@ -155,6 +155,7 @@ Private Sub ConstruireBoutons(ByVal ws As Worksheet)
         "NcValider", "btnNcValider", mod_InstallCommun.FRM_BTN_L
     mod_InstallCommun.AjouterBoutonEntete ws, NC_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapAnnuler(), _
         "NcAnnuler", "btnNcAnnuler", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonAide ws, NC_LIGNE_BOUTONS, gauche
 
 End Sub
 

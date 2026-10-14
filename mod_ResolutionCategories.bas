@@ -316,7 +316,7 @@ Public Sub TerminerEtAppliquerChoix()
     ws.Range("CompteurCasRestants").value = ""
 
     ' --- Masquage et retour a la feuille sur laquelle etait l'utilisateur avant ---
-    ws.Visible = xlSheetVeryHidden
+    mod_Aide.MasquerFormulaire ws
 
     On Error Resume Next   ' au cas ou la feuille precedente aurait ete renommee/supprimee entre-temps
     ThisWorkbook.Worksheets(g_NomFeuillePrecedente).Activate

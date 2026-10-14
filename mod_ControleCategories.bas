@@ -812,7 +812,7 @@ End Sub
 ' Appelée quand l'opérateur essaie de quitter la feuille (changement d'onglet...).
 ' Tant que le formulaire est ouvert, on le ramène dessus : c'est le "verrou modal".
 Public Sub CtrlVerrouiller(ByVal ws As Worksheet)
-    If g_CtrlVerrouActif Then ws.Activate
+    If g_CtrlVerrouActif And Not mod_Aide.AideOuverte() Then ws.Activate
 End Sub
 
 
@@ -1183,7 +1183,7 @@ Private Sub FermerFormulaire(ByVal ws As Worksheet)
     g_CtrlVerrouActif = False
 
     ws.Range(ws.Cells(2, CTRL_COL_AIDE), ws.Cells(CTRL_LIGNE_AIDE_MAX, CTRL_COL_AIDE)).ClearContents
-    ws.Visible = xlSheetVeryHidden
+    mod_Aide.MasquerFormulaire ws
 
     On Error Resume Next                      ' la feuille d'origine a pu être renommée/supprimée
     ThisWorkbook.Worksheets(g_CtrlNomFeuillePrec).Activate

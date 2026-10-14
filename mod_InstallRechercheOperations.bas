@@ -283,6 +283,7 @@ Private Sub RO_ConstruireBoutons(ByVal ws As Worksheet)
         "AjouterDecalageDepuisRO", "btnAjouterDecalageRO", 104.2
     mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("D{e2}caler cette op{e2}ration"), _
         "DecalerBudgetOperationRO", "btnDecalerBudgetOperationRO", 117
+    mod_InstallCommun.AjouterBoutonAide ws, RO_LIGNE_BOUTONS, gauche
     ' Ajout 09/10/2026 (échéancier) : déclare l'opération sélectionnée comme récurrente.
     mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Rendre r{e2}currente"), _
         "RendreRecurrenteRO", "btnRendreRecurrenteRO", 105

@@ -232,7 +232,7 @@ End Sub
 ' Verrou "modal" : tant que le formulaire est ouvert, on empêche l'opérateur de le quitter
 ' en changeant d'onglet (Worksheet_Deactivate le ramène de force sur cette feuille).
 Public Sub NcVerrouiller(ByVal ws As Worksheet)
-    If g_NcVerrouActif Then ws.Activate
+    If g_NcVerrouActif And Not mod_Aide.AideOuverte() Then ws.Activate
 End Sub
 
 
@@ -347,7 +347,7 @@ Private Sub FermerFeuilleNc(ByVal ws As Worksheet)
     g_NcVerrouActif = False
 
     ws.Range(ws.Cells(2, NC_COL_AIDE), ws.Cells(NC_LIGNE_AIDE_MAX, NC_COL_AIDE)).ClearContents
-    ws.Visible = xlSheetVeryHidden
+    mod_Aide.MasquerFormulaire ws
 
 End Sub
 

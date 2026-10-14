@@ -689,7 +689,7 @@ Public Sub SortirSuiviSante()
     ' On se repositionne sur la feuille Synthèse
     Sheets("Synthese").Activate
     ' On masque la feuille en cours
-    ws.Visible = xlSheetVeryHidden
+    mod_Aide.MasquerFormulaire ws
     ' Arrêt complet du programme
     End
 End Sub
@@ -897,7 +897,7 @@ End Sub
 ' verrou libéré pour que TraiterCasSuiviSante puisse rendre la main).
 ' =====================================================================================
 Private Sub TerminerSessionSuiviSante(ws As Worksheet, ByVal Message As String)
-    ws.Visible = xlSheetVeryHidden
+    mod_Aide.MasquerFormulaire ws
     g_SaisieEnCours = False
     MsgBox Message, vbInformation, mod_Display.FR("Suivi sant{e2}")
 End Sub

@@ -746,7 +746,7 @@ Public Sub SortirEvolution()
         wsSyn.Visible = xlSheetVisible
         wsSyn.Activate
     End If
-    If Not ws Is Nothing Then ws.Visible = xlSheetVeryHidden
+    If Not ws Is Nothing Then mod_Aide.MasquerFormulaire ws
 End Sub
 
 ' Bouton "Réinitialiser les sélections" : vide les listes de catégories et de sous-catégories.

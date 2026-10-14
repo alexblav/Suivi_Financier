@@ -220,6 +220,7 @@ Private Function ConstruireListe(ByVal nomFeuille As String, ByVal nomTable As S
         mod_InstallCommun.AjouterBoutonEntete ws, LIGNE_BOUTONS, gauche, CStr(boutons(i)), CStr(boutons(i + 1)), _
                                               CStr(boutons(i + 2)), CDbl(boutons(i + 3))
     Next i
+    mod_InstallCommun.AjouterBoutonAide ws, LIGNE_BOUTONS, gauche
 
     mod_InstallCommun.TerminerFeuille ws, wsPrecedente
     Application.ScreenUpdating = True
@@ -342,6 +343,7 @@ Private Function ConstruireFormulaireReleve(ByVal wsPrecedente As Worksheet) As 
         "RelValiderSuivant", "btnRelValiderSuivant", 115
     mod_InstallCommun.AjouterBoutonEntete ws, LIGNE_BOUTONS, gauche, mod_InstallCommun.CapAnnuler(), _
         "RelAnnuler", "btnRelAnnuler", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonAide ws, LIGNE_BOUTONS, gauche
 
     mod_InstallCommun.TerminerFeuille ws, wsPrecedente
     Application.ScreenUpdating = True
@@ -426,6 +428,7 @@ Private Function ConstruireFormulaireContrat(ByVal wsPrecedente As Worksheet) As
         "CtrValider", "btnCtrValider", mod_InstallCommun.FRM_BTN_L
     mod_InstallCommun.AjouterBoutonEntete ws, LIGNE_BOUTONS, gauche, mod_InstallCommun.CapAnnuler(), _
         "CtrAnnuler", "btnCtrAnnuler", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonAide ws, LIGNE_BOUTONS, gauche
 
     mod_InstallCommun.TerminerFeuille ws, wsPrecedente
     Application.ScreenUpdating = True
@@ -566,6 +569,7 @@ Private Sub ConstruireBoutonsConso(ByVal ws As Worksheet)
         "AfficherContrats", "btnVoirContratsConso", 80
     mod_InstallCommun.AjouterBoutonEntete ws, LIGNE_BOUTONS, gauche, mod_InstallCommun.CapSortir(), _
         "SortirConsommations", "btnSortirConso", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonAide ws, LIGNE_BOUTONS, gauche
 
 End Sub
 

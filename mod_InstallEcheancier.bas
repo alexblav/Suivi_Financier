@@ -263,6 +263,7 @@ Private Function ConstruireListe(ByVal nomFeuille As String, ByVal nomTable As S
         mod_InstallCommun.AjouterBoutonEntete ws, LIGNE_BOUTONS, gauche, CStr(boutons(i)), CStr(boutons(i + 1)), _
                                               CStr(boutons(i + 2)), CDbl(boutons(i + 3))
     Next i
+    mod_InstallCommun.AjouterBoutonAide ws, LIGNE_BOUTONS, gauche
 
     mod_InstallCommun.TerminerFeuille ws, wsPrecedente
     Application.ScreenUpdating = True
@@ -361,6 +362,7 @@ Private Function ConstruireFormulaire(ByVal wsPrecedente As Worksheet) As Boolea
         "EchValider", "btnEchValider", mod_InstallCommun.FRM_BTN_L
     mod_InstallCommun.AjouterBoutonEntete ws, LIGNE_BOUTONS, gauche, mod_InstallCommun.CapAnnuler(), _
         "EchAnnuler", "btnEchAnnuler", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonAide ws, LIGNE_BOUTONS, gauche
 
     mod_InstallCommun.TerminerFeuille ws, wsPrecedente
     Application.ScreenUpdating = True
@@ -754,7 +756,8 @@ Public Sub AjouterBoutonRecurrenteRO()
     SupprimerBoutonSiExiste ws, "btnRendreRecurrenteRO"
 
     On Error Resume Next
-    Set ref = ws.Shapes("btnDecalerBudgetOperationRO")
+    Set ref = ws.Shapes("btnAide")                       ' le bouton Aide est posé juste après "Décaler cette opération"
+    If ref Is Nothing Then Set ref = ws.Shapes("btnDecalerBudgetOperationRO")
     On Error GoTo 0
     If ref Is Nothing Then
         gauche = ws.Cells(1, 1).Left + 575

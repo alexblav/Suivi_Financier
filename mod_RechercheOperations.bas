@@ -1597,7 +1597,7 @@ Public Sub SortirRechercheOperations()
     ' qui se recalcule (une recategorisation ou un decalage change les chiffres).
     If g_ROPrefiltreActif = "Analyse" Then
         mod_Analyse.RetourDepuisRecherche
-        ws.Visible = xlSheetVeryHidden
+        mod_Aide.MasquerFormulaire ws
         Exit Sub
     End If
     On Error Resume Next
@@ -1607,7 +1607,7 @@ Public Sub SortirRechercheOperations()
         Sheets("Synthese").Activate
     End If
     On Error GoTo 0
-    ws.Visible = xlSheetVeryHidden
+    mod_Aide.MasquerFormulaire ws
 End Sub
 
 

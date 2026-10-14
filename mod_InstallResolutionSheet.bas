@@ -188,6 +188,7 @@ Private Sub ConstruireZoneBoutons(ByVal ws As Worksheet)
         "ReinitialiserLigneSelectionnee", "btnReinitialiserLigne", 120
     mod_InstallCommun.AjouterBoutonEntete ws, RES_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapEnregistrer(), _
         "TerminerEtAppliquerChoix", "btnTerminerResolution", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonAide ws, RES_LIGNE_BOUTONS, gauche
 
 End Sub
 

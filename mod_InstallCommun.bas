@@ -32,9 +32,14 @@ Option Explicit
 '     fine ligne vide
 '     ligne du compteur ... (uniquement si le formulaire a un compteur)
 '     fine ligne vide ..... (uniquement si le formulaire a un compteur)
-'     ligne Instructions .. (étiquette à gauche, texte fusionné sur la largeur)
+'     ligne Instructions .. MASQUÉE (hauteur 0) : le texte est dans frm_Nomform_aide
 '     fine ligne vide
 '     ... corps du formulaire
+'
+' AIDE : le bloc Instructions de chaque formulaire frm_Nomform est écrit dans la feuille
+' très masquée frm_Nomform_aide (voir EcrireInstructions). Le bouton "Aide" du formulaire
+' (AjouterBoutonAide, macro AfficherAide de mod_Aide) la montre ; son bouton "Sortir"
+' (macro SortirAide) ramène au formulaire.
 '
 ' MISE EN FORME DU TEXTE DES INSTRUCTIONS : le texte source est écrit avec de petites
 ' balises, interprétées par EcrireInstructions :
@@ -58,6 +63,7 @@ Public Const FRM_BTN_H As Double = 19.5         ' hauteur des boutons de la lign
 Public Const FRM_BTN_ECART As Double = 2        ' espace entre deux boutons
 Public Const FRM_BTN_L As Double = 82.5         ' largeur standard d'un bouton
 Public Const FRM_BTN_PLUS As Double = 26        ' largeur d'un bouton "+"
+Public Const FRM_BTN_AIDE_L As Double = 50      ' largeur du bouton "Aide"
 
 ' --- Sens attendu d'un montant (PoserChampMontant / PoserValidationMontant) ------------
 Public Const MONTANT_LIBRE As Long = 0           ' tout nombre (négatif = dépense)
@@ -585,14 +591,93 @@ End Sub
 ' =====================================================================================
 ' BLOC "INSTRUCTIONS"
 ' =====================================================================================
-' Écrit, sur UNE ligne : l'étiquette "Instructions" (cellules colEtiqDeb à colEtiqFin,
-' fusionnées) puis le texte (cellules colTexteDeb à colTexteFin, fusionnées), avec les
-' mises en couleur décrites en tête de module. La hauteur de la ligne est calculée pour
-' que tout le texte soit visible.
+' AIDE DÉPORTÉE (demande opérateur du 14/10/2026) : le bloc Instructions n'est plus
+' affiché sur le formulaire de travail, pour libérer de la place. Son texte est écrit dans
+' une feuille d'aide "frm_Nomform_aide" (très masquée), que le bouton "Aide" du formulaire
+' affiche (le formulaire reste ouvert) et que le bouton "Sortir" de l'aide referme (voir mod_Aide, à l'exécution).
+'
+' Cette procédure garde la signature d'origine, pour ne pas toucher aux appels de chaque
+' mod_Install* : les numéros de colonnes ne servent plus (l'aide a sa propre mise en page),
+' et "ligne" reste la ligne réservée aux instructions. Elle n'est PAS supprimée, mais
+' masquée (hauteur 0) : les formulaires remontent ainsi visuellement d'autant, sans que
+' les numéros de ligne du corps du formulaire (codés en dur dans mod_Install* et dans les
+' modules d'exécution) changent.
 Public Sub EcrireInstructions(ByVal ws As Worksheet, ByVal ligne As Long, _
                               ByVal colEtiqDeb As Long, ByVal colEtiqFin As Long, _
                               ByVal colTexteDeb As Long, ByVal colTexteFin As Long, _
                               ByVal texteSource As String)
+
+    CreerFeuilleAide ws, texteSource
+
+    ws.Rows(ligne).RowHeight = 0
+    ws.Rows(ligne).Hidden = True
+
+End Sub
+
+' Nom de la feuille d'aide d'un formulaire : frm_Nomform -> frm_Nomform_aide.
+Public Function NomFeuilleAide(ByVal nomForm As String) As String
+    NomFeuilleAide = nomForm & "_aide"
+End Function
+
+' Bouton "Aide" d'un formulaire de travail : à poser sur la ligne de boutons, après les
+' autres boutons ("gauche" est mis à jour comme pour AjouterBoutonEntete).
+Public Sub AjouterBoutonAide(ByVal ws As Worksheet, ByVal ligne As Long, ByRef gauche As Double)
+    AjouterBoutonEntete ws, ligne, gauche, "Aide", "AfficherAide", "btnAide", FRM_BTN_AIDE_L
+End Sub
+
+' (Re)construit, sans demander de confirmation, la feuille "frm_Nomform_aide" : bouton
+' Sortir en haut, titre, puis le texte des instructions (mêmes balises, mêmes couleurs).
+Private Sub CreerFeuilleAide(ByVal wsForm As Worksheet, ByVal texteSource As String)
+
+    Dim wsAide As Worksheet
+    Dim nom As String
+    Dim gauche As Double
+
+    nom = NomFeuilleAide(wsForm.Name)
+    Set wsAide = TrouverFeuille(nom)
+
+    If wsAide Is Nothing Then
+        Set wsAide = ThisWorkbook.Worksheets.Add(After:=ThisWorkbook.Worksheets(ThisWorkbook.Worksheets.Count))
+        wsAide.Name = nom
+    Else
+        wsAide.Visible = xlSheetVisible
+        wsAide.Activate
+        wsAide.Cells.UnMerge
+        wsAide.Cells.Clear
+        SupprimerFormes wsAide
+        wsAide.Rows.UseStandardHeight = True
+        wsAide.Columns.UseStandardWidth = True
+    End If
+
+    ' A marge ; B étiquette "Instructions" ; C texte.
+    MettreEnForme wsAide, Array(2, 12, 110), 20
+
+    wsAide.Rows(1).RowHeight = FRM_H_MARGE
+    wsAide.Rows(2).RowHeight = FRM_H_BOUTONS
+    wsAide.Rows(3).RowHeight = FRM_H_SEP
+    wsAide.Rows(5).RowHeight = FRM_H_SEP
+
+    PoserTitreBloc wsAide.Range("B4:C4"), mod_Display.FR("Aide - ") & wsForm.Name
+
+    EcrireBlocInstructions wsAide, 6, 2, 2, 3, 3, texteSource
+
+    gauche = wsAide.Cells(1, 2).Left
+    AjouterBoutonEntete wsAide, 2, gauche, CapSortir(), "SortirAide", "btnSortirAide", FRM_BTN_L
+
+    wsAide.Range("A1").Select
+    wsForm.Activate                      ' la feuille d'aide ne doit pas rester active pour être masquée
+    wsAide.Visible = xlSheetVeryHidden
+
+End Sub
+
+' Écrit, sur UNE ligne : l'étiquette "Instructions" (cellules colEtiqDeb à colEtiqFin,
+' fusionnées) puis le texte (cellules colTexteDeb à colTexteFin, fusionnées), avec les
+' mises en couleur décrites en tête de module. La hauteur de la ligne est calculée pour
+' que tout le texte soit visible.
+Private Sub EcrireBlocInstructions(ByVal ws As Worksheet, ByVal ligne As Long, _
+                                   ByVal colEtiqDeb As Long, ByVal colEtiqFin As Long, _
+                                   ByVal colTexteDeb As Long, ByVal colTexteFin As Long, _
+                                   ByVal texteSource As String)
 
     Dim zoneEtiq As Range
     Dim zoneTexte As Range

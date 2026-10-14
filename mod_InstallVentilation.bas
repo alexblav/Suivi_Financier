@@ -440,6 +440,7 @@ Private Sub ConstruireBoutons(ByVal ws As Worksheet)
         "VenTerminer", "btnVenTerminer", mod_InstallCommun.FRM_BTN_L
     mod_InstallCommun.AjouterBoutonEntete ws, VEN_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapAnnuler(), _
         "VenAnnuler", "btnVenAnnuler", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonAide ws, VEN_LIGNE_BOUTONS, gauche
 
     ' Ajout du 01/10/2026 (point 4) : bouton de suppression d'une ventilation EXISTANTE.
     ' Masqué par défaut à la construction : mod_Ventilation.OuvrirVentilation le rend

@@ -1099,7 +1099,7 @@ Private Sub MontrerEcran(ByVal nomFeuille As String)
     For i = LBound(noms) To UBound(noms)
         If noms(i) <> nomFeuille Then
             Set autre = mod_InstallCommun.TrouverFeuille(CStr(noms(i)))
-            If Not autre Is Nothing Then autre.Visible = xlSheetVeryHidden
+            If Not autre Is Nothing Then mod_Aide.MasquerFormulaire autre
         End If
     Next i
 
@@ -1144,7 +1144,7 @@ Public Sub SortirConsommations()
     noms = Array(mod_VarGlobales.NOM_FEUILLE_CONSO, mod_VarGlobales.NOM_FEUILLE_RELEVES, mod_VarGlobales.NOM_FEUILLE_CONTRATS)
     For i = LBound(noms) To UBound(noms)
         Set ws = mod_InstallCommun.TrouverFeuille(CStr(noms(i)))
-        If Not ws Is Nothing Then ws.Visible = xlSheetVeryHidden
+        If Not ws Is Nothing Then mod_Aide.MasquerFormulaire ws
     Next i
 
 End Sub
@@ -1404,7 +1404,7 @@ End Sub
 
 ' Verrou "modal" : tant que le formulaire est ouvert, impossible de le quitter en changeant d'onglet.
 Public Sub RelVerrouiller(ByVal ws As Worksheet)
-    If g_RelVerrouActif Then ws.Activate
+    If g_RelVerrouActif And Not mod_Aide.AideOuverte() Then ws.Activate
 End Sub
 
 Public Sub RelValider()
@@ -1566,7 +1566,7 @@ End Sub
 Private Sub FermerFeuilleRel(ByVal ws As Worksheet)
     g_RelEnCours = False
     g_RelVerrouActif = False
-    ws.Visible = xlSheetVeryHidden
+    mod_Aide.MasquerFormulaire ws
 End Sub
 
 
@@ -1719,7 +1719,7 @@ Sortie:
 End Sub
 
 Public Sub CtrVerrouiller(ByVal ws As Worksheet)
-    If g_CtrVerrouActif Then ws.Activate
+    If g_CtrVerrouActif And Not mod_Aide.AideOuverte() Then ws.Activate
 End Sub
 
 Public Sub CtrValider()
@@ -1860,7 +1860,7 @@ End Sub
 Private Sub FermerFeuilleCtr(ByVal ws As Worksheet)
     g_CtrEnCours = False
     g_CtrVerrouActif = False
-    ws.Visible = xlSheetVeryHidden
+    mod_Aide.MasquerFormulaire ws
 End Sub
 
 

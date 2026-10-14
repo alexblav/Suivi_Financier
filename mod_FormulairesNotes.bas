@@ -597,7 +597,7 @@ Private Function AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVa
     attenteActive = False
 
     Sheets("Synthese").Activate
-    ws.Visible = xlSheetVeryHidden
+    mod_Aide.MasquerFormulaire ws
 
     Select Case derniereAction
         Case "Valider"
@@ -646,7 +646,7 @@ ErreurBoucle:
     attenteActive = False
     g_SaisieEnCours = False
     On Error Resume Next
-    ws.Visible = xlSheetVeryHidden
+    mod_Aide.MasquerFormulaire ws
     Sheets("Synthese").Activate
     On Error GoTo 0
     MsgBox FR("Le rapprochement des notes s'est interrompu sur une erreur :") & vbCrLf & msgErr & vbCrLf & vbCrLf & _
@@ -670,7 +670,7 @@ Private Function BoucleActive() As Boolean
     End If
     g_SaisieEnCours = False
     On Error Resume Next
-    ActiveSheet.Visible = xlSheetVeryHidden
+    mod_Aide.MasquerFormulaire ActiveSheet
     Sheets("Synthese").Activate
     On Error GoTo 0
     MsgBox FR("Cet {e2}cran n'est plus rattach{e2} {a2} un traitement en cours (le traitement a {e2}t{e2} interrompu). Rien n'a {e2}t{e2} modifi{e2}." & _
@@ -989,7 +989,7 @@ Private Function AfficherGenerationPourLigne(ByVal ligneDepense As Long, ByVal S
     Loop
     attenteActive = False
 
-    ws.Visible = xlSheetVeryHidden
+    mod_Aide.MasquerFormulaire ws
 
     ' Si "Passer" a été cliqué, derniereAction = "Passer" et aucun des blocs
     ' ci-dessous n'est exécuté : rien n'est écrit, la ligne reste inchangée et
