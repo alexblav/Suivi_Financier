@@ -284,8 +284,15 @@ End Sub
 ' Dernière étape : on masque complètement la feuille (invisible pour l'opérateur, même
 ' via clic droit > Afficher) et on revient sur la feuille qui était affichée avant.
 Public Sub TerminerFeuille(ByVal ws As Worksheet, ByVal wsPrecedente As Worksheet)
+    Dim wsSyn As Worksheet
     ws.Activate
     ws.Range("A1").Select
+    ' Garde-fou : Synthese (écran central) doit rester visible pendant une installation,
+    ' sinon il ne reste aucune feuille vers laquelle revenir.
+    Set wsSyn = TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+    If Not wsSyn Is Nothing Then
+        If wsSyn.Visible <> xlSheetVisible Then wsSyn.Visible = xlSheetVisible
+    End If
     ws.Visible = xlSheetVeryHidden
     On Error Resume Next
     wsPrecedente.Activate
@@ -626,12 +633,23 @@ Public Sub AjouterBoutonAide(ByVal ws As Worksheet, ByVal ligne As Long, ByRef g
 End Sub
 
 ' (Re)construit, sans demander de confirmation, la feuille "frm_Nomform_aide" : bouton
-' Sortir en haut, titre, puis le texte des instructions (mêmes balises, mêmes couleurs).
+' Sortir en haut, titre, introduction, puis la liste des champs et la liste des boutons
+' (une cellule par élément). Le contenu vient de mod_InstallAide ; à défaut, le texte des
+' instructions du formulaire est repris tel quel sous un titre par défaut.
 Private Sub CreerFeuilleAide(ByVal wsForm As Worksheet, ByVal texteSource As String)
 
     Dim wsAide As Worksheet
     Dim nom As String
     Dim gauche As Double
+    Dim titre As String, intro As String, champs As String, boutons As String
+    Dim ligne As Long
+
+    If Not mod_InstallAide.ChargerAide(wsForm.Name, titre, intro, champs, boutons) Then
+        titre = "Aide - " & wsForm.Name
+        intro = texteSource
+        champs = ""
+        boutons = ""
+    End If
 
     nom = NomFeuilleAide(wsForm.Name)
     Set wsAide = TrouverFeuille(nom)
@@ -649,17 +667,37 @@ Private Sub CreerFeuilleAide(ByVal wsForm As Worksheet, ByVal texteSource As Str
         wsAide.Columns.UseStandardWidth = True
     End If
 
-    ' A marge ; B étiquette "Instructions" ; C texte.
-    MettreEnForme wsAide, Array(2, 12, 110), 20
+    ' A marge ; B noms (étiquette "Instructions", champs, boutons) ; C textes.
+    MettreEnForme wsAide, Array(2, 32, 105), 20
 
     wsAide.Rows(1).RowHeight = FRM_H_MARGE
     wsAide.Rows(2).RowHeight = FRM_H_BOUTONS
     wsAide.Rows(3).RowHeight = FRM_H_SEP
+
+    ' Ligne 4 : titre
+    With wsAide.Range("B4:C4")
+        .Merge
+        .NumberFormat = "@"
+        .Value = mod_Display.FR(titre)
+        .Font.Size = 14
+        .Font.Bold = True
+        .Font.Color = CoulEtiquette()
+        .HorizontalAlignment = xlLeft
+        .VerticalAlignment = xlCenter
+        .Borders(xlEdgeBottom).LineStyle = xlContinuous
+        .Borders(xlEdgeBottom).Weight = xlMedium
+        .Borders(xlEdgeBottom).Color = CoulEtiquette()
+    End With
+    wsAide.Rows(4).RowHeight = 24
     wsAide.Rows(5).RowHeight = FRM_H_SEP
 
-    PoserTitreBloc wsAide.Range("B4:C4"), mod_Display.FR("Aide - ") & wsForm.Name
+    ' Ligne 6 : introduction ; ligne 7 : séparation
+    EcrireBlocInstructions wsAide, 6, 2, 2, 3, 3, intro
+    wsAide.Rows(7).RowHeight = FRM_H_SEP
 
-    EcrireBlocInstructions wsAide, 6, 2, 2, 3, 3, texteSource
+    ligne = 8
+    If Len(champs) > 0 Then ligne = EcrireListeAide(wsAide, ligne, "Champs", champs, False)
+    If Len(boutons) > 0 Then ligne = EcrireListeAide(wsAide, ligne, "Boutons", boutons, True)
 
     gauche = wsAide.Cells(1, 2).Left
     AjouterBoutonEntete wsAide, 2, gauche, CapSortir(), "SortirAide", "btnSortirAide", FRM_BTN_L
@@ -669,6 +707,63 @@ Private Sub CreerFeuilleAide(ByVal wsForm As Worksheet, ByVal texteSource As Str
     wsAide.Visible = xlSheetVeryHidden
 
 End Sub
+
+' Écrit une liste "Nom|Description" (un élément par ligne de texte, séparés par Chr(10)) à
+' partir de "ligne" : un titre de bloc, puis une ligne par élément (nom dans la colonne B,
+' description dans la colonne C), puis une fine ligne vide. Renvoie la ligne suivante.
+' Les noms de champs sont en vert, ceux de boutons en rouge (comme dans les instructions).
+Private Function EcrireListeAide(ByVal ws As Worksheet, ByVal ligne As Long, ByVal titreBloc As String, _
+                                 ByVal liste As String, ByVal sontDesBoutons As Boolean) As Long
+
+    Dim elements() As String
+    Dim i As Long
+    Dim pos As Long
+    Dim nomElt As String, desc As String
+    Dim brutDesc As String
+    Dim hNom As Double, hDesc As Double
+
+    PoserTitreBloc ws.Range(ws.Cells(ligne, 2), ws.Cells(ligne, 3)), titreBloc
+    ws.Rows(ligne).RowHeight = FRM_H_LIGNE
+    ligne = ligne + 1
+
+    elements = Split(liste, Chr(10))
+    For i = LBound(elements) To UBound(elements)
+        pos = InStr(elements(i), "|")
+        If pos > 0 Then
+            nomElt = Left$(elements(i), pos - 1)
+            desc = Mid$(elements(i), pos + 1)
+
+            With ws.Cells(ligne, 2)
+                .NumberFormat = "@"
+                .Value = mod_Display.FR(nomElt)
+                .Font.Name = "Calibri"
+                .Font.Size = 10
+                .Font.Bold = True
+                If sontDesBoutons Then .Font.Color = CoulNomBouton() Else .Font.Color = CoulNomChamp()
+                .Interior.Color = CoulFondLecture()
+                .WrapText = True
+                .VerticalAlignment = xlTop
+                .HorizontalAlignment = xlLeft
+                .Locked = True
+                .Borders.LineStyle = xlContinuous
+                .Borders.Weight = xlThin
+                .Borders.Color = CoulBordureLecture()
+            End With
+
+            ws.Cells(ligne, 3).NumberFormat = "@"
+            brutDesc = EcrireCelluleTexte(ws.Cells(ligne, 3), desc)
+
+            hNom = HauteurTexte(ws, mod_Display.FR(nomElt), ws.Cells(ligne, 2).Width, 10, True)
+            hDesc = HauteurTexte(ws, brutDesc, ws.Cells(ligne, 3).Width)
+            If hNom > hDesc Then ws.Rows(ligne).RowHeight = hNom Else ws.Rows(ligne).RowHeight = hDesc
+            ligne = ligne + 1
+        End If
+    Next i
+
+    ws.Rows(ligne).RowHeight = FRM_H_SEP
+    EcrireListeAide = ligne + 1
+
+End Function
 
 ' Écrit, sur UNE ligne : l'étiquette "Instructions" (cellules colEtiqDeb à colEtiqFin,
 ' fusionnées) puis le texte (cellules colTexteDeb à colTexteFin, fusionnées), avec les
@@ -682,7 +777,6 @@ Private Sub EcrireBlocInstructions(ByVal ws As Worksheet, ByVal ligne As Long, _
     Dim zoneEtiq As Range
     Dim zoneTexte As Range
     Dim brut As String
-    Dim k As Long
 
     Set zoneEtiq = ws.Range(ws.Cells(ligne, colEtiqDeb), ws.Cells(ligne, colEtiqFin))
     PoserEtiquette zoneEtiq, "Instructions"
@@ -690,6 +784,20 @@ Private Sub EcrireBlocInstructions(ByVal ws As Worksheet, ByVal ligne As Long, _
 
     Set zoneTexte = ws.Range(ws.Cells(ligne, colTexteDeb), ws.Cells(ligne, colTexteFin))
     zoneTexte.Merge
+
+    brut = EcrireCelluleTexte(zoneTexte, texteSource)
+
+    ws.Rows(ligne).RowHeight = HauteurTexte(ws, brut, zoneTexte.Width)
+
+End Sub
+
+' Écrit un texte (avec balises, voir en tête de module) dans une cellule ou une plage
+' fusionnée : fond gris, bordure fine, texte en 9 points avec les mises en couleur
+' partielles. Renvoie le texte brut écrit (sans balises).
+Private Function EcrireCelluleTexte(ByVal zoneTexte As Range, ByVal texteSource As String) As String
+
+    Dim brut As String
+    Dim k As Long
 
     brut = AnalyserBalises(mod_Display.FR(texteSource))
 
@@ -712,7 +820,7 @@ Private Sub EcrireBlocInstructions(ByVal ws As Worksheet, ByVal ligne As Long, _
     ' Mises en couleur partielles (après la mise en forme de l'ensemble du texte).
     For k = 1 To m_Nb
         If m_Long(k) > 0 Then
-            With ws.Cells(ligne, colTexteDeb).Characters(m_Debut(k), m_Long(k)).Font
+            With zoneTexte.Cells(1, 1).Characters(m_Debut(k), m_Long(k)).Font
                 Select Case m_Type(k)
                     Case T_BOUTON
                         .Bold = True
@@ -730,9 +838,9 @@ Private Sub EcrireBlocInstructions(ByVal ws As Worksheet, ByVal ligne As Long, _
         End If
     Next k
 
-    ws.Rows(ligne).RowHeight = HauteurTexte(ws, brut, zoneTexte.Width)
+    EcrireCelluleTexte = brut
 
-End Sub
+End Function
 
 ' Retire les balises [b:...], [c:...], [f:...] du texte et mémorise, pour chacune, la
 ' position et la longueur du texte concerné. Repère aussi les mots ATTENTION.
@@ -801,7 +909,8 @@ End Sub
 ' Excel ne sait pas ajuster automatiquement la hauteur d'une cellule FUSIONNÉE : on
 ' fait donc ajuster une cellule temporaire (loin à droite et en bas de la feuille) dont
 ' la colonne a la même largeur, puis on lit la hauteur obtenue et on efface le tout.
-Private Function HauteurTexte(ByVal ws As Worksheet, ByVal texte As String, ByVal largeurPts As Double) As Double
+Private Function HauteurTexte(ByVal ws As Worksheet, ByVal texte As String, ByVal largeurPts As Double, _
+                              Optional ByVal taille As Double = 9, Optional ByVal gras As Boolean = False) As Double
 
     Const COL_TEMP As Long = 200
     Const LIGNE_TEMP As Long = 2000
@@ -816,7 +925,9 @@ Private Function HauteurTexte(ByVal ws As Worksheet, ByVal texte As String, ByVa
     cel.Clear
     cel.WrapText = True
     cel.Font.Name = "Calibri"
-    cel.Font.Size = 9
+    cel.Font.Size = taille
+    cel.Font.Bold = gras
+    cel.NumberFormat = "@"
     cel.Value = texte
 
     ' 4 % de marge : les mots en gras sont un peu plus larges que le texte courant.

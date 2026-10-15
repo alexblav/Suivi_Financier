@@ -291,7 +291,7 @@ Private Function ConstruireFormulaireReleve(ByVal wsPrecedente As Worksheet) As 
     mod_InstallCommun.PoserChampMontant ws.Range(mod_Consommations.RF_ADR_ABO), "#,##0.00", mod_InstallCommun.MONTANT_POSITIF_OU_NUL
     mod_InstallCommun.PoserChampLecture ws.Range(mod_Consommations.RF_ADR_UNITE_ABO), "@"
 
-    mod_InstallCommun.PoserEtiquette ws.Range("B13"), mod_Display.FR("N{o2} de facture (facultatif)")
+    mod_InstallCommun.PoserEtiquette ws.Range("B13"), mod_Display.FR("Num{e2}ro de facture (facultatif)")
     mod_InstallCommun.PoserChampSaisie ws.Range("C13:E13"), "@"
 
     mod_InstallCommun.PoserEtiquette ws.Range("B14"), "Commentaire (facultatif)"
@@ -413,7 +413,7 @@ Private Function ConstruireFormulaireContrat(ByVal wsPrecedente As Worksheet) As
     mod_InstallCommun.PoserEtiquette ws.Range("B11"), "Abonnement mensuel (" & ChrW(8364) & ")"
     mod_InstallCommun.PoserChampMontant ws.Range(mod_Consommations.CF_ADR_ABO), "#,##0.00", mod_InstallCommun.MONTANT_POSITIF_OU_NUL
 
-    mod_InstallCommun.PoserEtiquette ws.Range("B12"), mod_Display.FR("R{e2}f{e2}rence / N{o2} de compteur")
+    mod_InstallCommun.PoserEtiquette ws.Range("B12"), mod_Display.FR("R{e2}f{e2}rence / num{e2}ro de compteur")
     mod_InstallCommun.PoserChampSaisie ws.Range("C12:E12"), "@"
 
     ws.Rows(13).RowHeight = mod_InstallCommun.FRM_H_SEP
