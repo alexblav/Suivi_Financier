@@ -15,9 +15,8 @@ Option Explicit
 '     B - Date
 '     C - Tiers
 '     D - Montant
-'     E - Catégorie     : liste déroulante (avertissement, pas de blocage :
-'                         on peut taper une nouvelle catégorie qui n'existe
-'                         pas encore). Modifiable par double-clic (voir ci-dessous).
+'     E - Catégorie     : SANS liste déroulante. Se modifie uniquement par
+'                         double-clic (formulaire de contrôle des catégories).
 '     F - SousCategorie : idem, PHASE 5 (catégories à 2 niveaux)
 '     G - Notes         : texte libre, SAUF si la valeur est déjà une clé
 '                         santé valide (grisée dans ce cas - voir Phase 5b)
@@ -146,10 +145,6 @@ Sub CreerFeuilleRechercheOperations()
     ' défaut à l'installation ; mod_RechercheOperations les affiche/masque ensuite
     ' dynamiquement à chaque appel, selon le préfiltre demandé (DefinirColonnesVisibles).
     ws.Range("L:P").EntireColumn.Hidden = True
-
-    ' Liste technique des catégories (colonne T depuis l'ajout de Num_Cheque en R), alimentée
-    ' à chaque recherche.
-    ws.Columns("T").Hidden = True
 
     mod_InstallCommun.TerminerFeuille ws, wsPrecedente
     Application.ScreenUpdating = True

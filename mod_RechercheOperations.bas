@@ -24,16 +24,11 @@ Option Explicit
 '   ce qui y est écrit à l'écran.
 '
 ' PHASE 5 -- CE QUI CHANGE PAR RAPPORT À LA VERSION D'ORIGINE :
-'   (a) BUG CORRIGÉ : la liste déroulante de la colonne Catégorie utilisait
-'       Formula1:=Join(listeCategories, ","). Cela échoue dès que : (1) une
-'       catégorie contient une virgule (ex. : "Alimentation, supermarché"),
-'       qu'Excel scinde alors en plusieurs "fausses" catégories dans la liste;
-'       (2) le texte assemblé dépasse 255 caractères, limite vite atteinte avec
-'       environ 80 catégories (limite d'Excel pour un Formula1 codé en dur).
-'       La correction reprend la technique utilisée dans le reste du chantier
-'       (mod_Categories, mod_ControleCategories...) : une PLAGE NOMMÉE dynamique
-'       (OFFSET/COUNTA) pointant vers une colonne de VRAIES cellules, et non une
-'       liste de texte concaténée.
+'   (a) [Historique] les colonnes Catégorie/SousCategorie ont porté une liste
+'       déroulante jusqu'au 16/10/2026. Elle a été supprimée : depuis le 02/10/2026
+'       ces colonnes se modifient par double-clic (EditerCategorieRO), le formulaire
+'       de contrôle des catégories gérant lui-même les listes liées.
+'       Voir SupprimerListesCategorieRO.
 '   (b) NOUVELLE colonne SousCategorie (même traitement que Catégorie).
 '   (c) NOUVELLE colonne Ventile (tag informatif) + intégration des lignes de
 '       TblVentilations : une opération ventilée reste désormais accessible
@@ -261,10 +256,6 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     Dim cleVerrouillee() As Boolean
     Dim notesTexte As String, seg0 As String
     Dim catTexte As String, sousTexte As String
-
-    Dim valeursVues As Object
-    Dim listeValeurs() As String
-    Dim nbValeurs As Long
 
     ' --- PHASE 5 : accès à TblVentilations (facultatif) ---
     Dim tblVen As ListObject
@@ -507,9 +498,6 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ReDim resultat(1 To nbTotal, 1 To nbColRO)
     ReDim cleVerrouillee(1 To nbTotal)
 
-    Set valeursVues = CreateObject("Scripting.Dictionary")
-    valeursVues.CompareMode = 1
-    nbValeurs = 0
 
     ligneEcran = 0
 
@@ -563,8 +551,6 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
         seg0 = mod_ImportOFX.SegmentTexte(notesTexte, ";", 0)
         cleVerrouillee(ligneEcran) = mod_ImportOFX.EstDateValide(seg0)
 
-        AjouterValeurUnique catTexte, valeursVues, listeValeurs, nbValeurs
-        AjouterValeurUnique sousTexte, valeursVues, listeValeurs, nbValeurs
     Next k
 
     ' =====================================================================
@@ -652,8 +638,6 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
             seg0 = mod_ImportOFX.SegmentTexte(notesTexte, ";", 0)
             cleVerrouillee(ligneEcran) = mod_ImportOFX.EstDateValide(seg0)
 
-            AjouterValeurUnique catTexte, valeursVues, listeValeurs, nbValeurs
-            AjouterValeurUnique sousTexte, valeursVues, listeValeurs, nbValeurs
         Next k
     End If
 
@@ -696,15 +680,11 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
         Next i
     End If
 
-    ' --- PHASE 5 (correction du bug) : liste déroulante Catégorie/SousCategorie
-    '     via une VRAIE plage nommée (technique OFFSET/COUNTA), jamais via du texte
-    '     concaténé avec des virgules; voir l'explication en tête de fichier.
-    EcrireListeTechniqueRO ws, listeValeurs, nbValeurs
-
-    ' Correctif 12/10/2026 : Categorie ne liste que les catégories (ListeCategories, comme
-    ' les autres formulaires) et SousCategorie que les sous-catégories de la catégorie de
-    ' LA MÊME LIGNE (liste dépendante, voir PoserListesCategorieSousCategorieRO).
-    PoserListesCategorieSousCategorieRO ws, tblRecherche
+    ' Categorie et SousCategorie ne portent AUCUNE liste déroulante (décision opérateur
+    ' du 16/10/2026) : elles se modifient uniquement par double-clic (EditerCategorieRO),
+    ' dont le formulaire gère déjà les listes liées. On retire aussi les restes de
+    ' l'ancienne version (validations, zone technique, nom défini).
+    SupprimerListesCategorieRO ws, tblRecherche
 
     ' --- Griser les cellules Notes déjà verrouillées (clé santé valide) et colorer
     ' en vert les montants positifs (PHASE 6 : demande généralisée à TOUS les
@@ -1038,116 +1018,21 @@ Private Sub SurlignerTopDepensesRO(ByVal tblRecherche As ListObject, ByVal nbLig
 
 End Sub
 
-' Petit utilitaire : ajoute "valeur" à listeValeurs()/nbValeurs si elle n'est pas vide
-' et pas déjà présente (comparaison insensible à la casse; voir .CompareMode, défini
-' par l'appelant sur le dictionnaire utilisé pour mémoriser les valeurs déjà vues).
-Private Sub AjouterValeurUnique(ByVal valeur As String, ByRef vues As Object, ByRef listeValeurs() As String, ByRef nbValeurs As Long)
-    If valeur = "" Then Exit Sub
-    If vues.Exists(valeur) Then Exit Sub
-    vues.Add valeur, True
-    nbValeurs = nbValeurs + 1
-    ReDim Preserve listeValeurs(1 To nbValeurs)
-    listeValeurs(nbValeurs) = valeur
-End Sub
 
-' Pose les listes déroulantes liées Categorie / SousCategorie sur le tableau de recherche.
-' Zone technique (colonnes U = catégorie, V = sous-catégorie, triée par catégorie) issue
-' de TblCategories; la liste de la sous-catégorie est une plage OFFSET/MATCH relative à
-' la cellule Categorie de la même ligne.
-Private Sub PoserListesCategorieSousCategorieRO(ByVal ws As Worksheet, ByVal tbl As ListObject)
+' Retire les restes de l'ancienne version où Categorie et SousCategorie portaient une liste
+' déroulante : validations de données, zone technique (colonnes T à V) et nom défini
+' ListeValeursRechercheOperations. Ces colonnes ne se modifient que par double-clic.
+Private Sub SupprimerListesCategorieRO(ByVal ws As Worksheet, ByVal tbl As ListObject)
 
-    Const COL_CAT As String = "U"
-    Const COL_SOUS As String = "V"
-    Dim cats() As String, sous() As String
-    Dim i As Long, j As Long, r As Long
-    Dim rngCat As Range, rngSous As Range
-    Dim adrCat As String, plageU As String, plageV As String
-
-    If tbl.DataBodyRange Is Nothing Then Exit Sub
-
-    ws.Range(COL_CAT & "1:" & COL_SOUS & "2000").ClearContents
-    ws.Range(COL_CAT & "1:" & COL_SOUS & "2000").NumberFormat = "@"
-    ws.Columns(COL_CAT).Hidden = True
-    ws.Columns(COL_SOUS).Hidden = True
-
-    r = 1
-    On Error Resume Next
-    cats = mod_Categories.ObtenirCategories()
-    i = LBound(cats)
-    If Err.Number <> 0 Then Err.Clear: i = 1: ReDim cats(1 To 0)
-    On Error GoTo 0
-    For i = LBound(cats) To UBound(cats)
-        Erase sous
-        On Error Resume Next
-        sous = mod_Categories.ObtenirSousCategories(cats(i))
-        j = UBound(sous)
-        If Err.Number <> 0 Then Err.Clear: j = 0
-        On Error GoTo 0
-        If j > 0 Then
-            Dim k As Long
-            For k = LBound(sous) To UBound(sous)
-                r = r + 1
-                ws.Range(COL_CAT & r).value = cats(i)
-                ws.Range(COL_SOUS & r).value = sous(k)
-            Next k
-        End If
-    Next i
-
-    Set rngCat = tbl.ListColumns("Categorie").DataBodyRange
-    Set rngSous = tbl.ListColumns("SousCategorie").DataBodyRange
-
-    With rngCat.Validation
-        .Delete
-        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertWarning, Formula1:="=ListeCategories"
-    End With
-
-    With rngSous.Validation
-        .Delete
-        If r > 1 Then
-            adrCat = rngCat.Cells(1, 1).Address(False, True)   ' ex. E5 (colonne fixe, ligne relative)
-            plageU = "'" & ws.Name & "'!$" & COL_CAT & "$1:$" & COL_CAT & "$2000"
-            plageV = "'" & ws.Name & "'!$" & COL_SOUS & "$1"
-            .Add Type:=xlValidateList, AlertStyle:=xlValidAlertWarning, _
-                 Formula1:="=OFFSET(" & plageV & ",MATCH(" & adrCat & "," & plageU & ",0)-1,0,COUNTIF(" & plageU & "," & adrCat & "),1)"
-            .IgnoreBlank = True
-        End If
-    End With
-
-End Sub
-
-
-' Écrit la liste unique (Catégorie et SousCategorie confondues) dans une colonne
-' technique HORS du tableau structuré (au-delà de sa dernière colonne), au format
-' Texte, puis (re)définit une plage NOMMÉE DYNAMIQUE (OFFSET/COUNTA) qui la référence.
-' Même principe que mod_Categories.RafraichirListesCategories, appliqué localement
-' afin de ne pas dépendre de la présence de mod_Categories.
-Private Sub EcrireListeTechniqueRO(ByVal ws As Worksheet, ByRef listeValeurs() As String, ByVal nbValeurs As Long)
-
-    ' PHASE 6 : déplacée de "N" à "R" : la colonne N est désormais une vraie
-    ' colonne du tableau (SoldeSante); la zone technique doit rester au-delà
-    ' de sa dernière colonne (P).
-    Const COL_TECHNIQUE As String = "T"   ' (était R avant l'ajout de la colonne Num_Cheque, 12/10/2026)
-    Dim i As Long
-
-    ws.Range(COL_TECHNIQUE & "1:" & COL_TECHNIQUE & "1000").ClearContents
-    ws.Range(COL_TECHNIQUE & "1:" & COL_TECHNIQUE & "1000").NumberFormat = "@"
-    ws.Columns(COL_TECHNIQUE).Hidden = True
-
-    ws.Range(COL_TECHNIQUE & "1").value = mod_Display.FR("Liste technique (Cat{e2}gorie+SousCat{e2}gorie) - ne pas modifier")
-
-    If nbValeurs = 0 Then Exit Sub
-
-    For i = 1 To nbValeurs
-        ws.Range(COL_TECHNIQUE & (1 + i)).value = listeValeurs(i)
-    Next i
+    If Not tbl.DataBodyRange Is Nothing Then
+        tbl.ListColumns("Categorie").DataBodyRange.Validation.Delete
+        tbl.ListColumns("SousCategorie").DataBodyRange.Validation.Delete
+    End If
 
     On Error Resume Next
     ThisWorkbook.Names("ListeValeursRechercheOperations").Delete
+    ws.Range("T1:V2000").Clear
     On Error GoTo 0
-
-    ThisWorkbook.Names.Add Name:="ListeValeursRechercheOperations", _
-        RefersTo:="=OFFSET(" & ws.Name & "!$" & COL_TECHNIQUE & "$2,0,0," & _
-                  "MAX(1,COUNTA(" & ws.Name & "!$" & COL_TECHNIQUE & "$2:$" & COL_TECHNIQUE & "$1000)),1)"
 
 End Sub
 

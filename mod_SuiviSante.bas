@@ -39,12 +39,12 @@ Option Explicit
 '  une ligne bancaire classique de TblOperations (un remboursement de
 '  mutuelle n'est jamais ventile).
 '
-'  RÈGLE DE NON-RETRAITEMENT (pour ne pas reposer les mêmes questions à
-'  chaque import) : un groupe n'est PAS retraité si sa ligne de dépense a :
-'     - StatutSante = "OK"                                   -> rien a faire
-'     - StatutSante = "KO" ET DepassementHoraires = VRAI      -> rien a faire
-'  Dans tous les autres cas (première fois, ou "KO" avec Honoraire = FAUX),
-'  on recalcule.
+'  RÈGLE DE NON-RETRAITEMENT : un groupe n'est PAS recalculé si sa ligne de
+'  dépense a StatutSante = "OK" (son "OK" est alors propagé à toutes ses lignes).
+'  Tous les autres groupes sont recalculés, y compris "KO" avec
+'  DepassementHoraires = VRAI (correctif du 16/10/2026) : ce drapeau sert
+'  seulement à ne plus soumettre le cas à l'opérateur (mod_SuiviSanteFormulaire),
+'  il ne doit pas empêcher un groupe soldé ensuite de passer à "OK".
 '
 '  IMPORTANT : ce module ne réécrit JAMAIS un tableau en entier et ne
 '  réécrit même pas la colonne Franchise (saisie réservée à l'opérateur). Il
@@ -147,6 +147,8 @@ Public Sub CalculerSuiviSante(Optional ByVal AfficherResume As Boolean = True)
     Dim nbLigne As Long
 
     Dim arrStatut As Variant, arrSolde As Variant, arrHonoraire As Variant, arrFranchise As Variant
+    Dim origStatut As Variant, origSolde As Variant, origHonoraire As Variant
+    Dim origStatutVen As Variant, origSoldeVen As Variant, origHonoraireVen As Variant
 
     ' --- Jeux de tableaux memoire pour TblVentilations (Phase 6) : restent
     '     vides (Empty) si TblVentilations n'existe pas ou n'a pas encore ses
@@ -209,6 +211,9 @@ Public Sub CalculerSuiviSante(Optional ByVal AfficherResume As Boolean = True)
     arrSolde = ValeursColonne(tbl.ListColumns("SoldeSante").DataBodyRange)
     arrHonoraire = ValeursColonne(tbl.ListColumns("DepassementHoraires").DataBodyRange)
     arrFranchise = ValeursColonne(tbl.ListColumns("Franchise").DataBodyRange)   ' jamais écrite, lue seulement
+    origStatut = arrStatut          ' copies de départ : seules les cellules modifiées seront écrites
+    origSolde = arrSolde
+    origHonoraire = arrHonoraire
 
     ' --- ÉTAPE 2bis (PHASE 6) : lecture en mémoire de TblVentilations, si disponible ---
     venDisponible = False
@@ -231,6 +236,9 @@ Public Sub CalculerSuiviSante(Optional ByVal AfficherResume As Boolean = True)
                 arrSoldeVen = ValeursColonne(tblVen.ListColumns("SoldeSante").DataBodyRange)
                 arrHonoraireVen = ValeursColonne(tblVen.ListColumns("DepassementHoraires").DataBodyRange)
                 arrFranchiseVen = ValeursColonne(tblVen.ListColumns("Franchise").DataBodyRange)
+                origStatutVen = arrStatutVen
+                origSoldeVen = arrSoldeVen
+                origHonoraireVen = arrHonoraireVen
                 venDisponible = True
             End If
             ' Si une colonne de suivi manque encore dans TblVentilations, on ne
@@ -295,25 +303,88 @@ Public Sub CalculerSuiviSante(Optional ByVal AfficherResume As Boolean = True)
     ' --- ÉTAPE 5 : réécriture uniquement des colonnes concernées, table par
     '     table. On n'écrit jamais un tableau en entier : seules les colonnes
     '     de suivi sont réécrites, chacune indépendamment. ----------------------
+    ' CORRECTIF du 16/10/2026 : l'ancienne écriture "colonne entière" (.Value = tableau de
+    ' 4 691 lignes) n'était pas conservée par Excel chez l'opérateur (363 statuts calculés,
+    ' 3 présents ensuite). On écrit maintenant CELLULE PAR CELLULE, et SEULEMENT les valeurs
+    ' qui changent, événements désactivés ; la première cellule refusée est signalée.
+    Dim evAvant As Boolean
+    Dim erreurEcriture As String
+    evAvant = Application.EnableEvents
+    Application.EnableEvents = False
     Application.ScreenUpdating = False
-    tbl.ListColumns("StatutSante").DataBodyRange.value = arrStatut
-    tbl.ListColumns("SoldeSante").DataBodyRange.value = arrSolde
-    tbl.ListColumns("DepassementHoraires").DataBodyRange.value = arrHonoraire
+
+    EcrireColonneParDifference tbl.ListColumns("StatutSante").DataBodyRange, arrStatut, origStatut, erreurEcriture
+    EcrireColonneParDifference tbl.ListColumns("SoldeSante").DataBodyRange, arrSolde, origSolde, erreurEcriture
+    EcrireColonneParDifference tbl.ListColumns("DepassementHoraires").DataBodyRange, arrHonoraire, origHonoraire, erreurEcriture
 
     If venDisponible Then
-        tblVen.ListColumns("StatutSante").DataBodyRange.value = arrStatutVen
-        tblVen.ListColumns("SoldeSante").DataBodyRange.value = arrSoldeVen
-        tblVen.ListColumns("DepassementHoraires").DataBodyRange.value = arrHonoraireVen
+        EcrireColonneParDifference tblVen.ListColumns("StatutSante").DataBodyRange, arrStatutVen, origStatutVen, erreurEcriture
+        EcrireColonneParDifference tblVen.ListColumns("SoldeSante").DataBodyRange, arrSoldeVen, origSoldeVen, erreurEcriture
+        EcrireColonneParDifference tblVen.ListColumns("DepassementHoraires").DataBodyRange, arrHonoraireVen, origHonoraireVen, erreurEcriture
     End If
+    ' Format fixe de SoldeSante (correctif du 16/10/2026) : une valeur de l'ordre de 1E-15 écrite
+    ' dans une cellule "Standard" la fait passer en format scientifique, et elle le garde ensuite.
+    tbl.ListColumns("SoldeSante").DataBodyRange.NumberFormat = "#,##0.00"
+    If venDisponible Then tblVen.ListColumns("SoldeSante").DataBodyRange.NumberFormat = "#,##0.00"
     Application.ScreenUpdating = True
+    Application.EnableEvents = evAvant
+
+    ' --- Contrôle de l'écriture (ajout du 16/10/2026) : on relit la colonne StatutSante dans
+    '     la feuille et on la compare à ce qui devait être écrit. Un écart signale une écriture
+    '     qui n'a pas "pris" (événement, protection, tableau différent...) au lieu de le laisser
+    '     passer inaperçu. ---
+    Dim nbAttendus As Long, nbRelus As Long, r As Long
+    Dim relu As Variant
+    For r = 1 To UBound(arrStatut, 1)
+        If mod_DataStructure.CellText(arrStatut(r, 1)) <> "" Then nbAttendus = nbAttendus + 1
+    Next r
+    relu = ValeursColonne(tbl.ListColumns("StatutSante").DataBodyRange)
+    For r = 1 To UBound(relu, 1)
+        If mod_DataStructure.CellText(relu(r, 1)) <> "" Then nbRelus = nbRelus + 1
+    Next r
+    If nbRelus <> nbAttendus Then
+        MsgBox "Anomalie : " & nbAttendus & " statut(s) devaient etre ecrits dans StatutSante de TblOperations, " & _
+               "mais " & nbRelus & " seulement sont presents apres l'ecriture." & vbCrLf & _
+               "Table : " & tbl.Parent.Name & "!" & tbl.Name & " (" & tbl.DataBodyRange.Rows.Count & " lignes)." & _
+               IIf(erreurEcriture <> "", vbCrLf & "Premiere cellule refusee : " & erreurEcriture, ""), _
+               vbExclamation, "Suivi sante"
+    End If
 
     If AfficherResume Then
         MsgBox nbGroupesTraites & " groupe(s) de depenses sante recalcule(s) sur " & _
                nbOps & " ligne(s) '" & SousCategorieSante() & "' analysee(s) " & _
-               "(TblOperations" & IIf(venDisponible, " + TblVentilations", "") & ").", _
+               "(TblOperations" & IIf(venDisponible, " + TblVentilations", "") & ")." & vbCrLf & _
+               nbRelus & " statut(s) renseigne(s) dans StatutSante.", _
                vbInformation, "Suivi sante"
     End If
 
+End Sub
+
+
+' ----------------------------------------------------------------------------
+' EcrireColonneParDifference : écrit dans la colonne "plage" uniquement les valeurs de
+' "nouv" qui diffèrent de "orig" (même forme : tableaux 2D à une colonne). Si Excel refuse
+' une cellule, ou ne conserve pas la valeur écrite, la PREMIÈRE anomalie est décrite dans
+' premiereErreur (adresse et cause) ; le traitement continue.
+' ----------------------------------------------------------------------------
+Private Sub EcrireColonneParDifference(ByVal plage As Range, ByRef nouv As Variant, _
+                                       ByRef orig As Variant, ByRef premiereErreur As String)
+    Dim i As Long
+    Dim attendu As String
+    For i = 1 To UBound(nouv, 1)
+        If CStr(nouv(i, 1)) <> CStr(orig(i, 1)) Then
+            attendu = CStr(nouv(i, 1))
+            On Error Resume Next
+            Err.Clear
+            plage.Cells(i, 1).Value = nouv(i, 1)
+            If Err.Number <> 0 Then
+                If premiereErreur = "" Then premiereErreur = plage.Parent.Name & "!" & plage.Cells(i, 1).Address(False, False) & " : " & Err.Description
+            ElseIf CStr(plage.Cells(i, 1).Value) <> attendu Then
+                If premiereErreur = "" Then premiereErreur = plage.Parent.Name & "!" & plage.Cells(i, 1).Address(False, False) & " : ecrit [" & attendu & "], relu [" & CStr(plage.Cells(i, 1).Value) & "]"
+            End If
+            On Error GoTo 0
+        End If
+    Next i
 End Sub
 
 
@@ -387,8 +458,35 @@ Private Sub TraiterGroupeSante(ByRef tabOps() As TOperationSante, ByVal nbOps As
             honoraireActuel = (arrHonoraireVen(tabOps(indexDepense).LigneOrigine, 1) = True)
         End If
 
-        If statutActuel = "OK" Then Exit Sub
-        If statutActuel = "KO" And honoraireActuel Then Exit Sub
+        ' CORRECTIF du 16/10/2026 : un groupe dont la dépense est déjà "OK" (calculé, ou posé
+        ' à la main : clé "non reprise historique") n'est pas recalculé, mais son "OK" est
+        ' propagé à TOUTES ses lignes. Avant, les remboursements rattachés plus tard restaient
+        ' vides ou "KO" alors que le groupe était soldé.
+        If statutActuel = "OK" Then
+            For k = 1 To nbLignesGroupe
+                j = indicesGroupe(k)
+                If tabOps(j).Source = "O" Then
+                    arrStatut(tabOps(j).LigneOrigine, 1) = "OK"
+                Else
+                    arrStatutVen(tabOps(j).LigneOrigine, 1) = "OK"
+                End If
+            Next k
+            ' Un solde déjà écrit avec un résidu de calcul (ex. 3,55E-15) est ramené au centime.
+            If tabOps(indexDepense).Source = "O" Then
+                If IsNumeric(arrSolde(tabOps(indexDepense).LigneOrigine, 1)) And Not IsEmpty(arrSolde(tabOps(indexDepense).LigneOrigine, 1)) Then
+                    arrSolde(tabOps(indexDepense).LigneOrigine, 1) = Round(CDbl(arrSolde(tabOps(indexDepense).LigneOrigine, 1)), 2)
+                End If
+            Else
+                If IsNumeric(arrSoldeVen(tabOps(indexDepense).LigneOrigine, 1)) And Not IsEmpty(arrSoldeVen(tabOps(indexDepense).LigneOrigine, 1)) Then
+                    arrSoldeVen(tabOps(indexDepense).LigneOrigine, 1) = Round(CDbl(arrSoldeVen(tabOps(indexDepense).LigneOrigine, 1)), 2)
+                End If
+            End If
+            Exit Sub
+        End If
+        ' Un groupe "KO" dont le dépassement d'honoraires a été validé n'est plus soumis à
+        ' l'opérateur (voir mod_SuiviSanteFormulaire), mais il est RECALCULÉ : si un
+        ' remboursement ultérieur solde le groupe, il doit passer à "OK" (correctif du 16/10/2026).
+        ' La variable honoraireActuel n'est donc plus utilisée pour sortir.
     End If
 
     ' --- Sous-étape C : calcul du solde (uniquement si une ligne de dépense
@@ -405,7 +503,10 @@ Private Sub TraiterGroupeSante(ByRef tabOps() As TOperationSante, ByVal nbOps As
             End If
         End If
 
-        solde = montantDepenses - montantRemb - montantFranchise
+        ' Arrondi au centime (correctif du 16/10/2026) : en virgule flottante, 98,43 - 85,43 - 13
+        ' donne 3,55E-15 et non 0. Le statut tolérait déjà ce résidu, mais la valeur écrite dans
+        ' SoldeSante s'affichait en notation scientifique.
+        solde = Round(montantDepenses - montantRemb - montantFranchise, 2)
 
         If tabOps(indexDepense).Source = "O" Then
             arrSolde(tabOps(indexDepense).LigneOrigine, 1) = solde
