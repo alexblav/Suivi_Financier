@@ -1679,26 +1679,108 @@ End Sub
 ' les cellules d'une plage filtrée). Les filtres de colonne sont donc levés avant toute
 ' suppression ; les numéros de ligne restent valables (ils sont calculés sur l'ordre du tableau).
 Private Sub LeverFiltre(ByVal lo As ListObject)
+
+    Dim memo As Variant
+
     If mFiltresMemorises Is Nothing Then Set mFiltresMemorises = CreateObject("Scripting.Dictionary")
-    On Error Resume Next
-    If lo.ShowAutoFilter Then
-        If lo.AutoFilter.FilterMode Then
-            mFiltresMemorises(lo.Name) = mod_RechercheOperations.MemoriserFiltresRO(lo)
-            lo.AutoFilter.ShowAllData
-        End If
-    End If
-    On Error GoTo 0
+    If mFiltresMemorises.Exists(lo.Name) Then mFiltresMemorises.Remove lo.Name
+    If Not lo.ShowAutoFilter Then Exit Sub
+    If Not lo.AutoFilter.FilterMode Then Exit Sub
+
+    memo = MemoriserFiltres(lo)
+    If Not IsEmpty(memo) Then mFiltresMemorises.Add lo.Name, memo
+    lo.AutoFilter.ShowAllData
+
 End Sub
+
+' Mémorise les filtres de colonne actifs : une colonne par filtre, 4 lignes
+' (n° de colonne, opérateur, critère 1, critère 2). Certains filtres (regroupement de dates
+' par année/mois, par exemple) refusent la lecture de leurs critères (erreur 1004) : on
+' garde alors les valeurs actuellement visibles de la colonne, réappliquées comme une liste
+' de valeurs cochées (opérateur 0 dans la mémoire, voir RestaurerFiltre).
+Private Function MemoriserFiltres(ByVal lo As ListObject) As Variant
+
+    Dim res() As Variant
+    Dim n As Long, f As Long
+    Dim fl As Filter
+    Dim op As Variant, c1 As Variant, c2 As Variant
+    Dim ok As Boolean
+    Dim vus As Object, c As Range
+    Dim cles As Variant
+
+    For f = 1 To lo.ListColumns.Count
+        Set fl = Nothing
+        On Error Resume Next
+        Set fl = lo.AutoFilter.Filters(f)
+        On Error GoTo 0
+        If Not fl Is Nothing Then
+            If fl.On Then
+                n = n + 1
+                ReDim Preserve res(1 To 4, 1 To n)
+                res(1, n) = f
+                op = Empty: c1 = Empty: c2 = Empty
+                ok = True
+                On Error Resume Next
+                op = fl.Operator
+                c1 = fl.Criteria1
+                If Err.Number <> 0 Then ok = False
+                Err.Clear
+                c2 = fl.Criteria2
+                Err.Clear
+                On Error GoTo 0
+                If ok Then
+                    res(2, n) = op
+                    res(3, n) = c1
+                    res(4, n) = c2
+                Else
+                    Set vus = CreateObject("Scripting.Dictionary")
+                    If Not lo.ListColumns(f).DataBodyRange Is Nothing Then
+                        For Each c In lo.ListColumns(f).DataBodyRange.SpecialCells(xlCellTypeVisible).Cells
+                            If Not vus.Exists(c.Text) Then vus.Add c.Text, True
+                        Next c
+                    End If
+                    cles = vus.Keys
+                    res(2, n) = -1
+                    res(3, n) = cles
+                    res(4, n) = Empty
+                End If
+            End If
+        End If
+    Next f
+
+    If n > 0 Then MemoriserFiltres = res
+
+End Function
 
 ' Remet, une fois les suppressions faites, les filtres de colonne levés par LeverFiltre
 ' (même principe que l'écran de recherche : l'opérateur retrouve son filtre).
 Private Sub RestaurerFiltre(ByVal lo As ListObject)
+
+    Dim memo As Variant
+    Dim k As Long
+    Dim c1 As Variant
+
     If mFiltresMemorises Is Nothing Then Exit Sub
     If Not mFiltresMemorises.Exists(lo.Name) Then Exit Sub
-    On Error Resume Next
-    mod_RechercheOperations.RestaurerFiltresRO lo, mFiltresMemorises(lo.Name)
+    memo = mFiltresMemorises(lo.Name)
     mFiltresMemorises.Remove lo.Name
-    On Error GoTo 0
+
+    For k = 1 To UBound(memo, 2)
+        c1 = memo(3, k)
+        On Error Resume Next
+        If memo(2, k) = -1 Then
+            lo.Range.AutoFilter Field:=memo(1, k), Criteria1:=c1, Operator:=xlFilterValues
+        ElseIf memo(2, k) = 0 Then
+            lo.Range.AutoFilter Field:=memo(1, k), Criteria1:=c1
+        ElseIf IsEmpty(memo(4, k)) Then
+            If memo(2, k) = xlFilterValues And Not IsArray(c1) Then c1 = Array(c1)
+            lo.Range.AutoFilter Field:=memo(1, k), Criteria1:=c1, Operator:=memo(2, k)
+        Else
+            lo.Range.AutoFilter Field:=memo(1, k), Criteria1:=c1, Operator:=memo(2, k), Criteria2:=memo(4, k)
+        End If
+        On Error GoTo 0
+    Next k
+
 End Sub
 
 ' Numéros (dans le tableau) des lignes touchées par la sélection courante.
