@@ -10,7 +10,7 @@ Ce document existe en deux formats, **toujours identiques** : `README.md` (lu su
 
 - [En bref : le parcours d'une opération](#en-bref--le-parcours-dune-opération)
 - [Les feuilles et tableaux du classeur](#les-feuilles-et-tableaux-du-classeur)
-- [1. L'import des relevés (OFX + CSV)](#1-limport-des-relevés-ofx--csv)
+- [1. L'import des relevés (OFX + CSV)](#1-limport-des-relevés-ofx-csv-facultatif)
 - [2. Le contrôle des catégories](#2-le-contrôle-des-catégories)
 - [3. La ventilation d'une opération](#3-la-ventilation-dune-opération)
 - [4. Le mois de budget et les décalages](#4-le-mois-de-budget-et-les-décalages)
@@ -37,7 +37,7 @@ Ce document existe en deux formats, **toujours identiques** : `README.md` (lu su
 
 ```mermaid
 flowchart TB
-    RELEVES["Relevés banque<br/>OFX : opérations + ID<br/>CSV : catégories"]
+    RELEVES["Relevés banque<br/>OFX : opérations + ID + catégorie (MEMO)<br/>CSV : secours facultatif"]
     IMPORT["1. Import<br/>ignore les doublons<br/>reprend la catégorie"]
     CONTROLE["2-4. Contrôle<br/>catégorie, sous-cat.<br/>ventilation, budget"]
     DONNEES[("Les données<br/>TblOperations<br/>TblVentilations")]
@@ -71,7 +71,7 @@ Un point de vocabulaire utile dès le départ : un **tableau Excel** (ou *ListOb
 | Import\_data | **TblOperations** | La base : toutes les opérations importées | Oui |
 | Ventilations | **TblVentilations** | Les parts des opérations ventilées | Oui |
 | Param | **TblCategories** (K:N), **TblDecalagesBudget** (S:V), listes Spécialités, Praticiens, Bénéficiaires, Mois, Années | Réglages modifiables sans toucher au code | Masquée en temps normal |
-| frm\_ResolutionCategories | Formulaire | Choisir une catégorie quand le CSV en propose plusieurs | Seulement pendant l'import |
+| frm\_ResolutionCategories | Formulaire | Choisir une catégorie quand le CSV (repli facultatif) en propose plusieurs | Seulement pendant l'import |
 | frm\_ControleCategories | Formulaire | Contrôler catégorie, sous-catégorie, Tiers et Notes | Pendant l'import ou à la demande |
 | frm\_NouvelleCategorie | Formulaire | Créer une catégorie ou sous-catégorie | Ouvert depuis le contrôle ou l'échéancier |
 | frm\_Ventilation | Formulaire | Découper une opération en plusieurs parts | À la demande |
@@ -95,19 +95,19 @@ Un point de vocabulaire utile dès le départ : un **tableau Excel** (ou *ListOb
 
 **Charte commune des écrans.** Tous les écrans partagent la même présentation (définie une seule fois dans `mod_InstallCommun`) : une ligne de boutons en haut, un bloc « Instructions » juste dessous, puis le corps. Les couleurs sont toujours les mêmes : étiquette de champ en bleu foncé, **cellule grise = non modifiable**, **cellule jaune pâle = modifiable**. Dans le bloc Instructions, les noms de boutons sont en rouge gras, les noms de champs en vert gras. Quadrillage et en-têtes de lignes sont masqués.
 
-## 1. L'import des relevés (OFX + CSV)
+## 1. L'import des relevés (OFX, CSV facultatif)
 
 L'import ajoute à TblOperations les seules opérations **nouvelles**, avec leur catégorie, et ne réécrit jamais une opération déjà présente. On le lance avec le bouton de la feuille Accueil (macro `ImporterOperationsOFX`, module `mod_ImportOFX`).
 
-**Pourquoi deux fichiers ?** Le fichier **OFX** de la banque contient les opérations avec un identifiant unique (le *FITID*) mais **sans catégorie**. Le fichier **CSV** exporté en même temps contient, lui, la **catégorie** choisie dans l'application de la banque. L'import lit les deux et les « recolle ».
+**D'où vient la catégorie ?** Le fichier **OFX** de la banque contient les opérations avec un identifiant unique (le *FITID*) et un champ `MEMO` de la forme « Catégorie - Notes » (la catégorie seule si Notes est vide). L'import reconnaît le préfixe parmi les catégories source du tableau de correspondance (colonne `CategorieSource` de TblCategories), le range comme catégorie source et ne garde que les vraies notes dans la colonne **Notes**. Un MEMO dont le préfixe n'est pas reconnu est laissé **tel quel dans Notes** (analyse manuelle) et l'opération est à ranger à la main. Le fichier **CSV** (même export) est **facultatif** : il ne sert que de secours pour ces MEMO non reconnus.
 
 ```mermaid
 flowchart TB
-    FICHIERS["Choix des 2 fichiers<br/>OFX puis CSV"]
+    FICHIERS["Choix du fichier OFX<br/>(CSV facultatif)"]
     LECTURE["Lecture de l'OFX<br/>1 opération = 1 FITID"]
     DOUBLON{"FITID déjà<br/>dans Import_data ?"}
     IGNORE["Opération ignorée"]
-    RAPPROCHE["Rapprochement CSV<br/>clé date + montant + Tiers"]
+    RAPPROCHE["Catégorie lue dans le MEMO OFX<br/>repli : CSV (date + montant + Tiers)"]
     AMBIGU["Cas ambigus<br/>frm_ResolutionCategories"]
     CONTROLE["Contrôle des catégories<br/>frm_ControleCategories"]
     CALCULS["Calculs automatiques<br/>mois de budget, date et spécialité santé"]
@@ -125,14 +125,14 @@ flowchart TB
 
 Ce qui se passe, dans l'ordre :
 
-1. **Choix des fichiers.** Excel vous demande d'abord l'OFX, puis le CSV. Annuler l'une des deux fenêtres arrête tout, sans rien modifier.
+1. **Choix des fichiers.** Excel vous demande l'OFX (annuler arrête tout, sans rien modifier), puis si vous voulez joindre le CSV (réponse Non par défaut). Annuler la fenêtre du CSV revient à l'ignorer.
 2. **Lecture de l'OFX.** Chaque opération (balise `STMTTRN`) donne : date comptable, date d'opération, type, Tiers (`NAME`), libellé (`MEMO`, rangé dans la colonne **Notes**), montant (négatif = dépense) et numéro de chèque.
 3. **Anti-doublon.** Le FITID devient la colonne **ID\_Transaction**. Si cet identifiant existe déjà dans Import\_data, l'opération est ignorée. On peut donc réimporter un relevé qui chevauche le précédent sans créer de doublon.
-4. **Rapprochement avec le CSV.** Pour retrouver la catégorie, le code fabrique une clé « date + montant + Tiers » des deux côtés (le CSV est attendu en UTF-16, séparé par des tabulations, avec les colonnes Date, Libellé, Catégorie, Montant). Trois cas :
-    - la clé est trouvée avec une seule catégorie → elle est reprise ;
-    - elle n'est pas trouvée → catégorie vide, l'opération sera à ranger à la main ;
-    - elle est trouvée avec **plusieurs** catégories différentes (deux achats identiques le même jour) → cas « ambigu ».
-5. **Cas ambigus.** S'il y en a, la feuille **frm\_ResolutionCategories** s'affiche : une ligne par cas, une liste déroulante avec les catégories possibles. Vous choisissez, puis « Terminer et appliquer ».
+4. **Catégorie source.** Le début du MEMO est comparé aux catégories source connues (la plus longue correspondance l'emporte). Trois cas :
+    - préfixe reconnu → catégorie source reprise, Notes = le reste du MEMO ;
+    - non reconnu, CSV joint et clé « date + montant + Tiers » trouvée → catégorie du CSV (le CSV est attendu en UTF-16, séparé par des tabulations, avec les colonnes Date, Libellé, Catégorie, Montant) ; plusieurs catégories différentes pour la même clé → cas « ambigu » ;
+    - non reconnu et pas de CSV → catégorie vide (opération à ranger à la main), MEMO conservé tel quel dans Notes.
+5. **Cas ambigus (CSV seulement).** S'il y en a, la feuille **frm\_ResolutionCategories** s'affiche : une ligne par cas, une liste déroulante avec les catégories possibles. Vous choisissez, puis « Terminer et appliquer ».
 6. **Contrôle des catégories.** Le formulaire de contrôle s'ouvre (voir section 2). C'est ici que chaque opération reçoit sa catégorie **et** sa sous-catégorie. Si vous cliquez sur « Annuler l'import », **rien n'est écrit** : le classeur reste exactement comme avant.
 7. **Calculs automatiques.** Pour chaque opération : le mois de budget (section 4) et, pour une dépense de santé, la date et la spécialité de consultation lues dans Notes (section 5).
 8. **Écriture.** Les nouvelles lignes sont ajoutées en bas de TblOperations, l'identifiant forcé au format Texte (sinon Excel arrondirait les longs numéros). Puis la sous-catégorie et, si l'opération a été ventilée, sa catégorie d'origine sont écrites, et le tableau est trié par date comptable, la plus récente en haut.
@@ -142,9 +142,16 @@ Ce qui se passe, dans l'ordre :
     - « Traiter/revoir les catégories des opérations affectées à Santé ? » → lance la vérification des clés santé ;
     - si oui, « Réaliser le rapprochement des opérations de santé ? » → lance le formulaire de suivi santé ;
     - « Afficher les opérations importées ? » → ouvre l'écran de recherche sur le dernier import. C'est aussi l'endroit idéal pour déclarer une opération comme récurrente (bouton « Rendre récurrente », section 8).
-12. **Bilan.** Un message résume : opérations lues, déjà présentes, ajoutées, sans correspondance CSV, ambiguës, et rappelle la suppression des fichiers sources (voir ci-dessous). Si vous n'avez demandé aucun écran, vous revenez sur Synthese.
+12. **Bilan.** Un message résume : opérations lues, déjà présentes, ajoutées, MEMO reconnus, MEMO non reconnus (repris du CSV ou sans catégorie), ambiguës, écarts OFX/CSV, et rappelle la suppression des fichiers sources (voir ci-dessous). Si vous n'avez demandé aucun écran, vous revenez sur Synthese.
 
 **Suppression des fichiers sources (sécurité).** Une fois les données écrites dans Import\_data (étape 8), le fichier OFX et le fichier CSV sont **écrasés avec des zéros puis supprimés** (sans passer par la corbeille), pour ne pas laisser de données bancaires en clair sur le disque. Cela vaut aussi quand aucune nouvelle ligne n'a été ajoutée (tout était déjà présent). **Rien n'est supprimé** si l'import s'arrête avant l'écriture (fichier illisible, CSV de structure invalide, « Annuler l'import ») : vous pouvez recommencer avec les mêmes fichiers. Si un fichier ne peut pas être supprimé (verrouillé, en lecture seule sur un partage), le bilan l'indique avec son chemin : supprimez-le vous-même. Sur un SSD l'écrasement n'est pas une garantie absolue ; le chiffrement du disque (BitLocker) reste la meilleure protection.
+
+**Remédiation depuis un OFX (contrôle périodique).** Le bouton « Remédiation OFX » de Synthese ouvre le formulaire `frm_Remediation_OFX` (aide : `frm_Remediation_OFX_aide`). Il compare un OFX récent aux opérations déjà enregistrées, par identifiant bancaire (FITID), et **affiche les écarts avant toute correction** :
+- **Analyser un OFX** remplit le tableau (aucune donnée modifiée). Les champs d'identité (dates, type, montant, numéro de chèque) viennent de la banque : l'OFX fait foi, ils sont pré-cochés « Oui ». Tiers, Notes et Catégorie ne sont pré-cochés que pour une ligne manifestement mélangée (Tiers différent de l'OFX **et** Notes reprenant le texte bancaire d'une autre opération) ; ailleurs c'est « Non », car l'opérateur a pu les corriger volontairement.
+- **Appliquer** écrit les lignes dont *Corriger* vaut « Oui » (retrouvées par ID_Transaction, jamais par numéro de ligne ; ignorées si la valeur a changé depuis l'analyse). Le budget est recalculé pour les lignes corrigées, sauf décalage manuel. L'OFX peut ensuite être effacé (écrasé puis supprimé).
+- **Annuler les corrections** restaure les valeurs d'avant des lignes « Appliqué ».
+- Les opérations de l'OFX absentes du classeur sont seulement signalées : relancer l'import avec ce même OFX les ajoute.
+Installation : importer `mod_RemediationOFX.bas`, `mod_InstallRemediationOFX.bas` et `mod_InstallAide.bas` (mis à jour), puis exécuter `InstallerRemediationOFX` (Ctrl+G).
 
 Répondre « Non » aux questions santé n'est pas grave : tout peut être relancé plus tard avec le bouton « Traitement des données de santé » de Synthese.
 
@@ -885,7 +892,7 @@ Un écran **pas encore reconstruit** continue de fonctionner comme avant : il n'
 | Pointage / opération pointée | Marque « Oui » (colonne Pointe de TblOperations) indiquant qu'une opération a déjà été analysée ; vide = à analyser. |
 | OFX | Format de fichier bancaire standard ; donne les opérations et leur identifiant, pas la catégorie. |
 | FITID / ID\_Transaction | Identifiant unique d'une opération donné par la banque ; sert d'anti-doublon et relie une opération à ses parts ventilées. |
-| Catégorie source | La catégorie telle que la banque l'envoie dans le CSV. |
+| Catégorie source | La catégorie telle que la banque l'envoie (préfixe du MEMO OFX, ou colonne Catégorie du CSV en secours). |
 | Catégorie / Sous-catégorie | Le rangement à deux niveaux utilisé dans le classeur. |
 | Ventilation / part | Découpage d'une opération en plusieurs montants de catégories différentes ; chaque morceau est une part (TblVentilations). |
 | « Ventilé » | Catégorie technique donnée à l'opération d'origine une fois ventilée. |

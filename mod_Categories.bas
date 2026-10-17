@@ -641,6 +641,55 @@ Public Function ObtenirCategories() As String()
 End Function
 
 
+' ---------------------------------------------------------------------------------------
+' ObtenirCategoriesSource : renvoie les catégories SOURCE (colonne CategorieSource de
+' TblCategories : le texte exact envoyé par la banque), sans doublon, dans l'ordre du
+' tableau. Utilisée par l'import pour reconnaître le préfixe "<catégorie> - " du MEMO OFX.
+' ---------------------------------------------------------------------------------------
+' Renvoie un tableau NON ALLOUÉ si le tableau est introuvable ou vide.
+Public Function ObtenirCategoriesSource() As String()
+
+    Dim wsParam As Worksheet, tblCat As ListObject
+    Dim src As Variant
+    Dim dejaVu As Object
+    Dim liste() As String
+    Dim nb As Long, r As Long
+    Dim texteSrc As String
+
+    On Error Resume Next
+    Set wsParam = ThisWorkbook.Worksheets(NOM_FEUILLE_PARAM)
+    On Error GoTo 0
+    If wsParam Is Nothing Then Exit Function
+
+    Set tblCat = TrouverTable(wsParam, NOM_TABLE_CATEGORIES)
+    If tblCat Is Nothing Then Exit Function
+    If tblCat.DataBodyRange Is Nothing Then Exit Function
+
+    src = LireColonne(tblCat.ListColumns("CategorieSource").DataBodyRange)
+
+    Set dejaVu = CreateObject("Scripting.Dictionary")
+    dejaVu.CompareMode = 1
+    ReDim liste(1 To UBound(src, 1))
+
+    For r = 1 To UBound(src, 1)
+        texteSrc = Trim$(mod_DataStructure.CellText(src(r, 1)))
+        If texteSrc <> "" Then
+            If Not dejaVu.Exists(texteSrc) Then
+                dejaVu.Add texteSrc, True
+                nb = nb + 1
+                liste(nb) = texteSrc
+            End If
+        End If
+    Next r
+
+    If nb > 0 Then
+        ReDim Preserve liste(1 To nb)
+        ObtenirCategoriesSource = liste
+    End If
+
+End Function
+
+
 ' =====================================================================================
 ' GARDE-FOU ORTHOGRAPHIQUE (niveau 2 : détection de ressemblances)
 ' =====================================================================================

@@ -46,6 +46,7 @@ Public Function ChargerAide(ByVal nomForm As String, ByRef titre As String, ByRe
         Case "frm_ResolutionCategories": Def_ResolutionCategories titre, intro, champs, boutons
         Case "frm_SuiviSante":           Def_SuiviSante titre, intro, champs, boutons
         Case "frm_Ventilation":          Def_Ventilation titre, intro, champs, boutons
+        Case "frm_Remediation_OFX":      Def_RemediationOFX titre, intro, champs, boutons
         Case Else:                       ChargerAide = False
     End Select
 
@@ -534,5 +535,40 @@ Private Sub Def_RechercheOperations(ByRef titre As String, ByRef intro As String
     L boutons, "D{e2}caler cette op{e2}ration", "D{e2}calage ponctuel d'une op{e2}ration ; le calcul repart toujours de la date de l'op{e2}ration (pour revenir au mois d'origine, indiquez 0)."
     L boutons, "Aide", "Ouvre cette aide, sans fermer l'{e2}cran."
     L boutons, "Rendre r{e2}currente", "Ouvre [f:frm_Echeance] pr{e2}rempli avec l'op{e2}ration s{e2}lectionn{e2}e (tiers, cat{e2}gorie, montant, p{e2}riodicit{e2} mensuelle, prochaine date). Vous pouvez tout modifier avant de valider ; l'op{e2}ration elle-m{ea}me n'est pas modifi{e2}e."
+
+End Sub
+
+
+' =====================================================================================
+' REMEDIATION DEPUIS UN OFX
+' =====================================================================================
+Private Sub Def_RemediationOFX(ByRef titre As String, ByRef intro As String, ByRef champs As String, ByRef boutons As String)
+
+    titre = "Rem{e2}diation depuis un OFX"
+    intro = "Ce formulaire compare un fichier OFX r{e2}cent aux op{e2}rations d{e2}j{a2} enregistr{e2}es (par identifiant bancaire) et affiche les {e2}carts AVANT toute correction. " & _
+            "Il sert aussi aux contr{o2}les p{e2}riodiques : exportez un OFX frais, cliquez sur [b:Analyser un OFX], relisez le tableau, ajustez la colonne [c:Corriger], puis cliquez sur [b:Appliquer]. " & _
+            "Rien n'est modifi{e2} pendant l'analyse. " & _
+            "Les champs d'identit{e2} (dates, type, montant, num{e2}ro de ch{e1}que) viennent de la banque : l'OFX fait foi, ils sont pr{e2}-coch{e2}s Oui. " & _
+            "Tiers, Notes et Cat{e2}gorie ne sont pr{e2}-coch{e2}s que pour une ligne manifestement m{e2}lang{e2}e (Tiers diff{e2}rent de l'OFX ET Notes reprenant le texte bancaire d'une autre op{e2}ration) ; " & _
+            "sinon c'est Non, car l'op{e2}rateur a pu les corriger volontairement. " & _
+            "Les op{e2}rations de l'OFX absentes du classeur sont seulement signal{e2}es : pour les ajouter, relancez l'import avec ce m{ea}me OFX. " & _
+            "ATTENTION : le tableau affiche des donn{e2}es bancaires et reste dans le classeur (utile pour annuler) ; l'OFX peut {ea}tre effac{e2} apr{e1}s l'application."
+
+    L champs, "Corriger", "Cellule jaune : Oui = la correction sera {e2}crite par Appliquer ; Non = ignor{e2}e ; - = information seulement."
+    L champs, "Statut", "Lecture seule : vide avant application, puis Appliqu{e2}, Ignor{e2} (la valeur a chang{e2} depuis l'analyse, ou d{e2}calage manuel pour le budget) ou Annul{e2}."
+    L champs, "ID_Transaction", "Lecture seule : identifiant bancaire de l'op{e2}ration. Les corrections sont retrouv{e2}es par cet identifiant."
+    L champs, "Date", "Lecture seule : date comptable de l'op{e2}ration dans le classeur."
+    L champs, "Tiers (actuel)", "Lecture seule : Tiers enregistr{e2} dans le classeur."
+    L champs, "Champ", "Lecture seule : la donn{e2}e concern{e2}e par l'{e2}cart."
+    L champs, "Valeur actuelle", "Lecture seule : valeur enregistr{e2}e dans le classeur."
+    L champs, "Valeur OFX / propos{e2}e", "Lecture seule : valeur de l'OFX, ou valeur recalcul{e2}e (budget, cat{e2}gorie)."
+    L champs, "Nature", "Lecture seule : Identit{e2} (l'OFX fait foi), Tiers, Notes d'une autre op{e2}ration, Cat{e2}gorie, Budget, Pointage ou Information."
+    L champs, "Commentaire", "Lecture seule : explication ; pour une ligne m{e2}lang{e2}e, l'op{e2}ration dont semblent provenir ses valeurs."
+
+    L boutons, "Analyser un OFX", "Choisir l'OFX {a2} comparer puis remplir le tableau des {e2}carts. Aucune donn{e2}e n'est modifi{e2}e."
+    L boutons, "Appliquer", "{E2}crit les corrections dont [c:Corriger] vaut Oui et dont le [c:Statut] est vide. Une copie pr{e2}alable du classeur est recommand{e2}e ; une confirmation est demand{e2}e."
+    L boutons, "Annuler les corrections", "Restaure les valeurs d'avant pour les lignes {a2} [c:Statut] Appliqu{e2}."
+    L boutons, "Sortir", "Revient sur [f:Synthese]."
+    L boutons, "Aide", "Ouvre cette aide, sans fermer le formulaire."
 
 End Sub

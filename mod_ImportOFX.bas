@@ -2,14 +2,20 @@ Option Explicit
 
 ' ============================================================================
 '  MODULE : mod_ImportOFX
-'  RÔLE   : Importer les opérations bancaires depuis un fichier OFX ET un
-'           fichier CSV complémentaire (les mêmes opérations, exportées ensemble),
-'           les recouper pour récupérer la catégorie, calculer les colonnes
-'           budgétaires, puis tout écrire dans la feuille "data_import" sous
-'           la forme d'un tableau Excel trié et filtrable.
+'  RÔLE   : Importer les opérations bancaires depuis un fichier OFX (et,
+'           facultativement, un fichier CSV complémentaire), récupérer la
+'           catégorie source, calculer les colonnes budgétaires, puis tout
+'           écrire dans la feuille "data_import" sous la forme d'un tableau
+'           Excel trié et filtrable.
 '
-'  En cas de catégorie ambiguë (plusieurs valeurs possibles pour une même
-'  opération), le formulaire frmResolutionCategories s'ouvre pour laisser
+'  Catégorie source (changement du 17/10/2026) : la banque exporte le MEMO OFX
+'  sous la forme "<Catégorie> - <Notes>". La catégorie est reconnue contre la
+'  colonne CategorieSource de TblCategories (ExtraireCategorieMemo) et retirée
+'  de Notes. Un MEMO non reconnu est laissé tel quel dans Notes (analyse manuelle).
+'  Le CSV n'est qu'un repli facultatif pour ces MEMO non reconnus.
+'
+'  En cas de catégorie ambiguë via le CSV (plusieurs valeurs possibles pour une
+'  même opération), le formulaire frmResolutionCategories s'ouvre pour laisser
 '  l'opérateur choisir, sans qu'il ait besoin d'accéder au tableau.
 '
 '  À appeler depuis le bouton de la feuille "Accueil".
@@ -63,9 +69,18 @@ Public Sub ImporterOperationsOFX()
     cheminOFX = ChoisirFichier("Fichiers OFX (*.ofx), *.ofx", "Selectionner l'export bancaire OFX")
     If cheminOFX = "" Then Exit Sub
 
-    cheminCSV = ChoisirFichier("Fichiers CSV (*.csv), *.csv", _
-        "Selectionner le fichier CSV complementaire (memes operations)")
-    If cheminCSV = "" Then Exit Sub
+    ' CHANGEMENT du 17/10/2026 : le CSV est désormais FACULTATIF. La catégorie source est lue
+    ' dans le MEMO de l'OFX ("<Catégorie> - <Notes>", voir ExtraireCategorieMemo); le CSV ne sert
+    ' plus que de repli pour les opérations dont le MEMO n'est pas reconnu. Annuler la fenêtre
+    ' de sélection du CSV revient à l'ignorer (l'import continue).
+    cheminCSV = ""
+    If MsgBox("Joindre aussi le fichier CSV ?" & vbCrLf & vbCrLf & _
+              "Facultatif : la categorie est lue dans l'OFX. Le CSV ne sert que de secours " & _
+              "pour les operations dont la categorie n'est pas reconnue dans l'OFX.", _
+              vbYesNo + vbDefaultButton2 + vbQuestion, "Fichier CSV complementaire") = vbYes Then
+        cheminCSV = ChoisirFichier("Fichiers CSV (*.csv), *.csv", _
+            "Selectionner le fichier CSV complementaire (memes operations) - Annuler = ignorer")
+    End If
 
     ' --- ÉTAPE 2 : chargement du fichier OFX comme document XML ----------------
     Set xmlDoc = CreateObject("MSXML2.DOMDocument.6.0")
@@ -85,8 +100,25 @@ Public Sub ImporterOperationsOFX()
     ' --- ÉTAPE 3 : chargement du CSV -> dictionnaire des catégories par clé ---
     ' Clé = Date + Montant + Tiers. Une même clé peut avoir plusieurs catégories
     ' candidates (cas de plusieurs opérations identiques le même jour).
-    Set dictCategoriesCSV = ChargerCategoriesCSV(cheminCSV)
-    If dictCategoriesCSV Is Nothing Then Exit Sub  ' l'erreur a déjà été affichée
+    ' Sans CSV : dictionnaire vide (Exists renvoie toujours False, aucun repli possible).
+    If cheminCSV <> "" Then
+        Set dictCategoriesCSV = ChargerCategoriesCSV(cheminCSV)
+        If dictCategoriesCSV Is Nothing Then Exit Sub  ' l'erreur a déjà été affichée
+    Else
+        Set dictCategoriesCSV = CreateObject("Scripting.Dictionary")
+    End If
+
+    ' Catégories source connues (colonne CategorieSource de TblCategories) : elles servent à
+    ' reconnaître sans ambiguïté le préfixe "<catégorie> - " du MEMO OFX.
+    Dim sourcesConnues() As String, nbSources As Long
+    sourcesConnues = mod_Categories.ObtenirCategoriesSource()
+    On Error Resume Next
+    nbSources = UBound(sourcesConnues) - LBound(sourcesConnues) + 1   ' erreur si tableau non alloué
+    If Err.Number <> 0 Then nbSources = 0
+    On Error GoTo 0
+    Dim nbMemoReconnus As Long, nbMemoNonReconnus As Long, nbReperCSV As Long, nbDivergencesCSV As Long
+    Dim catMemo As String, notesMemo As String
+    Dim catCSV As String, estAmbiguCSV As Boolean, texteCandidatsCSV As String
 
     ' --- ÉTAPE 4 : préparer la feuille data_import et les FITID déjà connus ---
     Set wsDonnees = ThisWorkbook.Worksheets("Import_data")
@@ -141,14 +173,39 @@ Public Sub ImporterOperationsOFX()
             Montant = ConvertirMontantOFX(LireValeurNoeud(noeud, "TRNAMT"))
             numCheque = NettoyerNumCheque(LireValeurNoeud(noeud, "CHECKNUM"))
 
-            ' --- rapprochement avec le CSV pour récupérer la Catégorie ---
+            ' --- Catégorie source : d'abord le MEMO de l'OFX, puis (repli) le CSV ---
+            ' CHANGEMENT du 17/10/2026 : la banque exporte le MEMO sous la forme
+            ' "<Catégorie> - <Notes>" (ou la catégorie seule si Notes est vide). Le préfixe est
+            ' reconnu contre les catégories source connues (TblCategories); la catégorie va dans
+            ' COL_CATEGORIE et seul le reste va dans Notes (sinon la clé santé "AAAAMMJJ;..."
+            ' ne serait plus en tête du champ). Chaque opération ayant son FITID, il n'y a plus
+            ' de cas ambigu avec cette méthode.
             categorie = ""
             estAmbigu = False
             texteCandidats = ""
             cle = CleComposite(dateComptable, Montant, tiers)
-            If dictCategoriesCSV.Exists(cle) Then
+
+            If ExtraireCategorieMemo(libelleDetail, sourcesConnues, nbSources, catMemo, notesMemo) Then
+                nbMemoReconnus = nbMemoReconnus + 1
+                categorie = catMemo
+                libelleDetail = notesMemo
+                ' Contrôle croisé facultatif : le MEMO fait foi, on compte seulement les écarts.
+                If dictCategoriesCSV.Exists(cle) Then
+                    catCSV = CategorieCommuneOuVide(dictCategoriesCSV(cle), estAmbiguCSV, texteCandidatsCSV)
+                    If Not estAmbiguCSV And catCSV <> "" Then
+                        If StrComp(catCSV, categorie, vbTextCompare) <> 0 Then nbDivergencesCSV = nbDivergencesCSV + 1
+                    End If
+                End If
+            ElseIf dictCategoriesCSV.Exists(cle) Then
+                ' MEMO non reconnu : repli sur le CSV (comportement historique, avec cas ambigus).
+                nbMemoNonReconnus = nbMemoNonReconnus + 1
+                nbReperCSV = nbReperCSV + 1
                 categorie = CategorieCommuneOuVide(dictCategoriesCSV(cle), estAmbigu, texteCandidats)
+                libelleDetail = RetirerPrefixeCategorieMemo(libelleDetail, categorie, texteCandidats)
             Else
+                ' Ni MEMO reconnu, ni CSV : catégorie vide (opération à ranger à la main) et MEMO
+                ' conservé TEL QUEL dans Notes pour permettre une analyse manuelle.
+                nbMemoNonReconnus = nbMemoNonReconnus + 1
                 nbSansCategorie = nbSansCategorie + 1
             End If
 
@@ -538,7 +595,8 @@ Public Sub ImporterOperationsOFX()
     ' écrasés puis supprimés. Un import abandonné ou en erreur (Exit Sub plus haut) ne supprime
     ' RIEN : l'opérateur peut recommencer avec les mêmes fichiers.
     Dim msgSuppr As String
-    msgSuppr = SupprimerFichierSensible(cheminOFX) & SupprimerFichierSensible(cheminCSV)
+    msgSuppr = SupprimerFichierSensible(cheminOFX)
+    If cheminCSV <> "" Then msgSuppr = msgSuppr & SupprimerFichierSensible(cheminCSV)
 
     ' --- ÉTAPE 9bis-0 : mémorisation du dernier import (toujours effectuée) ---
     ' Écriture rapide, sans affichage, dans la feuille technique très masquée
@@ -617,9 +675,13 @@ Public Sub ImporterOperationsOFX()
            "Transactions OFX lues : " & nbLues & vbCrLf & _
            "Deja presentes (ignorees) : " & nbDoublons & vbCrLf & _
            "Nouvelles lignes ajoutees : " & nbAjoutees & vbCrLf & _
-           "  dont sans correspondance CSV (categorie vide) : " & nbSansCategorie & vbCrLf & _
-           "  dont categorie ambigue traitee via le formulaire : " & nbAmbigus & msgSuppr, _
-           vbInformation, "Import OFX + CSV"
+           "  dont categorie reconnue dans le MEMO OFX : " & nbMemoReconnus & vbCrLf & _
+           "  dont MEMO non reconnu (laisse tel quel dans Notes) : " & nbMemoNonReconnus & vbCrLf & _
+           "     - categorie reprise du CSV : " & nbReperCSV & vbCrLf & _
+           "     - sans categorie (a ranger) : " & nbSansCategorie & vbCrLf & _
+           "  dont categorie ambigue (CSV) traitee via le formulaire : " & nbAmbigus & vbCrLf & _
+           IIf(cheminCSV <> "", "  ecarts OFX/CSV (le MEMO fait foi) : " & nbDivergencesCSV, "  CSV non utilise") & msgSuppr, _
+           vbInformation, "Import OFX"
 
     ' --- ÉTAPE 11 : retour à Synthese (demande opérateur du 03/10/2026) -----------
     ' Si l'opérateur a demandé à voir un écran particulier (recherche ou suivi santé),
@@ -649,7 +711,7 @@ End Sub
 ' (fichier verrouillé, en lecture seule sur un partage, etc.) : l'opérateur doit alors le supprimer lui-même.
 ' NB : sur SSD, l'écrasement n'offre pas de garantie absolue (répartition de l'usure) ; la
 ' protection la plus sûre reste le chiffrement du disque (BitLocker).
-Private Function SupprimerFichierSensible(ByVal chemin As String) As String
+Public Function SupprimerFichierSensible(ByVal chemin As String) As String
     Dim f As Integer, taille As Long, reste As Long, bloc As Long
     Dim zeros() As Byte
 
@@ -681,7 +743,7 @@ Echec:
 End Function
 
 ' Ouvre la boîte de dialogue de sélection de fichier. Renvoie "" si l'opération est annulée.
-Private Function ChoisirFichier(filtre As String, Titre As String) As String
+Public Function ChoisirFichier(filtre As String, Titre As String) As String
     Dim chemin As String
     chemin = Application.GetOpenFilename(filtre, , Titre)
     If chemin = "False" Then
@@ -692,7 +754,7 @@ Private Function ChoisirFichier(filtre As String, Titre As String) As String
 End Function
 
 ' Lit le texte d'une balise enfant (ex. : <TRNAMT>) à l'intérieur d'un nœud OFX.
-Private Function LireValeurNoeud(parentNoeud As Object, nomBalise As String) As String
+Public Function LireValeurNoeud(parentNoeud As Object, nomBalise As String) As String
     Dim collectionEnfants As Object
     Set collectionEnfants = parentNoeud.getElementsByTagName(nomBalise)
     If collectionEnfants.Length = 0 Then
@@ -703,7 +765,7 @@ Private Function LireValeurNoeud(parentNoeud As Object, nomBalise As String) As 
 End Function
 
 ' Convertit une date OFX "AAAAMMJJHHMMSS.mmm" en date Excel.
-Private Function ConvertirDateOFX(chaineDate As String) As Date
+Public Function ConvertirDateOFX(chaineDate As String) As Date
     If Len(chaineDate) < 8 Then
         ConvertirDateOFX = 0
         Exit Function
@@ -714,7 +776,7 @@ End Function
 
 ' Même conversion mais renvoie Empty (cellule vide) si la date est absente
 ' (utilisée pour Date_Operation, souvent non renseignée).
-Private Function ConvertirDateOFXVariant(chaineDate As String) As Variant
+Public Function ConvertirDateOFXVariant(chaineDate As String) As Variant
     If Len(chaineDate) < 8 Then
         ConvertirDateOFXVariant = Empty
     Else
@@ -744,7 +806,7 @@ Private Function ConvertirDateCSV(chaineDate As String) As Date
 End Function
 
 ' Numéro de chèque : on ne conserve que les valeurs numériques; les autres deviennent vides.
-Private Function NettoyerNumCheque(brut As String) As Variant
+Public Function NettoyerNumCheque(brut As String) As Variant
     If brut = "" Or Not IsNumeric(brut) Then
         NettoyerNumCheque = Empty
     Else
@@ -767,6 +829,73 @@ Public Function SegmentTexte(texte As String, separateur As String, index As Int
     Else
         SegmentTexte = ""
     End If
+End Function
+
+' Reconnaît, au début du MEMO OFX, une catégorie source connue (colonne CategorieSource de
+' TblCategories) sous la forme "<catégorie> - <notes>" ou "<catégorie>" seule. Renvoie True
+' et alimente categorie (graphie du tableau) et notes (le reste, "" si MEMO = catégorie seule).
+' Renvoie False si aucune catégorie connue ne correspond : categorie/notes sont alors vidés et
+' l'appelant doit conserver le MEMO tel quel. En cas de plusieurs correspondances, la plus
+' longue l'emporte (ex. "Frais, remb santé" plutôt qu'un éventuel préfixe plus court).
+Public Function ExtraireCategorieMemo(ByVal memo As String, ByRef sources() As String, ByVal nbSources As Long, _
+                                       ByRef categorie As String, ByRef notes As String) As Boolean
+    Dim t As String, k As Long, src As String, meilleure As String, lg As Long
+
+    categorie = ""
+    notes = ""
+    t = Trim$(memo)
+    If t = "" Or nbSources = 0 Then Exit Function
+
+    For k = LBound(sources) To UBound(sources)
+        src = sources(k)
+        lg = Len(src)
+        If lg > Len(meilleure) Then
+            If StrComp(t, src, vbTextCompare) = 0 Then
+                meilleure = src
+            ElseIf Len(t) >= lg + 3 Then
+                If StrComp(Left$(t, lg + 3), src & " - ", vbTextCompare) = 0 Then meilleure = src
+            End If
+        End If
+    Next k
+
+    If meilleure = "" Then Exit Function
+
+    categorie = meilleure
+    If Len(t) > Len(meilleure) Then notes = Trim$(Mid$(t, Len(meilleure) + 4))
+    ExtraireCategorieMemo = True
+End Function
+
+' Repli CSV : retire du MEMO OFX le préfixe "<catégorie source> - " quand la catégorie vient du
+' CSV (categorie) ou, si le rapprochement est ambigu, de l'une des candidates
+' (candidatsAmbigus, séparées par ";"). Un MEMO égal à la catégorie seule devient "".
+' Sans effet si aucune catégorie ne correspond au début du MEMO.
+Private Function RetirerPrefixeCategorieMemo(ByVal memo As String, ByVal categorie As String, ByVal candidatsAmbigus As String) As String
+    Dim t As String, liste() As String, k As Long, cat As String
+    t = Trim$(memo)
+    RetirerPrefixeCategorieMemo = t
+    If t = "" Then Exit Function
+
+    If categorie <> "" Then
+        ReDim liste(0 To 0)
+        liste(0) = categorie
+    ElseIf candidatsAmbigus <> "" Then
+        liste = Split(candidatsAmbigus, ";")
+    Else
+        Exit Function
+    End If
+
+    For k = LBound(liste) To UBound(liste)
+        cat = Trim$(liste(k))
+        If cat <> "" Then
+            If StrComp(t, cat, vbTextCompare) = 0 Then
+                RetirerPrefixeCategorieMemo = ""
+                Exit Function
+            ElseIf StrComp(Left$(t, Len(cat) + 3), cat & " - ", vbTextCompare) = 0 Then
+                RetirerPrefixeCategorieMemo = Trim$(Mid$(t, Len(cat) + 4))
+                Exit Function
+            End If
+        End If
+    Next k
 End Function
 
 ' Retire d'une note santé un préfixe "<sous-catégorie> - " placé devant la clé
