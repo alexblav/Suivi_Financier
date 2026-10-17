@@ -693,10 +693,7 @@ Public Sub ImporterOperationsOFX()
         If mod_VarGlobales.wsSynthese Is Nothing Then
             Set mod_VarGlobales.wsSynthese = mod_Criteres.GetFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
         End If
-        If Not mod_VarGlobales.wsSynthese Is Nothing Then
-            mod_VarGlobales.wsSynthese.Visible = xlSheetVisible
-            mod_VarGlobales.wsSynthese.Activate
-        End If
+        mod_InstallCommun.AfficherSynthese      ' Synthese est masquee pendant les formulaires du controle
     End If
 
 End Sub

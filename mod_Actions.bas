@@ -54,11 +54,8 @@ Private Sub ActionSortir(Suppr As Boolean)
             ' On se repositionne dessus
             wsResultat.Activate
         Else
-            'On réaffiche la feuille Synthese
-            wsSynthese.Visible = xlSheetVisible
-            
-            ' On se repositionne dessus
-            wsSynthese.Activate
+            ' On reaffiche la feuille Synthese (tres masquee pendant les formulaires)
+            mod_InstallCommun.AfficherSynthese
             
             ' Arrêt complet du programme on est revenu au départ
             ' End réinitialise les variables en mémoire. S'il est exécuté trop tôt,
@@ -66,14 +63,12 @@ Private Sub ActionSortir(Suppr As Boolean)
             End
         End If
     Else
+        ' On reaffiche la feuille Synthese AVANT de masquer la feuille en cours (Synthese est tres
+        ' masquee pendant les formulaires : Excel refuse de masquer la derniere feuille visible)
+        mod_InstallCommun.AfficherSynthese
+
         ' On masque la feuille en cours
         ws.Visible = xlSheetVeryHidden
-        
-        ' On réaffiche la feuille Synthese
-        wsSynthese.Visible = xlSheetVisible
-        
-        ' On se repositionne dessus
-        wsSynthese.Activate
     End If
 
 End Sub

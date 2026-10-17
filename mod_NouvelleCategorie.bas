@@ -83,7 +83,7 @@ Public Function OuvrirNouvelleCategorie(ByVal catInitiale As String, ByVal sousI
     ' À ce stade, NcValider ou NcAnnuler a déjà masqué la feuille (voir FermerFeuilleNc).
     ' On revient sur la feuille qui était active avant l'ouverture.
     On Error Resume Next
-    ThisWorkbook.Worksheets(g_NcNomFeuillePrec).Activate
+    mod_InstallCommun.ActiverFeuille g_NcNomFeuillePrec
     On Error GoTo 0
 
     OuvrirNouvelleCategorie = g_NcValide

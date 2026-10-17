@@ -1027,7 +1027,7 @@ Public Function OuvrirFormEcheance(ByRef e As TypeEcheance) As Boolean
     Loop
 
     On Error Resume Next
-    ThisWorkbook.Worksheets(g_EchNomFeuillePrec).Activate
+    mod_InstallCommun.ActiverFeuille g_EchNomFeuillePrec
     On Error GoTo 0
 
     If g_EchValide Then
@@ -1669,7 +1669,7 @@ Public Sub SortirEcheancier()
     If ws.Name <> mod_VarGlobales.NOM_FEUILLE_ECHEANCIER And ws.Name <> mod_VarGlobales.NOM_FEUILLE_RECURRENCES Then Exit Sub
 
     On Error Resume Next
-    ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_SYNTHESE).Activate
+    mod_InstallCommun.AfficherSynthese
     On Error GoTo 0
     mod_Aide.MasquerFormulaire ws
 

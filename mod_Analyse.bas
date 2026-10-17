@@ -561,8 +561,7 @@ Public Sub AfficherAnalyse()
 
     ws.Visible = xlSheetVisible
     ws.Activate
-    mod_InstallCommun.MasquerQuadrillage
-    If Not wsSyn Is Nothing Then wsSyn.Visible = xlSheetVeryHidden
+    mod_InstallCommun.MasquerQuadrillage      ' masque aussi Synthese (regle commune des formulaires)
 
     ActualiserAnalyse
 
@@ -571,11 +570,7 @@ End Sub
 Public Sub SortirAnalyse()
     Dim ws As Worksheet, wsSyn As Worksheet
     Set ws = FeuilleAnalyse()
-    Set wsSyn = mod_Criteres.GetFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
-    If Not wsSyn Is Nothing Then
-        wsSyn.Visible = xlSheetVisible
-        wsSyn.Activate
-    End If
+    mod_InstallCommun.AfficherSynthese
     If Not ws Is Nothing Then mod_Aide.MasquerFormulaire ws
 End Sub
 

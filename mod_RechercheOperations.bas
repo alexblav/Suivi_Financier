@@ -1489,7 +1489,7 @@ Public Sub SortirRechercheOperations()
     If g_ROPrefiltreActif = "DetailTotal" Then
         ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RESULTAT).Activate
     Else
-        Sheets("Synthese").Activate
+        mod_InstallCommun.AfficherSynthese
     End If
     On Error GoTo 0
     mod_Aide.MasquerFormulaire ws

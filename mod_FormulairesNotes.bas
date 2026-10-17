@@ -596,7 +596,7 @@ Private Function AfficherRapprochementPourLigne(ByVal ligneDepense As Long, ByVa
     On Error GoTo 0
     attenteActive = False
 
-    Sheets("Synthese").Activate
+    mod_InstallCommun.AfficherSynthese
     mod_Aide.MasquerFormulaire ws
 
     Select Case derniereAction
@@ -647,7 +647,7 @@ ErreurBoucle:
     g_SaisieEnCours = False
     On Error Resume Next
     mod_Aide.MasquerFormulaire ws
-    Sheets("Synthese").Activate
+    mod_InstallCommun.AfficherSynthese
     On Error GoTo 0
     MsgBox FR("Le rapprochement des notes s'est interrompu sur une erreur :") & vbCrLf & msgErr & vbCrLf & vbCrLf & _
            FR("L'op{e2}ration n'a pas {e2}t{e2} modifi{e2}e. Relancez VerifierNotesSante."), vbCritical
@@ -671,7 +671,7 @@ Private Function BoucleActive() As Boolean
     g_SaisieEnCours = False
     On Error Resume Next
     mod_Aide.MasquerFormulaire ActiveSheet
-    Sheets("Synthese").Activate
+    mod_InstallCommun.AfficherSynthese
     On Error GoTo 0
     MsgBox FR("Cet {e2}cran n'est plus rattach{e2} {a2} un traitement en cours (le traitement a {e2}t{e2} interrompu). Rien n'a {e2}t{e2} modifi{e2}." & _
               " Relancez VerifierNotesSante (Ctrl+G) pour reprendre."), vbExclamation

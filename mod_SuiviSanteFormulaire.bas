@@ -687,7 +687,7 @@ Public Sub SortirSuiviSante()
     Dim ws As Worksheet
     Set ws = ThisWorkbook.Worksheets(mod_InstallSuiviSanteSheet.NOM_FEUILLE_SUIVI_SANTE)
     ' On se repositionne sur la feuille Synthèse
-    Sheets("Synthese").Activate
+    mod_InstallCommun.AfficherSynthese
     ' On masque la feuille en cours
     mod_Aide.MasquerFormulaire ws
     ' Arrêt complet du programme

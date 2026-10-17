@@ -90,5 +90,9 @@ End Sub
 ' formulaire et son aide.
 Public Sub MasquerFormulaire(ByVal ws As Worksheet)
     FermerAide ws
+    ' Aucun autre formulaire affiche : Synthese (masquee pendant les formulaires) redevient visible AVANT
+    ' de masquer celui-ci, sinon Excel refuserait de masquer la derniere feuille visible et l'operateur
+    ' se retrouverait sans ecran. Filet de securite pour toutes les sorties, quel que soit leur chemin.
+    If Not mod_InstallCommun.AutreFormulaireVisible(ws) Then mod_InstallCommun.AfficherSynthese
     ws.Visible = xlSheetVeryHidden
 End Sub

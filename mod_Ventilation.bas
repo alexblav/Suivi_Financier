@@ -219,7 +219,7 @@ Public Function OuvrirVentilation(ByVal idTransaction As String, ByVal dateOp As
     Loop
 
     On Error Resume Next
-    ThisWorkbook.Worksheets(g_VenNomFeuillePrec).Activate
+    mod_InstallCommun.ActiverFeuille g_VenNomFeuillePrec
     On Error GoTo 0
 
     ventilationSupprimee = g_VenSupprimee

@@ -1186,7 +1186,7 @@ Private Sub FermerFormulaire(ByVal ws As Worksheet)
     mod_Aide.MasquerFormulaire ws
 
     On Error Resume Next                      ' la feuille d'origine a pu être renommée/supprimée
-    ThisWorkbook.Worksheets(g_CtrlNomFeuillePrec).Activate
+    mod_InstallCommun.ActiverFeuille g_CtrlNomFeuillePrec
     On Error GoTo 0
 
 End Sub

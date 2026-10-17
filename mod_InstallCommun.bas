@@ -36,6 +36,10 @@ Option Explicit
 '     fine ligne vide
 '     ... corps du formulaire
 '
+' SYNTHESE (regle du 17/10/2026) : tout formulaire affiche masque Synthese (MasquerQuadrillage ->
+' MasquerSynthese) ; toute sortie la reaffiche (AfficherSynthese, ActiverFeuille, et le filet de securite
+' de mod_Aide.MasquerFormulaire quand plus aucun formulaire n'est affiche).
+'
 ' AIDE : le bloc Instructions de chaque formulaire frm_Nomform est écrit dans la feuille
 ' très masquée frm_Nomform_aide (voir EcrireInstructions). Le bouton "Aide" du formulaire
 ' (AjouterBoutonAide, macro AfficherAide de mod_Aide) la montre ; son bouton "Sortir"
@@ -274,12 +278,69 @@ End Sub
 ' quadrillage et les en-tetes de lignes/colonnes sont des reglages de la FENETRE (et non
 ' de la feuille), qu'Excel peut remettre a leur valeur par defaut. On les re-masque donc
 ' a chaque affichage.
+'
+' REGLE UNIQUE SUR SYNTHESE (decision operateur du 17/10/2026) : tout formulaire (feuille frm_...)
+' affiche MASQUE Synthese (MasquerSynthese), pour ne pas inciter l'operateur a quitter le formulaire
+' en revenant sur Synthese. Cette procedure etant appelee a CHAQUE affichage d'un formulaire,
+' c'est ici que la regle est appliquee. Toute sortie vers Synthese passe par AfficherSynthese, et tout
+' retour vers la feuille d'origine d'un formulaire modal par ActiverFeuille : une feuille tres masquee
+' ne peut pas etre activee directement (erreur 1004).
 Public Sub MasquerQuadrillage()
     On Error Resume Next
     ActiveWindow.DisplayGridlines = False
     ActiveWindow.DisplayHeadings = False
     On Error GoTo 0
+    MasquerSynthese
 End Sub
+
+' Masque Synthese (tres masquee) si la feuille active est un formulaire (frm_...). Sans effet sinon,
+' pour ne jamais masquer l'ecran central quand aucun formulaire n'est affiche.
+Public Sub MasquerSynthese()
+    Dim wsSyn As Worksheet
+    On Error Resume Next
+    If Left$(ActiveSheet.Name, 4) <> "frm_" Then Exit Sub
+    Set wsSyn = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+    If Not wsSyn Is Nothing Then
+        If wsSyn.Visible = xlSheetVisible Then wsSyn.Visible = xlSheetVeryHidden
+    End If
+    On Error GoTo 0
+End Sub
+
+' Sortie vers Synthese : la rend visible puis l'active (Activate echoue sur une feuille masquee).
+Public Sub AfficherSynthese()
+    Dim wsSyn As Worksheet
+    Set wsSyn = TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+    If wsSyn Is Nothing Then Exit Sub
+    On Error Resume Next
+    wsSyn.Visible = xlSheetVisible
+    wsSyn.Activate
+    On Error GoTo 0
+End Sub
+
+' Retour vers la feuille d'origine d'un formulaire modal (ancienne feuille active). Si c'est Synthese,
+' elle est rendue visible d'abord. Une feuille introuvable (renommee, supprimee) est ignoree.
+Public Sub ActiverFeuille(ByVal nomFeuille As String)
+    Dim ws As Worksheet
+    If StrComp(nomFeuille, mod_VarGlobales.NOM_FEUILLE_SYNTHESE, vbTextCompare) = 0 Then
+        AfficherSynthese
+        Exit Sub
+    End If
+    Set ws = TrouverFeuille(nomFeuille)
+    If ws Is Nothing Then Exit Sub
+    On Error Resume Next
+    ws.Activate
+    On Error GoTo 0
+End Sub
+
+' Vrai si un formulaire (frm_..., hors feuilles d'aide) AUTRE que wsExclu est actuellement affiche.
+Public Function AutreFormulaireVisible(ByVal wsExclu As Worksheet) As Boolean
+    Dim sh As Worksheet
+    For Each sh In ThisWorkbook.Worksheets
+        If sh.Name <> wsExclu.Name And Left$(sh.Name, 4) = "frm_" And Right$(sh.Name, 5) <> "_aide" Then
+            If sh.Visible = xlSheetVisible Then AutreFormulaireVisible = True: Exit Function
+        End If
+    Next sh
+End Function
 
 ' Dernière étape : on masque complètement la feuille (invisible pour l'opérateur, même
 ' via clic droit > Afficher) et on revient sur la feuille qui était affichée avant.

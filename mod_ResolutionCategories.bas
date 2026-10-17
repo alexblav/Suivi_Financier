@@ -319,7 +319,7 @@ Public Sub TerminerEtAppliquerChoix()
     mod_Aide.MasquerFormulaire ws
 
     On Error Resume Next   ' au cas ou la feuille precedente aurait ete renommee/supprimee entre-temps
-    ThisWorkbook.Worksheets(g_NomFeuillePrecedente).Activate
+    mod_InstallCommun.ActiverFeuille g_NomFeuillePrecedente
     On Error GoTo 0
 
 End Sub

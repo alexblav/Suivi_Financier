@@ -1103,8 +1103,7 @@ Private Sub MontrerEcran(ByVal nomFeuille As String)
         End If
     Next i
 
-    Set wsSyn = mod_Criteres.GetFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
-    If Not wsSyn Is Nothing Then wsSyn.Visible = xlSheetVeryHidden
+    ' Synthese est masquee par MasquerQuadrillage (regle commune des formulaires).
 
 End Sub
 
@@ -1135,11 +1134,7 @@ Public Sub SortirConsommations()
     Dim noms As Variant
     Dim i As Long
 
-    Set wsSyn = mod_Criteres.GetFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
-    If Not wsSyn Is Nothing Then
-        wsSyn.Visible = xlSheetVisible
-        wsSyn.Activate
-    End If
+    mod_InstallCommun.AfficherSynthese
 
     noms = Array(mod_VarGlobales.NOM_FEUILLE_CONSO, mod_VarGlobales.NOM_FEUILLE_RELEVES, mod_VarGlobales.NOM_FEUILLE_CONTRATS)
     For i = LBound(noms) To UBound(noms)
@@ -1254,7 +1249,7 @@ Private Function OuvrirFormReleve(ByRef r As TypeReleve, ByRef suivant As Boolea
     Loop
 
     On Error Resume Next
-    ThisWorkbook.Worksheets(g_RelNomFeuillePrec).Activate
+    mod_InstallCommun.ActiverFeuille g_RelNomFeuillePrec
     On Error GoTo 0
 
     If g_RelValide Then
@@ -1673,7 +1668,7 @@ Private Function OuvrirFormContrat(ByRef c As TypeContrat, ByRef ligneAClore As 
     Loop
 
     On Error Resume Next
-    ThisWorkbook.Worksheets(g_CtrNomFeuillePrec).Activate
+    mod_InstallCommun.ActiverFeuille g_CtrNomFeuillePrec
     On Error GoTo 0
 
     If g_CtrValide Then

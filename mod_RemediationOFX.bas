@@ -1039,8 +1039,8 @@ Public Sub AfficherRemediationOFX()
         Exit Sub
     End If
 
-    ' Synthese reste ouverte derrière le formulaire (comme pour la recherche d'opérations et
-    ' l'échéancier) : SortirRemediationOFX n'a qu'à masquer le formulaire.
+    ' Synthese est masquee par MasquerQuadrillage (regle commune des formulaires) ;
+    ' SortirRemediationOFX la reaffiche.
     ws.Visible = xlSheetVisible
     ws.Activate
     mod_InstallCommun.MasquerQuadrillage
@@ -1049,13 +1049,9 @@ End Sub
 
 Public Sub SortirRemediationOFX()
 
-    Dim ws As Worksheet, wsSyn As Worksheet
+    Dim ws As Worksheet
 
-    Set wsSyn = mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
-    If Not wsSyn Is Nothing Then
-        wsSyn.Visible = xlSheetVisible
-        wsSyn.Activate
-    End If
+    mod_InstallCommun.AfficherSynthese
 
     Set ws = TrouverFeuilleRapport()
     If Not ws Is Nothing Then mod_Aide.MasquerFormulaire ws
