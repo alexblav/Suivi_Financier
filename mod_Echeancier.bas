@@ -965,9 +965,10 @@ Public Sub DeclarerRecurrenteDepuisOperation(ByVal idTransaction As String)
     e.Categorie = mod_DataStructure.CellText(cCat(trouve))
     e.SousCategorie = mod_DataStructure.CellText(cSous(trouve))
     e.Montant = mod_DataStructure.ToDouble(cMont(trouve))
-    e.Periodicite = PERIODE_MENSUELLE
     e.PrecisionDate = PRECISION_JOUR
     e.TolerancePct = TOLERANCE_DEFAUT
+
+    e.Periodicite = PERIODE_MENSUELLE
 
     ' Prochaine date : même jour du mois, le mois suivant l'opération, puis on avance
     ' jusqu'à une date à venir (les occurrences passées ont déjà été importées).

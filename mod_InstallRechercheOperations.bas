@@ -282,6 +282,8 @@ Private Sub RO_ConstruireBoutons(ByVal ws As Worksheet)
     ' Ajout 09/10/2026 (échéancier) : déclare l'opération sélectionnée comme récurrente.
     mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Rendre r{e2}currente"), _
         "RendreRecurrenteRO", "btnRendreRecurrenteRO", 105
+    mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Ajouter {a2} l'{e2}ch{e2}ancier"), _
+        "AjouterPonctuelleRO", "btnAjouterPonctuelleRO", 125
 
 End Sub
 

@@ -413,13 +413,14 @@ Les colonnes techniques (identifiant, source O/V, numéro de ligne de ventilatio
 
 ### Les actions
 
-La barre de boutons de l'écran contient : Recherche globale, Appliquer les lignes marquées, Ajouter un décalage, Décaler cette opération, Rendre récurrente et Sortir.
+La barre de boutons de l'écran contient : Recherche globale, Appliquer les lignes marquées, Ajouter un décalage, Décaler cette opération, Rendre récurrente, Ajouter à l'échéancier et Sortir.
 
 - **Corriger des Notes en lot** : modifiez les cellules Notes, mettez « Oui » dans Valider, puis cliquez sur **« Appliquer les lignes marquées »**. Les Notes sont écrites dans la bonne table, la marque « Oui » est effacée, puis la vérification et le calcul santé sont relancés.
 - **Double-clic sur Categorie ou SousCategorie** : ouvre le formulaire de contrôle des catégories pour cette seule opération, prérempli avec ses valeurs actuelles. À la validation, l'enregistrement est immédiat (sans passer par Valider), les statuts santé sont recalculés sans message et l'écran se recharge avec le même préfiltre. Sur une opération ventilée, un message vous renvoie vers la colonne Ventile.
 - **Double-clic sur Ventile** : démarre ou revoit une ventilation (section 3).
 - **Ajouter un décalage** / **Décaler cette opération** : voir section 4.
 - **Rendre récurrente** : ouvre le formulaire d'échéance prérempli avec la ligne sélectionnée (voir section 8). Disponible dans tous les préfiltres, donc aussi juste après un import.
+- **Ajouter à l'échéancier** : saisie d'une opération **ponctuelle** que l'on sait à venir mais absente de la base (un chèque émis, par exemple). Aucune ligne à sélectionner : le formulaire d'échéance s'ouvre **vide** (comme « Saisir une échéance » de Synthese) et crée une seule échéance, sans règle (voir section 8).
 - **Sortir** : referme l'écran et revient sur Synthese. Quand l'écran a été ouvert depuis l'analyse budgétaire, « Sortir » revient sur l'analyse, qui est recalculée.
 
 Modifier directement une cellule Date, Tiers ou Montant de cet écran ne change **rien** dans les données : c'est un affichage, reconstruit à chaque recherche.
@@ -520,6 +521,8 @@ Le numéro apparaît dans la colonne **NumCheque** de frm\_Echeancier. Il n'est 
 **Contrôle silencieux dans la liste.** Si vous modifiez un numéro directement dans frm\_Echeancier, il est vérifié **sans aucun message**, en direct, par une mise en forme conditionnelle : la cellule devient **rouge** si le numéro est invalide (pas uniquement des chiffres) ou déjà passé en banque, **orange** s'il figure deux fois dans l'échéancier. Les numéros sont comparés comme des nombres (zéros en tête ignorés). Rien n'est bloqué : c'est un signal visuel, à vous d'agir. Une cellule rouge qui reste après un import signale un chèque passé en banque mais non rapproché. Installation : `InstallerEcheancier`, ou `MettreAJourControleCheques` pour poser seulement ce contrôle sur une liste existante.
 
 **Rendre récurrente une opération existante.** Dans l'écran de recherche (y compris juste après un import), sélectionnez une ligne puis « Rendre récurrente » : le formulaire s'ouvre prérempli (Tiers, catégorie, montant, périodicité mensuelle). La prochaine date est calculée sur le même jour du mois suivant, puis avancée jusqu'à une date future ; tout reste modifiable avant de valider.
+
+**Ajouter une opération ponctuelle à l'échéancier.** Le bouton « Ajouter à l'échéancier » ouvre le formulaire **vide**, sans tenir compte de la ligne sélectionnée : à utiliser pour une opération attendue qui n'existe pas encore en base (chèque émis, par exemple). Laissez la périodicité vide (ou « Ponctuelle ») et renseignez la date prévue.
 
 ### Les règles produisent seules les occurrences
 

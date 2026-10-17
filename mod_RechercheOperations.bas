@@ -1521,6 +1521,19 @@ Public Sub RendreRecurrenteRO()
 End Sub
 
 
+' =====================================================================================
+' BOUTON "Ajouter à l'échéancier" : saisie d'une opération PONCTUELLE attendue mais
+' absente de la base (ex. un chèque émis). Aucune ligne n'est nécessaire : le formulaire
+' s'ouvre VIDE (périodicité vide = opération unique). Même macro que le bouton
+' "Saisir une échéance" de Synthese.
+' =====================================================================================
+Public Sub AjouterPonctuelleRO()
+
+    mod_Echeancier.SaisirEcheance
+
+End Sub
+
+
 ' Relit la ligne SÉLECTIONNÉE dans les résultats de recherche et renvoie son
 ' ID_Transaction, Tiers, Categorie et SousCategorie tels qu'affichés à l'écran.
 ' Reprend le mécanisme de RevoirVentilationRO (ActiveCell.Row -> ligne relative ->

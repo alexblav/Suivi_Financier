@@ -769,6 +769,12 @@ Public Sub AjouterBoutonRecurrenteRO()
     mod_InstallCommun.AjouterBoutonEntete ws, mod_InstallRechercheOperations.RO_LIGNE_BOUTONS, gauche, _
         mod_Display.FR("Rendre r{e2}currente"), "RendreRecurrenteRO", "btnRendreRecurrenteRO", 105
 
+    ' Bouton jumeau pour une opération ponctuelle (une seule échéance, sans règle).
+    SupprimerBoutonSiExiste ws, "btnAjouterPonctuelleRO"
+    gauche = ws.Shapes("btnRendreRecurrenteRO").Left + ws.Shapes("btnRendreRecurrenteRO").Width + mod_InstallCommun.FRM_BTN_ECART
+    mod_InstallCommun.AjouterBoutonEntete ws, mod_InstallRechercheOperations.RO_LIGNE_BOUTONS, gauche, _
+        mod_Display.FR("Ajouter {a2} l'{e2}ch{e2}ancier"), "AjouterPonctuelleRO", "btnAjouterPonctuelleRO", 125
+
 End Sub
 
 

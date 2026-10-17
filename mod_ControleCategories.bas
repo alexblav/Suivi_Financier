@@ -614,8 +614,13 @@ Private Sub AfficherOperation(ByVal ws As Worksheet)
     ws.Range(CTRL_ADR_COMPTEUR).value = mod_InstallCommun.TexteCompteur(g_CtrlPos, g_CtrlNbAffiches)   ' format commun "Operation: x/y" (09/10/2026)
     ws.Range(CTRL_ADR_DATE).value = FormaterDate(g_CtrlOps(i, CTRL_OP_DATE))
     ws.Range(CTRL_ADR_MONTANT).value = Format(mod_DataStructure.ToDouble(g_CtrlOps(i, CTRL_OP_MONTANT)), "#,##0.00") & " " & ChrW(8364)
-    ' Chèque (ajout 12/10/2026) : seulement si l'écran a été reconstruit (sinon E11 est fusionnée).
-    If Not ws.Range(CTRL_ADR_CHEQUE).MergeCells Then ws.Range(CTRL_ADR_CHEQUE).value = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_CHEQUE))
+    ' Chèque (ajout 12/10/2026) : seulement si l'écran a été reconstruit (sinon E9 est fusionnée).
+    If Not ws.Range(CTRL_ADR_CHEQUE).MergeCells Then
+        ' Étiquette et mise en forme posées ici (idempotent) : pas besoin de reconstruire la feuille.
+        mod_InstallCommun.PoserEtiquette ws.Cells(ws.Range(CTRL_ADR_CHEQUE).Row, ws.Range(CTRL_ADR_CHEQUE).Column - 1), mod_Display.FR("Ch{e1}que")
+        mod_InstallCommun.PoserChampLecture ws.Range(CTRL_ADR_CHEQUE), "@"
+        ws.Range(CTRL_ADR_CHEQUE).value = mod_DataStructure.CellText(g_CtrlOps(i, CTRL_OP_CHEQUE))
+    End If
     ws.Range(CTRL_ADR_SOURCE).value = Source
     ' Libelle du champ adapte au mode (09/10/2026) : categorie bancaire a l'import, categorie
     ' d'origine en edition directe depuis l'ecran de recherche.
