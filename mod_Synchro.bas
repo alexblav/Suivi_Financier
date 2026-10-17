@@ -56,7 +56,7 @@ Option Explicit
 '   - classeur chiffré (Fichier > Informations > Protéger le classeur > Chiffrer avec mot de passe,
 '     MÊME passphrase pour tous et pour le central) : le central est détecté comme chiffré (signature
 '     OLE), la passphrase est demandée UNE fois par session Excel (au premier accès au central, donc
-'     à l'ouverture) puis réutilisée à la fermeture. Elle reste en mémoire (mPassphrase), jamais
+'     à l'ouverture) puis réutilisée à la fermeture. Elle reste en mémoire (mPassphrase + variable d'environnement du processus Excel), jamais
 '     écrite sur disque ni dans le classeur. SaveCopyAs conserve le chiffrement : central et
 '     sauvegardes restent chiffrés. Passphrase refusée : 3 essais, puis la synchro échoue.
 ' =====================================================================================
@@ -70,6 +70,7 @@ Private Const PROP_DATE As String = "SyncDerniereDate"
 Private Const DOSSIER_SAUVEGARDES As String = "Sauvegardes_Synchro"
 Private Const NB_SAUVEGARDES As Long = 10
 Private Const VERROU_MINUTES As Long = 15
+Private Const VAR_SESSION As String = "SUIVIFIN_PASSPHRASE"
 
 ' Enregistrer automatiquement le classeur local à la fermeture, une fois la synchro faite
 ' (sinon l'empreinte "dernière synchronisation" ne serait pas conservée dans le fichier).
@@ -156,7 +157,7 @@ Public Sub AfficherEtatSynchro()
     If Len(p) > 0 Then
         If FichierExiste(p) Then s = s & T("Fichier central chiffr{e2} : ") & IIf(EstChiffre(p), T("oui"), T("NON")) & vbCrLf
     End If
-    s = s & T("Passphrase m{e2}moris{e2}e pour cette session : ") & IIf(Len(mPassphrase) > 0, T("oui"), T("non")) & vbCrLf
+    s = s & T("Passphrase m{e2}moris{e2}e pour cette session : ") & IIf(Len(mPassphrase) > 0 Or Len(LirePassphraseSession()) > 0, T("oui"), T("non")) & vbCrLf
     s = s & T("Derni{e1}re synchronisation r{e2}ussie : ") & LirePropriete(PROP_DATE)
     MsgBox s, vbInformation, TITRE
 End Sub
@@ -665,6 +666,7 @@ Private Sub OuvrirCentral(ByVal chemin As String)
 
     ' Central chiffré : on utilise la passphrase de la session, demandée une seule fois (3 essais).
     Do
+        If chiffre And Len(mPassphrase) = 0 Then mPassphrase = LirePassphraseSession()
         If chiffre And Len(mPassphrase) = 0 Then
             If Not DemanderPassphrase(essais > 0) Then
                 Application.AutomationSecurity = secu
@@ -684,7 +686,7 @@ Private Sub OuvrirCentral(ByVal chemin As String)
             Err.Clear
             On Error GoTo 0
             If chiffre And essais < 3 Then
-                mPassphrase = ""                      ' passphrase refusée : on la redemande
+                OublierPassphrase                     ' passphrase refusée : on la redemande
             Else
                 Application.AutomationSecurity = secu
                 Err.Raise num, , desc
@@ -752,8 +754,33 @@ Private Function DemanderPassphrase(ByVal erreur As Boolean) As Boolean
 
     Application.ScreenUpdating = False
 
-    If Len(v) > 0 Then mPassphrase = v: DemanderPassphrase = True
+    If Len(v) > 0 Then
+        mPassphrase = v
+        EcrirePassphraseSession v
+        DemanderPassphrase = True
+    End If
 End Function
+
+' La variable mPassphrase est remise à zéro chaque fois que le projet VBA est réinitialisé (erreur non
+' gérée, modification du code, fermeture puis réouverture du classeur dans la même fenêtre Excel...),
+' ce qui redemandait la passphrase à la fermeture. On la double donc d'une variable d'environnement du
+' PROCESSUS Excel : elle survit à ces réinitialisations, disparaît à la fermeture d'Excel et n'est
+' JAMAIS écrite sur disque (ni dans le registre, ni dans le classeur).
+
+Private Function LirePassphraseSession() As String
+    On Error Resume Next
+    LirePassphraseSession = CreateObject("WScript.Shell").Environment("Process")(VAR_SESSION)
+End Function
+
+Private Sub EcrirePassphraseSession(ByVal v As String)
+    On Error Resume Next
+    CreateObject("WScript.Shell").Environment("Process")(VAR_SESSION) = v
+End Sub
+
+Private Sub OublierPassphrase()
+    mPassphrase = ""
+    EcrirePassphraseSession ""
+End Sub
 
 Private Sub FermerCentral()
     On Error Resume Next

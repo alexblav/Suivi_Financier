@@ -261,7 +261,7 @@ Private Sub Def_Echeancier(ByRef titre As String, ByRef intro As String, ByRef c
     intro = "Cette liste contient les op{e2}rations pr{e2}vues qui ne sont pas encore pass{e2}es sur le compte. Elles servent au calcul du solde pr{e2}visionnel de [f:Synthese]. " & _
             "Apr{e1}s chaque import, les op{e2}rations import{e2}es sont compar{e2}es aux {e2}ch{e2}ances et l'import propose les rapprochements ; une fois un rapprochement valid{e2}, l'{e2}ch{e2}ance dispara{i2}t de la liste. " & _
             "Une {e2}ch{e2}ance non rapproch{e2}e reste ici, reste compt{e2}e dans le solde pr{e2}visionnel et, si sa date est pass{e2}e, dans '{E2}ch. en retard' de [f:Synthese] : c'est {a2} vous de la supprimer. " & _
-            "Les cellules se corrigent directement."
+            "Les cellules se corrigent directement. Les fl{e1}ches de filtre de l'en-t{ea}te de chaque colonne permettent de restreindre la liste affich{e2}e ; les lignes masqu{e2}es ne sont jamais supprim{e2}es par le bouton Supprimer la s{e2}lection."
 
     L champs, "ID_Echeance", "Num{e2}ro de l'{e2}ch{e2}ance, attribu{e2} automatiquement."
     L champs, "ID_Recurrence", "R{e1}gle d'origine (vide pour une op{e2}ration ponctuelle). Modifier une {e2}ch{e2}ance ne modifie pas sa r{e1}gle."

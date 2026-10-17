@@ -111,7 +111,7 @@ End Function
 ' disparaître, car Excel conservait les anciennes positions des lignes visibles,
 ' qui ne correspondaient plus à rien après la réécriture du tableau).
 ' =====================================================================================
-Private Function MemoriserFiltresRO(ByVal tbl As ListObject) As Variant
+Public Function MemoriserFiltresRO(ByVal tbl As ListObject) As Variant
     ' Renvoie un tableau à deux dimensions (4 lignes : Field/Operator/Criteria1/Criteria2,
     ' une colonne par filtre actif trouvé), ou Empty si aucun filtre n'est actif.
     Dim nbFiltres As Long
@@ -153,7 +153,7 @@ End Function
 
 ' Réapplique les filtres précédemment mémorisés par MemoriserFiltresRO, une fois le
 ' tableau reconstruit avec les nouvelles données.
-Private Sub RestaurerFiltresRO(ByVal tbl As ListObject, ByVal filtresSauvegardes As Variant)
+Public Sub RestaurerFiltresRO(ByVal tbl As ListObject, ByVal filtresSauvegardes As Variant)
     Dim f As Long
     Dim critere1 As Variant
     Dim operateur As Long

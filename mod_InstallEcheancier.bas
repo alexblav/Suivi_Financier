@@ -105,6 +105,7 @@ Private Function ConstruireListeEcheances(ByVal wsPrecedente As Worksheet) As Bo
     t = t & "peut arriver n'importe quel jour du mois de [c:DatePrevue], mais l'{e2}ch{e2}ance est compt{e2}e dans le solde pr{e2}visionnel d{e1}s le 1er du mois). [c:TolerancePct] : {e2}cart de montant accept{e2} pour le rapprochement. "
     t = t & "[c:NumCheque] : num{e2}ro du ch{e1}que attendu (vide si aucun) ; son contr{o2}le est automatique et silencieux (aucun message) : la cellule devient rouge si le num{e2}ro est invalide ou d{e2}j{a2} pass{e2} en banque, orange s'il figure deux fois dans cette liste. "
     t = t & "[c:ID_Recurrence] indique la r{e1}gle d'origine (vide pour une op{e2}ration ponctuelle) ; modifier une {e2}ch{e2}ance ne modifie pas sa r{e1}gle."
+    t = t & Chr(10) & "Utilisez les fl{e1}ches de filtre de l'en-t{ea}te de chaque colonne pour restreindre la liste affich{e2}e (les lignes masqu{e2}es ne sont jamais supprim{e2}es par [b:Supprimer la s{e2}lection])."
     t = t & Chr(10) & "Boutons :"
     t = t & Chr(10) & "- [b:Ajouter une {e2}ch{e2}ance] : ouvre le formulaire de saisie."
     t = t & Chr(10) & "- [b:Supprimer la s{e2}lection] : supprime les lignes s{e2}lectionn{e2}es. Pour une {e2}ch{e2}ance qui vient d'une r{e1}gle, "
@@ -221,7 +222,7 @@ Private Function ConstruireListe(ByVal nomFeuille As String, ByVal nomTable As S
     Set lo = ws.ListObjects.Add(xlSrcRange, ws.Range(ws.Cells(LIGNE_ENTETE_LISTE, 2), ws.Cells(LIGNE_ENTETE_LISTE + 1, nb + 1)), , xlYes)
     lo.Name = nomTable
     lo.TableStyle = ""
-    lo.ShowAutoFilter = False
+    lo.ShowAutoFilter = True      ' flèches de filtre dans l'en-tête, comme frm_RechercheOperations
     If nbSauve > 1 Then lo.Resize ws.Range(ws.Cells(LIGNE_ENTETE_LISTE, 2), ws.Cells(LIGNE_ENTETE_LISTE + nbSauve, nb + 1))
     mod_InstallCommun.PoserEnteteTableau lo.HeaderRowRange
     For i = 1 To nb

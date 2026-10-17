@@ -1,6 +1,8 @@
 Attribute VB_Name = "mod_Echeancier"
 Option Explicit
 
+Private mFiltresMemorises As Object   ' filtres levés avant suppression, par nom de tableau
+
 ' =====================================================================================
 ' MODULE : mod_Echeancier
 '
@@ -48,6 +50,8 @@ Public Const FEN_APRES As Long = 10
 Public Const FEN_HEBDO As Long = 3
 ' Tolérance sur le montant (en %) quand l'échéance n'en précise aucune.
 Public Const TOLERANCE_DEFAUT As Double = 10
+' Garde-fou doublon à la saisie : écart de montant (en %) en dessous duquel deux échéances sont jugées identiques.
+Public Const DOUBLON_TOLERANCE_PCT As Double = 20
 
 ' --- Valeurs possibles des colonnes de type liste ------------------------------------
 Public Const PERIODE_PONCTUELLE As String = "Ponctuelle"
@@ -413,9 +417,11 @@ Public Sub GenererHorizon()
         End If
     Next i
 
+    LeverFiltre loR
     For i = loR.ListRows.Count To 1 Step -1
         If termine(i) Then loR.ListRows(i).Delete
     Next i
+    RestaurerFiltre loR
 
     TrierEcheances
 
@@ -681,9 +687,11 @@ Private Sub Rapprocher(ByRef listeID() As String, ByVal nb As Long)
     Next k
 
     ' --- Suppression des échéances rapprochées (de bas en haut : les numéros ne bougent pas) ---
+    LeverFiltre loE
     For i = nE To 1 Step -1
         If aSupprimer(i) Then loE.ListRows(i).Delete
     Next i
+    RestaurerFiltre loE
 
 End Sub
 
@@ -764,6 +772,80 @@ Private Function ChequeDansEcheancier(ByVal numNormalise As String) As String
             cDt = LireColonne(lo, "DatePrevue")
             ChequeDansEcheancier = mod_DataStructure.CellText(cLib(i)) & ", " & Format(VersDate(cDt(i)), "dd/mm/yyyy")
             Exit Function
+        End If
+    Next i
+
+End Function
+
+' Montant existant et montant saisi de même signe, à +/- DOUBLON_TOLERANCE_PCT % près
+' (écart mesuré par rapport au montant déjà présent dans l'échéancier).
+Private Function MontantProche(ByVal mExistant As Double, ByVal mSaisi As Double) As Boolean
+    If mExistant = 0 Or mSaisi = 0 Then Exit Function
+    If (mExistant > 0) <> (mSaisi > 0) Then Exit Function
+    MontantProche = (Abs(mSaisi - mExistant) <= Abs(mExistant) * DOUBLON_TOLERANCE_PCT / 100 + 0.005)
+End Function
+
+' Garde-fou doublon. Deux échéances sont jugées identiques si Tiers, Catégorie et
+' Sous-catégorie sont les mêmes (casse ignorée), le Montant est proche (+/- 20 %) ET :
+'   - ponctuelle : la date tombe le même jour (le même mois si l'une des deux est "Mois") ;
+'   - récurrente : une règle ACTIVE de même périodicité existe déjà.
+' Renvoie la description de l'échéance ou de la règle existante, "" si aucun doublon.
+Private Function DoublonEcheancier(ByRef e As TypeEcheance) As String
+
+    Dim lo As ListObject
+    Dim cT() As Variant, cC() As Variant, cS() As Variant, cM() As Variant
+    Dim cD() As Variant, cP() As Variant, cA() As Variant, cPer() As Variant
+    Dim i As Long
+    Dim dE As Date
+    Dim memeMois As Boolean
+    Dim txtMontant As String
+
+    If e.Periodicite = PERIODE_PONCTUELLE Then
+        Set lo = TableEcheances()
+    Else
+        Set lo = TableRecurrences()
+    End If
+    If lo Is Nothing Then Exit Function
+    If TableVide(lo) Then Exit Function
+
+    cT = LireColonne(lo, "Tiers")
+    cC = LireColonne(lo, "Categorie")
+    cS = LireColonne(lo, "SousCategorie")
+    cM = LireColonne(lo, "Montant")
+    cPer = LireColonne(lo, "Periodicite")
+    If e.Periodicite = PERIODE_PONCTUELLE Then
+        cD = LireColonne(lo, "DatePrevue")
+        cP = LireColonne(lo, "PrecisionDate")
+    Else
+        cA = LireColonne(lo, "Actif")
+    End If
+
+    For i = 1 To UBound(cT)
+        If StrComp(mod_DataStructure.CellText(cT(i)), e.Tiers, vbTextCompare) = 0 _
+           And StrComp(mod_DataStructure.CellText(cC(i)), e.Categorie, vbTextCompare) = 0 _
+           And StrComp(mod_DataStructure.CellText(cS(i)), e.SousCategorie, vbTextCompare) = 0 _
+           And MontantProche(mod_DataStructure.ToDouble(cM(i)), e.Montant) Then
+            txtMontant = Format(mod_DataStructure.ToDouble(cM(i)), "#,##0.00") & " " & ChrW(8364)
+
+            If e.Periodicite = PERIODE_PONCTUELLE Then
+                dE = VersDate(cD(i))
+                memeMois = (Year(dE) = Year(e.DatePrevue) And Month(dE) = Month(e.DatePrevue))
+                If memeMois Then
+                    If mod_DataStructure.CellText(cP(i)) = PRECISION_MOIS Or e.PrecisionDate = PRECISION_MOIS Then
+                        DoublonEcheancier = "{e2}ch{e2}ance du " & Format(dE, "mm/yyyy") & ", montant " & txtMontant
+                        Exit Function
+                    ElseIf Day(dE) = Day(e.DatePrevue) Then
+                        DoublonEcheancier = "{e2}ch{e2}ance du " & Format(dE, "dd/mm/yyyy") & ", montant " & txtMontant
+                        Exit Function
+                    End If
+                End If
+            Else
+                If StrComp(mod_DataStructure.CellText(cA(i)), "Oui", vbTextCompare) = 0 _
+                   And StrComp(mod_DataStructure.CellText(cPer(i)), e.Periodicite, vbTextCompare) = 0 Then
+                    DoublonEcheancier = "r{e2}gle " & LCase$(e.Periodicite) & " d{e2}j{a2} active, montant " & txtMontant
+                    Exit Function
+                End If
+            End If
         End If
     Next i
 
@@ -1469,6 +1551,18 @@ Public Sub EchValider()
     e.PrecisionDate = prec
     If IsEmpty(vTol) Then e.TolerancePct = TOLERANCE_DEFAUT Else e.TolerancePct = nTol
 
+    ' Garde-fou doublon : l'opérateur peut passer outre (deux achats identiques le même jour existent).
+    trouve = DoublonEcheancier(e)
+    If trouve <> "" Then
+        If MsgBox(mod_Display.FR("Une op{e2}ration identique existe d{e2}j{a2} dans l'{e2}ch{e2}ancier (" & trouve & _
+                  ") : m{ea}me tiers, cat{e2}gorie, sous-cat{e2}gorie et montant {a2} " & DOUBLON_TOLERANCE_PCT & " % pr{e1}s (montant saisi : " & Format(e.Montant, "#,##0.00") & " " & ChrW(8364) & ")." & vbCrLf & vbCrLf & _
+                  "Voulez-vous quand m{ea}me l'ajouter ?"), vbQuestion + vbYesNo + vbDefaultButton2, _
+                  mod_Display.FR("Doublon possible")) <> vbYes Then
+            AfficherMessageEch ws, "Doublon {e2}vit{e2} : modifiez la saisie ou annulez."
+            Exit Sub
+        End If
+    End If
+
     g_EchRes = e
     g_EchValide = True
     FermerFeuilleEch ws
@@ -1581,6 +1675,32 @@ Public Sub SortirEcheancier()
 
 End Sub
 
+' Excel refuse de supprimer une ligne d'un tableau filtré (erreur 1004 : impossible de déplacer
+' les cellules d'une plage filtrée). Les filtres de colonne sont donc levés avant toute
+' suppression ; les numéros de ligne restent valables (ils sont calculés sur l'ordre du tableau).
+Private Sub LeverFiltre(ByVal lo As ListObject)
+    If mFiltresMemorises Is Nothing Then Set mFiltresMemorises = CreateObject("Scripting.Dictionary")
+    On Error Resume Next
+    If lo.ShowAutoFilter Then
+        If lo.AutoFilter.FilterMode Then
+            mFiltresMemorises(lo.Name) = mod_RechercheOperations.MemoriserFiltresRO(lo)
+            lo.AutoFilter.ShowAllData
+        End If
+    End If
+    On Error GoTo 0
+End Sub
+
+' Remet, une fois les suppressions faites, les filtres de colonne levés par LeverFiltre
+' (même principe que l'écran de recherche : l'opérateur retrouve son filtre).
+Private Sub RestaurerFiltre(ByVal lo As ListObject)
+    If mFiltresMemorises Is Nothing Then Exit Sub
+    If Not mFiltresMemorises.Exists(lo.Name) Then Exit Sub
+    On Error Resume Next
+    mod_RechercheOperations.RestaurerFiltresRO lo, mFiltresMemorises(lo.Name)
+    mFiltresMemorises.Remove lo.Name
+    On Error GoTo 0
+End Sub
+
 ' Numéros (dans le tableau) des lignes touchées par la sélection courante.
 Private Function LignesSelectionnees(ByVal lo As ListObject) As Object
 
@@ -1597,9 +1717,13 @@ Private Function LignesSelectionnees(ByVal lo As ListObject) As Object
     On Error GoTo 0
     If inter Is Nothing Then Exit Function
 
+    ' Les lignes masquées par un filtre de colonne sont ignorées : une sélection qui les
+    ' enjambe ne doit pas les supprimer.
     For Each c In inter.Cells
-        n = c.Row - lo.DataBodyRange.Row + 1
-        If Not d.Exists(n) Then d.Add n, True
+        If Not c.EntireRow.Hidden Then
+            n = c.Row - lo.DataBodyRange.Row + 1
+            If Not d.Exists(n) Then d.Add n, True
+        End If
     Next c
 
 End Function
@@ -1638,9 +1762,11 @@ Public Sub SupprimerEcheanceSelection()
     If nbRegle = 0 Then
         If MsgBox(sel.Count & mod_Display.FR(" {e2}ch{e2}ance(s) {a2} supprimer ?"), vbYesNo + vbQuestion, _
                   mod_Display.FR("Supprimer des {e2}ch{e2}ances")) = vbNo Then Exit Sub
+        LeverFiltre lo
         For i = lo.ListRows.Count To 1 Step -1
             If sel.Exists(i) Then lo.ListRows(i).Delete
         Next i
+        RestaurerFiltre lo
         Exit Sub
     End If
 
@@ -1650,9 +1776,11 @@ Public Sub SupprimerEcheanceSelection()
                        mod_Display.FR("ANNULER : ne rien faire."), _
                        vbYesNoCancel + vbQuestion, mod_Display.FR("{E2}ch{e2}ances issues d'une r{e1}gle"))
         Case vbYes
+            LeverFiltre lo
             For i = lo.ListRows.Count To 1 Step -1
                 If sel.Exists(i) Then lo.ListRows(i).Delete
             Next i
+            RestaurerFiltre lo
             GenererHorizon      ' une règle qui n'a plus d'occurrence en retrouve une
         Case vbNo
             ArreterRecurrences lo, loR, sel
@@ -1735,9 +1863,11 @@ Private Sub ArreterRecurrences(ByVal lo As ListObject, ByVal loR As ListObject, 
             aSupprimer(i) = True
         End If
     Next i
+    LeverFiltre lo
     For i = lo.ListRows.Count To 1 Step -1
         If aSupprimer(i) Then lo.ListRows(i).Delete
     Next i
+    RestaurerFiltre lo
 
     GenererHorizon      ' sans effet pour ces règles : leur date de fin est posée
 
@@ -1776,6 +1906,7 @@ Public Sub SupprimerRecurrenceSelection()
     ' Occurrences liées (de bas en haut)
     If Not TableVide(loE) Then
         cIdRec = ColIdx(loE, "ID_Recurrence")
+        LeverFiltre loE
         For i = loE.ListRows.Count To 1 Step -1
             v = loE.ListRows(i).Range.Cells(1, cIdRec).Value2
             If mod_DataStructure.CellText(v) <> "" Then
@@ -1784,11 +1915,14 @@ Public Sub SupprimerRecurrenceSelection()
                 End If
             End If
         Next i
+        RestaurerFiltre loE
     End If
 
+    LeverFiltre loR
     For i = loR.ListRows.Count To 1 Step -1
         If sel.Exists(i) Then loR.ListRows(i).Delete
     Next i
+    RestaurerFiltre loR
 
 End Sub
 
@@ -1832,6 +1966,7 @@ Public Sub ActualiserRecurrences()
         Next i
 
         ' 2. suppression de ces occurrences (de bas en haut)
+        LeverFiltre loE
         For i = loE.ListRows.Count To 1 Step -1
             v = loE.ListRows(i).Range.Cells(1, cIdRec).Value2
             If mod_DataStructure.CellText(v) <> "" Then
@@ -1840,6 +1975,7 @@ Public Sub ActualiserRecurrences()
                 End If
             End If
         Next i
+        RestaurerFiltre loE
 
         ' 3. la règle repart de sa plus ancienne occurrence
         cId = ColIdx(loR, "ID_Recurrence")
