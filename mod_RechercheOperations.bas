@@ -376,6 +376,21 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ws.Activate
     mod_InstallCommun.MasquerQuadrillage   ' quadrillage et en-tetes toujours masques (09/10/2026)
 
+    ' Avant de vider et reconstruire le tableau, on mémorise les filtres actifs
+    ' (flèches natives d'Excel) afin de les rétablir à l'identique après l'écriture
+    ' des nouvelles données (voir MemoriserFiltresRO / RestaurerFiltresRO plus haut).
+    ' CORRECTIF du 17/10/2026 (constat opérateur) : cette levée des filtres est faite
+    ' AVANT le gel des volets ci-dessous. Gelé avec un filtre encore actif, le volet ne
+    ' restait pas sous la ligne d'en-tête une fois le filtre retiré.
+    Dim filtresSauvegardes As Variant
+    filtresSauvegardes = MemoriserFiltresRO(tblRecherche)
+
+    On Error Resume Next
+    If tblRecherche.ShowAutoFilter Then
+        tblRecherche.AutoFilter.ShowAllData
+    End If
+    On Error GoTo 0
+
     ' Fige l'affichage sous la ligne d'en-tête du tableau (RO_LIGNE_ENTETES),
     ' pour que les intitulés restent visibles pendant le défilement des résultats
     ' (demande opérateur du 01/10/2026).
@@ -400,18 +415,6 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ActiveWindow.ScrollColumn = 1
     ws.Range("A" & (mod_InstallRechercheOperations.RO_LIGNE_ENTETES + 1)).Select
     ActiveWindow.FreezePanes = True
-
-    ' Avant de vider et reconstruire le tableau, on mémorise les filtres actifs
-    ' (flèches natives d'Excel) afin de les rétablir à l'identique après l'écriture
-    ' des nouvelles données (voir MemoriserFiltresRO / RestaurerFiltresRO plus haut).
-    Dim filtresSauvegardes As Variant
-    filtresSauvegardes = MemoriserFiltresRO(tblRecherche)
-
-    On Error Resume Next
-    If tblRecherche.ShowAutoFilter Then
-        tblRecherche.AutoFilter.ShowAllData
-    End If
-    On Error GoTo 0
 
     ' --- On vide le tableau de recherche (seul l'en-tête est conservé) ---
     If Not tblRecherche.DataBodyRange Is Nothing Then

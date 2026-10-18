@@ -373,11 +373,11 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 </ul>
 </li>
 <li><strong>Cas ambigus.</strong> S'il y en a, la feuille <strong>frm_ResolutionCategories</strong> s'affiche : une ligne par cas, une liste déroulante avec les catégories possibles. Vous choisissez, puis « Terminer et appliquer ».</li>
-<li><strong>Contrôle des catégories.</strong> Le formulaire de contrôle s'ouvre (voir section 2). C'est ici que chaque opération reçoit sa catégorie <strong>et</strong> sa sous-catégorie. Si vous cliquez sur « Annuler l'import », <strong>rien n'est écrit</strong> : le classeur reste exactement comme avant.</li>
+<li><strong>Contrôle des catégories.</strong> Le formulaire de contrôle s'ouvre (voir section 2). C'est ici que chaque opération reçoit sa catégorie <strong>et</strong> sa sous-catégorie. Si vous cliquez sur « Annuler l'import », <strong>rien n'est écrit</strong> : le classeur reste exactement comme avant. <strong>Une fois les catégories définitives, et avant toute écriture</strong>, l'import repère les opérations qui correspondent à une échéance et vous fait confirmer chaque rapprochement (voir section 8).</li>
 <li><strong>Calculs automatiques.</strong> Pour chaque opération : le mois de budget (section 4) et, pour une dépense de santé, la date et la spécialité de consultation lues dans Notes (section 5).</li>
 <li><strong>Écriture.</strong> Les nouvelles lignes sont ajoutées en bas de TblOperations, l'identifiant forcé au format Texte (sinon Excel arrondirait les longs numéros). Puis la sous-catégorie et, si l'opération a été ventilée, sa catégorie d'origine sont écrites, et le tableau est trié par date comptable, la plus récente en haut.</li>
 <li><strong>Mémorisation du dernier import.</strong> La liste des identifiants ajoutés est notée dans la feuille technique TechDernierImport. C'est elle qui alimente le bouton « Dernier import ».</li>
-<li><strong>Échéancier (automatique, sans question préalable).</strong> Les occurrences des règles de récurrence sont complétées, puis, si des opérations ont été ajoutées, l'import compare ces opérations aux échéances à venir et vous propose les rapprochements (voir section 8). Sans effet si l'échéancier n'est pas installé.</li>
+<li><strong>Échéancier (automatique).</strong> Les occurrences des règles de récurrence sont complétées, puis les échéances dont le rapprochement a été <strong>confirmé à l'étape 6</strong> sont retirées de la liste (aucune nouvelle question). Sans effet si l'échéancier n'est pas installé.</li>
 <li><strong>Trois questions finales</strong>, toutes facultatives :<ul>
 <li>« Traiter/revoir les catégories des opérations affectées à Santé ? » → lance la vérification des clés santé ;</li>
 <li>si oui, « Réaliser le rapprochement des opérations de santé ? » → lance le formulaire de suivi santé ;</li>
@@ -984,11 +984,11 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <li>le <strong>Tiers</strong> de l'opération contient le Tiers de l'échéance (si renseigné) ;</li>
 <li>la <strong>Catégorie / Sous-catégorie</strong> sont égales (si renseignées).</li>
 </ol>
-<p>Chaque opération et chaque échéance ne servent qu'une fois : on retient d'abord les paires les plus proches (écart de date, puis de montant). Un message liste les rapprochements proposés (12 au maximum affichés) :</p>
+<p>Ce contrôle a lieu <strong>pendant l'import, après le contrôle des catégories et avant l'écriture</strong> : les catégories, sous-catégories et Tiers pris en compte sont donc les valeurs définitives. Pour chaque opération qui a au moins une échéance candidate, un message « Échéancier » affiche l'opération et <strong>toutes les valeurs de l'échéance</strong>. Les candidates sont proposées une à une, de la plus proche à la plus éloignée (écart de date, puis de montant) ; une échéance déjà rapprochée n'est plus proposée aux autres opérations :</p>
 <ul>
-<li><strong>Oui</strong> : tout valider (les échéances rapprochées disparaissent de la liste) ;</li>
-<li><strong>Non</strong> : examiner un par un ;</li>
-<li><strong>Annuler</strong> : ne rien rapprocher, les échéances restent à venir.</li>
+<li><strong>Oui</strong> : l'opération est rapprochée (l'échéance disparaît de la liste une fois l'import écrit) ;</li>
+<li><strong>Non</strong> : on propose l'échéance candidate suivante pour cette opération ;</li>
+<li><strong>Annuler</strong> : pas de rapprochement pour cette opération, on passe à la suivante. Les échéances restent à venir. Si l'import entier est annulé, aucune échéance n'est supprimée.</li>
 </ul>
 <h3 id="les-deux-listes">Les deux listes</h3>
 <ul>

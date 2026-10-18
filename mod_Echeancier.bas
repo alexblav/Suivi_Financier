@@ -465,6 +465,10 @@ Private Function ToleranceDe(ByVal v As Variant) As Double
 End Function
 
 
+' État du rapprochement fait AVANT l'écriture de l'import (voir PreRapprocherAvantEcriture).
+Private g_PreRapprochementFait As Boolean
+Private g_EcheancesValidees As Object      ' ID_Echeance validés par l'opérateur -> True
+
 ' =====================================================================================
 ' APRÈS CHAQUE IMPORT (appelée par mod_ImportOFX)
 ' =====================================================================================
@@ -480,7 +484,15 @@ Public Sub TraiterApresImport(ByRef listeID() As String, ByVal nb As Long)
     If Not EcheancierInstalle() Then Exit Sub
 
     GenererHorizon
-    If nb > 0 Then Rapprocher listeID, nb
+    If g_PreRapprochementFait Then
+        ' Les rapprochements ont déjà été proposés AVANT l'écriture (PreRapprocherAvantEcriture) :
+        ' on applique seulement ceux que l'opérateur a validés, sans reposer la question.
+        SupprimerEcheancesParID g_EcheancesValidees
+        Set g_EcheancesValidees = Nothing
+        g_PreRapprochementFait = False
+    ElseIf nb > 0 Then
+        Rapprocher listeID, nb
+    End If
     GenererHorizon
     Exit Sub
 
@@ -511,29 +523,13 @@ End Sub
 ' les paires les plus proches (écart de date, puis de montant). L'opérateur valide.
 Private Sub Rapprocher(ByRef listeID() As String, ByVal nb As Long)
 
-    Dim loOps As ListObject, loE As ListObject
+    Dim loOps As ListObject
     Dim dictNouveaux As Object
     Dim cID() As Variant, cDt() As Variant, cTiers() As Variant, cMont() As Variant, cCat() As Variant, cSous() As Variant, cChq() As Variant
-    Dim eV As Variant
-    Dim chqE As String, chqOp As String, iChq As Long
     Dim opIdx() As Long
-    Dim nOp As Long, nE As Long
-    Dim i As Long, o As Long, k As Long, p As Long
-    Dim dOp As Date, dE As Date
-    Dim mOp As Double, mEch As Double, score As Double, meilleur As Double
-    Dim tiersOp As String, catOp As String, sousOp As String
-    Dim prec As String, periode As String
-    Dim pO() As Long, pE() As Long, pS() As Double, nP As Long
-    Dim usedO() As Boolean, usedE() As Boolean
-    Dim accO() As Long, accE() As Long, nAcc As Long
-    Dim ligne() As String
-    Dim reponse As VbMsgBoxResult
-    Dim msg As String
-    Dim aSupprimer() As Boolean
-    Dim iId As Long, iLib As Long, iTiers As Long, iCat As Long, iSous As Long, iMont As Long, iDate As Long, iPrec As Long, iPer As Long, iTol As Long
+    Dim nOp As Long, i As Long
 
     If TableVide(TableEcheances()) Then Exit Sub
-    Set loE = TableEcheances()
 
     On Error Resume Next
     Set loOps = ThisWorkbook.Worksheets("Import_data").ListObjects("TblOperations")
@@ -565,6 +561,80 @@ Private Sub Rapprocher(ByRef listeID() As String, ByVal nb As Long)
         End If
     Next i
     If nOp = 0 Then Exit Sub
+
+    SupprimerEcheancesParID ChoisirRapprochements(cDt, cTiers, cMont, cCat, cSous, cChq, opIdx, nOp, _
+                                                  mod_Display.FR("Rapprochement avec l'{e2}ch{e2}ancier"))
+
+End Sub
+
+' =====================================================================================
+' RAPPROCHEMENT AVANT L'ÉCRITURE DE L'IMPORT (appelée par mod_ImportOFX)
+' =====================================================================================
+' Appelée une fois le contrôle des catégories terminé (catégories, sous-catégories et Tiers
+' définitifs) et AVANT l'écriture dans TblOperations. Les opérations sont encore en mémoire :
+' on les compare aux échéances, on affiche les cas trouvés et l'opérateur confirme. Rien n'est
+' supprimé ici : les échéances validées sont mémorisées, puis retirées par TraiterApresImport
+' une fois l'import réellement écrit. Si l'import est abandonné, les échéances restent intactes.
+' Tous les tableaux sont indexés 1..nb, dans l'ordre des opérations importées.
+Public Sub PreRapprocherAvantEcriture(ByRef cDt() As Variant, ByRef cTiers() As Variant, ByRef cMont() As Variant, _
+                                      ByRef cCat() As Variant, ByRef cSous() As Variant, ByRef cChq() As Variant, _
+                                      ByVal nb As Long)
+
+    Dim opIdx() As Long
+    Dim i As Long
+
+    g_PreRapprochementFait = False
+    Set g_EcheancesValidees = Nothing
+
+    On Error GoTo Erreur
+    If nb <= 0 Then Exit Sub
+    If Not EcheancierInstalle() Then Exit Sub
+    If TableVide(TableEcheances()) Then Exit Sub
+
+    ReDim opIdx(1 To nb)
+    For i = 1 To nb
+        opIdx(i) = i
+    Next i
+
+    Set g_EcheancesValidees = ChoisirRapprochements(cDt, cTiers, cMont, cCat, cSous, cChq, opIdx, nb, _
+                                                    mod_Display.FR("{E2}ch{e2}ancier : op{e2}rations reconnues avant l'{e2}criture"))
+    g_PreRapprochementFait = True
+    Exit Sub
+
+Erreur:
+    ' Échec de la détection : l'import continue, et le rapprochement habituel aura lieu après l'écriture.
+    g_PreRapprochementFait = False
+    Set g_EcheancesValidees = Nothing
+
+End Sub
+
+' Noyau commun : cherche les paires (opération, échéance) compatibles, affiche les propositions et
+' fait valider l'opérateur. Renvoie un dictionnaire des ID_Echeance validés (vide si aucun).
+' Les opérations sont désignées par opIdx(1..nOp), positions dans les tableaux c*.
+Private Function ChoisirRapprochements(ByRef cDt() As Variant, ByRef cTiers() As Variant, ByRef cMont() As Variant, _
+                                       ByRef cCat() As Variant, ByRef cSous() As Variant, ByRef cChq() As Variant, _
+                                       ByRef opIdx() As Long, ByVal nOp As Long, ByVal titre As String) As Object
+
+    Dim loE As ListObject
+    Dim valides As Object
+    Dim eV As Variant
+    Dim chqE As String, chqOp As String, iChq As Long
+    Dim nE As Long
+    Dim i As Long, o As Long, k As Long, p As Long
+    Dim dOp As Date, dE As Date
+    Dim mOp As Double, mEch As Double, meilleur As Double
+    Dim tiersOp As String, catOp As String, sousOp As String
+    Dim prec As String, periode As String
+    Dim pO() As Long, pE() As Long, pS() As Double, nP As Long
+    Dim usedE() As Boolean, refus() As Boolean, nAcc As Long
+    Dim reponse As VbMsgBoxResult
+    Dim iId As Long, iLib As Long, iTiers As Long, iCat As Long, iSous As Long, iMont As Long, iDate As Long, iPrec As Long, iPer As Long, iTol As Long
+
+    Set valides = CreateObject("Scripting.Dictionary")
+    Set ChoisirRapprochements = valides
+
+    If TableVide(TableEcheances()) Then Exit Function
+    Set loE = TableEcheances()
 
     ' --- Échéances ---
     eV = loE.DataBodyRange.Value2
@@ -622,74 +692,97 @@ Private Sub Rapprocher(ByRef listeID() As String, ByVal nb As Long)
             End If
         Next i
     Next o
-    If nP = 0 Then Exit Sub
+    If nP = 0 Then Exit Function
+    ReDim refus(1 To nP)
 
-    ' --- Choix des paires : les plus proches d'abord, chaque élément une seule fois ---
-    ReDim usedO(1 To nOp): ReDim usedE(1 To nE)
-    ReDim accO(1 To nOp): ReDim accE(1 To nOp)
-    Do
-        p = 0
-        meilleur = 1E+30
-        For k = 1 To nP
-            If Not usedO(pO(k)) And Not usedE(pE(k)) Then
-                If pS(k) < meilleur Then
-                    meilleur = pS(k)
-                    p = k
+    ' --- Validation opération par opération ---
+    ' Pour chaque opération, les échéances candidates sont proposées une à une, de la plus
+    ' proche à la plus éloignée. OUI : rapprochée (l'échéance n'est plus proposée aux autres
+    ' opérations). NON : candidate suivante. ANNULER : on passe à l'opération suivante.
+    ReDim usedE(1 To nE)
+    nAcc = 0
+    For o = 1 To nOp
+        Do
+            p = 0
+            meilleur = 1E+30
+            For k = 1 To nP
+                If pO(k) = o Then
+                    If Not usedE(pE(k)) And Not refus(k) Then
+                        If pS(k) < meilleur Then
+                            meilleur = pS(k)
+                            p = k
+                        End If
+                    End If
+                End If
+            Next k
+            If p = 0 Then Exit Do
+
+            reponse = MsgBox(mod_Display.FR("{E2}ch{e2}ancier :") & vbCrLf & vbCrLf & _
+                             mod_Display.FR("L'op{e2}ration en cours semble correspondre {a2} cette entr{e2}e de l'{e2}ch{e2}ancier :") & vbCrLf & vbCrLf & _
+                             mod_Display.FR("Op{e2}ration : ") & TexteOperation(cDt(opIdx(o)), cTiers(opIdx(o)), cMont(opIdx(o))) & vbCrLf & vbCrLf & _
+                             TexteEcheance(loE, eV, pE(p)) & vbCrLf & _
+                             mod_Display.FR("Confirmez-vous ce rapprochement ?") & vbCrLf & vbCrLf & _
+                             mod_Display.FR("OUI : rapprocher.  NON : chercher un autre candidat.  ANNULER : ne pas rapprocher cette op{e2}ration."), _
+                             vbYesNoCancel + vbQuestion, titre & " (" & o & "/" & nOp & ")")
+            If reponse = vbYes Then
+                valides(CStr(eV(pE(p), iId))) = True
+                usedE(pE(p)) = True
+                Exit Do
+            ElseIf reponse = vbCancel Then
+                Exit Do
+            Else
+                refus(p) = True
+            End If
+        Loop
+    Next o
+
+End Function
+
+' Description d'une opération importée pour le message de validation.
+Private Function TexteOperation(ByVal d As Variant, ByVal tiers As Variant, ByVal montant As Variant) As String
+    TexteOperation = Format(VersDate(d), "dd/mm/yyyy") & "  " & mod_DataStructure.CellText(tiers) & "  " & _
+                     Format(mod_DataStructure.ToDouble(montant), "#,##0.00")
+End Function
+
+' Toutes les valeurs renseignées d'une ligne de l'échéancier, "Colonne : valeur", une par ligne.
+Private Function TexteEcheance(ByVal lo As ListObject, ByRef eV As Variant, ByVal ligne As Long) As String
+    Dim c As Long, t As String, nom As String, fmt As String, v As Variant
+    For c = 1 To lo.ListColumns.Count
+        v = eV(ligne, c)
+        If Not IsError(v) Then
+            If mod_DataStructure.CellText(v) <> "" Then
+                nom = lo.ListColumns(c).Name
+                fmt = lo.ListColumns(c).DataBodyRange.Cells(1, 1).NumberFormat
+                If IsNumeric(v) And (InStr(fmt, "yy") > 0 Or InStr(fmt, "dd") > 0) Then
+                    t = t & nom & " : " & Format(VersDate(v), IIf(InStr(fmt, "dd") > 0, "dd/mm/yyyy", "mm/yyyy")) & vbCrLf
+                Else
+                    t = t & nom & " : " & mod_DataStructure.CellText(v) & vbCrLf
                 End If
             End If
-        Next k
-        If p = 0 Then Exit Do
-        usedO(pO(p)) = True
-        usedE(pE(p)) = True
-        nAcc = nAcc + 1
-        accO(nAcc) = pO(p)
-        accE(nAcc) = pE(p)
-    Loop
-    If nAcc = 0 Then Exit Sub
-
-    ' --- Texte de chaque proposition ---
-    ReDim ligne(1 To nAcc)
-    For k = 1 To nAcc
-        ligne(k) = Format(VersDate(cDt(opIdx(accO(k)))), "dd/mm/yyyy") & "  " & _
-                   Left$(mod_DataStructure.CellText(cTiers(opIdx(accO(k)))), 28) & "  " & _
-                   Format(mod_DataStructure.ToDouble(cMont(opIdx(accO(k)))), "#,##0.00") & "  =  " & _
-                   mod_DataStructure.CellText(eV(accE(k), iLib)) & " (" & mod_Display.FR("pr{e2}vue ") & _
-                   IIf(mod_DataStructure.CellText(eV(accE(k), iPrec)) = PRECISION_MOIS, _
-                       Format(VersDate(eV(accE(k), iDate)), "mm/yyyy"), _
-                       Format(VersDate(eV(accE(k), iDate)), "dd/mm/yyyy")) & ")"
-    Next k
-
-    ' --- Validation par l'opérateur ---
-    msg = nAcc & mod_Display.FR(" rapprochement(s) propos{e2}(s) entre les op{e2}rations import{e2}es et l'{e2}ch{e2}ancier :") & vbCrLf & vbCrLf
-    For k = 1 To nAcc
-        If k > 12 Then
-            msg = msg & mod_Display.FR("... et ") & (nAcc - 12) & " autre(s)." & vbCrLf
-            Exit For
         End If
-        msg = msg & ligne(k) & vbCrLf
-    Next k
-    msg = msg & vbCrLf & mod_Display.FR("OUI : valider tout (les {e2}ch{e2}ances rapproch{e2}es disparaissent de la liste).") & vbCrLf & _
-                mod_Display.FR("NON : examiner un par un.") & vbCrLf & _
-                mod_Display.FR("ANNULER : ne rien rapprocher (les {e2}ch{e2}ances restent {a2} venir).")
-    reponse = MsgBox(msg, vbYesNoCancel + vbQuestion, mod_Display.FR("Rapprochement avec l'{e2}ch{e2}ancier"))
-    If reponse = vbCancel Then Exit Sub
+    Next c
+    TexteEcheance = t
+End Function
 
-    ReDim aSupprimer(1 To nE)
-    For k = 1 To nAcc
-        If reponse = vbYes Then
-            aSupprimer(accE(k)) = True
-        Else
-            If MsgBox(ligne(k) & vbCrLf & vbCrLf & mod_Display.FR("Valider ce rapprochement ?"), vbYesNo + vbQuestion, _
-                      mod_Display.FR("Rapprochement ") & k & "/" & nAcc) = vbYes Then
-                aSupprimer(accE(k)) = True
-            End If
-        End If
-    Next k
+' Supprime de TblEcheances les échéances dont l'ID figure dans le dictionnaire (rapprochées et validées).
+Private Sub SupprimerEcheancesParID(ByVal valides As Object)
 
-    ' --- Suppression des échéances rapprochées (de bas en haut : les numéros ne bougent pas) ---
+    Dim loE As ListObject
+    Dim iId As Long, i As Long
+    Dim v As Variant
+
+    If valides Is Nothing Then Exit Sub
+    If valides.Count = 0 Then Exit Sub
+    If TableVide(TableEcheances()) Then Exit Sub
+    Set loE = TableEcheances()
+    iId = ColIdx(loE, "ID_Echeance")
+    If iId = 0 Then Exit Sub
+
     LeverFiltre loE
-    For i = nE To 1 Step -1
-        If aSupprimer(i) Then loE.ListRows(i).Delete
+    v = loE.DataBodyRange.Value2
+    ' De bas en haut : les numéros de lignes restantes ne bougent pas.
+    For i = UBound(v, 1) To 1 Step -1
+        If valides.Exists(CStr(v(i, iId))) Then loE.ListRows(i).Delete
     Next i
     RestaurerFiltre loE
 

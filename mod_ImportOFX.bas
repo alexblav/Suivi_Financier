@@ -326,6 +326,25 @@ Public Sub ImporterOperationsOFX()
             resultats(kCtrl, COL_TIERS) = tiersFinaleCtrl(kCtrl)
             resultats(kCtrl, COL_LIBELLE) = libelleFinaleCtrl(kCtrl)
         Next kCtrl
+
+        ' --- ÉTAPE 6ter (ajout du 18/10/2026) : échéancier AVANT l'écriture ---
+        ' Les catégories sont définitives (que l'opérateur ait répondu OUI ou NON au contrôle) :
+        ' on repère les opérations qui répondent aux critères d'une échéance, on les affiche et
+        ' l'opérateur confirme le rapprochement. Rien n'est encore supprimé de l'échéancier : les
+        ' échéances validées sont retirées après l'écriture (mod_Echeancier.TraiterApresImport).
+        Dim eDt() As Variant, eTiers() As Variant, eMont() As Variant
+        Dim eCat() As Variant, eSous() As Variant, eChq() As Variant
+        ReDim eDt(1 To nbAjoutees): ReDim eTiers(1 To nbAjoutees): ReDim eMont(1 To nbAjoutees)
+        ReDim eCat(1 To nbAjoutees): ReDim eSous(1 To nbAjoutees): ReDim eChq(1 To nbAjoutees)
+        For kCtrl = 1 To nbAjoutees
+            eDt(kCtrl) = resultats(kCtrl, COL_DATE_COMPTABLE)
+            eTiers(kCtrl) = resultats(kCtrl, COL_TIERS)
+            eMont(kCtrl) = resultats(kCtrl, COL_MONTANT)
+            eCat(kCtrl) = resultats(kCtrl, COL_CATEGORIE)
+            eSous(kCtrl) = sousFinaleCtrl(kCtrl)
+            eChq(kCtrl) = resultats(kCtrl, COL_NUM_CHEQUE)
+        Next kCtrl
+        mod_Echeancier.PreRapprocherAvantEcriture eDt, eTiers, eMont, eCat, eSous, eChq, nbAjoutees
     End If
 
     ' --- ÉTAPE 7 : calcul des colonnes dérivées (Budget, MoisBudget, ...) ------

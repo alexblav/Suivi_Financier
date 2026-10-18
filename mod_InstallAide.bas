@@ -260,7 +260,7 @@ Private Sub Def_Echeancier(ByRef titre As String, ByRef intro As String, ByRef c
 
     titre = "{E2}ch{e2}ancier : op{e2}rations {a2} venir"
     intro = "Cette liste contient les op{e2}rations pr{e2}vues qui ne sont pas encore pass{e2}es sur le compte. Elles servent au calcul du solde pr{e2}visionnel de [f:Synthese]. " & _
-            "Apr{e1}s chaque import, les op{e2}rations import{e2}es sont compar{e2}es aux {e2}ch{e2}ances et l'import propose les rapprochements ; une fois un rapprochement valid{e2}, l'{e2}ch{e2}ance dispara{i2}t de la liste. " & _
+            "Pendant l'import, apr{e1}s le contr{o2}le des cat{e2}gories et avant l'{e2}criture, chaque op{e2}ration qui correspond {a2} une {e2}ch{e2}ance vous est pr{e2}sent{e2}e avec cette {e2}ch{e2}ance (OUI : rapprocher ; NON : candidate suivante ; ANNULER : pas de rapprochement pour cette op{e2}ration) ; une fois l'import {e2}crit, l'{e2}ch{e2}ance rapproch{e2}e dispara{i2}t de la liste. " & _
             "Une {e2}ch{e2}ance non rapproch{e2}e reste ici, reste compt{e2}e dans le solde pr{e2}visionnel et, si sa date est pass{e2}e, dans '{E2}ch. en retard' de [f:Synthese] : c'est {a2} vous de la supprimer. " & _
             "Les cellules se corrigent directement. Les fl{e1}ches de filtre de l'en-t{ea}te de chaque colonne permettent de restreindre la liste affich{e2}e ; les lignes masqu{e2}es ne sont jamais supprim{e2}es par le bouton Supprimer la s{e2}lection."
 
