@@ -3,7 +3,7 @@
 
 Usage :  python build_docs.py            (pip install markdown, une seule fois)
 
-- README.md est la SOURCE ; README.html en est la conversion : ne pas l'éditer à la main.
+- README.md et MANUEL_UTILISATEUR.md sont les SOURCES ; les .html en sont les conversions : ne pas les éditer à la main.
 - Les blocs ```mermaid (sous-ensemble : flowchart TB/LR, noeuds [..] [(..)] {..},
   fleches -->, -->|"texte"|, -.-) sont dessinés en SVG par le mini-moteur ci-dessous,
   pour que le HTML s'ouvre hors connexion.
@@ -19,6 +19,10 @@ import markdown
 RACINE = Path(__file__).resolve().parent
 SOURCE = RACINE / "README.md"
 CIBLE = RACINE / "README.html"
+DOCUMENTS = [
+    (SOURCE, CIBLE),
+    (RACINE / "MANUEL_UTILISATEUR.md", RACINE / "MANUEL_UTILISATEUR.html"),
+]
 
 # ---------------------------------------------------------------------------
 # Mermaid (sous-ensemble) -> SVG
@@ -368,7 +372,12 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 
 
 def main():
-    md_texte = SOURCE.read_text(encoding="utf-8")
+    for source, cible in DOCUMENTS:
+        convertir_fichier(source, cible)
+
+
+def convertir_fichier(source, cible):
+    md_texte = source.read_text(encoding="utf-8")
     corps, tokens = convertir(md_texte)
     # le premier <h1> du .md sert de titre ; le sommaire du .md reste dans le corps
     m = re.search(r"<h1[^>]*>(.*?)</h1>", corps, flags=re.S)
@@ -389,12 +398,12 @@ def main():
 </main>
 </div>
 <a class="haut" href="#">&uarr; Haut</a>
-<!-- Généré par build_docs.py à partir de README.md : ne pas modifier ce fichier à la main. -->
+<!-- Généré par build_docs.py à partir de {source.name} : ne pas modifier ce fichier à la main. -->
 </body>
 </html>
 """
-    CIBLE.write_text(page, encoding="utf-8", newline="\n")
-    print(f"{CIBLE.name} genere ({len(page) // 1024} Ko, {page.count('<svg class')} schemas).")
+    cible.write_text(page, encoding="utf-8", newline="\n")
+    print(f"{cible.name} genere ({len(page) // 1024} Ko, {page.count('<svg class')} schemas).")
 
 
 if __name__ == "__main__":

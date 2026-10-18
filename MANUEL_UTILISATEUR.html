@@ -1,0 +1,918 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Suivi Financier – Manuel utilisateur</title>
+<style>
+:root{--fond:#fbfbfa;--texte:#1d2430;--doux:#5b6678;--trait:#d9dee6;--accent:#1f497d;
+--accent2:#2f6db5;--carte:#ffffff;--code:#f1f3f6;--noeud:#eaf1fb;--base:#fdf3dc;--decision:#fbe9e7}
+@media (prefers-color-scheme:dark){:root{--fond:#14181f;--texte:#e3e8ef;--doux:#9aa6b8;
+--trait:#2d3644;--accent:#8db4e2;--accent2:#6aa3e6;--carte:#1b212b;--code:#222a36;
+--noeud:#1f2d44;--base:#3a3220;--decision:#3d2623}}
+*{box-sizing:border-box}html{scroll-behavior:smooth;scroll-padding-top:16px}
+body{margin:0;background:var(--fond);color:var(--texte);
+font:16px/1.65 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.page{display:flex;align-items:flex-start;max-width:1240px;margin:0 auto}
+nav.sommaire{position:sticky;top:0;flex:0 0 290px;max-height:100vh;overflow:auto;
+padding:24px 16px 24px 24px;font-size:14px;border-right:1px solid var(--trait)}
+nav.sommaire .titre{font-weight:700;color:var(--accent);margin:0 0 8px;font-size:15px}
+nav.sommaire ul{list-style:none;margin:0;padding:0}nav.sommaire ul ul{padding-left:14px;
+border-left:1px solid var(--trait);margin:2px 0 6px 4px}
+nav.sommaire a{display:block;padding:3px 6px;color:var(--doux);text-decoration:none;border-radius:6px}
+nav.sommaire a:hover{background:var(--code);color:var(--accent)}
+main{flex:1;min-width:0;padding:28px 36px 80px;max-width:920px}
+h1{font-size:2rem;color:var(--accent);margin:.2em 0 .1em;line-height:1.2}
+h2{font-size:1.5rem;color:var(--accent);margin:2.2em 0 .6em;padding-bottom:.25em;
+border-bottom:2px solid var(--trait)}
+h3{font-size:1.18rem;margin:1.6em 0 .4em;color:var(--accent2)}
+a{color:var(--accent2)}p,li{max-width:76ch}
+code{background:var(--code);padding:.1em .38em;border-radius:5px;font:.88em ui-monospace,Consolas,monospace;
+word-break:break-word}
+pre{background:var(--code);padding:12px 14px;border-radius:8px;overflow:auto}pre code{padding:0;background:none}
+.tableau{overflow-x:auto;margin:1em 0;border:1px solid var(--trait);border-radius:8px;background:var(--carte)}
+table{border-collapse:collapse;width:100%;font-size:.93rem}
+th,td{padding:7px 11px;text-align:left;vertical-align:top;border-bottom:1px solid var(--trait)}
+th{background:var(--code);color:var(--accent);font-weight:650;position:sticky;top:0}
+tr:last-child td{border-bottom:0}
+blockquote{margin:1em 0;padding:.2em 1em;border-left:4px solid var(--accent2);background:var(--code)}
+.formule{margin:1em 0;padding:14px 18px;background:var(--carte);border:1px solid var(--trait);
+border-left:4px solid var(--accent2);border-radius:8px;font:1.08rem ui-monospace,Consolas,monospace}
+figure.diagramme{margin:1.4em 0;padding:14px;background:var(--carte);border:1px solid var(--trait);
+border-radius:10px;overflow-x:auto;text-align:center}
+svg.schema{max-width:100%;height:auto;min-width:340px}
+svg .noeud{fill:var(--noeud);stroke:var(--accent2);stroke-width:1.4}
+svg .noeud.base{fill:var(--base);stroke:#c28b1e;stroke-width:2}
+svg .noeud.decision{fill:var(--decision);stroke:#c4503f}
+svg .txt{fill:var(--texte);font:13px system-ui,sans-serif}svg .txt.t1{font-weight:650}
+svg .arete{fill:none;stroke:var(--doux);stroke-width:1.5}svg .pointille{stroke-dasharray:5 4}
+svg .pointe{fill:var(--doux)}
+svg .fond-etiquette{fill:var(--carte);stroke:var(--trait)}
+svg .etiquette{fill:var(--doux);font:11.5px system-ui,sans-serif}
+.haut{position:fixed;right:18px;bottom:18px;background:var(--accent);color:var(--fond);
+padding:8px 12px;border-radius:999px;text-decoration:none;font-size:13px;box-shadow:0 2px 8px #0003}
+.meta{color:var(--doux);margin-top:0}
+@media (max-width:900px){.page{display:block}nav.sommaire{position:static;max-height:none;
+border-right:0;border-bottom:1px solid var(--trait);padding:16px}main{padding:20px 16px 60px}}
+@media print{nav.sommaire,.haut{display:none}.page{display:block}main{max-width:none;padding:0}
+h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff;color:#000}}
+</style>
+</head>
+<body>
+<div class="page">
+<nav class="sommaire" aria-label="Sommaire"><p class="titre">Sommaire</p><ul><ul><li><a href="#sommaire">Sommaire</a></li><li><a href="#pour-commencer">Pour commencer</a><ul><li><a href="#à-quoi-sert-le-classeur-">À quoi sert le classeur ?</a></li><li><a href="#les-deux-écrans-de-départ">Les deux écrans de départ</a></li><li><a href="#comment-fonctionnent-les--fenêtres--">Comment fonctionnent les « fenêtres » ?</a></li></ul></li><li><a href="#le-travail-du-mois-pas-à-pas">Le travail du mois, pas à pas</a></li><li><a href="#1-importer-ses-relevés">1. Importer ses relevés</a><ul><li><a href="#avant-dimporter--préparer-le-fichier-dans-linxo">Avant d&#x27;importer : préparer le fichier dans Linxo</a></li><li><a href="#lancer-limport">Lancer l&#x27;import</a></li><li><a href="#si-vous-changez-davis">Si vous changez d&#x27;avis</a></li><li><a href="#le-fichier-de-la-banque-est-effacé">Le fichier de la banque est effacé</a></li></ul></li><li><a href="#2-ranger-les-opérations-dans-les-catégories">2. Ranger les opérations dans les catégories</a><ul><li><a href="#la-question-de-départ">La question de départ</a></li><li><a href="#le-formulaire-de-contrôle">Le formulaire de contrôle</a></li><li><a href="#créer-une-catégorie">Créer une catégorie</a></li><li><a href="#corriger-plus-tard">Corriger plus tard</a></li></ul></li><li><a href="#3-découper-une-opération-ventilation">3. Découper une opération (ventilation)</a><ul><li><a href="#où-la-déclencher">Où la déclencher</a></li><li><a href="#utiliser-le-formulaire">Utiliser le formulaire</a></li><li><a href="#dans-les-chiffres">Dans les chiffres</a></li></ul></li><li><a href="#4-compter-une-opération-sur-un-autre-mois">4. Compter une opération sur un autre mois</a><ul><li><a href="#pour-toutes-les-opérations-de-ce-type-règle">Pour toutes les opérations de ce type (règle)</a></li><li><a href="#pour-une-seule-opération">Pour une seule opération</a></li></ul></li><li><a href="#5-suivre-ses-remboursements-de-santé">5. Suivre ses remboursements de santé</a><ul><li><a href="#le-principe--la-clé-de-consultation">Le principe : la clé de consultation</a></li><li><a href="#les-trois-étapes">Les trois étapes</a></li><li><a href="#consulter-la-situation--le-bouton--suivi-santé-">Consulter la situation : le bouton « Suivi Santé »</a></li></ul></li><li><a href="#6-rechercher-consulter-et-corriger">6. Rechercher, consulter et corriger</a><ul><li><a href="#les-façons-de-louvrir">Les façons de l&#x27;ouvrir</a></li><li><a href="#lire-le-tableau">Lire le tableau</a></li><li><a href="#ce-que-lon-peut-faire">Ce que l&#x27;on peut faire</a></li></ul></li><li><a href="#7-le-bilan-du-mois">7. Le bilan du mois</a></li><li><a href="#8-anticiper--léchéancier-et-le-solde-prévisionnel">8. Anticiper : l&#x27;échéancier et le solde prévisionnel</a><ul><li><a href="#les-idées-à-retenir">Les idées à retenir</a></li><li><a href="#déclarer-une-échéance">Déclarer une échéance</a></li><li><a href="#déclarer-récurrente-une-opération-existante">Déclarer récurrente une opération existante</a></li><li><a href="#le-rapprochement-à-limport">Le rapprochement à l&#x27;import</a></li><li><a href="#les-deux-listes">Les deux listes</a></li><li><a href="#le-solde-prévisionnel-feuille-synthese">Le solde prévisionnel (feuille Synthese)</a></li></ul></li><li><a href="#9-analyser-ses-dépenses">9. Analyser ses dépenses</a><ul><li><a href="#régler-lanalyse">Régler l&#x27;analyse</a></li><li><a href="#ce-que-vous-voyez">Ce que vous voyez</a></li><li><a href="#les-boutons">Les boutons</a></li><li><a href="#pourquoi-lanalyse-et-le-bilan-mensuel-diffèrent-parfois">Pourquoi l&#x27;analyse et le bilan mensuel diffèrent parfois</a></li></ul></li><li><a href="#10-suivre-ses-consommations-eau-électricité-gaz">10. Suivre ses consommations (eau, électricité, gaz)</a><ul><li><a href="#étape-1--déclarer-un-contrat">Étape 1 – Déclarer un contrat</a></li><li><a href="#étape-2--saisir-un-relevé-une-facture-ou-une-période">Étape 2 – Saisir un relevé (une facture ou une période)</a></li><li><a href="#consulter">Consulter</a></li></ul></li><li><a href="#11-pointer-les-opérations-déjà-analysées">11. Pointer les opérations déjà analysées</a><ul><li><a href="#où-pointer">Où pointer</a></li><li><a href="#règles">Règles</a></li></ul></li><li><a href="#12-sauvegarde-et-travail-à-plusieurs">12. Sauvegarde et travail à plusieurs</a><ul><li><a href="#ce-qui-se-passe-tout-seul">Ce qui se passe tout seul</a></li><li><a href="#les-boutons-de-synthese">Les boutons de Synthese</a></li><li><a href="#si-deux-personnes-ont-modifié-le-même-fichier">Si deux personnes ont modifié le même fichier</a></li><li><a href="#le-mot-de-passe-douverture-passphrase">Le mot de passe d&#x27;ouverture (passphrase)</a></li></ul></li><li><a href="#13-corriger-un-import-douteux-remédiation">13. Corriger un import douteux (remédiation)</a></li><li><a href="#questions-fréquentes">Questions fréquentes</a></li><li><a href="#petit-lexique">Petit lexique</a></li></ul></ul></nav>
+<main>
+<h1 id="suivi-financier--manuel-utilisateur">Suivi Financier – Manuel utilisateur</h1>
+<p>Oct 18, 2026 · @Alexandre</p>
+<p>Ce manuel s'adresse à la personne qui <strong>utilise</strong> le classeur au quotidien : importer ses relevés, ranger ses opérations, suivre ses remboursements de santé, anticiper les opérations à venir et analyser ses dépenses. Il explique <strong>quoi faire et dans quel ordre</strong>, sans entrer dans le fonctionnement interne. Pour l'installation, la maintenance ou le détail technique, voir le guide du développeur (<code>README.md</code> / <code>README.html</code>).</p>
+<p>Ce document existe en deux formats identiques : <code>MANUEL_UTILISATEUR.md</code> et <code>MANUEL_UTILISATEUR.html</code> (un seul fichier, qui s'ouvre dans n'importe quel navigateur, sans connexion internet).</p>
+<h2 id="sommaire">Sommaire</h2>
+<ul>
+<li><a href="#pour-commencer">Pour commencer</a></li>
+<li><a href="#le-travail-du-mois-pas-à-pas">Le travail du mois, pas à pas</a></li>
+<li><a href="#1-importer-ses-relevés">1. Importer ses relevés</a></li>
+<li><a href="#2-ranger-les-opérations-dans-les-catégories">2. Ranger les opérations dans les catégories</a></li>
+<li><a href="#3-découper-une-opération-ventilation">3. Découper une opération (ventilation)</a></li>
+<li><a href="#4-compter-une-opération-sur-un-autre-mois">4. Compter une opération sur un autre mois</a></li>
+<li><a href="#5-suivre-ses-remboursements-de-santé">5. Suivre ses remboursements de santé</a></li>
+<li><a href="#6-rechercher-consulter-et-corriger">6. Rechercher, consulter et corriger</a></li>
+<li><a href="#7-le-bilan-du-mois">7. Le bilan du mois</a></li>
+<li><a href="#8-anticiper--léchéancier-et-le-solde-prévisionnel">8. Anticiper : l'échéancier et le solde prévisionnel</a></li>
+<li><a href="#9-analyser-ses-dépenses">9. Analyser ses dépenses</a></li>
+<li><a href="#10-suivre-ses-consommations-eau-électricité-gaz">10. Suivre ses consommations (eau, électricité, gaz)</a></li>
+<li><a href="#11-pointer-les-opérations-déjà-analysées">11. Pointer les opérations déjà analysées</a></li>
+<li><a href="#12-sauvegarde-et-travail-à-plusieurs">12. Sauvegarde et travail à plusieurs</a></li>
+<li><a href="#13-corriger-un-import-douteux-remédiation">13. Corriger un import douteux (remédiation)</a></li>
+<li><a href="#questions-fréquentes">Questions fréquentes</a></li>
+<li><a href="#petit-lexique">Petit lexique</a></li>
+</ul>
+<h2 id="pour-commencer">Pour commencer</h2>
+<h3 id="à-quoi-sert-le-classeur-">À quoi sert le classeur ?</h3>
+<p>Il rassemble toutes les opérations de votre compte. Vous récupérez vos relevés auprès de la banque (via Linxo), le classeur les lit, vous vérifiez leur rangement, et vous disposez ensuite d'écrans pour <strong>consulter</strong>, <strong>corriger</strong> et <strong>analyser</strong>.</p>
+<figure class="diagramme"><svg class="schema" width="1004" viewBox="0 0 1004 244" role="img" aria-label="Schéma 1" xmlns="http://www.w3.org/2000/svg">
+<defs><marker id="fl1" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="pointe"/></marker></defs>
+<path class="arete" d="M139,92 C167,92 167,92 195,92" marker-end="url(#fl1)"/>
+<path class="arete" d="M321,92 C349,92 349,92 377,92" marker-end="url(#fl1)"/>
+<path class="arete" d="M540,92 C568,92 568,92 596,92" marker-end="url(#fl1)"/>
+<path class="arete" d="M745,92 C773,92 773,47 801,47" marker-end="url(#fl1)"/>
+<path class="arete" d="M745,92 C784,92 784,137 823,137" marker-end="url(#fl1)"/>
+<rect class="noeud" x="20" y="65" width="119" height="54" rx="8"/>
+<text class="txt t1" x="79" y="88.0" text-anchor="middle">1. Relevés</text>
+<text class="txt" x="79" y="105.0" text-anchor="middle">de la banque</text>
+<rect class="noeud" x="195" y="65" width="126" height="54" rx="8"/>
+<text class="txt t1" x="258" y="88.0" text-anchor="middle">2. Ranger</text>
+<text class="txt" x="258" y="105.0" text-anchor="middle">par catégorie</text>
+<rect class="noeud" x="377" y="65" width="163" height="54" rx="8"/>
+<text class="txt t1" x="459" y="88.0" text-anchor="middle">5. Suivre la santé</text>
+<text class="txt" x="459" y="105.0" text-anchor="middle">et pointer</text>
+<rect class="noeud" x="596" y="65" width="148" height="54" rx="8"/>
+<text class="txt t1" x="670" y="88.0" text-anchor="middle">6-7. Rechercher</text>
+<text class="txt" x="670" y="105.0" text-anchor="middle">et bilan du mois</text>
+<rect class="noeud" x="801" y="20" width="163" height="54" rx="8"/>
+<text class="txt t1" x="882" y="43.0" text-anchor="middle">8. Échéancier</text>
+<text class="txt" x="882" y="60.0" text-anchor="middle">solde prévisionnel</text>
+<rect class="noeud" x="823" y="110" width="119" height="54" rx="8"/>
+<text class="txt t1" x="882" y="133.0" text-anchor="middle">9. Analyse</text>
+<text class="txt" x="882" y="150.0" text-anchor="middle">des dépenses</text>
+</svg></figure>
+<h3 id="les-deux-écrans-de-départ">Les deux écrans de départ</h3>
+<ul>
+<li><strong>Accueil</strong> : un rappel de la marche à suivre pour récupérer vos données.</li>
+<li><strong>Synthese</strong> : votre <strong>tableau de bord</strong>. Tout part d'ici : en haut à gauche les boutons Importer, Définir fichier Central et Synchroniser ; au centre les recherches et le bilan ; à droite la santé, l'analyse et les consommations ; en dessous, la gestion prévisionnelle.</li>
+</ul>
+<p>Sur la feuille Synthese, vous réglez aussi :</p>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Réglage</th>
+<th>À quoi il sert</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Année</strong> et <strong>Mois</strong></td>
+<td>La période consultée (bilan, opérations du mois, analyse)</td>
+</tr>
+<tr>
+<td><strong>Nombre de lignes</strong></td>
+<td>Combien de plus grosses dépenses sont mises en évidence</td>
+</tr>
+<tr>
+<td><strong>Montant minimum</strong></td>
+<td>N'afficher que les opérations au-dessus de ce seuil (le signe est ignoré : -300 compte comme 300)</td>
+</tr>
+<tr>
+<td><strong>Solde de référence</strong> et sa <strong>date</strong></td>
+<td>Le point de départ du solde prévisionnel (voir section 8)</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="comment-fonctionnent-les--fenêtres--">Comment fonctionnent les « fenêtres » ?</h3>
+<p>Les écrans de saisie (contrôle des catégories, ventilation, échéance…) s'ouvrent comme des <strong>feuilles</strong> et non comme des fenêtres classiques. Conséquences à connaître :</p>
+<ul>
+<li>tant qu'un écran est ouvert, <strong>vous ne pouvez pas changer d'onglet</strong> : c'est voulu. On en sort par ses boutons (Terminer, Valider, Annuler, Sortir…) ;</li>
+<li>la feuille Synthese disparaît pendant ce temps et revient d'elle-même à la fermeture ;</li>
+<li><strong>cellule grise = non modifiable</strong>, <strong>cellule jaune pâle = à remplir ou modifiable</strong> ;</li>
+<li>dans les cadres « Instructions » des écrans, les noms de boutons sont en rouge et les noms de champs en vert.</li>
+</ul>
+<blockquote>
+<p><strong>Astuce :</strong> n'essayez pas de « fermer » un écran avec la croix d'Excel ou en cliquant sur un autre onglet. Utilisez toujours le bouton prévu (Sortir, Terminer, Annuler…).</p>
+</blockquote>
+<h2 id="le-travail-du-mois-pas-à-pas">Le travail du mois, pas à pas</h2>
+<p>À chaque récupération de relevé, dans cet ordre :</p>
+<ol>
+<li><strong>Exporter</strong> les opérations depuis Linxo (fichier <strong>OFX</strong> ; le CSV est facultatif) et l'enregistrer.</li>
+<li>Sur Synthese, cliquer sur <strong>Importer</strong> et suivre les écrans (section 1).</li>
+<li><strong>Contrôler le rangement</strong> des opérations qui le demandent (section 2).</li>
+<li>Confirmer les <strong>rapprochements avec l'échéancier</strong> si le classeur en propose (section 8).</li>
+<li>Répondre aux <strong>questions santé</strong> de fin d'import (section 5).</li>
+<li>Parcourir les opérations importées : <strong>pointer</strong> celles que vous avez analysées (section 11).</li>
+<li>Contrôler le <strong>solde</strong> avec celui de votre banque (section 8).</li>
+<li>Consulter le <strong>bilan du mois</strong> et, de temps en temps, l'<strong>analyse</strong> (sections 7 et 9).</li>
+</ol>
+<h2 id="1-importer-ses-relevés">1. Importer ses relevés</h2>
+<h3 id="avant-dimporter--préparer-le-fichier-dans-linxo">Avant d'importer : préparer le fichier dans Linxo</h3>
+<p>Les informations de rangement (catégorie, notes) viennent de Linxo. Avant l'export, il est <strong>impératif</strong> de vérifier dans Linxo les opérations de santé :</p>
+<ul>
+<li>toutes les opérations de la catégorie <strong>« Santé, prévoyance »</strong> ;</li>
+<li>celles en <strong>« Frais, remb santé »</strong> doivent être celles qui feront l'objet d'un remboursement (Sécurité sociale et/ou mutuelle) ;</li>
+<li>celles en <strong>« Autres : Santé, prévoyance »</strong> sont les dépenses de santé qui ne seront pas remboursées.</li>
+</ul>
+<p>Une fois importées, les modifications faites dans Linxo <strong>ne sont plus reprises</strong> : les corrections se font ensuite dans ce classeur.</p>
+<h3 id="lancer-limport">Lancer l'import</h3>
+<ol>
+<li>Cliquez sur <strong>Importer</strong> (feuille Synthese, ou bouton de l'Accueil).</li>
+<li>Choisissez le fichier <strong>OFX</strong>. Si vous annulez, rien n'est modifié.</li>
+<li>Le classeur demande si vous souhaitez joindre aussi le fichier <strong>CSV</strong>. Réponse par défaut : <strong>Non</strong>. Le CSV ne sert que de secours pour retrouver la catégorie des opérations que le classeur n'a pas su ranger tout seul.</li>
+<li>Le classeur lit les opérations et <strong>ignore celles déjà enregistrées</strong>. Vous pouvez donc réimporter un relevé qui chevauche le précédent sans crainte de doublons.</li>
+<li>Si certaines opérations ont plusieurs catégories possibles (cas du CSV), un écran vous demande de choisir pour chacune dans une liste, puis <strong>Terminer et appliquer</strong>.</li>
+<li>Vient ensuite le <strong>contrôle des catégories</strong> (section 2).</li>
+<li>Si une opération correspond à une échéance prévue, le classeur vous demande de <strong>confirmer le rapprochement</strong> (section 8).</li>
+<li>Les opérations sont écrites. Un message de bilan indique combien d'opérations ont été lues, ajoutées, ou étaient déjà présentes.</li>
+<li>Trois questions facultatives terminent l'import :<ul>
+<li><em>Traiter/revoir les catégories des opérations affectées à Santé ?</em></li>
+<li><em>Réaliser le rapprochement des opérations de santé ?</em></li>
+<li><em>Afficher les opérations importées ?</em></li>
+</ul>
+</li>
+</ol>
+<p>Répondre « Non » aux questions santé n'est pas grave : tout peut être relancé plus tard (section 5).</p>
+<h3 id="si-vous-changez-davis">Si vous changez d'avis</h3>
+<p>Dans le contrôle des catégories, le bouton <strong>Annuler l'import</strong> abandonne tout : <strong>rien n'est écrit</strong>, le classeur reste exactement comme avant. Vous pouvez recommencer avec les mêmes fichiers.</p>
+<h3 id="le-fichier-de-la-banque-est-effacé">Le fichier de la banque est effacé</h3>
+<p>Une fois l'import écrit, les fichiers OFX et CSV sont <strong>supprimés définitivement</strong> (sans passer par la corbeille), pour ne pas laisser de données bancaires en clair sur l'ordinateur. Si l'import s'arrête avant l'écriture, ils sont conservés. Si un fichier ne peut pas être supprimé, le message de fin vous donne son emplacement : supprimez-le vous-même.</p>
+<h2 id="2-ranger-les-opérations-dans-les-catégories">2. Ranger les opérations dans les catégories</h2>
+<p>Chaque opération est rangée sur <strong>deux niveaux</strong> : une <strong>Catégorie</strong> (ex. « Santé, prévoyance ») et une <strong>Sous-catégorie</strong> (ex. « Frais, remb santé »). Le classeur propose automatiquement le rangement à partir de la catégorie envoyée par la banque ; vous le contrôlez et le corrigez au besoin.</p>
+<h3 id="la-question-de-départ">La question de départ</h3>
+<p>À l'ouverture du contrôle, une question : <strong>« Les catégories ont-elles été correctement renseignées dans la source ? »</strong></p>
+<ul>
+<li><strong>Oui</strong> : les propositions sont acceptées telles quelles. On ne vous présente que les opérations <strong>sans</strong> catégorie.</li>
+<li><strong>Non</strong> : toutes les opérations vous sont présentées, une par une.</li>
+<li><strong>Annuler</strong> : l'import s'arrête, rien n'est écrit.</li>
+</ul>
+<h3 id="le-formulaire-de-contrôle">Le formulaire de contrôle</h3>
+<p>Pour chaque opération, vous voyez la date, le montant, le Tiers, les notes et la catégorie d'origine. Vous pouvez :</p>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Action</th>
+<th>Comment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Choisir la <strong>Catégorie</strong> puis la <strong>Sous-catégorie</strong></td>
+<td>Listes déroulantes (la seconde dépend de la première)</td>
+</tr>
+<tr>
+<td>Corriger le <strong>Tiers</strong> ou les <strong>Notes</strong></td>
+<td>Pour rendre lisible un libellé bancaire obscur. <em>Grisés pour les opérations « Frais, remb santé »</em> : leurs notes contiennent la clé de suivi santé (section 5)</td>
+</tr>
+<tr>
+<td>Marquer l'opération <strong>Pointé</strong></td>
+<td>Liste Oui / vide, à côté de la date (section 11)</td>
+</tr>
+<tr>
+<td>Passer à l'opération voisine</td>
+<td>Boutons <strong>&lt; Précédent</strong> et <strong>Suivant &gt;</strong></td>
+</tr>
+<tr>
+<td>Créer une catégorie qui manque</td>
+<td>Bouton <strong>+ Nouvelle catégorie</strong></td>
+</tr>
+<tr>
+<td>Découper l'opération</td>
+<td>Bouton <strong>Ventiler...</strong> (section 3)</td>
+</tr>
+<tr>
+<td>Valider tout</td>
+<td><strong>Terminer et continuer</strong></td>
+</tr>
+<tr>
+<td>Tout abandonner</td>
+<td><strong>Annuler l'import</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Vos choix ne comptent qu'au clic sur <strong>Terminer et continuer</strong>. À ce moment :</p>
+<ul>
+<li>s'il reste des opérations <strong>sans catégorie</strong>, le classeur refuse de terminer. Le bouton <strong>OK</strong> vous amène à la première opération à corriger ;</li>
+<li>si certaines opérations n'ont <strong>jamais été affichées</strong>, il demande confirmation : elles garderont la catégorie proposée.</li>
+</ul>
+<h3 id="créer-une-catégorie">Créer une catégorie</h3>
+<p>Le bouton <strong>+ Nouvelle catégorie</strong> ouvre un petit formulaire : choisissez une catégorie existante ou tapez-en une nouvelle, puis la sous-catégorie, et validez. Vous revenez à l'écran précédent avec la nouvelle valeur déjà sélectionnée.</p>
+<blockquote>
+<p><strong>Garde-fou :</strong> si ce que vous tapez ressemble beaucoup à une catégorie existante (« Alimentaton » pour « Alimentation »), le classeur vous le signale avant de créer un quasi-doublon. Les accents, majuscules et espaces superflus sont ignorés dans la comparaison.</p>
+</blockquote>
+<h3 id="corriger-plus-tard">Corriger plus tard</h3>
+<p>Dans l'écran de recherche (section 6), <strong>double-cliquez sur la catégorie ou la sous-catégorie</strong> d'une opération : le même formulaire s'ouvre pour cette seule opération. Après validation, l'écran se recharge avec le même filtre. Pour une opération ventilée, ce double-clic ne fonctionne pas : passez par la colonne <strong>Ventile</strong>.</p>
+<h2 id="3-découper-une-opération-ventilation">3. Découper une opération (ventilation)</h2>
+<p><strong>Ventiler</strong>, c'est répartir <strong>une</strong> opération bancaire en plusieurs <strong>parts</strong>, chacune avec sa catégorie. Exemple : un ticket de pharmacie de 45 € dont 30 € de médicaments remboursés et 15 € d'hygiène.</p>
+<h3 id="où-la-déclencher">Où la déclencher</h3>
+<ul>
+<li>pendant l'import : bouton <strong>Ventiler...</strong> du contrôle des catégories ;</li>
+<li>plus tard : <strong>double-clic sur la colonne Ventile</strong> de l'écran de recherche (cellule vide = nouvelle ventilation ; « Oui » = revoir une ventilation existante).</li>
+</ul>
+<h3 id="utiliser-le-formulaire">Utiliser le formulaire</h3>
+<p>Le formulaire est découpé en deux zones : <strong>en haut</strong>, l'opération (date, Tiers, montant à répartir) et la liste des parts déjà saisies (10 au maximum) ; <strong>en bas</strong>, la zone de saisie d'une part.</p>
+<ol>
+<li>Choisissez la <strong>Catégorie</strong> et la <strong>Sous-catégorie</strong> de la part (le bouton « + » permet d'en créer).</li>
+<li>Saisissez son <strong>Montant</strong> (toujours en <strong>positif</strong> : le classeur reprend le signe de l'opération).</li>
+<li>Ajoutez des <strong>Notes</strong> si besoin, puis cliquez sur <strong>Ajouter la ligne</strong>. <strong>Effacer la saisie</strong> vide la zone sans rien ajouter.</li>
+<li>Répétez pour chaque part.</li>
+<li>Cliquez sur <strong>Terminer</strong> : c'est accepté seulement si la <strong>somme des parts est exactement égale</strong> au montant de l'opération. Sinon un message indique l'écart.</li>
+</ol>
+<p>Autres boutons :</p>
+<ul>
+<li><strong>Éditer</strong> (en face d'une part) : la part repasse dans la zone de saisie pour être modifiée. Attention : elle est <strong>retirée de la liste immédiatement</strong> ; si vous ne cliquez pas ensuite sur <strong>Ajouter la ligne</strong>, elle reste supprimée. C'est aussi le seul moyen de supprimer une part isolée ;</li>
+<li><strong>Annuler</strong> : abandonne la saisie en cours ;</li>
+<li><strong>Supprimer cette ventilation</strong> (visible si elle existait déjà) : efface toutes les parts et rend à l'opération son ancien rangement.</li>
+</ul>
+<blockquote>
+<p><strong>À savoir :</strong> rouvrir une ventilation et cliquer sur Terminer réécrit toutes ses parts. Si l'une d'elles était déjà rapprochée dans le suivi santé, ce rapprochement est perdu et sera à refaire (un avertissement s'affiche avant la suppression).</p>
+</blockquote>
+<h3 id="dans-les-chiffres">Dans les chiffres</h3>
+<p>Une opération ventilée apparaît dans le <strong>bilan du mois</strong> une seule fois, pour son montant total ; dans l'<strong>analyse</strong>, elle est remplacée par ses parts, chacune dans sa catégorie.</p>
+<h2 id="4-compter-une-opération-sur-un-autre-mois">4. Compter une opération sur un autre mois</h2>
+<p>Chaque opération est comptée dans un <strong>mois de budget</strong>, par défaut celui de sa date. Certaines doivent compter ailleurs : par exemple, un salaire versé le 28 septembre qui sert à vivre en octobre se décale de <strong>+1 mois</strong>.</p>
+<h3 id="pour-toutes-les-opérations-de-ce-type-règle">Pour toutes les opérations de ce type (règle)</h3>
+<p>Dans l'écran de recherche, sélectionnez une opération du type concerné, puis cliquez sur <strong>Ajouter un décalage</strong>. Le classeur reprend le Tiers, la catégorie et la sous-catégorie de la ligne et demande le nombre de mois (1, -1, 2…).</p>
+<p>Il s'applique aux <strong>prochains imports</strong>. Les opérations déjà enregistrées ne sont pas recalculées : pour celles-là, utilisez le décalage individuel.</p>
+<p>La règle peut aussi se modifier à la main dans la feuille de réglages (Param, tableau des décalages) : une case laissée vide veut dire « n'importe quelle valeur », et c'est la première règle qui correspond qui s'applique.</p>
+<h3 id="pour-une-seule-opération">Pour une seule opération</h3>
+<p>Dans l'écran de recherche, sélectionnez la ligne puis cliquez sur <strong>Décaler cette opération</strong> : indiquez un nombre de mois entre -24 et +24. Ce choix manuel l'emporte toujours sur les règles générales.</p>
+<h2 id="5-suivre-ses-remboursements-de-santé">5. Suivre ses remboursements de santé</h2>
+<p>Le suivi santé vérifie que la Sécurité sociale et la mutuelle ont bien remboursé ce qu'elles devaient pour chaque consultation payée. Il concerne les opérations de sous-catégorie <strong>« Frais, remb santé »</strong>.</p>
+<h3 id="le-principe--la-clé-de-consultation">Le principe : la clé de consultation</h3>
+<p>Pour relier une dépense à ses remboursements, ces opérations portent <strong>le même texte</strong> dans leurs Notes, appelé la <strong>clé</strong> :</p>
+<p><code>aaaammjj;spécialité;bénéficiaire;montant</code></p>
+<p>Exemple : <code>20260915;Généraliste;Alexandre;30</code> pour une consultation chez le généraliste le 15 septembre 2026, pour Alexandre, de 30 €. Vous saisissez normalement cette clé dans Linxo, avant l'export.</p>
+<p>Le classeur regroupe ainsi la dépense (-30 €) et ses remboursements (+20 € Sécu, +9 € mutuelle) : le groupe est <strong>OK</strong> si tout est remboursé (en tenant compte de la franchise éventuelle), <strong>KO</strong> sinon.</p>
+<h3 id="les-trois-étapes">Les trois étapes</h3>
+<p>Elles se lancent après l'import (questions finales) ou à tout moment avec le bouton <strong>Traitement des données de santé</strong> de Synthese.</p>
+<p><strong>Étape 1 – Réparer les clés manquantes ou illisibles.</strong> Chaque opération dont la clé n'est pas exploitable s'affiche avec des listes en cascade pour retrouver la bonne clé parmi celles connues (Date → Spécialité → Bénéficiaire → Montant). Trois choix :</p>
+<ul>
+<li><strong>Valider</strong> : la clé est enregistrée, l'opération ne sera plus proposée ;</li>
+<li><strong>Pas de correspondance</strong> : permet de <strong>créer une clé neuve</strong> (date, spécialité, bénéficiaire, montant), puis Générer et Valider ;</li>
+<li><strong>Passer</strong> : rien n'est modifié, la ligne reviendra au prochain lancement.</li>
+</ul>
+<p><strong>Étape 2 – Calcul automatique.</strong> Pour chaque groupe, le classeur calcule le solde (dépenses − remboursements − franchise) et affiche OK ou KO. Un groupe déjà OK, ou KO avec un dépassement d'honoraires déclaré, n'est plus reposé.</p>
+<p><strong>Étape 3 – Compléter les cas non soldés.</strong> Chaque dépense KO s'affiche avec ses remboursements et son solde actuel. Vous renseignez :</p>
+<ul>
+<li>le <strong>Bénéficiaire</strong> (obligatoire) ;</li>
+<li>le <strong>Tiers corrigé</strong>, obligatoire seulement si le Tiers importé n'est pas dans la liste des praticiens (le champ est alors jaune) ;</li>
+<li>la <strong>Franchise</strong> retenue (0 si aucune) : le solde se recalcule sous vos yeux ;</li>
+<li><strong>Dépassement d'honoraires ?</strong> Oui/Non (Oui = vous acceptez le reste à charge, le cas n'est plus reproposé) ;</li>
+<li>un <strong>Commentaire</strong> libre.</li>
+</ul>
+<p><strong>Valider ce cas</strong> enregistre et passe au suivant ; <strong>Cas suivant</strong> passe sans rien changer.</p>
+<h3 id="consulter-la-situation--le-bouton--suivi-santé-">Consulter la situation : le bouton « Suivi Santé »</h3>
+<p>Le bouton <strong>Suivi Santé</strong> de Synthese ouvre l'écran de recherche avec toutes les lignes de santé. Une ligne au-dessus du tableau résume la situation, par exemple : « 7 lignes dont 1 part ventilée : 3 OK, 2 KO – écart cumulé des dépenses KO : 45,00 € ».</p>
+<ul>
+<li>Les montants des lignes KO sont en <strong>gras</strong> (rouge pour une dépense, vert pour un remboursement).</li>
+<li>Les lignes « Santé, prévoyance » d'une autre sous-catégorie n'ont pas de statut : elles servent à repérer une dépense de santé mal rangée.</li>
+<li><strong>Pour corriger un mauvais rangement</strong> : double-cliquez sur la catégorie ou sous-catégorie, choisissez la bonne, validez ; puis lancez <strong>Traitement des données de santé</strong> pour rapprocher la ligne.</li>
+<li>Le bouton <strong>Erreur Import Santé</strong> liste les opérations dont la clé n'a pas pu être lue (à réparer par l'étape 1).</li>
+</ul>
+<h2 id="6-rechercher-consulter-et-corriger">6. Rechercher, consulter et corriger</h2>
+<p>L'<strong>écran de recherche</strong> est l'outil central : il affiche en un seul tableau toutes les opérations (et les parts de ventilation), et permet de les corriger sans ouvrir la feuille de données.</p>
+<h3 id="les-façons-de-louvrir">Les façons de l'ouvrir</h3>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Bouton (Synthese)</th>
+<th>Ce que vous voyez</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Recherche Générale</strong></td>
+<td>Toutes les opérations</td>
+</tr>
+<tr>
+<td><strong>Dernier Import</strong></td>
+<td>Les opérations ajoutées par le dernier import</td>
+</tr>
+<tr>
+<td><strong>Opérations du mois sélectionné</strong></td>
+<td>Le mois choisi sur Synthese, au-dessus du montant minimum</td>
+</tr>
+<tr>
+<td><strong>Suivi Santé</strong></td>
+<td>Les lignes de santé avec leur statut (section 5)</td>
+</tr>
+<tr>
+<td><strong>Erreur Import Santé</strong></td>
+<td>Les opérations dont la clé santé est illisible</td>
+</tr>
+<tr>
+<td><em>Voir le détail</em> (depuis le bilan)</td>
+<td>Les entrées ou les dépenses du mois</td>
+</tr>
+<tr>
+<td><em>Voir les opérations</em> (depuis l'analyse)</td>
+<td>Ce qui compose un chiffre de l'analyse</td>
+</tr>
+</tbody>
+</table></div>
+<p>Au-dessus du tableau, une ligne rappelle le filtre actif et le nombre de lignes.</p>
+<h3 id="lire-le-tableau">Lire le tableau</h3>
+<ul>
+<li>Les montants sont <strong>verts</strong> pour une entrée d'argent, <strong>noirs</strong> pour une dépense ; une ligne « en alerte » est en <strong>gras</strong> (rouge pour une dépense).</li>
+<li>Les <strong>flèches de filtre</strong> des en-têtes permettent de restreindre l'affichage (par Tiers, catégorie, date…). Votre filtre est conservé quand l'écran se recharge.</li>
+<li>Modifier la date, le Tiers ou le montant directement dans l'écran <strong>ne change rien</strong> : c'est un affichage. Les modifications se font par les actions ci-dessous.</li>
+</ul>
+<h3 id="ce-que-lon-peut-faire">Ce que l'on peut faire</h3>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Je veux…</th>
+<th>Comment</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Changer la catégorie ou sous-catégorie</td>
+<td><strong>Double-clic</strong> sur la cellule Categorie ou SousCategorie</td>
+</tr>
+<tr>
+<td>Découper une opération</td>
+<td><strong>Double-clic</strong> sur la colonne Ventile</td>
+</tr>
+<tr>
+<td>Corriger plusieurs notes d'un coup</td>
+<td>Modifier les cellules Notes, écrire <strong>Oui</strong> dans la colonne Valider des lignes concernées, puis <strong>Appliquer les lignes marquées</strong></td>
+</tr>
+<tr>
+<td>Décaler le mois de budget</td>
+<td><strong>Ajouter un décalage</strong> (règle) ou <strong>Décaler cette opération</strong> (une seule)</td>
+</tr>
+<tr>
+<td>Marquer une opération comme analysée</td>
+<td>Choisir <strong>Oui</strong> dans la colonne <strong>Pointe</strong> (section 11)</td>
+</tr>
+<tr>
+<td>Déclarer une opération récurrente</td>
+<td>Sélectionner la ligne puis <strong>Rendre récurrente</strong> (section 8)</td>
+</tr>
+<tr>
+<td>Noter une opération à venir</td>
+<td><strong>Ajouter à l'échéancier</strong> (section 8)</td>
+</tr>
+<tr>
+<td>Revenir</td>
+<td><strong>Sortir</strong> (retour sur Synthese, ou sur l'analyse si vous en veniez)</td>
+</tr>
+</tbody>
+</table></div>
+<blockquote>
+<p><strong>Astuce :</strong> après un import, répondre « Oui » à <em>Afficher les opérations importées ?</em> ouvre directement cet écran sur les nouveautés. C'est le bon moment pour pointer, corriger et déclarer les opérations récurrentes.</p>
+</blockquote>
+<h2 id="7-le-bilan-du-mois">7. Le bilan du mois</h2>
+<p>Sur Synthese, choisissez l'<strong>année</strong> et le <strong>mois</strong>, puis cliquez sur <strong>Bilan mensuel</strong>. L'écran affiche le <strong>total des entrées</strong>, le <strong>total des dépenses</strong> et la <strong>différence</strong>. Les boutons <em>Voir le détail des entrées</em> et <em>Voir le détail des dépenses</em> ouvrent l'écran de recherche sur les opérations concernées.</p>
+<p>Une opération ventilée est comptée ici une seule fois, pour son montant total.</p>
+<p>Le bouton <strong>Opérations du mois sélectionné</strong> donne la liste de ces opérations, filtrée sur le montant minimum que vous avez réglé.</p>
+<h2 id="8-anticiper--léchéancier-et-le-solde-prévisionnel">8. Anticiper : l'échéancier et le solde prévisionnel</h2>
+<p>L'échéancier garde la liste de ce qui <strong>va</strong> arriver sur votre compte (loyer, abonnements, prêt, facture ou chèque attendu…) et en déduit votre <strong>solde dans 15 et 30 jours</strong>. Cette fonction est facultative.</p>
+<h3 id="les-idées-à-retenir">Les idées à retenir</h3>
+<ul>
+<li>Une <strong>opération ponctuelle</strong> (un chèque émis, une facture attendue) est une échéance unique.</li>
+<li>Une <strong>opération récurrente</strong> (loyer, abonnement) est déclarée <strong>une seule fois</strong> par une <em>règle</em> : le classeur crée tout seul les échéances suivantes.</li>
+<li>Quand une opération importée correspond à une échéance, vous confirmez le rapprochement : l'échéance <strong>disparaît</strong> (seule l'opération réelle reste).</li>
+<li>Une échéance non rapprochée <strong>reste dans la liste</strong> et reste comptée dans le solde, jusqu'à ce que vous la supprimiez.</li>
+</ul>
+<h3 id="déclarer-une-échéance">Déclarer une échéance</h3>
+<p>Bouton <strong>Saisir une échéance</strong> (Synthese), ou <strong>Ajouter une échéance</strong> dans les listes. Les champs :</p>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>À renseigner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Libellé</strong></td>
+<td>Un nom pour la liste (facultatif ; à défaut, le Tiers ou la catégorie)</td>
+</tr>
+<tr>
+<td><strong>Tiers</strong></td>
+<td>Le commerçant ou organisme. Un simple mot-clé suffit (ex. EDF) : il est cherché dans le Tiers de l'opération importée, sans tenir compte des majuscules</td>
+</tr>
+<tr>
+<td><strong>Catégorie / Sous-catégorie</strong></td>
+<td>Facultatif si le Tiers est connu. Peut suffire à reconnaître l'opération quand on ignore le commerçant</td>
+</tr>
+<tr>
+<td><strong>Montant</strong></td>
+<td><strong>Négatif</strong> pour une dépense, <strong>positif</strong> pour une entrée. Obligatoire</td>
+</tr>
+<tr>
+<td><strong>Numéro de chèque</strong></td>
+<td>Pour un chèque émis, échéance ponctuelle uniquement : chiffres seuls, 10 au plus</td>
+</tr>
+<tr>
+<td><strong>Périodicité</strong></td>
+<td>Vide ou <em>Ponctuelle</em> = une seule fois. <em>Hebdomadaire, Mensuelle, Trimestrielle, Annuelle</em> = crée une règle</td>
+</tr>
+<tr>
+<td><strong>Date prévue</strong></td>
+<td>La date, ou celle de la première occurrence pour une règle</td>
+</tr>
+<tr>
+<td><strong>Date de fin</strong></td>
+<td>Facultatif, pour une règle. Vide = ne s'arrête jamais</td>
+</tr>
+<tr>
+<td><strong>Précision de la date</strong></td>
+<td><strong>Jour</strong> (à quelques jours près) ou <strong>Mois</strong> (n'importe quel jour du mois)</td>
+</tr>
+<tr>
+<td><strong>Tolérance</strong></td>
+<td>Écart de montant accepté, en % (10 par défaut ; 0 = montant exact)</td>
+</tr>
+</tbody>
+</table></div>
+<p>À la validation, le classeur vérifie que la saisie est complète et cohérente (Tiers, catégorie <strong>ou</strong> numéro de chèque au minimum). En cas de problème, un message s'affiche sous le formulaire et rien n'est enregistré.</p>
+<p><strong>Anti-doublon :</strong> si une échéance quasi identique existe déjà, une boîte de dialogue la décrit et vous demande si vous voulez quand même ajouter. La réponse par défaut est <strong>Non</strong>.</p>
+<p><strong>Chèque :</strong> le numéro est refusé s'il est déjà passé en banque ou déjà dans l'échéancier (les zéros en tête sont ignorés : 0001234 et 1234 sont le même chèque). À l'import, le numéro suffit à reconnaître l'opération, sans tenir compte de la date ni du Tiers.</p>
+<h3 id="déclarer-récurrente-une-opération-existante">Déclarer récurrente une opération existante</h3>
+<p>Dans l'écran de recherche (y compris juste après un import), sélectionnez l'opération puis cliquez sur <strong>Rendre récurrente</strong> : le formulaire s'ouvre prérempli (périodicité mensuelle, prochaine date au même jour du mois suivant). Ajustez si besoin et validez.</p>
+<h3 id="le-rapprochement-à-limport">Le rapprochement à l'import</h3>
+<p>Pendant l'import, après le contrôle des catégories et avant l'écriture, le classeur compare les nouvelles opérations à l'échéancier. Pour chaque opération qui correspond à une échéance, un message <strong>« Échéancier »</strong> affiche l'opération et les valeurs de l'échéance :</p>
+<ul>
+<li><strong>Oui</strong> : l'opération est rapprochée, l'échéance disparaîtra de la liste ;</li>
+<li><strong>Non</strong> : l'échéance suivante qui pourrait convenir est proposée ;</li>
+<li><strong>Annuler</strong> : pas de rapprochement pour cette opération, l'échéance reste à venir.</li>
+</ul>
+<p>Si vous annulez tout l'import, aucune échéance n'est supprimée.</p>
+<p>Une échéance est candidate quand le montant est de même signe et dans la tolérance, la date est dans la fenêtre attendue (de 5 jours avant à 10 jours après pour une précision Jour), le Tiers contient celui de l'échéance et la catégorie correspond (si ces éléments sont renseignés).</p>
+<h3 id="les-deux-listes">Les deux listes</h3>
+<p>Bouton <strong>Voir l'échéancier</strong> (Synthese) :</p>
+<ul>
+<li><strong>La liste des échéances à venir</strong> : vous pouvez corriger les cellules directement, filtrer avec les flèches d'en-tête, ajouter ou supprimer. Supprimer une échéance issue d'une règle pose la question :<ul>
+<li><strong>Oui</strong> : supprimer seulement cette échéance (la règle continue) ;</li>
+<li><strong>Non</strong> : <strong>arrêter la récurrence</strong> à partir de cette échéance (par exemple après un remboursement anticipé) ;</li>
+<li><strong>Annuler</strong> : ne rien faire.</li>
+</ul>
+</li>
+<li><strong>La liste des règles</strong> (bouton <em>Voir les règles</em>) : on peut y mettre une règle en pause (Actif = Non), la supprimer, ou la faire repartir avec <em>Actualiser les occurrences</em>.</li>
+</ul>
+<blockquote>
+<p><strong>Attention :</strong> <em>Actualiser les occurrences</em> supprime les échéances actuelles de la règle et les recrée. Une règle mise en pause perd donc ses échéances.</p>
+</blockquote>
+<p>Dans la colonne des numéros de chèque de la liste, une cellule <strong>rouge</strong> signale un numéro invalide ou déjà passé en banque (à vérifier : chèque non rapproché ?), <strong>orange</strong> un numéro en double dans l'échéancier. Rien n'est bloqué : c'est un signal.</p>
+<h3 id="le-solde-prévisionnel-feuille-synthese">Le solde prévisionnel (feuille Synthese)</h3>
+<p>Le bloc <strong>Prévisionnel de trésorerie</strong> se calcule seul après chaque import ou saisie :</p>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Ligne</th>
+<th>Signification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Solde de réf.</strong> et <strong>Date du solde</strong></td>
+<td>Le solde que votre banque affiche, et sa date (vous les saisissez avec le bouton ci-dessous)</td>
+</tr>
+<tr>
+<td><strong>Solde actuel</strong></td>
+<td>Solde de référence + toutes les opérations <strong>postérieures</strong> à cette date</td>
+</tr>
+<tr>
+<td><strong>Solde à J+15 / J+30</strong></td>
+<td>Solde actuel + les échéances prévues d'ici 15 ou 30 jours</td>
+</tr>
+<tr>
+<td><strong>Éch. en retard</strong></td>
+<td>Nombre d'échéances dont la date est passée et non rapprochées : à supprimer ou à rapprocher</td>
+</tr>
+<tr>
+<td><strong>Écart du solde</strong></td>
+<td>L'écart constaté lors de la dernière saisie du solde</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Saisir / contrôler le solde :</strong> cliquez sur ce bouton, saisissez le solde affiché par la banque puis sa date. À partir du deuxième solde saisi, le classeur calcule le solde qu'il <strong>attendait</strong> et affiche l'<strong>écart</strong>. Un écart non nul signale une opération manquante ou en double, ou une date de solde mal choisie. Vous décidez alors d'enregistrer ou non le nouveau solde.</p>
+<blockquote>
+<p><strong>À savoir :</strong> utilisez toujours ce bouton plutôt que de taper directement dans les cases du solde, car la saisie directe contourne le contrôle. Saisissez la date <strong>du solde tel que la banque l'affiche</strong>, pas la date de votre import ; une date trop ancienne compte deux fois des opérations. Importer des opérations plus récentes met le solde à jour sans rien ressaisir.</p>
+</blockquote>
+<h2 id="9-analyser-ses-dépenses">9. Analyser ses dépenses</h2>
+<p>Le bouton <strong>Analyse budgétaire</strong> de Synthese ouvre l'écran d'analyse. Il répond à : <em>où va mon argent ? comment cela évolue-t-il ? quelles opérations composent ce chiffre ?</em></p>
+<blockquote>
+<p>Cette fonction est récente : si un chiffre vous semble étrange, comparez-le avec le bilan mensuel et signalez-le.</p>
+</blockquote>
+<h3 id="régler-lanalyse">Régler l'analyse</h3>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Réglage</th>
+<th>Choix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Période</strong></td>
+<td><em>Mois</em>, <em>Année</em> ou <em>12 derniers mois</em></td>
+</tr>
+<tr>
+<td><strong>Année de budget / Mois de budget</strong></td>
+<td>La période de référence</td>
+</tr>
+<tr>
+<td><strong>Catégorie à détailler</strong></td>
+<td><em>(toutes)</em> ou une catégorie (vue par sous-catégories)</td>
+</tr>
+<tr>
+<td><strong>Graphique de répartition</strong></td>
+<td>Barres ou Anneau</td>
+</tr>
+<tr>
+<td><strong>Graphique d'évolution</strong></td>
+<td>Barres empilées ou Courbes</td>
+</tr>
+<tr>
+<td><strong>Catégories exclues</strong></td>
+<td>Jusqu'à 6 catégories jamais comptées (par défaut : <em>Virements internes</em> et <em>Revenus</em>)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Après chaque changement de réglage, cliquez sur <strong>Actualiser</strong>.</p>
+<h3 id="ce-que-vous-voyez">Ce que vous voyez</h3>
+<ul>
+<li><strong>La répartition</strong> : un tableau (catégorie, dépenses en €, % du total, nombre d'opérations) trié de la plus grosse à la plus petite, avec un graphique. Seules les <strong>dépenses</strong> apparaissent, affichées en positif.</li>
+<li><strong>L'évolution</strong> : les plus grosses catégories mois par mois sur 12 mois, avec un graphique.</li>
+</ul>
+<h3 id="les-boutons">Les boutons</h3>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Bouton</th>
+<th>Effet</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Actualiser</strong></td>
+<td>Recalcule tout</td>
+</tr>
+<tr>
+<td><strong>Détailler la sélection</strong></td>
+<td>Cliquez d'abord sur une ligne du tableau : l'analyse passe à ses sous-catégories (impossible sur « Autres » ou « (sans catégorie) »)</td>
+</tr>
+<tr>
+<td><strong>Toutes les catégories</strong></td>
+<td>Revient à la vue générale</td>
+</tr>
+<tr>
+<td><strong>Voir les opérations</strong></td>
+<td>Ouvre l'écran de recherche sur les opérations de la ligne sélectionnée (ou de tout ce qui est affiché si rien n'est sélectionné)</td>
+</tr>
+<tr>
+<td><strong>Sortir</strong></td>
+<td>Revient à Synthese</td>
+</tr>
+</tbody>
+</table></div>
+<p>Depuis l'écran de recherche ouvert par l'analyse, vous pouvez recatégoriser, ventiler ou décaler : en cliquant sur <strong>Sortir</strong>, vous revenez à l'analyse, qui <strong>se recalcule</strong>.</p>
+<h3 id="pourquoi-lanalyse-et-le-bilan-mensuel-diffèrent-parfois">Pourquoi l'analyse et le bilan mensuel diffèrent parfois</h3>
+<p>Le bilan compte une opération ventilée une seule fois ; l'analyse la remplace par ses parts, exclut des catégories et ne retient que les catégories qui sont globalement des dépenses. Un léger écart est donc normal.</p>
+<h2 id="10-suivre-ses-consommations-eau-électricité-gaz">10. Suivre ses consommations (eau, électricité, gaz)</h2>
+<p>Cette partie est <strong>indépendante des opérations bancaires</strong> : vous saisissez vos factures à la main, et le classeur montre combien vous consommez, à quel prix, et comment cela évolue. Elle est facultative et récente.</p>
+<p>Bouton <strong>Consommations</strong> de Synthese.</p>
+<h3 id="étape-1--déclarer-un-contrat">Étape 1 – Déclarer un contrat</h3>
+<p>Un contrat = un type de consommation chez un opérateur. Bouton <strong>Contrats</strong>, puis <strong>Ajouter un contrat</strong> :</p>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>À renseigner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type de consommation</strong></td>
+<td>Adduction eau, Recyclage eau, Fourniture élec, Fourniture gaz</td>
+</tr>
+<tr>
+<td><strong>Opérateur</strong></td>
+<td>Le fournisseur (il sert de légende au graphique)</td>
+</tr>
+<tr>
+<td><strong>Unité de mesure</strong></td>
+<td>Proposée selon le type (m³, kWh), modifiable</td>
+</tr>
+<tr>
+<td><strong>Début du contrat</strong></td>
+<td>Date de début</td>
+</tr>
+<tr>
+<td><strong>Fin du contrat</strong></td>
+<td>Vide = contrat en cours</td>
+</tr>
+<tr>
+<td><strong>Abonnement mensuel</strong></td>
+<td>Valeur proposée dans les relevés</td>
+</tr>
+<tr>
+<td><strong>Référence / N° de compteur</strong></td>
+<td>Facultatif</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Changer d'opérateur :</strong> créez simplement le nouveau contrat avec sa date de début. Le classeur propose de clôturer l'ancien <strong>la veille</strong>. Vos relevés passés gardent leur ancien opérateur.</p>
+<h3 id="étape-2--saisir-un-relevé-une-facture-ou-une-période">Étape 2 – Saisir un relevé (une facture ou une période)</h3>
+<p>Bouton <strong>Saisir un relevé</strong>. Dès que vous choisissez le type, l'opérateur et l'unité s'affichent, ainsi que la date de début (le lendemain du dernier relevé) et le dernier prix et abonnement connus.</p>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Champ</th>
+<th>À renseigner</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Début / Fin de la période</strong></td>
+<td>Dates incluses</td>
+</tr>
+<tr>
+<td><strong>Quantité consommée</strong></td>
+<td>Dans l'unité du contrat</td>
+</tr>
+<tr>
+<td><strong>Prix de l'unité</strong></td>
+<td>Hors abonnement ; 0 accepté (eau recyclée par exemple)</td>
+</tr>
+<tr>
+<td><strong>Abonnement mensuel</strong></td>
+<td>Modifiable à chaque relevé</td>
+</tr>
+<tr>
+<td><strong>N° de facture, Commentaire</strong></td>
+<td>Facultatifs</td>
+</tr>
+</tbody>
+</table></div>
+<p>Trois montants se calculent en direct : consommation, abonnement de la période et total. Le formulaire refuse une période qui chevauche un autre relevé du même type ou qui sort de son contrat.</p>
+<p><strong>Si le prix change en cours de facture :</strong> saisissez un premier relevé jusqu'à la date du changement, puis cliquez sur <strong>Valider + suivant</strong> : le formulaire se rouvre sur la période suivante avec le même numéro de facture, prêt pour la seconde quantité et le nouveau prix.</p>
+<h3 id="consulter">Consulter</h3>
+<p>L'écran principal présente un tableau mensuel avec un graphique. Réglages :</p>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Réglage</th>
+<th>Choix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Type</strong></td>
+<td><em>(tous)</em> ou un type (une courbe par opérateur)</td>
+</tr>
+<tr>
+<td><strong>Indicateur</strong></td>
+<td>Quantité, prix unitaire, abonnement ou montant total</td>
+</tr>
+<tr>
+<td><strong>Période</strong></td>
+<td>12, 36, 60 ou 120 derniers mois, ou une année</td>
+</tr>
+<tr>
+<td><strong>Année, Mois</strong></td>
+<td>La fin de la période</td>
+</tr>
+<tr>
+<td><strong>Forme du graphique</strong></td>
+<td>Barres, courbes, ou barres + courbe du prix</td>
+</tr>
+<tr>
+<td><strong>Répartition des relevés</strong></td>
+<td><em>Au prorata des jours</em> (conseillé : étale chaque facture sur les mois couverts) ou <em>Mois de fin du relevé</em> (les factures « telles que reçues »)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Cliquez sur <strong>Actualiser</strong> après un changement. La forme « Barres + courbe du prix » permet de distinguer <em>« je consomme plus »</em> de <em>« le tarif a augmenté »</em>.</p>
+<blockquote>
+<p><strong>Attention :</strong> une correction faite directement dans les listes de relevés ou de contrats n'est <strong>pas contrôlée</strong> (chevauchements, contrat). Préférez les formulaires.</p>
+</blockquote>
+<h2 id="11-pointer-les-opérations-déjà-analysées">11. Pointer les opérations déjà analysées</h2>
+<p><strong>Pointer</strong> une opération, c'est indiquer que vous l'avez <strong>déjà analysée</strong>. Cela permet de voir en un coup d'œil ce qui reste à examiner. Le pointage est une liste à deux valeurs : <strong>Oui</strong> ou vide.</p>
+<h3 id="où-pointer">Où pointer</h3>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Écran</th>
+<th>Où</th>
+<th>Enregistré</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Contrôle des catégories (import)</td>
+<td>Champ <strong>Pointé</strong>, à droite de la date</td>
+<td>En cliquant sur <em>Terminer et continuer</em></td>
+</tr>
+<tr>
+<td>Écran de recherche</td>
+<td>Colonne <strong>Pointe</strong> (la plus à droite)</td>
+<td>Immédiatement</td>
+</tr>
+<tr>
+<td>Ventilation, rapprochement et génération de clé santé, suivi santé</td>
+<td>Champ <strong>Pointé</strong></td>
+<td>Immédiatement</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="règles">Règles</h3>
+<ul>
+<li>Le pointage appartient à l'<strong>opération</strong>. Une part de ventilation affiche celui de son opération d'origine.</li>
+<li><strong>Retirer</strong> un pointage (Oui → vide) demande toujours confirmation (réponse par défaut : Non). Pointer ne demande rien.</li>
+<li>Dans l'écran de recherche, la flèche de filtre de la colonne <strong>Pointe</strong> permet de ne garder que les opérations <strong>à analyser</strong> (cocher « (Vides) ») ou déjà pointées. La ligne au-dessus du tableau indique « Pointées : x/y ».</li>
+</ul>
+<h2 id="12-sauvegarde-et-travail-à-plusieurs">12. Sauvegarde et travail à plusieurs</h2>
+<p>Pour éviter les blocages de sécurité de Windows sur les fichiers placés sur un réseau, chacun travaille sur une <strong>copie locale</strong> du classeur. Une copie <strong>centrale</strong> est conservée sur le réseau et le classeur garde les deux à jour.</p>
+<h3 id="ce-qui-se-passe-tout-seul">Ce qui se passe tout seul</h3>
+<ul>
+<li><strong>À l'ouverture</strong> : si le fichier central est plus récent, vos données sont mises à jour et un résumé s'affiche (lignes nouvelles, modifiées, retirées).</li>
+<li><strong>À la fermeture</strong> : si vous avez modifié des données, le fichier central est remplacé par votre version, puis votre classeur est enregistré. Avant tout remplacement, une sauvegarde est faite (les 10 dernières sont conservées dans le dossier <em>Sauvegardes_Synchro</em>, à côté du central).</li>
+</ul>
+<h3 id="les-boutons-de-synthese">Les boutons de Synthese</h3>
+<ul>
+<li><strong>Synchroniser</strong> : lance la synchronisation tout de suite, sans attendre la fermeture.</li>
+<li><strong>Définir fichier Central</strong> : choisit l'emplacement du fichier central (existant ou à créer). À la toute première fermeture, il vous est aussi demandé. Ce choix vaut pour tout le poste.</li>
+</ul>
+<h3 id="si-deux-personnes-ont-modifié-le-même-fichier">Si deux personnes ont modifié le même fichier</h3>
+<p>Le classeur affiche un <strong>conflit</strong> et vous demande quelle version garder. Prenez le temps de lire le résumé avant de choisir. L'autre version est sauvegardée.</p>
+<h3 id="le-mot-de-passe-douverture-passphrase">Le mot de passe d'ouverture (passphrase)</h3>
+<p>Si votre classeur est protégé par un mot de passe d'ouverture, il faut utiliser <strong>le même</strong> sur le fichier central et sur toutes les copies. À l'ouverture, <strong>deux saisies</strong> sont normales : une pour Excel, une pour que le classeur puisse lire le fichier central (cette seconde est masquée). Gardez ce mot de passe dans un gestionnaire : il ne peut pas être récupéré.</p>
+<h2 id="13-corriger-un-import-douteux-remédiation">13. Corriger un import douteux (remédiation)</h2>
+<p>Si vous constatez qu'une ligne contient les informations d'une autre opération (Tiers et Notes qui ne correspondent pas), le bouton <strong>Remédiation OFX</strong> (Synthese) permet de comparer un fichier OFX récent aux opérations enregistrées, <strong>avant toute correction</strong>.</p>
+<ol>
+<li>Cliquez sur <strong>Analyser un OFX</strong> et choisissez le fichier : un tableau liste les écarts. <strong>Rien n'est modifié à ce stade.</strong></li>
+<li>Contrôlez chaque ligne. La colonne <strong>Corriger</strong> est préremplie : « Oui » pour les données qui viennent de la banque (dates, type, montant, chèque), « Non » pour Tiers, Notes et Catégorie (vous avez pu les corriger volontairement), sauf si la ligne est manifestement mélangée. Modifiez les choix si besoin.</li>
+<li>Cliquez sur <strong>Appliquer</strong> : seules les lignes à « Oui » sont corrigées, et le budget est recalculé.</li>
+<li><strong>Annuler les corrections</strong> remet les valeurs d'avant pour les lignes déjà appliquées.</li>
+</ol>
+<p>Les opérations de l'OFX absentes du classeur sont seulement signalées : relancez l'import avec le même fichier pour les ajouter. Comme à l'import, l'OFX peut ensuite être effacé.</p>
+<h2 id="questions-fréquentes">Questions fréquentes</h2>
+<p><strong>Je ne peux pas changer d'onglet.</strong>
+Un écran de saisie est resté ouvert. Terminez-le avec son bouton (Terminer, Valider, Annuler ou Sortir).</p>
+<p><strong>La feuille Synthese a disparu.</strong>
+Elle est masquée pendant l'usage d'un écran. Sortez de l'écran avec son bouton. Si une erreur l'a laissée masquée, signalez-le à votre administrateur, qui peut la réafficher.</p>
+<p><strong>J'ai importé deux fois le même relevé.</strong>
+Aucun risque : les opérations déjà présentes sont reconnues et ignorées.</p>
+<p><strong>Une opération n'est pas dans la bonne catégorie.</strong>
+Écran de recherche, double-clic sur sa catégorie ou sous-catégorie, choisir la bonne, valider (section 2).</p>
+<p><strong>Le montant d'une catégorie dans l'analyse ne correspond pas au bilan.</strong>
+Normal à ventilations et catégories exclues près (section 9).</p>
+<p><strong>Mon solde « actuel » ne correspond pas à celui de ma banque.</strong>
+Ressaisissez-le avec <strong>Saisir / contrôler le solde</strong> : l'écart affiché oriente la recherche (opération manquante ou en double, date mal choisie).</p>
+<p><strong>Une échéance passée est toujours dans la liste.</strong>
+Si l'opération est arrivée, vérifiez qu'elle a bien été rapprochée à l'import ; sinon supprimez l'échéance. Tant qu'elle reste, elle compte dans le solde prévisionnel.</p>
+<p><strong>Une opération de santé reste KO.</strong>
+Complétez-la dans l'étape 3 du suivi santé (franchise, dépassement d'honoraires) ou vérifiez que sa clé est identique sur la dépense et ses remboursements (section 5).</p>
+<p><strong>J'ai fait une erreur dans un formulaire.</strong>
+Utilisez <strong>Annuler</strong>, rien n'est enregistré tant que vous n'avez pas validé. Pour une donnée déjà enregistrée, corrigez-la depuis l'écran de recherche.</p>
+<h2 id="petit-lexique">Petit lexique</h2>
+<div class="tableau"><table>
+<thead>
+<tr>
+<th>Terme</th>
+<th>Signification</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>OFX / CSV</strong></td>
+<td>Les deux formats d'export de la banque (Linxo). L'OFX suffit ; le CSV est un secours facultatif</td>
+</tr>
+<tr>
+<td><strong>Tiers</strong></td>
+<td>Le commerçant, organisme ou personne concerné par l'opération</td>
+</tr>
+<tr>
+<td><strong>Catégorie / Sous-catégorie</strong></td>
+<td>Le rangement des opérations sur deux niveaux</td>
+</tr>
+<tr>
+<td><strong>Ventilation / part</strong></td>
+<td>Découpage d'une opération en plusieurs montants de catégories différentes</td>
+</tr>
+<tr>
+<td><strong>Mois de budget</strong></td>
+<td>Le mois dans lequel une opération est comptée (souvent celui de sa date, parfois décalé)</td>
+</tr>
+<tr>
+<td><strong>Clé (santé)</strong></td>
+<td>Le texte <code>aaaammjj;spécialité;bénéficiaire;montant</code> commun à une dépense de santé et à ses remboursements</td>
+</tr>
+<tr>
+<td><strong>OK / KO (santé)</strong></td>
+<td>OK : consultation entièrement remboursée. KO : il reste un solde à comprendre</td>
+</tr>
+<tr>
+<td><strong>Franchise</strong></td>
+<td>Somme restant légitimement à votre charge, que vous saisissez</td>
+</tr>
+<tr>
+<td><strong>Dépassement d'honoraires</strong></td>
+<td>Reste à charge accepté : le cas n'est plus reproposé</td>
+</tr>
+<tr>
+<td><strong>Pointer</strong></td>
+<td>Marquer « Oui » une opération déjà analysée</td>
+</tr>
+<tr>
+<td><strong>Échéance</strong></td>
+<td>Une opération à venir</td>
+</tr>
+<tr>
+<td><strong>Règle de récurrence</strong></td>
+<td>Modèle qui crée seul les échéances d'une opération qui se répète</td>
+</tr>
+<tr>
+<td><strong>Rapprochement</strong></td>
+<td>Association d'une opération importée à une échéance prévue</td>
+</tr>
+<tr>
+<td><strong>Solde de référence</strong></td>
+<td>Le solde réel de votre compte à une date, saisi par vous</td>
+</tr>
+<tr>
+<td><strong>Écart du solde</strong></td>
+<td>Différence entre le solde saisi et celui que le classeur attendait</td>
+</tr>
+<tr>
+<td><strong>Préfiltre</strong></td>
+<td>Le critère avec lequel l'écran de recherche s'ouvre (dernier import, mois, santé…)</td>
+</tr>
+</tbody>
+</table></div>
+</main>
+</div>
+<a class="haut" href="#">&uarr; Haut</a>
+<!-- Généré par build_docs.py à partir de MANUEL_UTILISATEUR.md : ne pas modifier ce fichier à la main. -->
+</body>
+</html>

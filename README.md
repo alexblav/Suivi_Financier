@@ -6,6 +6,8 @@ Ce guide explique ce que fait le classeur Excel de suivi des comptes : on import
 
 Ce document existe en deux formats, **toujours identiques** : `README.md` (lu sur GitHub, schémas Mermaid) et `README.html` (un seul fichier autonome, qui s'ouvre dans n'importe quel navigateur, sans connexion internet). Voir la section « Régénérer le guide HTML » en fin de document.
 
+**Vous cherchez comment utiliser le classeur au quotidien, sans entrer dans le détail technique ?** Voir le [manuel utilisateur](MANUEL_UTILISATEUR.md) (`MANUEL_UTILISATEUR.html`). Il est généré par le même script.
+
 ## Sommaire
 
 - [En bref : le parcours d'une opération](#en-bref--le-parcours-dune-opération)
@@ -793,7 +795,7 @@ Pour **modifier à la main** l'aspect d'un écran masqué : `AfficherFeuille…P
 
 ### Régénérer le guide HTML
 
-`README.md` est la **source** ; `README.html` en est la conversion. Après toute modification du `.md`, lancer :
+`README.md` est la **source** ; `README.html` en est la conversion. Il en va de même pour `MANUEL_UTILISATEUR.md` et `MANUEL_UTILISATEUR.html`. Après toute modification d'un `.md`, lancer (les deux guides sont régénérés) :
 
 ```bash
 python build_docs.py

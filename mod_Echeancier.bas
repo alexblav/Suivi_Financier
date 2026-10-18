@@ -105,6 +105,9 @@ Public g_EchVerrouActif As Boolean    ' Vrai tant que Worksheet_Deactivate doit 
 Private g_EchValide As Boolean
 Private g_EchRes As TypeEcheance
 Private g_EchNomFeuillePrec As String
+' État du rapprochement fait AVANT l'écriture de l'import (voir PreRapprocherAvantEcriture).
+Private g_PreRapprochementFait As Boolean
+Private g_EcheancesValidees As Object      ' ID_Echeance validés par l'opérateur -> True
 
 
 ' =====================================================================================
@@ -465,10 +468,6 @@ Private Function ToleranceDe(ByVal v As Variant) As Double
 End Function
 
 
-' État du rapprochement fait AVANT l'écriture de l'import (voir PreRapprocherAvantEcriture).
-Private g_PreRapprochementFait As Boolean
-Private g_EcheancesValidees As Object      ' ID_Echeance validés par l'opérateur -> True
-
 ' =====================================================================================
 ' APRÈS CHAQUE IMPORT (appelée par mod_ImportOFX)
 ' =====================================================================================
@@ -603,6 +602,9 @@ Public Sub PreRapprocherAvantEcriture(ByRef cDt() As Variant, ByRef cTiers() As 
 
 Erreur:
     ' Échec de la détection : l'import continue, et le rapprochement habituel aura lieu après l'écriture.
+    MsgBox mod_Display.FR("La reconnaissance des {e2}ch{e2}ances avant l'{e2}criture a {e2}chou{e2} :") & vbCrLf & _
+           Err.Number & " - " & Err.Description & vbCrLf & vbCrLf & _
+           mod_Display.FR("L'import continue ; le rapprochement sera propos{e2} apr{e1}s l'{e2}criture."), vbExclamation, mod_Display.FR("{E2}ch{e2}ancier")
     g_PreRapprochementFait = False
     Set g_EcheancesValidees = Nothing
 
