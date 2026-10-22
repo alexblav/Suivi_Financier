@@ -438,26 +438,32 @@ Un contrat = un type de consommation chez un opérateur. Bouton **Contrats**, pu
 | **Unité de mesure** | Proposée selon le type (m³, kWh), modifiable |
 | **Début du contrat** | Date de début |
 | **Fin du contrat** | Vide = contrat en cours |
-| **Abonnement mensuel** | Valeur proposée dans les relevés |
+| **Abonnement mensuel** | Indicatif (l'abonnement réel se saisit sur chaque facture) |
 | **Référence / N° de compteur** | Facultatif |
 
-**Changer d'opérateur :** créez simplement le nouveau contrat avec sa date de début. Le classeur propose de clôturer l'ancien **la veille**. Vos relevés passés gardent leur ancien opérateur.
+**Changer d'opérateur :** créez simplement le nouveau contrat avec sa date de début. Le classeur propose de clôturer l'ancien **la veille**. Vos factures passées gardent leur ancien opérateur.
 
-### Étape 2 – Saisir un relevé (une facture ou une période)
+### Étape 2 – Saisir une facture
 
-Bouton **Saisir un relevé**. Dès que vous choisissez le type, l'opérateur et l'unité s'affichent, ainsi que la date de début (le lendemain du dernier relevé) et le dernier prix et abonnement connus.
+Bouton **Saisir une facture**. La saisie reproduit la facture du fournisseur : un en-tête, puis trois blocs de lignes. **Chaque ligne a ses propres dates** : l'abonnement, le prix du kWh ou les taxes peuvent changer à des dates différentes au cours d'une même facture.
 
-| Champ | À renseigner |
-| --- | --- |
-| **Début / Fin de la période** | Dates incluses |
-| **Quantité consommée** | Dans l'unité du contrat |
-| **Prix de l'unité** | Hors abonnement ; 0 accepté (eau recyclée par exemple) |
-| **Abonnement mensuel** | Modifiable à chaque relevé |
-| **N° de facture, Commentaire** | Facultatifs |
+**En-tête.** Choisissez le type : l'opérateur du contrat en vigueur est proposé, et la liste déroulante de l'opérateur montre les fournisseurs dont le contrat n'est pas terminé pour ce type. Aucune autre saisie n'est acceptée : pour un nouveau fournisseur, saisissez d'abord un nouveau contrat (bouton Contrats). Le numéro, la date, la période et le **total TTC de la facture** sont facultatifs, mais le total permet de contrôler votre saisie.
 
-Trois montants se calculent en direct : consommation, abonnement de la période et total. Le formulaire refuse une période qui chevauche un autre relevé du même type ou qui sort de son contrat.
+**Les trois blocs** (une ligne par période de prix ; les lignes vides sont ignorées). Chaque bloc commence avec 3 lignes : le bouton **+** à droite de son titre ajoute une ligne et fait descendre les blocs suivants ; le bouton **−** retire la dernière ligne si elle est vide :
 
-**Si le prix change en cours de facture :** saisissez un premier relevé jusqu'à la date du changement, puis cliquez sur **Valider + suivant** : le formulaire se rouvre sur la période suivante avec le même numéro de facture, prêt pour la seconde quantité et le nouveau prix.
+| Bloc | À renseigner | Calculé pour vous |
+| --- | --- | --- |
+| **Abonnement** | Libellé, début, fin (incluse), prix HT par jour, TVA | Nombre de jours, montant HT, montant TTC |
+| **Consommation** | Libellé, début, fin, quantité (kWh, m³), unité, prix unitaire HT, TVA | Montant HT, montant TTC |
+| **Taxes et contributions** | Libellé, début, fin, quantité (kWh, ou euros pour une taxe calculée sur un montant), unité, prix HT, TVA | Montant HT, montant TTC |
+
+Le **taux de TVA** est prérempli (celui de la dernière facture du même type, sinon un taux usuel) et reste modifiable. L'**unité** se choisit dans une liste ; une unité nouvelle peut être saisie après confirmation et sera ensuite proposée. **Montant HT** = quantité × prix HT, arrondi au centime. **Montant TTC** = HT × (1 + TVA), arrondi au centime. Le **récapitulatif** du haut (total HT, TVA, total TTC calculé, total saisi, écart) est **indicatif** : un écart avec la facture n'empêche jamais l'enregistrement, mais il signale une ligne oubliée ou mal saisie.
+
+Si une période d'abonnement ou de consommation en chevauche une autre (même facture, ou autre facture du même type), le classeur vous demande confirmation : c'est le signe d'une double saisie.
+
+**Gagner du temps :** dans **Voir les factures**, sélectionnez une facture puis **Copier la sélection** : le formulaire s'ouvre avec le type, l'opérateur, les libellés, les unités et les taux de TVA de cette facture ; le numéro, les dates, les quantités et les prix sont laissés vides, à compléter pour la nouvelle facture.
+
+**Corriger une facture :** bouton **Voir les factures**, sélectionnez une ligne, puis **Modifier la sélection**. **Supprimer la sélection** supprime la facture et toutes ses lignes.
 
 ### Consulter
 
@@ -466,11 +472,11 @@ L'écran principal présente un tableau mensuel avec un graphique. Réglages :
 | Réglage | Choix |
 | --- | --- |
 | **Type** | *(tous)* ou un type (une courbe par opérateur) |
-| **Indicateur** | Quantité, prix unitaire, abonnement ou montant total |
+| **Indicateur** | Quantité, prix unitaire HT, consommation, abonnement, taxes ou montant total (montants TTC) |
 | **Période** | 12, 36, 60 ou 120 derniers mois, ou une année |
 | **Année, Mois** | La fin de la période |
 | **Forme du graphique** | Barres, courbes, ou barres + courbe du prix |
-| **Répartition des relevés** | *Au prorata des jours* (conseillé : étale chaque facture sur les mois couverts) ou *Mois de fin du relevé* (les factures « telles que reçues ») |
+| **Répartition des lignes** | *Au prorata des jours* (conseillé : étale chaque ligne de facture sur les mois qu'elle couvre) ou *Mois de fin de la ligne* (les lignes « telles que reçues ») |
 
 Cliquez sur **Actualiser** après un changement. La forme « Barres + courbe du prix » permet de distinguer *« je consomme plus »* de *« le tarif a augmenté »*.
 

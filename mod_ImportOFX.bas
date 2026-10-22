@@ -304,6 +304,7 @@ Public Sub ImporterOperationsOFX()
             opsControle(kCtrl, mod_ControleCategories.CTRL_OP_CHEQUE) = resultats(kCtrl, COL_NUM_CHEQUE)
         Next kCtrl
 
+        mod_Echeancier.InitialiserRapprochementImport   ' remet à zéro les rapprochements d'échéances de cet import
         If Not mod_ControleCategories.ControlerCategories(opsControle, nbAjoutees, catFinaleCtrl, sousFinaleCtrl, _
                                                             catAvantVentilCtrl, sousAvantVentilCtrl, _
                                                             tiersFinaleCtrl, libelleFinaleCtrl, _
@@ -332,11 +333,12 @@ Public Sub ImporterOperationsOFX()
         ' on repère les opérations qui répondent aux critères d'une échéance, on les affiche et
         ' l'opérateur confirme le rapprochement. Rien n'est encore supprimé de l'échéancier : les
         ' échéances validées sont retirées après l'écriture (mod_Echeancier.TraiterApresImport).
-        Dim eDt() As Variant, eTiers() As Variant, eMont() As Variant
+        Dim eID() As Variant, eDt() As Variant, eTiers() As Variant, eMont() As Variant
         Dim eCat() As Variant, eSous() As Variant, eChq() As Variant
-        ReDim eDt(1 To nbAjoutees): ReDim eTiers(1 To nbAjoutees): ReDim eMont(1 To nbAjoutees)
+        ReDim eID(1 To nbAjoutees): ReDim eDt(1 To nbAjoutees): ReDim eTiers(1 To nbAjoutees): ReDim eMont(1 To nbAjoutees)
         ReDim eCat(1 To nbAjoutees): ReDim eSous(1 To nbAjoutees): ReDim eChq(1 To nbAjoutees)
         For kCtrl = 1 To nbAjoutees
+            eID(kCtrl) = resultats(kCtrl, COL_ID)
             eDt(kCtrl) = resultats(kCtrl, COL_DATE_COMPTABLE)
             eTiers(kCtrl) = resultats(kCtrl, COL_TIERS)
             eMont(kCtrl) = resultats(kCtrl, COL_MONTANT)
@@ -344,7 +346,7 @@ Public Sub ImporterOperationsOFX()
             eSous(kCtrl) = sousFinaleCtrl(kCtrl)
             eChq(kCtrl) = resultats(kCtrl, COL_NUM_CHEQUE)
         Next kCtrl
-        mod_Echeancier.PreRapprocherAvantEcriture eDt, eTiers, eMont, eCat, eSous, eChq, nbAjoutees
+        mod_Echeancier.PreRapprocherAvantEcriture eID, eDt, eTiers, eMont, eCat, eSous, eChq, nbAjoutees
     End If
 
     ' --- ÉTAPE 7 : calcul des colonnes dérivées (Budget, MoisBudget, ...) ------

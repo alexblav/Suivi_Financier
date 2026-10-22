@@ -98,7 +98,8 @@ End Function
 Private Function ListeTables() As Variant
     ListeTables = Array("TblOperations", "TblVentilations", _
                         mod_VarGlobales.NOM_TABLE_ECHEANCES, mod_VarGlobales.NOM_TABLE_RECURRENCES, _
-                        mod_VarGlobales.NOM_TABLE_RELEVES, mod_VarGlobales.NOM_TABLE_CONTRATS, _
+                        mod_VarGlobales.NOM_TABLE_FACTURES, mod_VarGlobales.NOM_TABLE_ABOS, mod_VarGlobales.NOM_TABLE_CONSOS, _
+                        mod_VarGlobales.NOM_TABLE_TAXES, mod_VarGlobales.NOM_TABLE_CONTRATS, _
                         mod_Categories.NOM_TABLE_CATEGORIES, mod_VarGlobales.NOM_TABLE_DECALAGES_BUDGET)
 End Function
 
@@ -121,6 +122,8 @@ End Sub
 ' Renvoie Faux si la fermeture doit être annulée (l'opérateur a refusé de fermer sans synchro).
 Public Function SynchroniserALaFermeture() As Boolean
     Dim ok As Boolean
+    ' Une liste de consommations encore ouverte est d'abord écrite dans les données.
+    mod_Consommations.EnregistrerListesSiOuvertes
     ok = Synchroniser("fermeture")
     If Not ok Then
         ok = (MsgBox(T("La synchronisation avec le fichier central n'a pas abouti.") & vbCrLf & _

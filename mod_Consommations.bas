@@ -4,48 +4,38 @@ Option Explicit
 ' =====================================================================================
 ' MODULE : mod_Consommations
 '
-' SUIVI DES CONSOMMATIONS (eau, électricité, gaz) - V1 (logique). La construction des
-' feuilles est dans mod_InstallConsommations (macro InstallerConsommations, à lancer
-' une seule fois).
+' SUIVI DES CONSOMMATIONS (eau, électricité, gaz) - logique des contrats et du graphique
+' mensuel. La saisie des FACTURES est dans mod_Factures ; la construction des feuilles est
+' dans mod_InstallConsommations (macro InstallerConsommations).
 '
 ' CE QUE FAIT LE MODULE :
-'   - Deux tableaux : TblContrats (un contrat = un type de consommation chez un
-'     opérateur, entre deux dates) et TblReleves (une ligne = une période de
-'     consommation avec SA quantité et SON prix d'unité).
-'   - Le changement d'opérateur se fait en créant un nouveau contrat : le contrat en
-'     cours est clôturé la veille. L'historique reste complet.
-'   - Le prix de l'unité ET l'abonnement sont portés par chaque relevé (pas par le
-'     contrat) : un tarif qui change en cours de contrat est donc historisé. Le contrat
-'     ne sert que de valeur de départ pour l'abonnement.
-'   - Une période est LIBRE (date de début / date de fin) : une facture dont le prix
-'     change plusieurs fois dans le mois se saisit en plusieurs relevés consécutifs
-'     (un par prix), avec le même N° de facture.
+'   - TblContrats : un contrat = un type de consommation chez un opérateur, entre deux dates
+'     (feuille de données masquée Conso_Contrats, écran frm_Contrats). Le contrat sert à
+'     proposer l'opérateur et l'unité à la saisie d'une facture.
 '   - L'écran frm_Consommations montre l'évolution mois par mois (barres, courbes, ou
-'     barres + courbe du prix) pour un type, ou le montant de tous les types.
+'     barres + courbe du prix) pour un type, ou les montants de tous les types, d'après les
+'     LIGNES des factures (abonnement, consommation, taxes), chacune avec ses propres dates.
 '
-' RÈGLES DE CALCUL :
-'   - NbMois d'une période = somme, pour chaque mois touché, de (jours couverts / jours
-'     du mois). Un mois complet vaut donc exactement 1, quelle que soit sa longueur, et
-'     plusieurs relevés découpant un même mois totalisent exactement 1.
-'   - Abonnement d'un relevé = AbonnementMensuel x NbMois.
-'   - Montant d'un relevé = Quantité x PrixUnitaire + Abonnement.
-'   - Graphique : par défaut, chaque relevé est RÉPARTI sur les mois qu'il couvre au
-'     prorata des jours (quantité et montant de consommation) et au prorata de la part de
-'     mois (abonnement). L'autre choix met tout le relevé dans le mois de sa date de fin.
-'   - Prix unitaire d'un mois = moyenne pondérée par les quantités, abonnement exclu.
+' RÈGLES DE CALCUL DU GRAPHIQUE :
+'   - Chaque ligne de facture est RÉPARTIE sur les mois qu'elle couvre au prorata des jours
+'     (quantité, montant HT et montant TTC) ; l'autre choix met toute la ligne dans le mois
+'     de sa date de fin.
+'   - Consommation = lignes de consommation (TTC) ; Abonnement = lignes d'abonnement (TTC) ;
+'     Taxes = lignes de taxes (TTC) ; Montant total = leur somme.
+'   - Prix unitaire d'un mois = montant HT de consommation / quantité (moyenne pondérée),
+'     abonnement et taxes exclus.
 '
 ' POINTS D'ENTRÉE (boutons) : AfficherConsommations (feuille Synthese), ActualiserConsommations,
-'   SaisirReleve, AjouterContrat, AfficherReleves, AfficherContrats, RetourConsommations,
-'   SortirConsommations, SupprimerReleveSelection, SupprimerContratSelection.
-' Appelées par le code des feuilles-formulaires : RelTraiterChangement, RelVerrouiller,
-'   CtrTraiterChangement, CtrVerrouiller (voir CodeBehind_frm_Releve.txt et
-'   CodeBehind_frm_Contrat.txt).
+'   AfficherFactures, AfficherContrats, RetourConsommations, SortirConsommations,
+'   AjouterContrat, SupprimerContratSelection.
+' Appelées par le code des feuilles-formulaires : CtrTraiterChangement, CtrVerrouiller
+'   (voir CodeBehind_frm_Contrat.txt) ; FacTraiterChangement, FacVerrouiller de mod_Factures
+'   (voir CodeBehind_frm_Facture.txt).
 '
 ' NOTE : les petits outils de lecture de tableau (ObtenirTable, ColIdx, TableVide...) sont
 ' recopiés de mod_Echeancier, où ils sont privés. Une factorisation est possible plus tard.
 '
 ' À PROPOS DES ACCENTS : textes affichés via mod_Display.FR(); commentaires en UTF-8.
-' Le mot "coût" n'a pas de balise FR : le libellé employé est "Montant".
 ' =====================================================================================
 
 ' --- Disposition de l'écran frm_Consommations (partagée avec mod_InstallConsommations) ---
@@ -59,6 +49,9 @@ Public Const CO_ADR_REPART As String = "C13"
 Public Const CO_ADR_MESSAGE As String = "B15"
 Public Const CO_LIGNE_ENTETE As Long = 17       ' en-tête du tableau mensuel
 Public Const CO_NB_LIGNES_MAX As Long = 120     ' lignes de données (120 mois = 10 ans au plus)
+Public Const CO_NB_COL_TABLE As Long = 8        ' colonnes B à I du tableau mensuel
+Public Const CO_COL_GRAPH_DEB As Long = 11      ' le graphique occupe les colonnes K à S
+Public Const CO_COL_GRAPH_FIN As Long = 19
 Public Const CO_GRAPH As String = "chConsommation"
 
 ' --- Colonnes techniques masquées de frm_Consommations ---
@@ -75,25 +68,6 @@ Public Const CO_COL_LISTE_REPART As Long = 44
 Public Const CO_COL_LISTE_MOIS As Long = 45
 Public Const CO_COL_LISTE_ANNEE As Long = 46    ' AT
 
-' --- Formulaire frm_Releve (colonne B = étiquettes, C = saisie, D = unités) ---
-Public Const RF_ADR_TYPE As String = "C6"
-Public Const RF_ADR_OPERATEUR As String = "C7"          ' lecture, zone fusionnée C7:E7
-Public Const RF_ADR_DEBUT As String = "C8"
-Public Const RF_ADR_FIN As String = "C9"
-Public Const RF_ADR_QTE As String = "C10"
-Public Const RF_ADR_UNITE As String = "D10"             ' lecture
-Public Const RF_ADR_PRIX As String = "C11"
-Public Const RF_ADR_UNITE_PRIX As String = "D11"        ' lecture
-Public Const RF_ADR_ABO As String = "C12"
-Public Const RF_ADR_UNITE_ABO As String = "D12"         ' lecture
-Public Const RF_ADR_FACTURE As String = "C13"
-Public Const RF_ADR_COMMENT As String = "C14"
-Public Const RF_ADR_CALC_CONSO As String = "C16"        ' formules de lecture
-Public Const RF_ADR_CALC_ABO As String = "C17"
-Public Const RF_ADR_CALC_TOTAL As String = "C18"
-Public Const RF_ADR_MESSAGE As String = "B20"           ' zone fusionnée B20:E20
-Public Const RF_COL_AIDE_TYPE As Long = 26              ' colonne technique masquée (liste des types)
-
 ' --- Formulaire frm_Contrat ---
 Public Const CF_ADR_TYPE As String = "C6"
 Public Const CF_ADR_OPERATEUR As String = "C7"
@@ -103,18 +77,6 @@ Public Const CF_ADR_FIN As String = "C10"
 Public Const CF_ADR_ABO As String = "C11"
 Public Const CF_ADR_REFERENCE As String = "C12"
 Public Const CF_ADR_MESSAGE As String = "B14"           ' zone fusionnée B14:E14
-
-' Un relevé tel que saisi dans le formulaire.
-Public Type TypeReleve
-    Typ As String
-    Debut As Date
-    Fin As Date
-    Qte As Double
-    Prix As Double
-    AboMensuel As Double
-    Facture As String
-    Commentaire As String
-End Type
 
 ' Un contrat tel que saisi dans le formulaire.
 Public Type TypeContrat
@@ -127,14 +89,7 @@ Public Type TypeContrat
     Reference As String
 End Type
 
-' --- État des formulaires de saisie ---
-Private g_RelEnCours As Boolean
-Private g_RelVerrouActif As Boolean
-Private g_RelValide As Boolean
-Private g_RelSuivant As Boolean
-Private g_RelRes As TypeReleve
-Private g_RelNomFeuillePrec As String
-
+' --- État des formulaires de saisie des contrats ---
 Private g_CtrEnCours As Boolean
 Private g_CtrVerrouActif As Boolean
 Private g_CtrValide As Boolean
@@ -142,16 +97,8 @@ Private g_CtrRes As TypeContrat
 Private g_CtrLigneAClore As Long
 Private g_CtrNomFeuillePrec As String
 
-' --- Données chargées en mémoire (voir ChargerReleves / ChargerContrats) ---
+' --- Contrats chargés en mémoire (voir ChargerContrats) ---
 ' Les dates sont des nombres entiers (numéro de série Excel) ; 0 = absente.
-Private r_Nb As Long
-Private r_Typ() As String
-Private r_Deb() As Double
-Private r_Fin() As Double
-Private r_Qte() As Double
-Private r_Prix() As Double
-Private r_Abo() As Double
-
 Private c_Nb As Long
 Private c_Typ() As String
 Private c_Oper() As String
@@ -194,7 +141,15 @@ Public Function LibIndQuantite() As String
 End Function
 
 Public Function LibIndPrix() As String
-    LibIndPrix = "Prix unitaire"
+    LibIndPrix = "Prix unitaire HT"
+End Function
+
+Public Function LibIndConso() As String
+    LibIndConso = "Consommation"
+End Function
+
+Public Function LibIndTaxes() As String
+    LibIndTaxes = "Taxes"
 End Function
 
 Public Function LibIndAbo() As String
@@ -242,7 +197,7 @@ Public Function LibRepartProrata() As String
 End Function
 
 Public Function LibRepartFin() As String
-    LibRepartFin = mod_Display.FR("Mois de fin du relev{e2}")
+    LibRepartFin = mod_Display.FR("Mois de fin de la ligne")
 End Function
 
 Public Function LibSansContrat() As String
@@ -266,7 +221,7 @@ Private Function EstUniteDefaut(ByVal u As String) As Boolean
     EstUniteDefaut = (StrComp(u, "m" & ChrW(179), vbTextCompare) = 0 Or StrComp(u, "kWh", vbTextCompare) = 0)
 End Function
 
-Private Function TypeConnu(ByVal typ As String) As Boolean
+Public Function TypeConnu(ByVal typ As String) As Boolean
     Dim t As Variant
     For Each t In TypesConso()
         If StrComp(CStr(t), typ, vbTextCompare) = 0 Then
@@ -276,7 +231,7 @@ Private Function TypeConnu(ByVal typ As String) As Boolean
     Next t
 End Function
 
-Private Function SymboleEuro() As String
+Public Function SymboleEuro() As String
     SymboleEuro = ChrW(8364)
 End Function
 
@@ -284,26 +239,141 @@ End Function
 ' =====================================================================================
 ' OUTILS DE LECTURE / ÉCRITURE DES TABLEAUX
 ' =====================================================================================
-Private Function ObtenirTable(ByVal nomFeuille As String, ByVal nomTable As String) As ListObject
+Public Function ObtenirTable(ByVal nomFeuille As String, ByVal nomTable As String) As ListObject
     On Error Resume Next
     Set ObtenirTable = ThisWorkbook.Worksheets(nomFeuille).ListObjects(nomTable)
     On Error GoTo 0
 End Function
 
-Private Function TableReleves() As ListObject
-    Set TableReleves = ObtenirTable(mod_VarGlobales.NOM_FEUILLE_RELEVES, mod_VarGlobales.NOM_TABLE_RELEVES)
-End Function
-
+' Les contrats sont sur une feuille de données masquée ; l'écran frm_Contrats n'en montre
+' qu'une copie modifiable (TblContratsAff), réécrite dans les données quand on quitte l'écran.
 Private Function TableContrats() As ListObject
-    Set TableContrats = ObtenirTable(mod_VarGlobales.NOM_FEUILLE_CONTRATS, mod_VarGlobales.NOM_TABLE_CONTRATS)
+    Set TableContrats = ObtenirTable(mod_VarGlobales.NOM_FEUILLE_DATA_CONTRATS, mod_VarGlobales.NOM_TABLE_CONTRATS)
 End Function
 
-' Vrai si les deux tableaux existent (sinon le suivi n'est pas installé).
+Private Function TableAffContrats() As ListObject
+    Set TableAffContrats = ObtenirTable(mod_VarGlobales.NOM_FEUILLE_CONTRATS, mod_VarGlobales.NOM_TABLE_CONTRATS_AFF)
+End Function
+
+' Lettre de la colonne de numéro donné (10 -> "J").
+Public Function AdresseCol(ByVal col As Long) As String
+    AdresseCol = Split(ThisWorkbook.Worksheets(1).Columns(col).Address(False, False), ":")(0)
+End Function
+
+' Format d'affichage d'une colonne des tableaux de consommations (par son NOM).
+Public Function FormatColonneConso(ByVal nom As String) As String
+    Select Case nom
+        Case "ID_Contrat", "ID_Facture": FormatColonneConso = "0"
+        Case "DateDebut", "DateFin", "DateFacture", "DebutPeriode", "FinPeriode": FormatColonneConso = "dd/mm/yyyy"
+        Case "Quantite": FormatColonneConso = "#,##0.00"
+        Case "PrixUnitaireHT": FormatColonneConso = "#,##0.00000"
+        Case "TauxTVA": FormatColonneConso = "0.0%"
+        Case "AbonnementMensuel", "MontantHT", "MontantTTC", "TotalFactureTTC", "TotalHT", "TotalTVA", "TotalTTCCalcule", "Ecart"
+            FormatColonneConso = "#,##0.00"
+        Case Else: FormatColonneConso = "@"
+    End Select
+End Function
+
+' Copie les colonnes d'un tableau vers l'autre (par NOM de colonne).
+Private Sub CopierListe(ByVal src As ListObject, ByVal dst As ListObject)
+
+    Dim n As Long, idx As Long
+    Dim cd As ListColumn
+    Dim vide As Boolean
+
+    vide = (src.DataBodyRange Is Nothing)
+    n = IIf(vide, 1, src.ListRows.Count)
+
+    Do While dst.ListRows.Count > 1
+        dst.ListRows(dst.ListRows.Count).Delete
+    Loop
+    If n > 1 Then dst.Resize dst.Range.Resize(n + 1)
+
+    For Each cd In dst.ListColumns
+        idx = ColIdx(src, cd.Name)
+        If idx = 0 Or vide Then
+            cd.DataBodyRange.ClearContents
+        Else
+            cd.DataBodyRange.Value2 = src.ListColumns(idx).DataBodyRange.Value2
+        End If
+    Next cd
+
+End Sub
+
+Private Sub MettreEnFormeCorps(ByVal lo As ListObject, ByVal affichage As Boolean)
+
+    Dim cd As ListColumn
+
+    For Each cd In lo.ListColumns
+        cd.DataBodyRange.NumberFormat = FormatColonneConso(cd.Name)
+    Next cd
+    If Not affichage Then Exit Sub
+
+    With lo.DataBodyRange
+        .Borders.LineStyle = xlContinuous
+        .Borders.Weight = xlThin
+        .Borders.Color = mod_InstallCommun.CoulBordureSaisie()
+        .Interior.Color = mod_InstallCommun.CoulFondSaisie()
+    End With
+    On Error Resume Next
+    With lo.ListColumns("TypeConso").DataBodyRange.Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:="=ListeTypesConso"
+        .IgnoreBlank = True
+        .InCellDropdown = True
+    End With
+    On Error GoTo 0
+
+End Sub
+
+' Liste des factures (lecture seule) : formats, fond gris, bordures.
+Public Sub MettreEnFormeListeFactures(ByVal lo As ListObject)
+
+    Dim cd As ListColumn
+
+    For Each cd In lo.ListColumns
+        cd.DataBodyRange.NumberFormat = FormatColonneConso(cd.Name)
+    Next cd
+    mod_InstallCommun.PoserCorpsTableauLecture lo.DataBodyRange
+
+End Sub
+
+' Contrats : données -> écran (à l'ouverture de la liste, et après une saisie par formulaire).
+Public Sub RafraichirListeContrats()
+    Dim src As ListObject, dst As ListObject
+    Set src = TableContrats()
+    Set dst = TableAffContrats()
+    If src Is Nothing Or dst Is Nothing Then Exit Sub
+    Application.ScreenUpdating = False
+    CopierListe src, dst
+    MettreEnFormeCorps dst, True
+    Application.ScreenUpdating = True
+End Sub
+
+' Contrats : écran -> données (en quittant la liste). Les lignes gardent leur numéro d'ordre.
+Public Sub EnregistrerListeContrats()
+    Dim src As ListObject, dst As ListObject
+    Set src = TableAffContrats()
+    Set dst = TableContrats()
+    If src Is Nothing Or dst Is Nothing Then Exit Sub
+    Application.ScreenUpdating = False
+    CopierListe src, dst
+    MettreEnFormeCorps dst, False
+    Application.ScreenUpdating = True
+End Sub
+
+' Si la liste des contrats est l'écran actif, elle est écrite dans les données.
+Public Sub EnregistrerListesSiOuvertes()
+    If ActiveSheet Is Nothing Then Exit Sub
+    If ActiveSheet.Name = mod_VarGlobales.NOM_FEUILLE_CONTRATS Then EnregistrerListeContrats
+End Sub
+
+' Vrai si les tableaux du suivi existent (sinon le suivi n'est pas installé).
 Public Function ConsoInstallee() As Boolean
-    ConsoInstallee = Not (TableReleves() Is Nothing) And Not (TableContrats() Is Nothing)
+    ConsoInstallee = mod_Factures.FacturesInstallees() And Not (TableContrats() Is Nothing)
 End Function
 
-Private Function ColIdx(ByVal lo As ListObject, ByVal nomCol As String) As Long
+Public Function ColIdx(ByVal lo As ListObject, ByVal nomCol As String) As Long
     On Error Resume Next
     ColIdx = lo.ListColumns(nomCol).Index
     On Error GoTo 0
@@ -311,7 +381,7 @@ End Function
 
 ' Un tableau Excel a toujours au moins une ligne : "vide" = une seule ligne dont la
 ' première colonne (l'identifiant) est vide.
-Private Function TableVide(ByVal lo As ListObject) As Boolean
+Public Function TableVide(ByVal lo As ListObject) As Boolean
     If lo.DataBodyRange Is Nothing Then
         TableVide = True
     ElseIf lo.ListRows.Count = 1 Then
@@ -319,7 +389,7 @@ Private Function TableVide(ByVal lo As ListObject) As Boolean
     End If
 End Function
 
-Private Function NouvelleLigne(ByVal lo As ListObject) As ListRow
+Public Function NouvelleLigne(ByVal lo As ListObject) As ListRow
     If lo.DataBodyRange Is Nothing Then
         Set NouvelleLigne = lo.ListRows.Add
     ElseIf TableVide(lo) Then
@@ -329,7 +399,7 @@ Private Function NouvelleLigne(ByVal lo As ListObject) As ListRow
     End If
 End Function
 
-Private Function LireColonne(ByVal lo As ListObject, ByVal nomCol As String) As Variant()
+Public Function LireColonne(ByVal lo As ListObject, ByVal nomCol As String) As Variant()
     Dim v As Variant, r() As Variant
     Dim i As Long, n As Long
     n = lo.ListRows.Count
@@ -345,7 +415,7 @@ Private Function LireColonne(ByVal lo As ListObject, ByVal nomCol As String) As 
     LireColonne = r
 End Function
 
-Private Function ProchainID(ByVal lo As ListObject, ByVal nomCol As String) As Long
+Public Function ProchainID(ByVal lo As ListObject, ByVal nomCol As String) As Long
     Dim v() As Variant
     Dim i As Long, mx As Long
     If lo.DataBodyRange Is Nothing Then
@@ -364,7 +434,7 @@ Private Function ProchainID(ByVal lo As ListObject, ByVal nomCol As String) As L
 End Function
 
 ' Valeur de cellule -> numéro de jour entier (0 si ce n'est pas une date).
-Private Function VersJour(ByVal v As Variant) As Double
+Public Function VersJour(ByVal v As Variant) As Double
     If IsError(v) Or IsEmpty(v) Then Exit Function
     If IsNumeric(v) Then
         VersJour = Int(CDbl(v))
@@ -375,7 +445,7 @@ End Function
 
 ' Vrai si la cellule contient quelque chose (autre que des espaces) : permet de distinguer
 ' un champ laisse vide d'un champ rempli avec une valeur invalide.
-Private Function SaisieNonVide(ByVal v As Variant) As Boolean
+Public Function SaisieNonVide(ByVal v As Variant) As Boolean
     If IsEmpty(v) Or IsNull(v) Then Exit Function
     If IsError(v) Then
         SaisieNonVide = True
@@ -384,55 +454,8 @@ Private Function SaisieNonVide(ByVal v As Variant) As Boolean
     End If
 End Function
 
-Private Function TexteDate(ByVal jour As Double) As String
+Public Function TexteDate(ByVal jour As Double) As String
     TexteDate = Format$(CDate(jour), "dd/mm/yyyy")
-End Function
-
-' Chargement des relevés en mémoire. Les lignes incomplètes (type, début ou fin absent,
-' fin avant début) sont ignorées.
-Private Function ChargerReleves() As Boolean
-
-    Dim lo As ListObject
-    Dim vT() As Variant, vD() As Variant, vF() As Variant, vQ() As Variant, vP() As Variant, vA() As Variant
-    Dim i As Long, n As Long
-    Dim t As String, d As Double, f As Double
-
-    r_Nb = 0
-    Set lo = TableReleves()
-    If lo Is Nothing Then Exit Function
-    ChargerReleves = True
-    If TableVide(lo) Then Exit Function
-
-    n = lo.ListRows.Count
-    vT = LireColonne(lo, "TypeConso")
-    vD = LireColonne(lo, "DateDebut")
-    vF = LireColonne(lo, "DateFin")
-    vQ = LireColonne(lo, "Quantite")
-    vP = LireColonne(lo, "PrixUnitaire")
-    vA = LireColonne(lo, "AbonnementMensuel")
-
-    ReDim r_Typ(1 To n)
-    ReDim r_Deb(1 To n)
-    ReDim r_Fin(1 To n)
-    ReDim r_Qte(1 To n)
-    ReDim r_Prix(1 To n)
-    ReDim r_Abo(1 To n)
-
-    For i = 1 To n
-        t = mod_DataStructure.CellText(vT(i))
-        d = VersJour(vD(i))
-        f = VersJour(vF(i))
-        If t <> "" And d > 0 And f >= d Then
-            r_Nb = r_Nb + 1
-            r_Typ(r_Nb) = t
-            r_Deb(r_Nb) = d
-            r_Fin(r_Nb) = f
-            r_Qte(r_Nb) = mod_DataStructure.ToDouble(vQ(i))
-            r_Prix(r_Nb) = mod_DataStructure.ToDouble(vP(i))
-            r_Abo(r_Nb) = mod_DataStructure.ToDouble(vA(i))
-        End If
-    Next i
-
 End Function
 
 ' Chargement des contrats en mémoire (c_Ligne = position dans le tableau).
@@ -482,89 +505,10 @@ Private Function ChargerContrats() As Boolean
 End Function
 
 
+
 ' =====================================================================================
-' RÈGLES DE CALCUL
+' CONTRATS : RECHERCHE PAR TYPE ET PAR DATE
 ' =====================================================================================
-
-' Nombre de mois d'une période (voir l'en-tête du module). Même résultat que la
-' colonne NbMois de TblReleves (formule Excel, voir FormuleNbMois).
-Private Function NbMoisPeriode(ByVal deb As Double, ByVal fin As Double) As Double
-
-    Dim i As Long, iDeb As Long, iFin As Long
-    Dim y As Long, m As Long
-    Dim dMois As Double, fMois As Double, a As Double, b As Double
-    Dim total As Double
-
-    If fin < deb Then Exit Function
-    iDeb = Year(CDate(deb)) * 12 + Month(CDate(deb)) - 1
-    iFin = Year(CDate(fin)) * 12 + Month(CDate(fin)) - 1
-
-    For i = iDeb To iFin
-        y = i \ 12
-        m = (i Mod 12) + 1
-        dMois = CDbl(DateSerial(y, m, 1))
-        fMois = CDbl(DateSerial(y, m + 1, 0))
-        a = deb
-        If dMois > a Then a = dMois
-        b = fin
-        If fMois < b Then b = fMois
-        total = total + (b - a + 1) / (fMois - dMois + 1)
-    Next i
-
-    NbMoisPeriode = total
-
-End Function
-
-' Texte de la formule Excel du nombre de mois, pour deux cellules données (par exemple
-' "[@DateDebut]" et "[@DateFin]" dans le tableau, ou "C8" et "C9" dans le formulaire).
-' Syntaxe anglaise (propriété .Formula), quelle que soit la langue d'Excel.
-Public Function FormuleNbMois(ByVal refDebut As String, ByVal refFin As String) As String
-
-    Dim f As String
-
-    f = "IF(AND(YEAR({d})=YEAR({f}),MONTH({d})=MONTH({f}))," & _
-        "({f}-{d}+1)/DAY(EOMONTH({d},0))," & _
-        "(EOMONTH({d},0)-{d}+1)/DAY(EOMONTH({d},0))" & _
-        "+((YEAR({f})-YEAR({d}))*12+MONTH({f})-MONTH({d})-1)" & _
-        "+DAY({f})/DAY(EOMONTH({f},0)))"
-    f = Replace(f, "{d}", refDebut)
-    f = Replace(f, "{f}", refFin)
-    FormuleNbMois = f
-
-End Function
-
-' Pose les colonnes calculées de TblReleves (Operateur, NbMois, Abonnement, Montant).
-' Appelée à l'installation et après chaque ajout de ligne : les formules sont ainsi
-' toujours présentes, même si Excel ne les a pas recopiées tout seul.
-Public Sub PoserFormulesReleves(ByVal lo As ListObject)
-
-    Dim f As String
-
-    If lo.DataBodyRange Is Nothing Then Exit Sub
-
-    ' Opérateur : le contrat du même type en vigueur à la date de début.
-    ' (Sans conséquence si TblContrats n'existe pas encore : la colonne reste vide.)
-    f = "=IFERROR(LOOKUP(2,1/((" & mod_VarGlobales.NOM_TABLE_CONTRATS & "[TypeConso]=[@TypeConso])*(" & _
-        mod_VarGlobales.NOM_TABLE_CONTRATS & "[DateDebut]<=[@DateDebut])*((" & _
-        mod_VarGlobales.NOM_TABLE_CONTRATS & "[DateFin]="""")+(" & _
-        mod_VarGlobales.NOM_TABLE_CONTRATS & "[DateFin]>=[@DateDebut])>0))," & _
-        mod_VarGlobales.NOM_TABLE_CONTRATS & "[Operateur]),"""")"
-    On Error Resume Next
-    lo.ListColumns("Operateur").DataBodyRange.Formula = f
-    On Error GoTo 0
-
-    f = "=IF(OR([@DateDebut]="""",[@DateFin]="""",[@DateFin]<[@DateDebut]),""""," & _
-        FormuleNbMois("[@DateDebut]", "[@DateFin]") & ")"
-    lo.ListColumns("NbMois").DataBodyRange.Formula = f
-
-    lo.ListColumns("Abonnement").DataBodyRange.Formula = _
-        "=IF([@NbMois]="""","""",ROUND(N([@AbonnementMensuel])*[@NbMois],2))"
-
-    lo.ListColumns("Montant").DataBodyRange.Formula = _
-        "=IF([@NbMois]="""","""",ROUND(N([@Quantite])*N([@PrixUnitaire])+[@Abonnement],2))"
-
-End Sub
-
 ' Indice du contrat du type donné en vigueur le jour donné (0 = aucun).
 Private Function ContratPour(ByVal typ As String, ByVal jour As Double) As Long
     Dim i As Long
@@ -589,27 +533,21 @@ Private Function NomOperateur(ByVal typ As String, ByVal jour As Double) As Stri
     If NomOperateur = "" Then NomOperateur = LibSansContrat()
 End Function
 
-' Indice du relevé du type donné qui se termine le plus tard (0 = aucun). Si
-' contrat > 0, seuls les relevés relevant de ce contrat sont considérés.
-Private Function DernierReleve(ByVal typ As String, ByVal contrat As Long) As Long
-    Dim j As Long
-    Dim meilleur As Double
-    For j = 1 To r_Nb
-        If StrComp(r_Typ(j), typ, vbTextCompare) = 0 Then
-            If contrat = 0 Or ContratPour(typ, r_Deb(j)) = contrat Then
-                If r_Fin(j) > meilleur Then
-                    meilleur = r_Fin(j)
-                    DernierReleve = j
-                End If
-            End If
-        End If
-    Next j
-End Function
-
-' Unité à afficher pour un type : celle du contrat le plus récent, sinon l'unité par défaut.
-Private Function UniteDuType(ByVal typ As String) As String
+' Unité à afficher pour un type : celle de la dernière ligne de consommation saisie, sinon celle
+' du contrat le plus récent, sinon l'unité par défaut.
+Private Function UniteDuType(ByVal typ As String, ByRef t() As TypeLigne, ByVal nb As Long) As String
     Dim i As Long, k As Long
     Dim meilleur As Double
+    For i = 1 To nb
+        If t(i).Nat = mod_Factures.NAT_CONSO And StrComp(t(i).Typ, typ, vbTextCompare) = 0 And t(i).Unite <> "" Then
+            If t(i).Fin >= meilleur Then
+                meilleur = t(i).Fin
+                UniteDuType = t(i).Unite
+            End If
+        End If
+    Next i
+    If UniteDuType <> "" Then Exit Function
+    meilleur = 0
     For i = 1 To c_Nb
         If StrComp(c_Typ(i), typ, vbTextCompare) = 0 And c_Unite(i) <> "" Then
             If k = 0 Or c_Deb(i) >= meilleur Then
@@ -619,6 +557,55 @@ Private Function UniteDuType(ByVal typ As String) As String
         End If
     Next i
     If k > 0 Then UniteDuType = c_Unite(k) Else UniteDuType = UniteDefaut(typ)
+End Function
+
+' Opérateurs (sans doublon) des contrats du type donné (tous les types si typ est vide) qui ne sont pas
+' terminés : sans date de fin, ou dont la fin n'est pas passée. Renvoie leur nombre ; noms() (base 1).
+Public Function OperateursEnCours(ByVal typ As String, ByRef noms() As String) As Long
+    Dim i As Long, j As Long, n As Long
+    Dim deja As Boolean
+    ReDim noms(1 To 1)
+    ChargerContrats
+    For i = 1 To c_Nb
+        If (typ = "" Or StrComp(c_Typ(i), typ, vbTextCompare) = 0) And c_Oper(i) <> "" Then
+            If c_Fin(i) = 0 Or c_Fin(i) >= CDbl(Date) Then
+                deja = False
+                For j = 1 To n
+                    If StrComp(noms(j), c_Oper(i), vbTextCompare) = 0 Then deja = True
+                Next j
+                If Not deja Then
+                    n = n + 1
+                    If n > UBound(noms) Then ReDim Preserve noms(1 To n + 7)
+                    noms(n) = c_Oper(i)
+                End If
+            End If
+        End If
+    Next i
+    OperateursEnCours = n
+End Function
+
+' Vrai si un contrat (en cours ou terminé) de ce type existe pour cet opérateur.
+Public Function OperateurConnu(ByVal typ As String, ByVal oper As String) As Boolean
+    Dim i As Long
+    ChargerContrats
+    For i = 1 To c_Nb
+        If StrComp(c_Typ(i), typ, vbTextCompare) = 0 And StrComp(c_Oper(i), oper, vbTextCompare) = 0 Then
+            OperateurConnu = True
+            Exit Function
+        End If
+    Next i
+End Function
+
+' Opérateur et unité du contrat du type donné en vigueur le jour donné. Faux si aucun contrat.
+Public Function OperateurContrat(ByVal typ As String, ByVal jour As Double, ByRef oper As String, ByRef unite As String) As Boolean
+    Dim k As Long
+    ChargerContrats
+    k = ContratPour(typ, jour)
+    If k > 0 Then
+        oper = c_Oper(k)
+        unite = c_Unite(k)
+        OperateurContrat = True
+    End If
 End Function
 
 
@@ -652,14 +639,15 @@ Private Sub RafraichirConso()
     Dim tous As Boolean, prorata As Boolean
     Dim note As String
     Dim serNoms() As String, nS As Long
-    Dim aQ() As Double, aQP() As Double, aAbo() As Double, aHas() As Boolean
+    Dim aQ() As Double, aHT() As Double, aCo() As Double, aAb() As Double, aTx() As Double, aHas() As Boolean
     Dim tabT() As Variant, tabH() As Variant
     Dim p As Long, s As Long, ent As Long, idx As Long
-    Dim q As Double, qp As Double, ab As Double, has As Boolean
-    Dim totQ As Double, totQP As Double, totAbo As Double
+    Dim q As Double, ht As Double, co As Double, ab As Double, tx As Double, has As Boolean
+    Dim totQ As Double, totHT As Double, totCo As Double, totAb As Double, totTx As Double
     Dim oper As String
     Dim nbLignesPrises As Long
     Dim unite As String, texte As String
+    Dim lignes() As TypeLigne, nbL As Long
 
     Set ws = FeuilleConso()
     If ws Is Nothing Or Not ConsoInstallee() Then
@@ -669,8 +657,8 @@ Private Sub RafraichirConso()
 
     If Not LireParametresConso(ws, typ, indic, periode, annee, mois, forme, repart, idxDeb, nbM) Then Exit Sub
     ChargerContrats
-    ChargerReleves
-    MettreAJourListesConso ws
+    nbL = mod_Factures.ChargerLignes(lignes)
+    MettreAJourListesConso ws, lignes, nbL
 
     tous = (StrComp(typ, LibTous(), vbTextCompare) = 0)
     prorata = (StrComp(repart, LibRepartProrata(), vbTextCompare) = 0)
@@ -682,7 +670,7 @@ Private Sub RafraichirConso()
         If StrComp(indic, LibIndQuantite(), vbTextCompare) = 0 Or StrComp(indic, LibIndPrix(), vbTextCompare) = 0 Then
             indic = LibIndMontant()
             indicSerie = indic
-            note = " Pour tous les types, seuls l'abonnement et le montant sont comparables : le montant est affich{e2}."
+            note = " Pour tous les types, seuls les montants sont comparables : le montant total est affich{e2}."
         End If
         If StrComp(forme, LibFormeMixte(), vbTextCompare) = 0 Then
             forme = LibFormeBarres()
@@ -692,67 +680,75 @@ Private Sub RafraichirConso()
         indicSerie = LibIndQuantite()      ' le prix est déjà la courbe : les barres montrent la quantité
     End If
 
-    CalculerMois typ, tous, prorata, idxDeb, nbM, serNoms, nS, aQ, aQP, aAbo, aHas, nbLignesPrises
+    CalculerMois lignes, nbL, typ, tous, prorata, idxDeb, nbM, serNoms, nS, aQ, aHT, aCo, aAb, aTx, aHas, nbLignesPrises
 
     ' ---------------- Tableau mensuel (visible) et données du graphique (masquées) ----------------
     ent = CO_LIGNE_ENTETE
-    ws.Range(ws.Cells(ent + 1, 2), ws.Cells(ent + CO_NB_LIGNES_MAX + 1, 7)).ClearContents
-    ws.Range(ws.Cells(ent + 1, 2), ws.Cells(ent + CO_NB_LIGNES_MAX + 1, 7)).Font.Bold = False
+    ws.Range(ws.Cells(ent + 1, 2), ws.Cells(ent + CO_NB_LIGNES_MAX + 1, 1 + CO_NB_COL_TABLE)).ClearContents
+    ws.Range(ws.Cells(ent + 1, 2), ws.Cells(ent + CO_NB_LIGNES_MAX + 1, 1 + CO_NB_COL_TABLE)).Font.Bold = False
     ws.Range(ws.Cells(ent, CO_COL_H_LIB), ws.Cells(ent + CO_NB_LIGNES_MAX, CO_COL_H_SERIE + CO_NB_SERIES - 1)).ClearContents
 
-    ReDim tabT(1 To nbM + 1, 1 To 6)
+    ReDim tabT(1 To nbM + 1, 1 To CO_NB_COL_TABLE)
     ReDim tabH(1 To nbM, 1 To 2 + CO_NB_SERIES)
 
     For p = 1 To nbM
         idx = idxDeb + p - 1
         tabT(p, 1) = DateSerial(idx \ 12, (idx Mod 12) + 1, 1)
         tabH(p, 1) = tabT(p, 1)
-        q = 0: qp = 0: ab = 0: oper = ""
+        q = 0: ht = 0: co = 0: ab = 0: tx = 0: oper = ""
         For s = 1 To nS
             q = q + aQ(p, s)
-            qp = qp + aQP(p, s)
-            ab = ab + aAbo(p, s)
+            ht = ht + aHT(p, s)
+            co = co + aCo(p, s)
+            ab = ab + aAb(p, s)
+            tx = tx + aTx(p, s)
             If aHas(p, s) And Not tous Then
                 If oper <> "" Then oper = oper & " / "
                 oper = oper & serNoms(s)
             End If
-            tabH(p, 2 + s) = ValeurIndic(indicSerie, aQ(p, s), aQP(p, s), aAbo(p, s), aHas(p, s))
+            tabH(p, 2 + s) = ValeurIndic(indicSerie, aQ(p, s), aHT(p, s), aCo(p, s), aAb(p, s), aTx(p, s), aHas(p, s))
         Next s
-        has = (q <> 0 Or qp <> 0 Or ab <> 0)
+        has = (q <> 0 Or ht <> 0 Or co <> 0 Or ab <> 0 Or tx <> 0)
         If has Then
             If Not tous Then
                 tabT(p, 2) = q
                 If q > 0 Then
-                    tabT(p, 3) = qp / q
-                    tabH(p, 2) = qp / q
+                    tabT(p, 3) = ht / q
+                    tabH(p, 2) = ht / q
                 End If
             End If
-            tabT(p, 4) = ab
-            tabT(p, 5) = qp + ab
-            tabT(p, 6) = oper
+            tabT(p, 4) = co
+            tabT(p, 5) = ab
+            tabT(p, 6) = tx
+            tabT(p, 7) = co + ab + tx
+            tabT(p, 8) = oper
         End If
         totQ = totQ + q
-        totQP = totQP + qp
-        totAbo = totAbo + ab
+        totHT = totHT + ht
+        totCo = totCo + co
+        totAb = totAb + ab
+        totTx = totTx + tx
     Next p
 
     ' Ligne de total, juste sous le dernier mois.
     tabT(nbM + 1, 1) = "Total"
     If Not tous Then
         tabT(nbM + 1, 2) = totQ
-        If totQ > 0 Then tabT(nbM + 1, 3) = totQP / totQ
+        If totQ > 0 Then tabT(nbM + 1, 3) = totHT / totQ
     End If
-    tabT(nbM + 1, 4) = totAbo
-    tabT(nbM + 1, 5) = totQP + totAbo
+    tabT(nbM + 1, 4) = totCo
+    tabT(nbM + 1, 5) = totAb
+    tabT(nbM + 1, 6) = totTx
+    tabT(nbM + 1, 7) = totCo + totAb + totTx
 
     ' Colonne des mois au format "mmm yyyy" partout (le mot "Total" s'y affiche tel quel).
     ws.Range(ws.Cells(ent + 1, 2), ws.Cells(ent + CO_NB_LIGNES_MAX + 1, 2)).NumberFormat = "mmm yyyy"
-    ws.Range(ws.Cells(ent + 1, 2), ws.Cells(ent + nbM + 1, 7)).Value = tabT
-    ws.Range(ws.Cells(ent + nbM + 1, 2), ws.Cells(ent + nbM + 1, 7)).Font.Bold = True
+    ws.Range(ws.Cells(ent + 1, 2), ws.Cells(ent + nbM + 1, 1 + CO_NB_COL_TABLE)).Value = tabT
+    ws.Range(ws.Cells(ent + nbM + 1, 2), ws.Cells(ent + nbM + 1, 1 + CO_NB_COL_TABLE)).Font.Bold = True
 
     ' Données du graphique : en-têtes, puis une ligne par mois.
     ws.Cells(ent, CO_COL_H_LIB).Value = "Mois"
-    ws.Cells(ent, CO_COL_H_PRIX).Value = "Prix unitaire"
+    ws.Cells(ent, CO_COL_H_PRIX).Value = "Prix unitaire HT"
     For s = 1 To nS
         ws.Cells(ent, CO_COL_H_SERIE + s - 1).Value = serNoms(s)
     Next s
@@ -762,20 +758,20 @@ Private Sub RafraichirConso()
     ' Libellé de la colonne Quantité / Prix avec l'unité (ou rien pour "tous").
     If tous Then
         ws.Cells(ent, 3).Value = mod_Display.FR("Quantit{e2}")
-        ws.Cells(ent, 4).Value = "Prix unitaire"
+        ws.Cells(ent, 4).Value = "Prix unitaire HT"
         unite = ""
     Else
-        unite = UniteDuType(typ)
+        unite = UniteDuType(typ, lignes, nbL)
         ws.Cells(ent, 3).Value = mod_Display.FR("Quantit{e2} (") & unite & ")"
-        ws.Cells(ent, 4).Value = "Prix (" & SymboleEuro() & "/" & unite & ")"
+        ws.Cells(ent, 4).Value = "Prix HT (" & SymboleEuro() & "/" & unite & ")"
     End If
 
     ' Résumé.
     texte = IIf(tous, mod_Display.FR("Tous les types"), typ) & " -- " & _
             Format$(DateSerial(idxDeb \ 12, (idxDeb Mod 12) + 1, 1), "mmm yyyy") & mod_Display.FR(" {a2} ") & _
             Format$(DateSerial((idxDeb + nbM - 1) \ 12, ((idxDeb + nbM - 1) Mod 12) + 1, 1), "mmm yyyy") & _
-            " -- " & nbLignesPrises & mod_Display.FR(" relev{e2}(s) pris en compte")
-    If nbLignesPrises = 0 Then texte = texte & mod_Display.FR(". Aucun relev{e2} sur cette p{e2}riode.")
+            " -- " & nbLignesPrises & mod_Display.FR(" ligne(s) de facture prise(s) en compte")
+    If nbLignesPrises = 0 Then texte = texte & mod_Display.FR(". Aucune facture sur cette p{e2}riode.")
     ws.Range(CO_ADR_MESSAGE).Value = texte & mod_Display.FR(note)
 
     ConstruireGraphiqueConso ws, nbM, nS, serNoms, indic, indicSerie, forme, typ, tous, unite
@@ -834,13 +830,15 @@ Private Function LireParametresConso(ByVal ws As Worksheet, ByRef typ As String,
 
 End Function
 
-' Répartit les relevés sur les mois de la période. Pour chaque (mois, série) :
-'   aQ = quantité, aQP = quantité x prix (consommation facturée), aAbo = abonnement.
+' Répartit les lignes de factures sur les mois de la période. Pour chaque (mois, série) :
+'   aQ = quantité consommée, aHT = montant HT de consommation, aCo = consommation TTC,
+'   aAb = abonnement TTC, aTx = taxes TTC.
 ' Série = opérateur (un seul type choisi) ou type (tous les types).
-Private Sub CalculerMois(ByVal typ As String, ByVal tous As Boolean, ByVal prorata As Boolean, _
-                         ByVal idxDeb As Long, ByVal nbM As Long, _
+Private Sub CalculerMois(ByRef t() As TypeLigne, ByVal nb As Long, ByVal typ As String, ByVal tous As Boolean, _
+                         ByVal prorata As Boolean, ByVal idxDeb As Long, ByVal nbM As Long, _
                          ByRef serNoms() As String, ByRef nS As Long, _
-                         ByRef aQ() As Double, ByRef aQP() As Double, ByRef aAbo() As Double, _
+                         ByRef aQ() As Double, ByRef aHT() As Double, ByRef aCo() As Double, _
+                         ByRef aAb() As Double, ByRef aTx() As Double, _
                          ByRef aHas() As Boolean, ByRef nbPris As Long)
 
     Dim dic As Object
@@ -848,13 +846,14 @@ Private Sub CalculerMois(ByVal typ As String, ByVal tous As Boolean, ByVal prora
     Dim cle As String
     Dim iDeb As Long, iFin As Long, y As Long, m As Long
     Dim dMois As Double, fMois As Double, a As Double, b As Double
-    Dim jours As Double, totalJours As Double
-    Dim q As Double, qp As Double, ab As Double
+    Dim frac As Double, totalJours As Double
 
     ReDim serNoms(1 To CO_NB_SERIES)
     ReDim aQ(1 To nbM, 1 To CO_NB_SERIES)
-    ReDim aQP(1 To nbM, 1 To CO_NB_SERIES)
-    ReDim aAbo(1 To nbM, 1 To CO_NB_SERIES)
+    ReDim aHT(1 To nbM, 1 To CO_NB_SERIES)
+    ReDim aCo(1 To nbM, 1 To CO_NB_SERIES)
+    ReDim aAb(1 To nbM, 1 To CO_NB_SERIES)
+    ReDim aTx(1 To nbM, 1 To CO_NB_SERIES)
     ReDim aHas(1 To nbM, 1 To CO_NB_SERIES)
     nS = 0
     nbPris = 0
@@ -862,12 +861,17 @@ Private Sub CalculerMois(ByVal typ As String, ByVal tous As Boolean, ByVal prora
     Set dic = CreateObject("Scripting.Dictionary")
     dic.CompareMode = 1     ' sans tenir compte des majuscules
 
-    For j = 1 To r_Nb
-        If tous Or StrComp(r_Typ(j), typ, vbTextCompare) = 0 Then
+    For j = 1 To nb
+        If tous Or StrComp(t(j).Typ, typ, vbTextCompare) = 0 Then
 
-            If tous Then cle = r_Typ(j) Else cle = NomOperateur(r_Typ(j), r_Deb(j))
+            If tous Then
+                cle = t(j).Typ
+            Else
+                cle = t(j).Operateur
+                If cle = "" Then cle = LibSansContrat()
+            End If
 
-            ' Série de ce relevé (au-delà de CO_NB_SERIES, tout le reste est regroupé dans "Autres").
+            ' Série de cette ligne (au-delà de CO_NB_SERIES, tout le reste est regroupé dans "Autres").
             If dic.Exists(cle) Then
                 s = dic(cle)
             ElseIf nS < CO_NB_SERIES Then
@@ -881,11 +885,11 @@ Private Sub CalculerMois(ByVal typ As String, ByVal tous As Boolean, ByVal prora
                 dic.Add cle, s
             End If
 
-            iDeb = Year(CDate(r_Deb(j))) * 12 + Month(CDate(r_Deb(j))) - 1
-            iFin = Year(CDate(r_Fin(j))) * 12 + Month(CDate(r_Fin(j))) - 1
+            iDeb = Year(CDate(t(j).Debut)) * 12 + Month(CDate(t(j).Debut)) - 1
+            iFin = Year(CDate(t(j).Fin)) * 12 + Month(CDate(t(j).Fin)) - 1
 
             If prorata Then
-                totalJours = r_Fin(j) - r_Deb(j) + 1
+                totalJours = t(j).Fin - t(j).Debut + 1
                 For i = iDeb To iFin
                     p = i - idxDeb + 1
                     If p >= 1 And p <= nbM Then
@@ -893,14 +897,12 @@ Private Sub CalculerMois(ByVal typ As String, ByVal tous As Boolean, ByVal prora
                         m = (i Mod 12) + 1
                         dMois = CDbl(DateSerial(y, m, 1))
                         fMois = CDbl(DateSerial(y, m + 1, 0))
-                        a = r_Deb(j)
+                        a = t(j).Debut
                         If dMois > a Then a = dMois
-                        b = r_Fin(j)
+                        b = t(j).Fin
                         If fMois < b Then b = fMois
-                        jours = b - a + 1
-                        aQ(p, s) = aQ(p, s) + r_Qte(j) * jours / totalJours
-                        aQP(p, s) = aQP(p, s) + r_Qte(j) * r_Prix(j) * jours / totalJours
-                        aAbo(p, s) = aAbo(p, s) + r_Abo(j) * jours / (fMois - dMois + 1)
+                        frac = (b - a + 1) / totalJours
+                        Ajouter t(j), frac, p, s, aQ, aHT, aCo, aAb, aTx
                         aHas(p, s) = True
                     End If
                 Next i
@@ -908,9 +910,7 @@ Private Sub CalculerMois(ByVal typ As String, ByVal tous As Boolean, ByVal prora
             Else
                 p = iFin - idxDeb + 1
                 If p >= 1 And p <= nbM Then
-                    aQ(p, s) = aQ(p, s) + r_Qte(j)
-                    aQP(p, s) = aQP(p, s) + r_Qte(j) * r_Prix(j)
-                    aAbo(p, s) = aAbo(p, s) + r_Abo(j) * NbMoisPeriode(r_Deb(j), r_Fin(j))
+                    Ajouter t(j), 1, p, s, aQ, aHT, aCo, aAb, aTx
                     aHas(p, s) = True
                     nbPris = nbPris + 1
                 End If
@@ -920,34 +920,54 @@ Private Sub CalculerMois(ByVal typ As String, ByVal tous As Boolean, ByVal prora
 
 End Sub
 
-Private Function ValeurIndic(ByVal indic As String, ByVal q As Double, ByVal qp As Double, _
-                             ByVal ab As Double, ByVal has As Boolean) As Variant
+' Ajoute la fraction "frac" d'une ligne de facture au mois p, série s, dans la bonne catégorie.
+Private Sub Ajouter(ByRef l As TypeLigne, ByVal frac As Double, ByVal p As Long, ByVal s As Long, _
+                    ByRef aQ() As Double, ByRef aHT() As Double, ByRef aCo() As Double, _
+                    ByRef aAb() As Double, ByRef aTx() As Double)
+    Select Case l.Nat
+        Case mod_Factures.NAT_CONSO
+            aQ(p, s) = aQ(p, s) + l.Qte * frac
+            aHT(p, s) = aHT(p, s) + l.HT * frac
+            aCo(p, s) = aCo(p, s) + l.TTC * frac
+        Case mod_Factures.NAT_ABO
+            aAb(p, s) = aAb(p, s) + l.TTC * frac
+        Case Else
+            aTx(p, s) = aTx(p, s) + l.TTC * frac
+    End Select
+End Sub
+
+Private Function ValeurIndic(ByVal indic As String, ByVal q As Double, ByVal ht As Double, ByVal co As Double, _
+                             ByVal ab As Double, ByVal tx As Double, ByVal has As Boolean) As Variant
 
     If Not has Then Exit Function       ' Empty : le graphique laisse un trou
 
     If StrComp(indic, LibIndQuantite(), vbTextCompare) = 0 Then
         ValeurIndic = q
     ElseIf StrComp(indic, LibIndPrix(), vbTextCompare) = 0 Then
-        If q > 0 Then ValeurIndic = qp / q
+        If q > 0 Then ValeurIndic = ht / q
+    ElseIf StrComp(indic, LibIndConso(), vbTextCompare) = 0 Then
+        ValeurIndic = co
     ElseIf StrComp(indic, LibIndAbo(), vbTextCompare) = 0 Then
         ValeurIndic = ab
+    ElseIf StrComp(indic, LibIndTaxes(), vbTextCompare) = 0 Then
+        ValeurIndic = tx
     Else
-        ValeurIndic = qp + ab
+        ValeurIndic = co + ab + tx
     End If
 
 End Function
 
-' Années proposées : de la plus ancienne année de relevé (ou de l'année en cours) à l'année suivante.
-Private Sub MettreAJourListesConso(ByVal ws As Worksheet)
+' Années proposées : de la plus ancienne année de facture (ou de l'année en cours) à l'année suivante.
+Private Sub MettreAJourListesConso(ByVal ws As Worksheet, ByRef t() As TypeLigne, ByVal nb As Long)
 
     Dim i As Long, anMin As Long, anMax As Long, an As Long
 
     anMin = Year(Date)
     anMax = Year(Date) + 1
-    For i = 1 To r_Nb
-        an = Year(CDate(r_Deb(i)))
+    For i = 1 To nb
+        an = Year(CDate(t(i).Debut))
         If an < anMin Then anMin = an
-        an = Year(CDate(r_Fin(i)))
+        an = Year(CDate(t(i).Fin))
         If an + 1 > anMax Then anMax = an + 1
     Next i
 
@@ -963,11 +983,11 @@ Private Sub MettreAJourListesConso(ByVal ws As Worksheet)
         ws.Range(ws.Cells(2, CO_COL_LISTE_PERIODE), ws.Cells(6, CO_COL_LISTE_PERIODE)).Address(True, True)
 
     ' Mise en forme de la zone du tableau jusqu'à CO_NB_LIGNES_MAX lignes.
-    mod_InstallCommun.PoserCorpsTableauLecture ws.Range(ws.Cells(CO_LIGNE_ENTETE + 1, 2), ws.Cells(CO_LIGNE_ENTETE + CO_NB_LIGNES_MAX + 1, 7))
+    mod_InstallCommun.PoserCorpsTableauLecture ws.Range(ws.Cells(CO_LIGNE_ENTETE + 1, 2), ws.Cells(CO_LIGNE_ENTETE + CO_NB_LIGNES_MAX + 1, 1 + CO_NB_COL_TABLE))
     ws.Range(ws.Cells(CO_LIGNE_ENTETE + 1, 2), ws.Cells(CO_LIGNE_ENTETE + CO_NB_LIGNES_MAX + 1, 2)).HorizontalAlignment = xlLeft
     ws.Range(ws.Cells(CO_LIGNE_ENTETE + 1, 3), ws.Cells(CO_LIGNE_ENTETE + CO_NB_LIGNES_MAX + 1, 3)).NumberFormat = "#,##0.00"
-    ws.Range(ws.Cells(CO_LIGNE_ENTETE + 1, 4), ws.Cells(CO_LIGNE_ENTETE + CO_NB_LIGNES_MAX + 1, 4)).NumberFormat = "#,##0.0000"
-    ws.Range(ws.Cells(CO_LIGNE_ENTETE + 1, 5), ws.Cells(CO_LIGNE_ENTETE + CO_NB_LIGNES_MAX + 1, 6)).NumberFormat = "#,##0.00"
+    ws.Range(ws.Cells(CO_LIGNE_ENTETE + 1, 4), ws.Cells(CO_LIGNE_ENTETE + CO_NB_LIGNES_MAX + 1, 4)).NumberFormat = "#,##0.00000"
+    ws.Range(ws.Cells(CO_LIGNE_ENTETE + 1, 5), ws.Cells(CO_LIGNE_ENTETE + CO_NB_LIGNES_MAX + 1, 8)).NumberFormat = "#,##0.00"
 
     ws.Range(ws.Cells(2, CO_COL_LISTE_ANNEE), ws.Cells(60, CO_COL_LISTE_ANNEE)).ClearContents
     For an = anMin To anMax
@@ -999,7 +1019,7 @@ Private Sub ConstruireGraphiqueConso(ByVal ws As Worksheet, ByVal nbM As Long, B
     co.Chart.HasTitle = True
     If nS = 0 Then
         co.Chart.ChartType = xlColumnStacked
-        co.Chart.ChartTitle.Text = mod_Display.FR("Aucun relev{e2} sur la p{e2}riode")
+        co.Chart.ChartTitle.Text = mod_Display.FR("Aucune facture sur la p{e2}riode")
         Exit Sub
     End If
 
@@ -1077,11 +1097,11 @@ End Function
 ' =====================================================================================
 ' NAVIGATION ENTRE LES ÉCRANS
 ' =====================================================================================
-' Affiche un écran du suivi (graphique, relevés ou contrats) et masque les deux autres
+' Affiche un écran du suivi (graphique, factures ou contrats) et masque les deux autres
 ' ainsi que la feuille Synthese.
 Private Sub MontrerEcran(ByVal nomFeuille As String)
 
-    Dim ws As Worksheet, autre As Worksheet, wsSyn As Worksheet
+    Dim ws As Worksheet, autre As Worksheet
     Dim noms As Variant
     Dim i As Long
 
@@ -1091,11 +1111,15 @@ Private Sub MontrerEcran(ByVal nomFeuille As String)
         Exit Sub
     End If
 
+    EnregistrerListesSiOuvertes
+    If nomFeuille = mod_VarGlobales.NOM_FEUILLE_FACTURES Then mod_Factures.RafraichirListeFactures
+    If nomFeuille = mod_VarGlobales.NOM_FEUILLE_CONTRATS Then RafraichirListeContrats
+
     ws.Visible = xlSheetVisible
     ws.Activate
     mod_InstallCommun.MasquerQuadrillage
 
-    noms = Array(mod_VarGlobales.NOM_FEUILLE_CONSO, mod_VarGlobales.NOM_FEUILLE_RELEVES, mod_VarGlobales.NOM_FEUILLE_CONTRATS)
+    noms = Array(mod_VarGlobales.NOM_FEUILLE_CONSO, mod_VarGlobales.NOM_FEUILLE_FACTURES, mod_VarGlobales.NOM_FEUILLE_CONTRATS)
     For i = LBound(noms) To UBound(noms)
         If noms(i) <> nomFeuille Then
             Set autre = mod_InstallCommun.TrouverFeuille(CStr(noms(i)))
@@ -1119,8 +1143,8 @@ Public Sub RetourConsommations()
     If Not FeuilleConso() Is Nothing Then ActualiserConsommations
 End Sub
 
-Public Sub AfficherReleves()
-    MontrerEcran mod_VarGlobales.NOM_FEUILLE_RELEVES
+Public Sub AfficherFactures()
+    MontrerEcran mod_VarGlobales.NOM_FEUILLE_FACTURES
 End Sub
 
 Public Sub AfficherContrats()
@@ -1130,13 +1154,14 @@ End Sub
 ' Sortie vers Synthese (bouton Sortir de l'écran graphique).
 Public Sub SortirConsommations()
 
-    Dim wsSyn As Worksheet, ws As Worksheet
+    Dim ws As Worksheet
     Dim noms As Variant
     Dim i As Long
 
+    EnregistrerListesSiOuvertes
     mod_InstallCommun.AfficherSynthese
 
-    noms = Array(mod_VarGlobales.NOM_FEUILLE_CONSO, mod_VarGlobales.NOM_FEUILLE_RELEVES, mod_VarGlobales.NOM_FEUILLE_CONTRATS)
+    noms = Array(mod_VarGlobales.NOM_FEUILLE_CONSO, mod_VarGlobales.NOM_FEUILLE_FACTURES, mod_VarGlobales.NOM_FEUILLE_CONTRATS)
     For i = LBound(noms) To UBound(noms)
         Set ws = mod_InstallCommun.TrouverFeuille(CStr(noms(i)))
         If Not ws Is Nothing Then mod_Aide.MasquerFormulaire ws
@@ -1146,431 +1171,17 @@ End Sub
 
 
 ' =====================================================================================
-' SAISIE D'UN RELEVÉ (formulaire frm_Releve)
-' =====================================================================================
-Public Sub SaisirReleve()
-
-    Dim r As TypeReleve
-    Dim suivant As Boolean
-    Dim nb As Long
-
-    If Not ConsoInstallee() Then
-        MsgBox mod_Display.FR("Le suivi des consommations n'est pas install{e2}. Ex{e2}cutez d'abord la macro InstallerConsommations."), vbExclamation
-        Exit Sub
-    End If
-
-    ChargerContrats
-    If c_Nb = 0 Then
-        MsgBox mod_Display.FR("Aucun contrat n'est d{e2}clar{e2}. Cr{e2}ez d'abord un contrat (bouton Contrats) : il donne l'op{e2}rateur et l'unit{e2} des relev{e2}s."), _
-               vbInformation, mod_Display.FR("Suivi des consommations")
-        Exit Sub
-    End If
-
-    Do
-        suivant = False
-        If Not OuvrirFormReleve(r, suivant) Then Exit Do
-        If Not EnregistrerReleve(r) Then Exit Do
-        nb = nb + 1
-        If Not suivant Then Exit Do
-        ' Segment suivant de la même facture : il commence le lendemain, avec les mêmes prix.
-        r.Debut = r.Fin + 1
-        r.Fin = 0
-        r.Qte = 0
-    Loop
-
-    If nb > 0 Then
-        If ActiveSheet.Name = mod_VarGlobales.NOM_FEUILLE_CONSO Then ActualiserConsommations
-        MsgBox nb & mod_Display.FR(" relev{e2}(s) enregistr{e2}(s)."), vbInformation, mod_Display.FR("Relev{e2} enregistr{e2}")
-    End If
-
-End Sub
-
-Private Function EnregistrerReleve(ByRef r As TypeReleve) As Boolean
-
-    Dim lo As ListObject
-    Dim lr As ListRow
-
-    Set lo = TableReleves()
-    If lo Is Nothing Then Exit Function
-
-    Set lr = NouvelleLigne(lo)
-    With lr.Range
-        .Cells(1, ColIdx(lo, "ID_Releve")).Value = ProchainID(lo, "ID_Releve")
-        .Cells(1, ColIdx(lo, "TypeConso")).Value = r.Typ
-        .Cells(1, ColIdx(lo, "DateDebut")).Value = r.Debut
-        .Cells(1, ColIdx(lo, "DateFin")).Value = r.Fin
-        .Cells(1, ColIdx(lo, "Quantite")).Value = r.Qte
-        .Cells(1, ColIdx(lo, "PrixUnitaire")).Value = r.Prix
-        .Cells(1, ColIdx(lo, "AbonnementMensuel")).Value = r.AboMensuel
-        .Cells(1, ColIdx(lo, "Facture")).Value = r.Facture
-        .Cells(1, ColIdx(lo, "Commentaire")).Value = r.Commentaire
-    End With
-    PoserFormulesReleves lo
-
-    EnregistrerReleve = True
-
-End Function
-
-' Ouvre le formulaire prérempli avec "r" et attend sa fermeture. Renvoie Vrai si
-' l'opérateur a validé ; "suivant" vaut Vrai s'il a demandé la saisie du segment suivant.
-Private Function OuvrirFormReleve(ByRef r As TypeReleve, ByRef suivant As Boolean) As Boolean
-
-    Dim ws As Worksheet
-
-    On Error GoTo Erreur
-
-    Set ws = mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_RELEVE)
-    If ws Is Nothing Then
-        MsgBox mod_Display.FR("La feuille '") & mod_VarGlobales.NOM_FEUILLE_RELEVE & mod_Display.FR("' est introuvable.") & vbCrLf & _
-               mod_Display.FR("Ex{e2}cutez d'abord la macro InstallerConsommations."), vbExclamation
-        Exit Function
-    End If
-
-    g_RelNomFeuillePrec = ActiveSheet.Name
-    g_RelValide = False
-    g_RelSuivant = False
-    RemplirChampsRel ws, r
-
-    ws.Visible = xlSheetVisible
-    ws.Activate
-    mod_InstallCommun.MasquerQuadrillage
-    ws.Range(RF_ADR_TYPE).Select
-
-    ' Liste des types posée une seconde fois, feuille affichée et active.
-    On Error Resume Next
-    mod_InstallCommun.PoserListeDeroulante ws.Range(RF_ADR_TYPE), "ListeTypesConso", True
-    On Error GoTo Erreur
-
-    Application.EnableEvents = True
-    g_RelEnCours = True
-    g_RelVerrouActif = True
-    Do While g_RelEnCours
-        DoEvents
-    Loop
-
-    On Error Resume Next
-    mod_InstallCommun.ActiverFeuille g_RelNomFeuillePrec
-    On Error GoTo 0
-
-    If g_RelValide Then
-        r = g_RelRes
-        suivant = g_RelSuivant
-        OuvrirFormReleve = True
-    End If
-    Exit Function
-
-Erreur:
-    Application.EnableEvents = True
-    g_RelEnCours = False
-    g_RelVerrouActif = False
-    MsgBox mod_Display.FR("Erreur inattendue dans la saisie du relev{e2} :") & vbCrLf & Err.Number & " - " & Err.Description, vbCritical
-    OuvrirFormReleve = False
-
-End Function
-
-Private Sub RemplirChampsRel(ByVal ws As Worksheet, ByRef r As TypeReleve)
-
-    Dim evenementsAvant As Boolean
-    Dim numErr As Long
-
-    evenementsAvant = Application.EnableEvents
-    Application.EnableEvents = False
-    On Error GoTo Sortie
-
-    ws.Range(RF_ADR_TYPE).Value = r.Typ
-    If r.Debut <> 0 Then ws.Range(RF_ADR_DEBUT).Value = r.Debut Else ws.Range(RF_ADR_DEBUT).ClearContents
-    If r.Fin <> 0 Then ws.Range(RF_ADR_FIN).Value = r.Fin Else ws.Range(RF_ADR_FIN).ClearContents
-    If r.Qte <> 0 Then ws.Range(RF_ADR_QTE).Value = r.Qte Else ws.Range(RF_ADR_QTE).ClearContents
-    If r.Typ <> "" Then
-        ws.Range(RF_ADR_PRIX).Value = r.Prix
-        ws.Range(RF_ADR_ABO).Value = r.AboMensuel
-    Else
-        ws.Range(RF_ADR_PRIX).ClearContents
-        ws.Range(RF_ADR_ABO).ClearContents
-    End If
-    ws.Range(RF_ADR_FACTURE).Value = r.Facture
-    ws.Range(RF_ADR_COMMENT).Value = r.Commentaire
-    ws.Range(RF_ADR_MESSAGE).Value = ""
-
-    ' Garde-fous de saisie reposés à chaque ouverture (dates, quantité, prix, abonnement).
-    mod_InstallCommun.PoserValidationDate ws.Range(RF_ADR_DEBUT)
-    mod_InstallCommun.PoserValidationDate ws.Range(RF_ADR_FIN)
-    mod_InstallCommun.PoserValidationMontant ws.Range(RF_ADR_QTE), mod_InstallCommun.MONTANT_POSITIF_OU_NUL
-    mod_InstallCommun.PoserValidationMontant ws.Range(RF_ADR_PRIX), mod_InstallCommun.MONTANT_POSITIF_OU_NUL
-    mod_InstallCommun.PoserValidationMontant ws.Range(RF_ADR_ABO), mod_InstallCommun.MONTANT_POSITIF_OU_NUL
-
-    ' Opérateur et unités (sans toucher aux prix saisis).
-    RelRemplirContexte ws, False
-
-Sortie:
-    numErr = Err.Number
-    Application.EnableEvents = evenementsAvant
-    If numErr <> 0 Then Err.Raise numErr, "RemplirChampsRel", Err.Description
-
-End Sub
-
-' Met à jour l'opérateur et les unités affichés selon le type et la date de début.
-' Si preremplir : propose aussi la date de début (lendemain du dernier relevé du type),
-' le dernier prix et le dernier abonnement connus pour le contrat en vigueur.
-Private Sub RelRemplirContexte(ByVal ws As Worksheet, ByVal preremplir As Boolean)
-
-    Dim typ As String, unite As String
-    Dim d As Double, f As Double
-    Dim k As Long, j As Long
-    Dim evenementsAvant As Boolean
-
-    evenementsAvant = Application.EnableEvents
-    Application.EnableEvents = False
-
-    typ = mod_DataStructure.CellText(ws.Range(RF_ADR_TYPE).Value)
-    If typ = "" Then
-        ws.Range(RF_ADR_OPERATEUR).Value = ""
-        ws.Range(RF_ADR_UNITE).Value = ""
-        ws.Range(RF_ADR_UNITE_PRIX).Value = ""
-        ws.Range(RF_ADR_UNITE_ABO).Value = ""
-        Application.EnableEvents = evenementsAvant
-        Exit Sub
-    End If
-
-    ChargerContrats
-    ChargerReleves
-
-    d = VersJour(ws.Range(RF_ADR_DEBUT).Value)
-    If preremplir And d = 0 Then
-        j = DernierReleve(typ, 0)
-        If j > 0 Then
-            f = r_Fin(j)
-            d = f + 1
-            ws.Range(RF_ADR_DEBUT).Value = CDate(d)
-        End If
-    End If
-    If d = 0 Then d = CDbl(Date)
-
-    k = ContratPour(typ, d)
-    If k > 0 Then
-        unite = c_Unite(k)
-        ws.Range(RF_ADR_OPERATEUR).Value = c_Oper(k) & " (" & mod_Display.FR("contrat depuis le ") & TexteDate(c_Deb(k)) & ")"
-    Else
-        ws.Range(RF_ADR_OPERATEUR).Value = mod_Display.FR("Aucun contrat {a2} cette date : cr{e2}ez-le d'abord (bouton Contrats)")
-    End If
-    If unite = "" Then unite = UniteDefaut(typ)
-    ws.Range(RF_ADR_UNITE).Value = unite
-    ws.Range(RF_ADR_UNITE_PRIX).Value = SymboleEuro() & " / " & unite
-    ws.Range(RF_ADR_UNITE_ABO).Value = SymboleEuro() & " / " & mod_Display.FR("mois")
-
-    If preremplir And k > 0 Then
-        j = DernierReleve(typ, k)
-        If j > 0 Then
-            ws.Range(RF_ADR_PRIX).Value = r_Prix(j)
-            ws.Range(RF_ADR_ABO).Value = r_Abo(j)
-        Else
-            ws.Range(RF_ADR_PRIX).ClearContents
-            ws.Range(RF_ADR_ABO).Value = c_Abo(k)
-        End If
-    End If
-
-    Application.EnableEvents = evenementsAvant
-
-End Sub
-
-' Appelée par le code de la feuille (Worksheet_Change).
-Public Sub RelTraiterChangement(ByVal ws As Worksheet, ByVal Target As Range)
-
-    Dim numErr As Long
-
-    If Not g_RelEnCours Then Exit Sub
-    If Target.Cells.Count > 1 Then Exit Sub
-
-    On Error GoTo Sortie
-
-    Select Case Target.Address(False, False)
-        Case RF_ADR_TYPE
-            RelRemplirContexte ws, True
-        Case RF_ADR_DEBUT
-            RelRemplirContexte ws, False
-    End Select
-
-Sortie:
-    numErr = Err.Number
-    Application.EnableEvents = True
-    If numErr <> 0 Then MsgBox mod_Display.FR("Erreur lors du changement de type : ") & Err.Description, vbExclamation
-
-End Sub
-
-' Verrou "modal" : tant que le formulaire est ouvert, impossible de le quitter en changeant d'onglet.
-Public Sub RelVerrouiller(ByVal ws As Worksheet)
-    If g_RelVerrouActif And Not mod_Aide.AideOuverte() Then ws.Activate
-End Sub
-
-Public Sub RelValider()
-    RelValiderCommun False
-End Sub
-
-Public Sub RelValiderSuivant()
-    RelValiderCommun True
-End Sub
-
-Private Sub RelValiderCommun(ByVal suivant As Boolean)
-
-    Dim ws As Worksheet
-    Dim typ As String
-    Dim dDeb As Double, dFin As Double
-    Dim vQte As Variant, vPrix As Variant, vAbo As Variant
-    Dim nQte As Double, nPrix As Double, nAbo As Double
-    Dim dTmp As Date
-    Dim k As Long, j As Long
-    Dim e As TypeReleve
-
-    If Not g_RelEnCours Then Exit Sub
-    On Error GoTo Erreur
-    Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RELEVE)
-
-    typ = mod_DataStructure.CellText(ws.Range(RF_ADR_TYPE).Value)
-    dDeb = VersJour(ws.Range(RF_ADR_DEBUT).Value)
-    dFin = VersJour(ws.Range(RF_ADR_FIN).Value)
-    vQte = ws.Range(RF_ADR_QTE).Value
-    vPrix = ws.Range(RF_ADR_PRIX).Value
-    vAbo = ws.Range(RF_ADR_ABO).Value
-
-    If typ = "" Or Not TypeConnu(typ) Then
-        AfficherMessageRel ws, "Choisissez le type de consommation dans la liste."
-        Exit Sub
-    End If
-    If SaisieNonVide(ws.Range(RF_ADR_DEBUT).Value) And Not mod_DataStructure.TryLireDate(ws.Range(RF_ADR_DEBUT).Value, dTmp) Then
-        AfficherMessageRel ws, "La date de d{e2}but n'est pas valide. " & mod_DataStructure.MessageDateAttendue()
-        Exit Sub
-    End If
-    If SaisieNonVide(ws.Range(RF_ADR_FIN).Value) And Not mod_DataStructure.TryLireDate(ws.Range(RF_ADR_FIN).Value, dTmp) Then
-        AfficherMessageRel ws, "La date de fin n'est pas valide. " & mod_DataStructure.MessageDateAttendue()
-        Exit Sub
-    End If
-    If dDeb = 0 Then
-        AfficherMessageRel ws, "Renseignez la date de d{e2}but de la p{e2}riode."
-        Exit Sub
-    End If
-    If dFin = 0 Then
-        AfficherMessageRel ws, "Renseignez la date de fin de la p{e2}riode."
-        Exit Sub
-    End If
-    If dFin < dDeb Then
-        AfficherMessageRel ws, "La date de fin est ant{e2}rieure {a2} la date de d{e2}but."
-        Exit Sub
-    End If
-    If Not SaisieNonVide(vQte) Then
-        AfficherMessageRel ws, "Renseignez la quantit{e2} consomm{e2}e (0 si aucune)."
-        Exit Sub
-    End If
-    If Not mod_DataStructure.TryLireMontant(vQte, nQte) Then
-        AfficherMessageRel ws, "La quantit{e2} n'est pas valide. " & mod_DataStructure.MessageMontantAttendu()
-        Exit Sub
-    End If
-    If nQte < 0 Then
-        AfficherMessageRel ws, "La quantit{e2} ne peut pas {ea}tre n{e2}gative."
-        Exit Sub
-    End If
-    If Not SaisieNonVide(vPrix) Then
-        AfficherMessageRel ws, "Renseignez le prix de l'unit{e2} (0 si l'unit{e2} est gratuite)."
-        Exit Sub
-    End If
-    If Not mod_DataStructure.TryLireMontant(vPrix, nPrix, 4) Then
-        AfficherMessageRel ws, "Le prix de l'unit{e2} n'est pas valide (4 d{e2}cimales au maximum). " & mod_DataStructure.MessageMontantAttendu()
-        Exit Sub
-    End If
-    If nPrix < 0 Then
-        AfficherMessageRel ws, "Le prix de l'unit{e2} ne peut pas {ea}tre n{e2}gatif."
-        Exit Sub
-    End If
-    If Not SaisieNonVide(vAbo) Then
-        nAbo = 0
-    ElseIf Not mod_DataStructure.TryLireMontant(vAbo, nAbo) Then
-        AfficherMessageRel ws, "L'abonnement mensuel n'est pas valide. " & mod_DataStructure.MessageMontantAttendu()
-        Exit Sub
-    ElseIf nAbo < 0 Then
-        AfficherMessageRel ws, "L'abonnement mensuel ne peut pas {ea}tre n{e2}gatif."
-        Exit Sub
-    End If
-
-    ChargerContrats
-    ChargerReleves
-
-    k = ContratPour(typ, dDeb)
-    If k = 0 Then
-        AfficherMessageRel ws, "Aucun contrat de ce type ne couvre la date de d{e2}but. Cr{e2}ez-le d'abord (bouton Contrats)."
-        Exit Sub
-    End If
-    If c_Fin(k) <> 0 And dFin > c_Fin(k) Then
-        AfficherMessageRel ws, "La p{e2}riode d{e2}passe la fin du contrat (" & TexteDate(c_Fin(k)) & "). Coupez-la en deux relev{e2}s."
-        Exit Sub
-    End If
-
-    For j = 1 To r_Nb
-        If StrComp(r_Typ(j), typ, vbTextCompare) = 0 Then
-            If dDeb <= r_Fin(j) And dFin >= r_Deb(j) Then
-                AfficherMessageRel ws, "Cette p{e2}riode chevauche un relev{e2} d{e2}j{a2} saisi (du " & TexteDate(r_Deb(j)) & " au " & TexteDate(r_Fin(j)) & ")."
-                Exit Sub
-            End If
-        End If
-    Next j
-
-    e.Typ = typ
-    e.Debut = CDate(dDeb)
-    e.Fin = CDate(dFin)
-    e.Qte = nQte
-    e.Prix = nPrix
-    e.AboMensuel = nAbo
-    e.Facture = mod_DataStructure.CellText(ws.Range(RF_ADR_FACTURE).Value)
-    e.Commentaire = mod_DataStructure.CellText(ws.Range(RF_ADR_COMMENT).Value)
-
-    g_RelRes = e
-    g_RelSuivant = suivant
-    g_RelValide = True
-    FermerFeuilleRel ws
-    Exit Sub
-
-Erreur:
-    Application.EnableEvents = True
-    MsgBox mod_Display.FR("Erreur dans RelValider : ") & Err.Number & " - " & Err.Description, vbCritical
-
-End Sub
-
-Public Sub RelAnnuler()
-
-    Dim ws As Worksheet
-
-    If Not g_RelEnCours Then Exit Sub
-    On Error GoTo Erreur
-
-    If MsgBox(mod_Display.FR("Annuler la saisie ? Rien ne sera enregistr{e2}."), vbYesNo + vbQuestion, "Confirmation") = vbNo Then Exit Sub
-
-    Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RELEVE)
-    g_RelValide = False
-    FermerFeuilleRel ws
-    Exit Sub
-
-Erreur:
-    Application.EnableEvents = True
-    MsgBox mod_Display.FR("Erreur dans RelAnnuler : ") & Err.Number & " - " & Err.Description, vbCritical
-
-End Sub
-
-Private Sub AfficherMessageRel(ByVal ws As Worksheet, ByVal texte As String)
-    ws.Range(RF_ADR_MESSAGE).Value = mod_Display.FR(texte)
-End Sub
-
-' g_RelEnCours doit passer à False AVANT de masquer la feuille, sinon le verrou la réactiverait.
-Private Sub FermerFeuilleRel(ByVal ws As Worksheet)
-    g_RelEnCours = False
-    g_RelVerrouActif = False
-    mod_Aide.MasquerFormulaire ws
-End Sub
-
-
-' =====================================================================================
 ' SAISIE D'UN CONTRAT (formulaire frm_Contrat)
 ' =====================================================================================
 ' Ajoute un contrat. Si un contrat du même type est en cours et commence avant le
 ' nouveau, il est proposé de le clôturer la veille (changement d'opérateur).
 Public Sub AjouterContrat()
+    EnregistrerListesSiOuvertes
+    AjouterContratCore
+    RafraichirListeContrats
+End Sub
+
+Private Sub AjouterContratCore()
 
     Dim c As TypeContrat
     Dim ligneAClore As Long
@@ -1860,7 +1471,7 @@ End Sub
 
 
 ' =====================================================================================
-' SUPPRESSION (listes frm_Releves et frm_Contrats)
+' SUPPRESSION (liste frm_Contrats ; celle des factures est dans mod_Factures)
 ' =====================================================================================
 ' Numéros (dans le tableau) des lignes touchées par la sélection courante.
 Private Function LignesSelectionnees(ByVal lo As ListObject) As Object
@@ -1885,40 +1496,13 @@ Private Function LignesSelectionnees(ByVal lo As ListObject) As Object
 
 End Function
 
-Public Sub SupprimerReleveSelection()
+Public Sub SupprimerContratSelection()
 
     Dim lo As ListObject
     Dim sel As Object
     Dim i As Long
 
-    Set lo = TableReleves()
-    If lo Is Nothing Then Exit Sub
-    If ActiveSheet.Name <> mod_VarGlobales.NOM_FEUILLE_RELEVES Then Exit Sub
-
-    Set sel = LignesSelectionnees(lo)
-    If sel.Count = 0 Then
-        MsgBox mod_Display.FR("S{e2}lectionnez d'abord une ou plusieurs lignes du tableau."), vbInformation
-        Exit Sub
-    End If
-
-    If MsgBox(sel.Count & mod_Display.FR(" relev{e2}(s) {a2} supprimer ?"), vbYesNo + vbQuestion, _
-              mod_Display.FR("Supprimer des relev{e2}s")) = vbNo Then Exit Sub
-
-    For i = lo.ListRows.Count To 1 Step -1
-        If sel.Exists(i) Then lo.ListRows(i).Delete
-    Next i
-
-End Sub
-
-Public Sub SupprimerContratSelection()
-
-    Dim lo As ListObject
-    Dim sel As Object
-    Dim i As Long, k As Long, j As Long, nbReleves As Long
-    Dim fin As Double
-    Dim msg As String
-
-    Set lo = TableContrats()
+    Set lo = TableAffContrats()
     If lo Is Nothing Then Exit Sub
     If ActiveSheet.Name <> mod_VarGlobales.NOM_FEUILLE_CONTRATS Then Exit Sub
 
@@ -1928,30 +1512,12 @@ Public Sub SupprimerContratSelection()
         Exit Sub
     End If
 
-    ' Relevés rattachés aux contrats sélectionnés (même type, début dans la durée du contrat).
-    ChargerContrats
-    ChargerReleves
-    For k = 1 To c_Nb
-        If sel.Exists(c_Ligne(k)) Then
-            fin = c_Fin(k)
-            If fin = 0 Then fin = 2958465
-            For j = 1 To r_Nb
-                If StrComp(r_Typ(j), c_Typ(k), vbTextCompare) = 0 And r_Deb(j) >= c_Deb(k) And r_Deb(j) <= fin Then nbReleves = nbReleves + 1
-            Next j
-        End If
-    Next k
-
-    msg = sel.Count & mod_Display.FR(" contrat(s) {a2} supprimer ?")
-    If nbReleves > 0 Then
-        msg = msg & vbCrLf & vbCrLf & mod_Display.FR("ATTENTION : ") & nbReleves & _
-              mod_Display.FR(" relev{e2}(s) y sont rattach{e2}s. Ils ne seront pas supprim{e2}s mais appara{i2}tront sans op{e2}rateur ('") & _
-              LibSansContrat() & "')."
-    End If
-
-    If MsgBox(msg, vbYesNo + vbQuestion, mod_Display.FR("Supprimer des contrats")) = vbNo Then Exit Sub
+    If MsgBox(sel.Count & mod_Display.FR(" contrat(s) {a2} supprimer ? Les factures d{e2}j{a2} saisies sont conserv{e2}es (leur op{e2}rateur est m{e2}moris{e2} sur la facture)."), _
+              vbYesNo + vbQuestion, mod_Display.FR("Supprimer des contrats")) = vbNo Then Exit Sub
 
     For i = lo.ListRows.Count To 1 Step -1
         If sel.Exists(i) Then lo.ListRows(i).Delete
     Next i
+    EnregistrerListeContrats
 
 End Sub

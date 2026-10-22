@@ -31,9 +31,9 @@ Public Function ChargerAide(ByVal nomForm As String, ByRef titre As String, ByRe
         Case "frm_Analyse":              Def_Analyse titre, intro, champs, boutons
         Case "frm_Evolution":            Def_Evolution titre, intro, champs, boutons
         Case "frm_Consommations":        Def_Consommations titre, intro, champs, boutons
-        Case "frm_Releves":              Def_Releves titre, intro, champs, boutons
+        Case "frm_Factures":             Def_Factures titre, intro, champs, boutons
         Case "frm_Contrats":             Def_Contrats titre, intro, champs, boutons
-        Case "frm_Releve":               Def_Releve titre, intro, champs, boutons
+        Case "frm_Facture":              Def_Facture titre, intro, champs, boutons
         Case "frm_Contrat":              Def_Contrat titre, intro, champs, boutons
         Case "frm_Echeancier":           Def_Echeancier titre, intro, champs, boutons
         Case "frm_Recurrences":          Def_Recurrences titre, intro, champs, boutons
@@ -132,46 +132,47 @@ Private Sub Def_Consommations(ByRef titre As String, ByRef intro As String, ByRe
             "Apr{e1}s tout changement de param{e1}tre, cliquez sur [b:Actualiser]."
 
     L champs, "Type", "Un type de consommation, ou (tous) pour comparer les montants des diff{e2}rents types."
-    L champs, "Indicateur", "Quantit{e2}, Prix unitaire (moyenne pond{e2}r{e2}e par les quantit{e2}s, abonnement exclu), Abonnement ou Montant total (consommation + abonnement). Pour (tous), seuls l'abonnement et le montant sont comparables."
+    L champs, "Indicateur", "Quantit{e2}, Prix unitaire HT (moyenne pond{e2}r{e2}e par les quantit{e2}s, abonnement et taxes exclus), Consommation, Abonnement, Taxes (montants TTC) ou Montant total (leur somme). Pour (tous), seuls les montants sont comparables."
     L champs, "P{e2}riode", "Les 12, 36, 60 ou 120 derniers mois (jusqu'{a2} 10 ans) se terminant au mois choisi, ou l'ann{e2}e civile enti{e1}re."
     L champs, "Ann{e2}e", "Ann{e2}e de la fin de p{e2}riode, ou ann{e2}e civile analys{e2}e."
     L champs, "Mois (fin de p{e2}riode)", "Dernier mois de la p{e2}riode choisie."
     L champs, "Forme du graphique", "Barres (empil{e2}es par op{e2}rateur, ou par type pour (tous)), Courbes, ou Barres + courbe du prix (pour un type choisi : les barres montrent l'indicateur, le prix unitaire se lit sur l'axe de droite)."
-    L champs, "R{e2}partition des relev{e2}s", "Au prorata des jours : chaque relev{e2} est r{e2}parti sur les mois qu'il couvre. Mois de fin du relev{e2} : il est imput{e2} enti{e1}rement au mois de sa date de fin."
+    L champs, "R{e2}partition des lignes", "Au prorata des jours : chaque ligne de facture est r{e2}partie sur les mois qu'elle couvre. Mois de fin de la ligne : elle est imput{e2}e enti{e1}rement au mois de sa date de fin."
 
     L boutons, "Actualiser", "Recalcule le tableau et le graphique."
-    L boutons, "Saisir un relev{e2}", "Ouvre [f:frm_Releve] pour saisir une p{e2}riode de consommation."
-    L boutons, "Voir les relev{e2}s", "Affiche [f:frm_Releves], la liste des relev{e2}s (correction directe possible)."
+    L boutons, "Saisir une facture", "Ouvre [f:frm_Facture] pour saisir une facture (abonnement, consommation, taxes)."
+    L boutons, "Voir les factures", "Affiche [f:frm_Factures], la liste des factures (modification et suppression)."
     L boutons, "Contrats", "Affiche [f:frm_Contrats], la liste des contrats ; c'est l{a2} qu'on d{e2}clare un changement d'op{e2}rateur."
     L boutons, "Aide", "Ouvre cette aide, sans fermer l'{e2}cran."
     L boutons, "Sortir", "Ferme l'{e2}cran (et cette aide si elle est ouverte) et revient sur [f:Synthese]."
 
 End Sub
 
-Private Sub Def_Releves(ByRef titre As String, ByRef intro As String, ByRef champs As String, ByRef boutons As String)
+Private Sub Def_Factures(ByRef titre As String, ByRef intro As String, ByRef champs As String, ByRef boutons As String)
 
-    titre = "Liste des relev{e2}s de consommation"
-    intro = "Chaque ligne est une p{e2}riode de consommation avec sa quantit{e2}, SON prix d'unit{e2} et SON abonnement mensuel. " & _
-            "Une facture dont le prix change plusieurs fois se saisit en plusieurs lignes cons{e2}cutives (un prix par ligne) avec le m{ea}me num{e2}ro de facture. " & _
-            "Les cellules jaunes se corrigent directement ; les colonnes grises sont calcul{e2}es. Les contr{o2}les de chevauchement du formulaire " & _
-            "ne s'appliquent pas {a2} une correction faite directement dans la liste."
+    titre = "Liste des factures de consommation"
+    intro = "Cette liste r{e2}capitule les factures. Une facture se compose d'un en-t{ea}te et de lignes d'abonnement, de consommation et de taxes, " & _
+            "chacune avec ses propres dates, son prix unitaire HT, son taux de TVA et son montant TTC. La liste est en lecture seule : " & _
+            "on ajoute ou on corrige une facture avec le formulaire ([b:Ajouter une facture], [b:Modifier la s{e2}lection])."
 
-    L champs, "ID_Releve", "Num{e2}ro du relev{e2}, attribu{e2} automatiquement."
-    L champs, "TypeConso", "Type de consommation (liste : eau, eau recycl{e2}e, {e2}lectricit{e2}, gaz)."
-    L champs, "Operateur", "Calcul{e2} (gris) : op{e2}rateur du contrat en vigueur {a2} la date de d{e2}but."
-    L champs, "DateDebut", "Premier jour de la p{e2}riode (JJ/MM/AAAA)."
-    L champs, "DateFin", "Dernier jour de la p{e2}riode, inclus (JJ/MM/AAAA)."
-    L champs, "Quantite", "Quantit{e2} consomm{e2}e, en unit{e2}s du contrat (m3, kWh...)."
-    L champs, "PrixUnitaire", "Prix de l'unit{e2} hors abonnement, en euros ; 0 est accept{e2}."
-    L champs, "AbonnementMensuel", "Abonnement par mois pour ce relev{e2} ; il peut changer d'un relev{e2} {a2} l'autre."
-    L champs, "NbMois", "Calcul{e2} (gris) : 1 pour un mois complet, sinon les jours de la p{e2}riode au prorata du mois."
-    L champs, "Abonnement", "Calcul{e2} (gris) : abonnement mensuel x NbMois."
-    L champs, "Montant", "Calcul{e2} (gris) : quantit{e2} x prix + abonnement."
-    L champs, "Facture", "Num{e2}ro de facture (facultatif)."
+    L champs, "ID_Facture", "Num{e2}ro de la facture, attribu{e2} automatiquement."
+    L champs, "TypeConso", "Type de consommation (eau, eau recycl{e2}e, {e2}lectricit{e2}, gaz)."
+    L champs, "Operateur", "Fournisseur de la facture."
+    L champs, "NumeroFacture", "Num{e2}ro imprim{e2} sur la facture (facultatif)."
+    L champs, "DateFacture", "Date de la facture (facultative)."
+    L champs, "DebutPeriode", "D{e2}but de la p{e2}riode factur{e2}e (facultatif)."
+    L champs, "FinPeriode", "Fin de la p{e2}riode factur{e2}e (facultatif)."
+    L champs, "TotalHT", "Calcul{e2} : somme des montants HT des lignes."
+    L champs, "TotalTVA", "Calcul{e2} : TVA des lignes."
+    L champs, "TotalTTCCalcule", "Calcul{e2} : somme des montants TTC des lignes (indicatif)."
+    L champs, "TotalFactureTTC", "Montant TTC r{e2}ellement indiqu{e2} sur la facture."
+    L champs, "Ecart", "TotalFactureTTC - TotalTTCCalcule ; vide si le total de la facture n'a pas {e2}t{e2} saisi."
     L champs, "Commentaire", "Texte libre (facultatif)."
 
-    L boutons, "Ajouter un relev{e2}", "Ouvre [f:frm_Releve] pour saisir un relev{e2}."
-    L boutons, "Supprimer la s{e2}lection", "Supprime les lignes s{e2}lectionn{e2}es."
+    L boutons, "Ajouter une facture", "Ouvre [f:frm_Facture] pour saisir une facture."
+    L boutons, "Modifier la s{e2}lection", "Rouvre [f:frm_Facture] sur la facture s{e2}lectionn{e2}e."
+    L boutons, "Copier la s{e2}lection", "Ouvre [f:frm_Facture] pr{e2}rempli avec le type, l'op{e2}rateur, les libell{e2}s, les unit{e2}s et les taux de TVA de la facture s{e2}lectionn{e2}e ; num{e2}ro, dates, quantit{e2}s et prix sont laiss{e2}s vides. Utile pour saisir la facture suivante."
+    L boutons, "Supprimer la s{e2}lection", "Supprime la facture s{e2}lectionn{e2}e et toutes ses lignes."
     L boutons, "Contrats", "Affiche [f:frm_Contrats], la liste des contrats."
     L boutons, "Retour", "Revient sur [f:frm_Consommations]."
     L boutons, "Aide", "Ouvre cette aide, sans fermer la liste."
@@ -181,7 +182,7 @@ End Sub
 Private Sub Def_Contrats(ByRef titre As String, ByRef intro As String, ByRef champs As String, ByRef boutons As String)
 
     titre = "Liste des contrats de fourniture"
-    intro = "Un contrat est un type de consommation chez un op{e2}rateur, entre deux dates. Il donne {a2} chaque relev{e2} son op{e2}rateur, son unit{e2} et l'abonnement mensuel propos{e2} par d{e2}faut. " & _
+    intro = "Un contrat est un type de consommation chez un op{e2}rateur, entre deux dates. Il sert {a2} proposer l'op{e2}rateur et l'unit{e2} quand on saisit une facture. " & _
             "Pour changer d'op{e2}rateur, ajoutez simplement le nouveau contrat : s'il y a un contrat en cours pour ce type, le programme propose de le cl{o2}turer la veille. L'historique reste complet. " & _
             "Les cellules se corrigent directement ; deux contrats d'un m{ea}me type ne doivent pas se chevaucher."
 
@@ -191,40 +192,40 @@ Private Sub Def_Contrats(ByRef titre As String, ByRef intro As String, ByRef cha
     L champs, "Unite", "Unit{e2} de mesure (m3, kWh...)."
     L champs, "DateDebut", "Premier jour du contrat (JJ/MM/AAAA)."
     L champs, "DateFin", "Dernier jour du contrat ; vide = contrat en cours."
-    L champs, "AbonnementMensuel", "Valeur de d{e2}part propos{e2}e dans les relev{e2}s. L'abonnement r{e2}el est port{e2} par chaque relev{e2} et peut {e2}voluer."
+    L champs, "AbonnementMensuel", "Donn{e2} {a2} titre indicatif. L'abonnement r{e2}el est saisi sur les lignes d'abonnement de chaque facture."
     L champs, "Reference", "R{e2}f{e2}rence du contrat ou num{e2}ro de compteur (facultatif)."
 
     L boutons, "Ajouter un contrat", "Ouvre [f:frm_Contrat] pour saisir un contrat."
-    L boutons, "Supprimer la s{e2}lection", "Supprime les lignes s{e2}lectionn{e2}es (les relev{e2}s rattach{e2}s sont conserv{e2}s)."
-    L boutons, "Voir les relev{e2}s", "Affiche [f:frm_Releves], la liste des relev{e2}s."
+    L boutons, "Supprimer la s{e2}lection", "Supprime les lignes s{e2}lectionn{e2}es (les factures d{e2}j{a2} saisies sont conserv{e2}es)."
+    L boutons, "Voir les factures", "Affiche [f:frm_Factures], la liste des factures."
     L boutons, "Retour", "Revient sur [f:frm_Consommations]."
     L boutons, "Aide", "Ouvre cette aide, sans fermer la liste."
 
 End Sub
 
-Private Sub Def_Releve(ByRef titre As String, ByRef intro As String, ByRef champs As String, ByRef boutons As String)
+Private Sub Def_Facture(ByRef titre As String, ByRef intro As String, ByRef champs As String, ByRef boutons As String)
 
-    titre = "Saisie d'un relev{e2} de consommation"
-    intro = "Ce formulaire enregistre une p{e2}riode de consommation avec sa quantit{e2} et son prix. Choisissez d'abord le type : l'op{e2}rateur et l'unit{e2} s'affichent d'apr{e1}s le contrat en vigueur " & _
-            "et le formulaire propose la date de d{e2}but (lendemain du dernier relev{e2}), le dernier prix et le dernier abonnement connus. Vous pouvez tout modifier. " & _
-            "Pour une facture dont le prix change plusieurs fois, saisissez UN relev{e2} par prix. " & _
+    titre = "Saisie d'une facture de consommation"
+    intro = "Ce formulaire enregistre une facture telle qu'elle est imprim{e2}e par le fournisseur : un en-t{ea}te, puis des lignes d'ABONNEMENT, de CONSOMMATION et de TAXES. " & _
+            "Chaque ligne a ses propres dates, qui ne co{i2}ncident pas forc{e2}ment avec celles des autres lignes. " & _
+            "Les montants se calculent en direct ; le r{e2}capitulatif du bas est indicatif et n'emp{ea}che jamais l'enregistrement. " & _
             "Si un champ est incorrect, un message appara{i2}t sous le formulaire et rien n'est enregistr{e2}."
 
-    L champs, "Type de consommation", "Liste : eau, eau recycl{e2}e, {e2}lectricit{e2}, gaz. Pr{e2}remplit les autres champs d'apr{e1}s le contrat."
-    L champs, "Op{e2}rateur (contrat)", "Lecture seule : fournisseur du contrat en vigueur {a2} la date de d{e2}but."
-    L champs, "D{e2}but de la p{e2}riode", "Date JJ/MM/AAAA. Une p{e2}riode ne peut pas chevaucher un autre relev{e2} du m{ea}me type ni d{e2}border de son contrat."
-    L champs, "Fin de la p{e2}riode (incluse)", "Date JJ/MM/AAAA, post{e2}rieure ou {e2}gale au d{e2}but."
-    L champs, "Quantit{e2} consomm{e2}e", "Nombre positif ou nul, en unit{e2}s du contrat (m3, kWh...). L'unit{e2} s'affiche {a2} c{o2}t{e2}."
-    L champs, "Prix de l'unit{e2}", "Nombre positif ou nul, en euros par unit{e2}, hors abonnement ; 0 est accept{e2} (eau recycl{e2}e, par exemple)."
-    L champs, "Abonnement mensuel", "Nombre positif ou nul : montant par mois. Il peut changer d'un relev{e2} {a2} l'autre."
-    L champs, "Num{e2}ro de facture (facultatif)", "Texte libre ; repris tel quel par [b:Valider + suivant]."
+    L champs, "Type de consommation", "Liste : eau, eau recycl{e2}e, {e2}lectricit{e2}, gaz. Propose l'op{e2}rateur du contrat en vigueur."
+    L champs, "Op{e2}rateur (fournisseur)", "Nom du fournisseur de la facture (obligatoire). Seuls les fournisseurs dont le contrat n'est pas termin{e2} pour le type choisi sont accept{e2}s : pour un nouveau fournisseur, saisissez d'abord un nouveau contrat (bouton Contrats de l'{e2}cran Consommations)."
+    L champs, "Num{e2}ro de facture (facultatif)", "Num{e2}ro imprim{e2} sur la facture."
+    L champs, "Date de la facture (facultative)", "Date JJ/MM/AAAA."
+    L champs, "D{e2}but / fin de la p{e2}riode (facultatifs)", "P{e2}riode globale couverte par la facture."
+    L champs, "Total TTC de la facture (facultatif)", "Montant TTC imprim{e2} ; compar{e2} au total calcul{e2} d'apr{e1}s les lignes."
     L champs, "Commentaire (facultatif)", "Texte libre."
-    L champs, "Consommation (euros)", "Calcul{e2} en direct : quantit{e2} x prix."
-    L champs, "Abonnement de la p{e2}riode (euros)", "Calcul{e2} en direct, au prorata : un mois complet vaut 1 mois, une p{e2}riode partielle compte ses jours rapport{e2}s au mois."
-    L champs, "Total de la p{e2}riode (euros)", "Calcul{e2} en direct : consommation + abonnement."
+    L champs, "Boutons + et -", "En haut {a2} droite de chaque bloc : + ajoute une ligne au bloc (les blocs suivants sont d{e2}cal{e2}s vers le bas), - retire la derni{e1}re ligne si elle est vide. Chaque bloc commence avec 3 lignes."
+    L champs, "Abonnement : ligne", "Libell{e2}, d{e2}but, fin (incluse), prix HT par jour et TVA. Les jours et les montants se calculent."
+    L champs, "Consommation : ligne", "Libell{e2}, d{e2}but, fin, quantit{e2} (kWh, m3...), unit{e2}, prix unitaire HT et TVA."
+    L champs, "Taxes : ligne", "Libell{e2}, d{e2}but, fin, quantit{e2} (kWh ou euros de base), unit{e2}, prix HT et TVA."
+    L champs, "Montant HT / Montant TTC", "Calcul{e2}s en direct : HT = quantit{e2} x prix, TTC = HT x (1 + TVA), arrondis au centime."
+    L champs, "R{e2}capitulatif", "Totaux HT, TVA, TTC calcul{e2}s, total saisi et {e2}cart."
 
-    L boutons, "Valider", "Enregistre le relev{e2} puis referme le formulaire."
-    L boutons, "Valider + suivant", "Enregistre puis rouvre le formulaire sur la p{e2}riode suivante, avec les m{ea}mes prix et le m{ea}me num{e2}ro de facture."
+    L boutons, "Valider", "Enregistre la facture puis referme le formulaire."
     L boutons, "Annuler", "Referme le formulaire sans rien enregistrer."
     L boutons, "Aide", "Ouvre cette aide, sans fermer le formulaire."
 
@@ -235,7 +236,7 @@ Private Sub Def_Contrat(ByRef titre As String, ByRef intro As String, ByRef cham
     titre = "Saisie d'un contrat de fourniture"
     intro = "Ce formulaire d{e2}clare un contrat : un type de consommation chez un op{e2}rateur, {a2} partir d'une date. " & _
             "CHANGEMENT D'OP{E2}RATEUR : cr{e2}ez simplement le nouveau contrat avec sa date de d{e2}but ; s'il y a un contrat en cours pour ce type, " & _
-            "le programme propose de le cl{o2}turer la veille. Les relev{e2}s d{e2}j{a2} saisis gardent leur ancien op{e2}rateur. " & _
+            "le programme propose de le cl{o2}turer la veille. Les factures d{e2}j{a2} saisies gardent leur ancien op{e2}rateur. " & _
             "Si un champ est incorrect, un message appara{i2}t sous le formulaire et rien n'est enregistr{e2}."
 
     L champs, "Type de consommation", "Liste : eau, eau recycl{e2}e, {e2}lectricit{e2}, gaz."
@@ -243,7 +244,7 @@ Private Sub Def_Contrat(ByRef titre As String, ByRef intro As String, ByRef cham
     L champs, "Unit{e2} de mesure", "Propos{e2}e d'apr{e1}s le type (m3 pour l'eau, kWh pour l'{e2}lectricit{e2} et le gaz), modifiable."
     L champs, "D{e2}but du contrat", "Date JJ/MM/AAAA."
     L champs, "Fin du contrat (facultative)", "Date JJ/MM/AAAA ; laissez vide pour un contrat en cours."
-    L champs, "Abonnement mensuel (euros)", "Valeur de d{e2}part propos{e2}e dans les relev{e2}s ; elle peut {e2}voluer ensuite, relev{e2} par relev{e2}."
+    L champs, "Abonnement mensuel (euros)", "Donn{e2} {a2} titre indicatif ; l'abonnement r{e2}el est saisi sur chaque facture."
     L champs, "R{e2}f{e2}rence / num{e2}ro de compteur", "Texte libre (facultatif)."
 
     L boutons, "Valider", "Enregistre le contrat puis referme le formulaire."

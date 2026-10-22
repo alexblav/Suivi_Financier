@@ -533,6 +533,9 @@ Private Sub OuvrirFormulaireEtAttendre(ByVal ws As Worksheet)
     mod_InstallCommun.MasquerQuadrillage   ' quadrillage et en-tetes toujours masques (09/10/2026)
     ws.Range(CTRL_ADR_CAT).Select
 
+    ' Première opération à l'écran : on la compare à l'échéancier (voir InformerEcheancier).
+    InformerEcheancier g_CtrlIndices(g_CtrlPos)
+
     ' --- Verrou "modal" : la boucle ne se termine que lorsque g_CtrlEnCours repasse à
     ' False (bouton Terminer ou Annuler). DoEvents laisse Excel traiter les clics.
     '
@@ -894,10 +897,22 @@ Public Sub ControleOperationPrecedente()
     If g_CtrlPos > 1 Then
         g_CtrlPos = g_CtrlPos - 1
         AfficherOperation ws
+        InformerEcheancier g_CtrlIndices(g_CtrlPos)
     End If
     Exit Sub
 Erreur:
     SignalerErreur "ControleOperationPrecedente"
+End Sub
+
+' Ajout 21/10/2026 : appelée juste APRÈS l'affichage d'une opération à l'écran (première opération,
+' Suivant, Précédent). Si l'opération i (avec la catégorie, la sous-catégorie et le Tiers affichés)
+' correspond à une échéance, l'opérateur en est informé et confirme le rapprochement.
+' Sans effet hors import (mode "une seule opération"). Voir mod_Echeancier.RapprocherOperationImport.
+Private Sub InformerEcheancier(ByVal i As Long)
+    If g_CtrlModeUnique Then Exit Sub
+    If i < 1 Then Exit Sub
+    mod_Echeancier.RapprocherOperationImport CStr(g_CtrlOps(i, CTRL_OP_ID)), g_CtrlOps(i, CTRL_OP_DATE), _
+        g_CtrlTiers(i), g_CtrlOps(i, CTRL_OP_MONTANT), g_CtrlCat(i), g_CtrlSous(i), g_CtrlOps(i, CTRL_OP_CHEQUE)
 End Sub
 
 ' --- Bouton "Suivant" ---
@@ -910,6 +925,7 @@ Public Sub ControleOperationSuivante()
     If g_CtrlPos < g_CtrlNbAffiches Then
         g_CtrlPos = g_CtrlPos + 1
         AfficherOperation ws
+        InformerEcheancier g_CtrlIndices(g_CtrlPos)
     Else
         MsgBox mod_Display.FR("C'est la derni{e1}re op{e2}ration. Cliquez sur 'Enregistrer' pour valider."), vbInformation
     End If
@@ -959,6 +975,7 @@ Public Sub ControleTerminer()
         If reponse = vbOK Then
             g_CtrlPos = premiere
             AfficherOperation ws
+            InformerEcheancier g_CtrlIndices(g_CtrlPos)
         End If
         Exit Sub
     End If

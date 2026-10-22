@@ -220,16 +220,31 @@ Public Const NOM_FEUILLE_EVOLUTION As String = "frm_Evolution"
 '' SUIVI DES CONSOMMATIONS : eau, électricité, gaz (ajout 11/10/2026, voir
 '' mod_Consommations et mod_InstallConsommations)
 '' -------------------------------------------------------------------------------------
-'' Cinq feuilles masquées (ouvertes par des boutons, comme les autres écrans frm_*) :
-'' l'écran graphique, la liste des relevés, la liste des contrats et leurs deux
-'' formulaires de saisie. Les deux tableaux portent les noms ci-dessous.
+'' Ecrans masques (ouverts par des boutons, comme les autres ecrans frm_*) : l'ecran
+'' graphique, la liste des factures, la liste des contrats et leurs deux formulaires de
+'' saisie. Les DONNEES sont sur des feuilles de donnees masquees, comme Ventilations :
+'' l'installateur ne les reconstruit jamais. Les ecrans frm_Contrats et frm_Factures n'en
+'' montrent qu'une copie (TblContratsAff modifiable, TblFacturesAff en lecture seule).
 Public Const NOM_FEUILLE_CONSO As String = "frm_Consommations"
-Public Const NOM_FEUILLE_RELEVES As String = "frm_Releves"
-Public Const NOM_FEUILLE_RELEVE As String = "frm_Releve"
+Public Const NOM_FEUILLE_FACTURES As String = "frm_Factures"
+Public Const NOM_FEUILLE_FACTURE As String = "frm_Facture"
 Public Const NOM_FEUILLE_CONTRATS As String = "frm_Contrats"
 Public Const NOM_FEUILLE_CONTRAT As String = "frm_Contrat"
-Public Const NOM_TABLE_RELEVES As String = "TblReleves"
+'' Une facture = un en-tete (TblFactures) + des lignes d'abonnement, de consommation et de
+'' taxes (TblAbonnements, TblConsos, TblTaxes), reliees par ID_Facture. Les contrats
+'' (TblContrats) donnent l'operateur et l'unite proposes a la saisie.
+Public Const NOM_TABLE_FACTURES As String = "TblFactures"
+Public Const NOM_TABLE_ABOS As String = "TblAbonnements"
+Public Const NOM_TABLE_CONSOS As String = "TblConsos"
+Public Const NOM_TABLE_TAXES As String = "TblTaxes"
 Public Const NOM_TABLE_CONTRATS As String = "TblContrats"
+Public Const NOM_FEUILLE_DATA_FACTURES As String = "Conso_Factures"
+Public Const NOM_FEUILLE_DATA_ABOS As String = "Conso_Abonnements"
+Public Const NOM_FEUILLE_DATA_CONSOS As String = "Conso_Consommations"
+Public Const NOM_FEUILLE_DATA_TAXES As String = "Conso_Taxes"
+Public Const NOM_FEUILLE_DATA_CONTRATS As String = "Conso_Contrats"
+Public Const NOM_TABLE_FACTURES_AFF As String = "TblFacturesAff"
+Public Const NOM_TABLE_CONTRATS_AFF As String = "TblContratsAff"
 
 '' -------------------------------------------------------------------------------------
 '' EXPORT DE LA STRUCTURE DES FEUILLES (ajout 08/10/2026, voir mod_ExportStructure)

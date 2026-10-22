@@ -128,3 +128,10 @@ End Sub
 Private Sub Workbook_BeforeClose(Cancel As Boolean)
     If Not mod_Synchro.SynchroniserALaFermeture() Then Cancel = True
 End Sub
+
+' AJOUT 19/10/2026 : les listes de relevés et de contrats (consommations) sont une copie
+' modifiable des feuilles de données Conso_Releves / Conso_Contrats ; une liste encore
+' ouverte est écrite dans les données avant l'enregistrement.
+Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
+    mod_Consommations.EnregistrerListesSiOuvertes
+End Sub

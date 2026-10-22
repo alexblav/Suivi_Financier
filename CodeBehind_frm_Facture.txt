@@ -1,0 +1,25 @@
+' =====================================================================================
+' CODE À COLLER DANS LE MODULE DE LA FEUILLE "frm_Facture"
+' =====================================================================================
+' Même principe que pour frm_Contrat (voir CodeBehind_frm_Contrat.txt) : les événements
+' d'une feuille doivent obligatoirement être écrits dans le module de code DE LA FEUILLE
+' ELLE-MÊME. Ce code ne fait qu'appeler mod_Factures.
+'
+' COMMENT FAIRE :
+'   1. Alt+F11 pour ouvrir l'éditeur VBA.
+'   2. Dans l'explorateur de projet (Ctrl+R si absent), repérez la ligne :
+'          <CodeName> (frm_Facture)
+'      (le CodeName vous est indiqué dans le message de fin d'installation).
+'      Double-cliquez dessus.
+'   3. Collez-y LES LIGNES CI-DESSOUS, à partir de "Private Sub Worksheet_Change".
+'   4. Ne collez pas ce code dans une autre feuille : il s'y déclencherait à tort.
+'      (Attention à ne pas le confondre avec frm_Factures, la liste, qui n'en a pas besoin.)
+' =====================================================================================
+
+Private Sub Worksheet_Change(ByVal Target As Range)
+    mod_Factures.FacTraiterChangement Me, Target
+End Sub
+
+Private Sub Worksheet_Deactivate()
+    mod_Factures.FacVerrouiller Me
+End Sub

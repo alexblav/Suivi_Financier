@@ -2,6 +2,24 @@
 
 Créé le 11/10/2026 · branche `Refonte_recherche`
 
+## 0. Refonte du 19/10/2026 : modèle « facture » (remplace les relevés)
+
+Les sections 1 à 4 ci-dessous décrivent la V1 (« relevé » = une période unique pour toute la facture). Elle ne permettait pas de rendre une facture réelle (exemple : `2018_1231_Facture_Releve.pdf`, où l'abonnement, la consommation et chaque taxe ont plusieurs périodes, chacune avec son prix HT, sa TVA et son TTC). Le modèle actuel :
+
+- **TblFactures** (en-tête : type, opérateur, N°, date, période, total TTC facturé) + **TblAbonnements**, **TblConsos**, **TblTaxes** (lignes : libellé, début, fin, quantité, unité, prix unitaire HT, TVA, montant HT, montant TTC), reliées par `ID_Facture`.
+- Données sur des **feuilles masquées** (`Conso_*`), jamais reconstruites ; les écrans `frm_Factures` (lecture seule) et `frm_Contrats` en montrent une copie.
+- Formulaire `frm_Facture` : en-tête, récapitulatif en haut, puis 3 blocs de 3 lignes au départ, extensibles avec le bouton « + » de leur titre (« − » pour retirer la dernière ligne vide ; 40 lignes au plus). Les blocs sont redessinés à chaque ouverture. Total de la facture **indicatif**, comparé au total saisi.
+- Le graphique répartit chaque ligne sur les mois **selon ses propres dates** ; indicateurs : Quantité, Prix HT, Consommation, Abonnement, Taxes, Montant total (TTC).
+- Code : `mod_Factures` (nouveau), `mod_Consommations` (contrats + graphique), `mod_InstallConsommations`, `CodeBehind_frm_Facture.txt`.
+
+### Tests à faire (rien n'a été exécuté dans Excel)
+- [ ] Installer ; vérifier que les 5 feuilles `Conso_*` existent et sont masquées, puis relancer l'installation : les données restent
+- [ ] Saisir la facture 2018 du dossier (3 abonnements, 3 consommations, 4 taxes) : total TTC calculé = 1 029,00 ; HT 869,94 ; TVA 159,06
+- [ ] Modifier puis supprimer une facture depuis `frm_Factures`
+- [ ] Graphique : un type, « tous », prorata et « mois de fin », forme mixte
+- [ ] Contrats : modification directe dans `frm_Contrats`, Ctrl+S, fermeture et réouverture
+- [ ] Synchronisation : les 5 tableaux partent et reviennent par le fichier central
+
 ## 1. La demande
 
 Suivre la consommation d'électricité, de gaz et d'eau (adduction et recyclage) : historiser, **pour chaque période**, le nombre d'unités consommées et le prix de l'unité, avec une vue graphique (barres ou courbes) de leur évolution. L'opérateur doit pouvoir changer en cours de route (nouveau contrat).
