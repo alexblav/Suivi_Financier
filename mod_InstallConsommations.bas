@@ -302,6 +302,7 @@ Private Function ConstruireListeFactures(ByVal wsPrecedente As Worksheet) As Boo
 
     t = "Cette liste r{e2}capitule les factures de consommation. Une facture se compose d'un en-t{ea}te et de lignes d'abonnement, de consommation et de taxes, "
     t = t & "chacune avec ses propres dates, son prix unitaire HT, son taux de TVA et son montant TTC."
+    t = t & Chr(10) & "Les factures sont class{e2}es par date de facture, les plus r{e2}centes en haut. Les fl{e1}ches de l'en-t{ea}te permettent de filtrer chaque colonne ; le filtre est conserv{e2} quand la liste est actualis{e2}e (apr{e1}s une saisie ou une suppression)."
     t = t & Chr(10) & "La liste est en lecture seule : on ajoute ou on corrige une facture avec le formulaire. [c:TotalTTCCalcule] est la somme des lignes saisies "
     t = t & "(indicatif) ; [c:TotalFactureTTC] est le montant r{e2}ellement factur{e2} ; [c:Ecart] est leur diff{e2}rence."
     t = t & Chr(10) & "Boutons :"
@@ -353,7 +354,8 @@ Private Function ConstruireListe(ByVal nomFeuille As String, ByVal nomTable As S
     Set lo = ws.ListObjects.Add(xlSrcRange, ws.Range(ws.Cells(LIGNE_ENTETE_LISTE, 2), ws.Cells(LIGNE_ENTETE_LISTE + 1, nb + 1)), , xlYes)
     lo.Name = nomTable
     lo.TableStyle = ""
-    lo.ShowAutoFilter = False
+    ' Flèches de filtre uniquement sur la liste des factures (réappliquées à chaque rafraîchissement).
+    lo.ShowAutoFilter = (nomTable = mod_VarGlobales.NOM_TABLE_FACTURES_AFF)
     mod_InstallCommun.PoserEnteteTableau lo.HeaderRowRange
     For i = 1 To nb
         lo.ListColumns(i).DataBodyRange.NumberFormat = formats(LBound(formats) + i - 1)
@@ -511,8 +513,8 @@ Private Function TexteInstructionsFacture() As String
     t = t & Chr(10) & "[c:Type de consommation] et [c:Op{e2}rateur] : l'op{e2}rateur du contrat en vigueur est propos{e2} quand vous choisissez le type. "
     t = t & "Les dates et le total de la facture sont facultatifs mais utiles : le total saisi est compar{e2} au total calcul{e2} d'apr{e1}s les lignes."
     t = t & Chr(10) & "[c:Boutons + et -] (en haut {a2} droite de chaque bloc) : + ajoute une ligne au bloc et d{e2}cale les blocs suivants vers le bas ; - retire la derni{e1}re ligne si elle est vide. Chaque bloc commence avec 3 lignes. Le taux de [c:TVA] est pr{e2}rempli (celui de la derni{e1}re facture du m{ea}me type, sinon un taux usuel) et reste modifiable ; [c:Unit{e2}] se choisit dans une liste, et une unit{e2} nouvelle peut {ea}tre saisie apr{e1}s confirmation."
-    t = t & Chr(10) & "[c:Lignes] : une ligne par p{e2}riode de prix. [c:D{e2}but] et [c:Fin] : dates libres, fin incluse. Abonnement : les jours se calculent tout seuls. "
-    t = t & "Consommation et taxes : la quantit{e2} est en kWh, m3 ou en euros (base d'une taxe), et l'unit{e2} se saisit librement. "
+    t = t & Chr(10) & "[c:Lignes] : une ligne par p{e2}riode de prix. [c:D{e2}but] et [c:Fin] : dates libres, fin incluse. "
+    t = t & "[c:Quantit{e2}] et [c:Unit{e2}] se saisissent dans les trois blocs : jours ou mois pour l'abonnement, kWh ou m3 pour la consommation, kWh ou euros (base d'une taxe) pour les taxes. L'unit{e2} se choisit dans une liste. "
     t = t & "[c:Prix HT] : prix unitaire hors taxes (jusqu'{a2} 6 d{e2}cimales). [c:TVA] : taux de la ligne (5,5 % ou 20 %, par exemple)."
     t = t & Chr(10) & "[c:Montant HT] = quantit{e2} x prix, arrondi au centime ; [c:Montant TTC] = HT x (1 + TVA), arrondi au centime. Ils se calculent en direct. "
     t = t & "Les lignes vides sont ignor{e2}es. Le r{e2}capitulatif du bas est indicatif : un {e2}cart avec la facture n'emp{ea}che jamais l'enregistrement."

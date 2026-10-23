@@ -153,7 +153,7 @@ Private Sub Def_Factures(ByRef titre As String, ByRef intro As String, ByRef cha
     titre = "Liste des factures de consommation"
     intro = "Cette liste r{e2}capitule les factures. Une facture se compose d'un en-t{ea}te et de lignes d'abonnement, de consommation et de taxes, " & _
             "chacune avec ses propres dates, son prix unitaire HT, son taux de TVA et son montant TTC. La liste est en lecture seule : " & _
-            "on ajoute ou on corrige une facture avec le formulaire ([b:Ajouter une facture], [b:Modifier la s{e2}lection])."
+            "on ajoute ou on corrige une facture avec le formulaire ([b:Ajouter une facture], [b:Modifier la s{e2}lection]). Les factures sont class{e2}es par date de facture, les plus r{e2}centes en haut ; les fl{e1}ches de l'en-t{ea}te filtrent chaque colonne et le filtre est conserv{e2} quand la liste est actualis{e2}e."
 
     L champs, "ID_Facture", "Num{e2}ro de la facture, attribu{e2} automatiquement."
     L champs, "TypeConso", "Type de consommation (eau, eau recycl{e2}e, {e2}lectricit{e2}, gaz)."
@@ -219,7 +219,7 @@ Private Sub Def_Facture(ByRef titre As String, ByRef intro As String, ByRef cham
     L champs, "Total TTC de la facture (facultatif)", "Montant TTC imprim{e2} ; compar{e2} au total calcul{e2} d'apr{e1}s les lignes."
     L champs, "Commentaire (facultatif)", "Texte libre."
     L champs, "Boutons + et -", "En haut {a2} droite de chaque bloc : + ajoute une ligne au bloc (les blocs suivants sont d{e2}cal{e2}s vers le bas), - retire la derni{e1}re ligne si elle est vide. Chaque bloc commence avec 3 lignes."
-    L champs, "Abonnement : ligne", "Libell{e2}, d{e2}but, fin (incluse), prix HT par jour et TVA. Les jours et les montants se calculent."
+    L champs, "Abonnement : ligne", "Libell{e2}, d{e2}but, fin (incluse), quantit{e2} (nombre de jours ou de mois), unit{e2} (propos{e2}e : jours), prix HT par unit{e2} (n{e2}gatif pour un remboursement) et TVA. Les montants se calculent."
     L champs, "Consommation : ligne", "Libell{e2}, d{e2}but, fin, quantit{e2} (kWh, m3...), unit{e2}, prix unitaire HT et TVA."
     L champs, "Taxes : ligne", "Libell{e2}, d{e2}but, fin, quantit{e2} (kWh ou euros de base), unit{e2}, prix HT et TVA."
     L champs, "Montant HT / Montant TTC", "Calcul{e2}s en direct : HT = quantit{e2} x prix, TTC = HT x (1 + TVA), arrondis au centime."

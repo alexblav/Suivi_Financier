@@ -699,7 +699,7 @@ Bouton **Saisir une facture** (formulaire frm\_Facture). L'en-tête demande le t
 
 | Bloc | Colonnes saisies | Colonnes calculées |
 | --- | --- | --- |
-| Abonnement | Libellé, début, fin, prix HT par jour, TVA | Jours, montant HT, montant TTC |
+| Abonnement | Libellé, début, fin, quantité (jours ou mois), unité, prix HT par unité, TVA | Montant HT, montant TTC |
 | Consommation | Libellé, début, fin, quantité, unité, prix HT, TVA | Montant HT, montant TTC |
 | Taxes et contributions | Libellé, début, fin, quantité (kWh ou euros de base), unité, prix HT, TVA | Montant HT, montant TTC |
 
@@ -707,7 +707,7 @@ Bouton **Saisir une facture** (formulaire frm\_Facture). L'en-tête demande le t
 
 ### Les deux listes
 
-- **frm\_Factures** (lecture seule) : une ligne par facture, avec le total HT, la TVA, le total TTC calculé, le total facturé et l'écart. Boutons : Ajouter une facture, **Modifier la sélection** (rouvre le formulaire), **Copier la sélection** (nouvelle facture préremplie : type, opérateur, libellés, unités et TVA conservés ; numéro, dates, quantités et prix vides), Supprimer la sélection (supprime la facture et toutes ses lignes), Contrats, Retour.
+- **frm\_Factures** (lecture seule, classée par date de facture décroissante, flèches de filtre sur chaque colonne ; le filtre est mémorisé puis réappliqué à chaque rafraîchissement, et les boutons n'agissent que sur les lignes visibles) : une ligne par facture, avec le total HT, la TVA, le total TTC calculé, le total facturé et l'écart. Boutons : Ajouter une facture, **Modifier la sélection** (rouvre le formulaire), **Copier la sélection** (nouvelle facture préremplie : type, opérateur, libellés, unités et TVA conservés ; numéro, dates, quantités et prix vides), Supprimer la sélection (supprime la facture et toutes ses lignes), Contrats, Retour.
 - **frm\_Contrats** (modifiable directement, tableau TblContratsAff) : tous les contrats. Les modifications sont écrites dans les données en quittant l'écran, avant un Ctrl+S et à la fermeture du classeur.
 
 ### L'écran frm\_Consommations

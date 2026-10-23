@@ -21,7 +21,7 @@ Option Explicit
 '   sont reliées à leur facture par ID_Facture.
 '
 ' RÈGLES DE CALCUL (identiques à celles des factures de l'opérateur) :
-'   - Abonnement : quantité = nombre de jours de la période (début et fin inclus).
+'   - Abonnement : quantité et unité se saisissent comme pour les autres blocs (par exemple 31 jours).
 '   - Montant HT d'une ligne = ROUND(quantité x prix unitaire HT ; 2).
 '   - Montant TTC d'une ligne = ROUND(HT x (1 + TVA) ; 2).
 '   - Le total de la facture est CALCULÉ À TITRE INDICATIF (somme des lignes) et comparé au
@@ -121,6 +121,7 @@ Private g_FacNb As Long
 Private g_FacNomFeuillePrec As String
 Private g_IdEnEdition As Long
 Private g_NbUnites As Long
+Private g_AutoCompleteAvant As Boolean
 Private g_N(NAT_ABO To NAT_TAXE) As Long      ' nombre de lignes affichées dans chaque bloc
 
 
@@ -191,15 +192,6 @@ Public Function FormuleTTC(ByVal ligne As Long) As String
     h = mod_Consommations.AdresseCol(FF_COL_TVA) & ligne
     FormuleTTC = "=IF(ISNUMBER(" & i & "),ROUND(" & i & "*(1+N(" & h & ")),2),"""")"
 End Function
-
-' Nombre de jours d'une ligne d'abonnement (formule de la cellule Quantité).
-Public Function FormuleJours(ByVal ligne As Long) As String
-    Dim c As String, d As String
-    c = mod_Consommations.AdresseCol(FF_COL_DEB) & ligne
-    d = mod_Consommations.AdresseCol(FF_COL_FIN) & ligne
-    FormuleJours = "=IF(AND(ISNUMBER(" & c & "),ISNUMBER(" & d & ")),IF(" & d & ">=" & c & "," & d & "-" & c & "+1,""""),"""")"
-End Function
-
 
 ' =====================================================================================
 ' CHARGEMENT DES LIGNES (utilisé par le graphique et par les contrôles)
@@ -385,27 +377,56 @@ End Sub
 ' Numéro de la facture sélectionnée dans la liste (0 + message si aucune).
 Private Function IdFactureSelectionnee(ByRef lo As ListObject) As Long
 
-    Dim inter As Range
+    Dim inter As Range, c As Range
+    Dim lignes As Object
+    Dim n As Long
+    Dim v As Variant
 
     Set lo = TableAffFactures()
     If lo Is Nothing Then Exit Function
     If ActiveSheet.Name <> mod_VarGlobales.NOM_FEUILLE_FACTURES Then Exit Function
     If lo.DataBodyRange Is Nothing Then Exit Function
 
-    On Error Resume Next
-    Set inter = Intersect(Selection, lo.DataBodyRange)
-    On Error GoTo 0
+    Set inter = SelectionVisible(lo)
     If inter Is Nothing Then
         MsgBox mod_Display.FR("S{e2}lectionnez d'abord une ligne du tableau."), vbInformation
         Exit Function
     End If
-    If inter.Rows.Count > 1 Then
+
+    ' Une seule ligne (avec un filtre actif, la sélection peut compter plusieurs zones).
+    Set lignes = CreateObject("Scripting.Dictionary")
+    For Each c In inter.Cells
+        If Not lignes.Exists(c.Row) Then lignes.Add c.Row, True
+    Next c
+    If lignes.Count > 1 Then
         MsgBox mod_Display.FR("S{e2}lectionnez une seule facture."), vbInformation
         Exit Function
     End If
 
-    If IsNumeric(lo.ListColumns("ID_Facture").DataBodyRange.Cells(inter.Row - lo.DataBodyRange.Row + 1, 1).Value2) Then
-        IdFactureSelectionnee = CLng(lo.ListColumns("ID_Facture").DataBodyRange.Cells(inter.Row - lo.DataBodyRange.Row + 1, 1).Value2)
+    n = inter.Cells(1, 1).Row - lo.DataBodyRange.Row + 1
+    v = lo.ListColumns("ID_Facture").DataBodyRange.Cells(n, 1).Value2
+    If IsNumeric(v) And Not IsEmpty(v) Then IdFactureSelectionnee = CLng(v)
+
+End Function
+
+' Cellules VISIBLES de la sélection dans le tableau de la liste. Avec un filtre actif, une sélection qui
+' traverse des lignes masquées les contient aussi : sans cette précaution, une suppression toucherait
+' des factures que l'opérateur ne voit pas.
+Private Function SelectionVisible(ByVal lo As ListObject) As Range
+
+    Dim inter As Range
+
+    On Error Resume Next
+    Set inter = Intersect(Selection, lo.DataBodyRange)
+    On Error GoTo 0
+    If inter Is Nothing Then Exit Function
+
+    If inter.Cells.Count = 1 Then
+        Set SelectionVisible = inter        ' SpecialCells sur une seule cellule porterait sur toute la feuille
+    Else
+        On Error Resume Next
+        Set SelectionVisible = inter.SpecialCells(xlCellTypeVisible)
+        On Error GoTo 0
     End If
 
 End Function
@@ -571,9 +592,7 @@ Public Sub SupprimerFactureSelection()
     If ActiveSheet.Name <> mod_VarGlobales.NOM_FEUILLE_FACTURES Then Exit Sub
     If lo.DataBodyRange Is Nothing Then Exit Sub
 
-    On Error Resume Next
-    Set inter = Intersect(Selection, lo.DataBodyRange)
-    On Error GoTo 0
+    Set inter = SelectionVisible(lo)
     If inter Is Nothing Then
         MsgBox mod_Display.FR("S{e2}lectionnez d'abord une ou plusieurs lignes du tableau."), vbInformation
         Exit Sub
@@ -619,18 +638,28 @@ Public Sub RafraichirListeFactures()
 
     Dim src As ListObject, dst As ListObject
     Dim t() As TypeLigne
-    Dim nbL As Long, n As Long, i As Long, p As Long
+    Dim nbL As Long, n As Long, i As Long, p As Long, s As Long
     Dim donnees() As Variant
     Dim ht As Double, ttc As Double
     Dim id As Long
     Dim vTot As Variant
     Dim nbCol As Long
+    Dim ordre() As Long
+    Dim filtres As Variant
 
     Set src = TableFactures()
     Set dst = TableAffFactures()
     If src Is Nothing Or dst Is Nothing Then Exit Sub
 
     Application.ScreenUpdating = False
+
+    ' Les filtres de colonne (flèches d'Excel) sont mémorisés puis levés pendant la reconstruction du tableau,
+    ' et réappliqués à la fin : l'opérateur retrouve sa vue filtrée après chaque rafraîchissement.
+    If Not dst.ShowAutoFilter Then dst.ShowAutoFilter = True
+    filtres = MemoriserFiltres(dst)
+    On Error Resume Next
+    If dst.AutoFilter.FilterMode Then dst.AutoFilter.ShowAllData
+    On Error GoTo 0
 
     Do While dst.ListRows.Count > 1
         dst.ListRows(dst.ListRows.Count).Delete
@@ -640,13 +669,15 @@ Public Sub RafraichirListeFactures()
     If Not mod_Consommations.TableVide(src) Then
         nbL = ChargerLignes(t)
         n = src.ListRows.Count
+        OrdreParDateDecroissante src, ordre
         If n > 1 Then dst.Resize dst.Range.Resize(n + 1)
         nbCol = dst.ListColumns.Count
         ReDim donnees(1 To n, 1 To nbCol)
         For i = 1 To n
+            s = ordre(i)
             id = 0
-            If IsNumeric(src.ListColumns("ID_Facture").DataBodyRange.Cells(i, 1).Value2) Then
-                id = mod_DataStructure.ToLong(src.ListColumns("ID_Facture").DataBodyRange.Cells(i, 1).Value2)
+            If IsNumeric(src.ListColumns("ID_Facture").DataBodyRange.Cells(s, 1).Value2) Then
+                id = mod_DataStructure.ToLong(src.ListColumns("ID_Facture").DataBodyRange.Cells(s, 1).Value2)
             End If
             TotauxFacture t, nbL, id, ht, ttc
             For p = 1 To nbCol
@@ -655,11 +686,11 @@ Public Sub RafraichirListeFactures()
                     Case "TotalTVA": donnees(i, p) = ttc - ht
                     Case "TotalTTCCalcule": donnees(i, p) = ttc
                     Case "Ecart"
-                        vTot = src.ListColumns("TotalFactureTTC").DataBodyRange.Cells(i, 1).Value2
+                        vTot = src.ListColumns("TotalFactureTTC").DataBodyRange.Cells(s, 1).Value2
                         If mod_Consommations.SaisieNonVide(vTot) Then donnees(i, p) = Arrondi(mod_DataStructure.ToDouble(vTot) - ttc)
                     Case Else
                         If mod_Consommations.ColIdx(src, dst.ListColumns(p).Name) > 0 Then
-                            donnees(i, p) = src.ListColumns(dst.ListColumns(p).Name).DataBodyRange.Cells(i, 1).Value2
+                            donnees(i, p) = src.ListColumns(dst.ListColumns(p).Name).DataBodyRange.Cells(s, 1).Value2
                         End If
                 End Select
             Next p
@@ -668,7 +699,100 @@ Public Sub RafraichirListeFactures()
     End If
 
     mod_Consommations.MettreEnFormeListeFactures dst
+    RestaurerFiltres dst, filtres
     Application.ScreenUpdating = True
+
+End Sub
+
+' Numéros de ligne du tableau source classés par DateFacture décroissante (les plus récentes en haut) ;
+' les factures sans date en bas, à égalité le numéro de facture le plus grand d'abord.
+Private Sub OrdreParDateDecroissante(ByVal src As ListObject, ByRef ordre() As Long)
+
+    Dim n As Long, i As Long, j As Long, k As Long
+    Dim dates() As Double, ids() As Double
+    Dim vD As Variant, vI As Variant
+
+    n = src.ListRows.Count
+    ReDim ordre(1 To n)
+    ReDim dates(1 To n)
+    ReDim ids(1 To n)
+    vD = mod_Consommations.LireColonne(src, "DateFacture")
+    vI = mod_Consommations.LireColonne(src, "ID_Facture")
+    For i = 1 To n
+        dates(i) = mod_Consommations.VersJour(vD(i))
+        If IsNumeric(vI(i)) And Not IsEmpty(vI(i)) Then ids(i) = CDbl(vI(i))
+        ordre(i) = i
+    Next i
+
+    ' Tri par insertion (quelques centaines de factures au plus).
+    For i = 2 To n
+        k = ordre(i)
+        j = i - 1
+        Do While j >= 1
+            If dates(ordre(j)) > dates(k) Or (dates(ordre(j)) = dates(k) And ids(ordre(j)) > ids(k)) Then Exit Do
+            ordre(j + 1) = ordre(j)
+            j = j - 1
+        Loop
+        ordre(j + 1) = k
+    Next i
+
+End Sub
+
+' Mémorise les filtres de colonne actifs d'un tableau : une colonne du résultat par filtre
+' (champ, opérateur, critère 1, critère 2) ; Empty si aucun. Même principe que dans mod_RechercheOperations.
+Private Function MemoriserFiltres(ByVal tbl As ListObject) As Variant
+
+    Dim res() As Variant
+    Dim nb As Long, f As Long
+    Dim fc As Filter
+
+    If Not tbl.ShowAutoFilter Then Exit Function
+    For f = 1 To tbl.ListColumns.Count
+        Set fc = Nothing
+        On Error Resume Next
+        Set fc = tbl.AutoFilter.Filters(f)
+        On Error GoTo 0
+        If Not fc Is Nothing Then
+            If fc.On Then
+                nb = nb + 1
+                ReDim Preserve res(1 To 4, 1 To nb)
+                res(1, nb) = f
+                res(2, nb) = fc.Operator
+                res(3, nb) = fc.Criteria1
+                res(4, nb) = Empty
+                On Error Resume Next
+                res(4, nb) = fc.Criteria2
+                On Error GoTo 0
+            End If
+        End If
+    Next f
+    If nb > 0 Then MemoriserFiltres = res
+
+End Function
+
+Private Sub RestaurerFiltres(ByVal tbl As ListObject, ByVal filtres As Variant)
+
+    Dim f As Long
+    Dim crit As Variant
+    Dim op As Long
+
+    If IsEmpty(filtres) Then Exit Sub
+    On Error Resume Next
+    For f = 1 To UBound(filtres, 2)
+        crit = filtres(3, f)
+        op = filtres(2, f)
+        If op = xlFilterValues Then
+            If Not IsArray(crit) Then crit = Array(crit)
+        End If
+        If op = 0 Then
+            tbl.Range.AutoFilter Field:=filtres(1, f), Criteria1:=crit
+        ElseIf IsEmpty(filtres(4, f)) Then
+            tbl.Range.AutoFilter Field:=filtres(1, f), Criteria1:=crit, Operator:=op
+        Else
+            tbl.Range.AutoFilter Field:=filtres(1, f), Criteria1:=crit, Operator:=op, Criteria2:=filtres(4, f)
+        End If
+    Next f
+    On Error GoTo 0
 
 End Sub
 
@@ -704,11 +828,16 @@ Private Function OuvrirFormFacture(ByRef f As TypeFacture) As Boolean
 
 
     Application.EnableEvents = True
+    ' La saisie semi-automatique d'Excel complèterait "M" en "m³" (unité déjà présente dans la colonne) :
+    ' elle est coupée pendant la saisie de la facture puis rétablie telle qu'elle était.
+    g_AutoCompleteAvant = Application.EnableAutoComplete
+    Application.EnableAutoComplete = False
     g_FacEnCours = True
     g_FacVerrouActif = True
     Do While g_FacEnCours
         DoEvents
     Loop
+    Application.EnableAutoComplete = g_AutoCompleteAvant
 
     On Error Resume Next
     mod_InstallCommun.ActiverFeuille g_FacNomFeuillePrec
@@ -719,6 +848,7 @@ Private Function OuvrirFormFacture(ByRef f As TypeFacture) As Boolean
 
 Erreur:
     Application.EnableEvents = True
+    Application.EnableAutoComplete = g_AutoCompleteAvant
     g_FacEnCours = False
     g_FacVerrouActif = False
     MsgBox mod_Display.FR("Erreur inattendue dans la saisie de la facture :") & vbCrLf & Err.Number & " - " & Err.Description, vbCritical
@@ -762,12 +892,12 @@ Private Sub RemplirFormulaire(ByVal ws As Worksheet, ByRef f As TypeFacture)
         compte(nat) = compte(nat) + 1
         r = BlocL1(nat) + compte(nat) - 1
         ws.Cells(r, FF_COL_LIB).Value = g_FacLignes(k).Libelle
-        If nat <> NAT_ABO Then ws.Cells(r, FF_COL_UNITE).Value = g_FacLignes(k).Unite
+        ws.Cells(r, FF_COL_UNITE).Value = g_FacLignes(k).Unite
         ws.Cells(r, FF_COL_TVA).Value = g_FacLignes(k).Tva
         If Not g_FacLignes(k).Copie Then
             ws.Cells(r, FF_COL_DEB).Value = CDate(g_FacLignes(k).Debut)
             ws.Cells(r, FF_COL_FIN).Value = CDate(g_FacLignes(k).Fin)
-            If nat <> NAT_ABO Then ws.Cells(r, FF_COL_QTE).Value = g_FacLignes(k).Qte
+            ws.Cells(r, FF_COL_QTE).Value = g_FacLignes(k).Qte
             ws.Cells(r, FF_COL_PRIX).Value = g_FacLignes(k).Prix
         End If
     Next k
@@ -874,7 +1004,7 @@ Private Sub MettreAJourListeUnites(ByVal ws As Worksheet)
     Dim deja As Boolean
     Dim u As String
 
-    base = Array("kWh", "m" & ChrW(179), ChrW(8364), "MWh", "L", "jours", "mois")
+    base = Array("kWh", "m" & ChrW(179), ChrW(8364), "MWh", "L", "jours", "mois", "M", "MM")
     ReDim liste(1 To UBound(base) + 1 + 60)
     For i = 0 To UBound(base)
         n = n + 1
@@ -955,7 +1085,10 @@ Private Sub RemplirTvaDefaut(ByVal ws As Worksheet, ByVal typ As String)
         If tv(nat) >= 0 Then
             For i = 0 To BlocN(nat) - 1
                 r = BlocL1(nat) + i
-                If LigneVide(ws, nat, r) Then ws.Cells(r, FF_COL_TVA).Value = tv(nat)
+                If LigneVide(ws, nat, r) Then
+                    ws.Cells(r, FF_COL_TVA).Value = tv(nat)
+                    If nat = NAT_ABO And Not mod_Consommations.SaisieNonVide(ws.Cells(r, FF_COL_UNITE).Value) Then ws.Cells(r, FF_COL_UNITE).Value = "jours"
+                End If
             Next i
         End If
     Next nat
@@ -1034,7 +1167,6 @@ Public Sub DessinerBlocs(ByVal ws As Worksheet, ByVal n1 As Long, ByVal n2 As Lo
         For i = 0 To 8
             ws.Cells(titre + 1, FF_COL_LIB + i).Value = entetes(i)
         Next i
-        If nat = NAT_ABO Then ws.Cells(titre + 1, FF_COL_QTE).Value = "Jours"
         mod_InstallCommun.PoserEnteteTableau ws.Range(ws.Cells(titre + 1, FF_COL_LIB), ws.Cells(titre + 1, FF_COL_TTC))
         ws.Range(ws.Cells(titre + 1, FF_COL_QTE), ws.Cells(titre + 1, FF_COL_TTC)).HorizontalAlignment = xlRight
         ws.Cells(titre + 1, FF_COL_UNITE).HorizontalAlignment = xlLeft
@@ -1044,16 +1176,10 @@ Public Sub DessinerBlocs(ByVal ws As Worksheet, ByVal n1 As Long, ByVal n2 As Lo
             mod_InstallCommun.PoserChampSaisie ws.Cells(r, FF_COL_LIB), "@"
             mod_InstallCommun.PoserChampDate ws.Cells(r, FF_COL_DEB)
             mod_InstallCommun.PoserChampDate ws.Cells(r, FF_COL_FIN)
-            If nat = NAT_ABO Then
-                mod_InstallCommun.PoserChampLecture ws.Cells(r, FF_COL_QTE), "#,##0"
-                ws.Cells(r, FF_COL_QTE).Formula = FormuleJours(r)
-                mod_InstallCommun.PoserChampLecture ws.Cells(r, FF_COL_UNITE), "@"
-                ws.Cells(r, FF_COL_UNITE).Value = "J"
-            Else
-                mod_InstallCommun.PoserChampMontant ws.Cells(r, FF_COL_QTE), "#,##0.00", mod_InstallCommun.MONTANT_POSITIF_OU_NUL
-                mod_InstallCommun.PoserChampSaisie ws.Cells(r, FF_COL_UNITE), "@"
-            End If
-            mod_InstallCommun.PoserChampMontant ws.Cells(r, FF_COL_PRIX), "#,##0.00000", mod_InstallCommun.MONTANT_POSITIF_OU_NUL
+            ' Les trois blocs ont les mêmes colonnes : quantité et unité se saisissent partout (abonnement : 31 jours, 1 mois...).
+            mod_InstallCommun.PoserChampMontant ws.Cells(r, FF_COL_QTE), "#,##0.00", mod_InstallCommun.MONTANT_POSITIF_OU_NUL
+            mod_InstallCommun.PoserChampSaisie ws.Cells(r, FF_COL_UNITE), "@"
+            mod_InstallCommun.PoserChampSaisie ws.Cells(r, FF_COL_PRIX), "#,##0.00000"      ' contrôle : PoserGardeFousBloc (prix négatif = remboursement)
             mod_InstallCommun.PoserChampSaisie ws.Cells(r, FF_COL_TVA), "0.0%"
             mod_InstallCommun.PoserChampLecture ws.Cells(r, FF_COL_HT), "#,##0.00"
             ws.Cells(r, FF_COL_HT).Formula = FormuleHT(r)
@@ -1200,9 +1326,7 @@ Private Sub AjusterBloc(ByVal nat As Long, ByVal delta As Long)
         If g_N(k) < m Then m = g_N(k)
         For i = 1 To m
             For c = 1 To (FF_COL_TVA - FF_COL_LIB + 1)
-                If k = NAT_ABO And (FF_COL_LIB + c - 1 = FF_COL_QTE Or FF_COL_LIB + c - 1 = FF_COL_UNITE) Then
-                    ' formule des jours / unité fixe : on ne touche pas
-                ElseIf Not IsEmpty(brut(k)(i, c)) Then
+                If Not IsEmpty(brut(k)(i, c)) Then
                     ws.Cells(BlocL1(k) + i - 1, FF_COL_LIB + c - 1).Value = brut(k)(i, c)
                 End If
             Next c
@@ -1226,7 +1350,7 @@ Private Function LigneVide(ByVal ws As Worksheet, ByVal nat As Long, ByVal r As 
     Dim c As Long
     ' La TVA (préremplie) et l'unité ne comptent pas : une ligne sans autre saisie reste vide.
     For c = FF_COL_LIB To FF_COL_PRIX
-        If Not (c = FF_COL_UNITE Or (nat = NAT_ABO And c = FF_COL_QTE)) Then
+        If c <> FF_COL_UNITE Then
             If mod_Consommations.SaisieNonVide(ws.Cells(r, c).Value) Then Exit Function
         End If
     Next c
@@ -1235,6 +1359,21 @@ End Function
 
 Private Sub EcrireDate(ByVal c As Range, ByVal jour As Double)
     If jour > 0 Then c.Value = CDate(jour) Else c.ClearContents
+End Sub
+
+' Prix unitaire HT : un prix NÉGATIF est admis (remboursement, avoir). Pas de contrôle bloquant sur la cellule
+' (une validation « décimal » refusait des saisies correctes) : seule une bulle d'aide s'affiche, et la validation
+' du formulaire relit la valeur (virgule ou point décimal, signe moins) avant tout enregistrement.
+Private Sub PoserAidePrix(ByVal c As Range)
+    On Error Resume Next
+    With c.Validation
+        .Delete
+        .Add Type:=xlValidateInputOnly
+        .ShowInput = True
+        .InputTitle = "Prix HT"
+        .InputMessage = mod_Display.FR("Prix unitaire hors taxes, avec une virgule (exemple : 0,09010). Un remboursement se saisit en n{e2}gatif (exemple : -0,33810).")
+    End With
+    On Error GoTo 0
 End Sub
 
 ' Validation des cellules de dates, quantités, prix et TVA d'un bloc.
@@ -1248,12 +1387,10 @@ Public Sub PoserGardeFousBloc(ByVal ws As Worksheet, ByVal nat As Long)
     For r = l1 To l2
         mod_InstallCommun.PoserValidationDate ws.Cells(r, FF_COL_DEB)
         mod_InstallCommun.PoserValidationDate ws.Cells(r, FF_COL_FIN)
-        If nat <> NAT_ABO Then
-            mod_InstallCommun.PoserValidationMontant ws.Cells(r, FF_COL_QTE), mod_InstallCommun.MONTANT_POSITIF_OU_NUL
-        End If
-        mod_InstallCommun.PoserValidationMontant ws.Cells(r, FF_COL_PRIX), mod_InstallCommun.MONTANT_POSITIF_OU_NUL
+        mod_InstallCommun.PoserValidationMontant ws.Cells(r, FF_COL_QTE), mod_InstallCommun.MONTANT_POSITIF_OU_NUL
+        PoserAidePrix ws.Cells(r, FF_COL_PRIX)
     Next r
-    If nat <> NAT_ABO And g_NbUnites > 0 Then
+    If g_NbUnites > 0 Then
         On Error Resume Next
         With ws.Range(ws.Cells(l1, FF_COL_UNITE), ws.Cells(l2, FF_COL_UNITE)).Validation
             .Delete
@@ -1437,10 +1574,9 @@ Private Function LireLignes(ByVal ws As Worksheet, ByRef f As TypeFacture) As Bo
             vPrix = ws.Cells(r, FF_COL_PRIX).Value
             vTva = ws.Cells(r, FF_COL_TVA).Value
 
-            ' Ligne vide : ignorée (la quantité d'un abonnement est calculée, elle ne compte pas).
+            ' Ligne vide : ignorée (la TVA et l'unité, préremplies, ne comptent pas).
             If Not (mod_Consommations.SaisieNonVide(vLib) Or mod_Consommations.SaisieNonVide(vDeb) Or mod_Consommations.SaisieNonVide(vFin) Or _
-                    mod_Consommations.SaisieNonVide(vPrix) Or _
-                    (nat <> NAT_ABO And mod_Consommations.SaisieNonVide(vQte))) Then GoTo Suivante
+                    mod_Consommations.SaisieNonVide(vPrix) Or mod_Consommations.SaisieNonVide(vQte)) Then GoTo Suivante
 
             texteLigne = NomNature(nat) & ", ligne " & (i + 1) & " : "
 
@@ -1457,17 +1593,13 @@ Private Function LireLignes(ByVal ws As Worksheet, ByRef f As TypeFacture) As Bo
                 Exit Function
             End If
 
-            If nat = NAT_ABO Then
-                q = CDbl(dFin) - CDbl(dDeb) + 1
-            Else
-                If Not mod_Consommations.SaisieNonVide(vQte) Or Not mod_DataStructure.TryLireMontant(vQte, q, 4) Then
-                    AfficherMessage ws, texteLigne & "quantit{e2} absente ou invalide."
-                    Exit Function
-                End If
-                If q < 0 Then
-                    AfficherMessage ws, texteLigne & "la quantit{e2} ne peut pas {ea}tre n{e2}gative."
-                    Exit Function
-                End If
+            If Not mod_Consommations.SaisieNonVide(vQte) Or Not mod_DataStructure.TryLireMontant(vQte, q, 4) Then
+                AfficherMessage ws, texteLigne & "quantit{e2} absente ou invalide."
+                Exit Function
+            End If
+            If q < 0 Then
+                AfficherMessage ws, texteLigne & "la quantit{e2} ne peut pas {ea}tre n{e2}gative."
+                Exit Function
             End If
             If Not mod_Consommations.SaisieNonVide(vPrix) Or Not mod_DataStructure.TryLireMontant(vPrix, p, 6) Then
                 AfficherMessage ws, texteLigne & "prix unitaire HT absent ou invalide (6 d{e2}cimales au maximum)."
@@ -1495,7 +1627,7 @@ Private Function LireLignes(ByVal ws As Worksheet, ByRef f As TypeFacture) As Bo
                 .Debut = CDbl(dDeb)
                 .Fin = CDbl(dFin)
                 .Qte = q
-                If nat = NAT_ABO Then .Unite = "J" Else .Unite = mod_DataStructure.CellText(vUni)
+                .Unite = mod_DataStructure.CellText(vUni)
                 .Prix = p
                 .Tva = tv
                 .HT = Arrondi(q * p)

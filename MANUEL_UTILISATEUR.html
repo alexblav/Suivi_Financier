@@ -697,8 +697,8 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <tbody>
 <tr>
 <td><strong>Abonnement</strong></td>
-<td>Libellé, début, fin (incluse), prix HT par jour, TVA</td>
-<td>Nombre de jours, montant HT, montant TTC</td>
+<td>Libellé, début, fin (incluse), quantité (nombre de jours ou de mois), unité (« jours » proposé), prix HT par unité, TVA</td>
+<td>Montant HT, montant TTC</td>
 </tr>
 <tr>
 <td><strong>Consommation</strong></td>
@@ -712,8 +712,9 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 </tr>
 </tbody>
 </table></div>
-<p>Le <strong>taux de TVA</strong> est prérempli (celui de la dernière facture du même type, sinon un taux usuel) et reste modifiable. L'<strong>unité</strong> se choisit dans une liste ; une unité nouvelle peut être saisie après confirmation et sera ensuite proposée. <strong>Montant HT</strong> = quantité × prix HT, arrondi au centime. <strong>Montant TTC</strong> = HT × (1 + TVA), arrondi au centime. Le <strong>récapitulatif</strong> du haut (total HT, TVA, total TTC calculé, total saisi, écart) est <strong>indicatif</strong> : un écart avec la facture n'empêche jamais l'enregistrement, mais il signale une ligne oubliée ou mal saisie.</p>
+<p>Le <strong>taux de TVA</strong> est prérempli (celui de la dernière facture du même type, sinon un taux usuel) et reste modifiable. L'<strong>unité</strong> se choisit dans une liste ; une unité nouvelle peut être saisie après confirmation et sera ensuite proposée. Un <strong>remboursement</strong> se saisit avec un <strong>prix HT négatif</strong> (exemple : −0,33810) : son montant HT et TTC est alors négatif et vient en déduction dans les totaux et le graphique. <strong>Montant HT</strong> = quantité × prix HT, arrondi au centime. <strong>Montant TTC</strong> = HT × (1 + TVA), arrondi au centime. Le <strong>récapitulatif</strong> du haut (total HT, TVA, total TTC calculé, total saisi, écart) est <strong>indicatif</strong> : un écart avec la facture n'empêche jamais l'enregistrement, mais il signale une ligne oubliée ou mal saisie.</p>
 <p>Si une période d'abonnement ou de consommation en chevauche une autre (même facture, ou autre facture du même type), le classeur vous demande confirmation : c'est le signe d'une double saisie.</p>
+<p><strong>Retrouver une facture :</strong> la liste est classée par date de facture, les plus récentes en haut. Les flèches de l'en-tête filtrent chaque colonne (opérateur, type, période…) ; le filtre est conservé après une saisie, une modification ou une suppression.</p>
 <p><strong>Gagner du temps :</strong> dans <strong>Voir les factures</strong>, sélectionnez une facture puis <strong>Copier la sélection</strong> : le formulaire s'ouvre avec le type, l'opérateur, les libellés, les unités et les taux de TVA de cette facture ; le numéro, les dates, les quantités et les prix sont laissés vides, à compléter pour la nouvelle facture.</p>
 <p><strong>Corriger une facture :</strong> bouton <strong>Voir les factures</strong>, sélectionnez une ligne, puis <strong>Modifier la sélection</strong>. <strong>Supprimer la sélection</strong> supprime la facture et toutes ses lignes.</p>
 <h3 id="consulter">Consulter</h3>

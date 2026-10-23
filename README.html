@@ -1256,8 +1256,8 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 <tbody>
 <tr>
 <td>Abonnement</td>
-<td>Libellé, début, fin, prix HT par jour, TVA</td>
-<td>Jours, montant HT, montant TTC</td>
+<td>Libellé, début, fin, quantité (jours ou mois), unité, prix HT par unité, TVA</td>
+<td>Montant HT, montant TTC</td>
 </tr>
 <tr>
 <td>Consommation</td>
@@ -1274,7 +1274,7 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 <p><strong>Montant HT</strong> = quantité × prix unitaire HT, arrondi au centime ; <strong>Montant TTC</strong> = HT × (1 + TVA), arrondi au centime (règle de la facture du fournisseur). Le taux de TVA est prérempli (dernière ligne enregistrée du même type et de la même nature, sinon eau 5,5 % ; électricité et gaz : abonnement 5,5 %, consommation et taxes 20 %) ; l'unité se choisit dans une liste complétable (unités usuelles + celles déjà saisies). Chaque bloc commence avec <strong>3 lignes</strong> ; le bouton <strong>+</strong> du titre du bloc en ajoute une (les blocs suivants descendent), le bouton <strong>−</strong> retire la dernière ligne si elle est vide (40 lignes au plus par bloc). Les lignes vides sont ignorées. Un récapitulatif indicatif (HT, TVA, TTC calculés, total saisi, écart), placé en haut du formulaire, se met à jour en direct. Le formulaire demande confirmation si une période d'abonnement ou de consommation chevauche une autre ligne de la même facture ou une autre facture du même type (signe d'une double saisie).</p>
 <h3 id="les-deux-listes_1">Les deux listes</h3>
 <ul>
-<li><strong>frm_Factures</strong> (lecture seule) : une ligne par facture, avec le total HT, la TVA, le total TTC calculé, le total facturé et l'écart. Boutons : Ajouter une facture, <strong>Modifier la sélection</strong> (rouvre le formulaire), <strong>Copier la sélection</strong> (nouvelle facture préremplie : type, opérateur, libellés, unités et TVA conservés ; numéro, dates, quantités et prix vides), Supprimer la sélection (supprime la facture et toutes ses lignes), Contrats, Retour.</li>
+<li><strong>frm_Factures</strong> (lecture seule, classée par date de facture décroissante, flèches de filtre sur chaque colonne ; le filtre est mémorisé puis réappliqué à chaque rafraîchissement, et les boutons n'agissent que sur les lignes visibles) : une ligne par facture, avec le total HT, la TVA, le total TTC calculé, le total facturé et l'écart. Boutons : Ajouter une facture, <strong>Modifier la sélection</strong> (rouvre le formulaire), <strong>Copier la sélection</strong> (nouvelle facture préremplie : type, opérateur, libellés, unités et TVA conservés ; numéro, dates, quantités et prix vides), Supprimer la sélection (supprime la facture et toutes ses lignes), Contrats, Retour.</li>
 <li><strong>frm_Contrats</strong> (modifiable directement, tableau TblContratsAff) : tous les contrats. Les modifications sont écrites dans les données en quittant l'écran, avant un Ctrl+S et à la fermeture du classeur.</li>
 </ul>
 <h3 id="lécran-frm_consommations">L'écran frm_Consommations</h3>
