@@ -226,6 +226,8 @@ Private Sub Def_Facture(ByRef titre As String, ByRef intro As String, ByRef cham
     L champs, "R{e2}capitulatif", "Totaux HT, TVA, TTC calcul{e2}s, total saisi et {e2}cart."
 
     L boutons, "Valider", "Enregistre la facture puis referme le formulaire."
+    L boutons, "Ajouter un bloc", "Demande un nom puis cr{e2}e, sous les blocs existants, un bloc de m{ea}me forme (m{ea}mes colonnes). Ses lignes sont enregistr{e2}es avec ce nom et comptent dans les totaux de la facture. Six blocs au plus."
+    L boutons, "+ / - / x (titre d'un bloc)", "+ ajoute une ligne au bloc (les blocs suivants descendent) ; - retire la derni{e1}re ligne si elle est vide ; x supprime un bloc ajout{e2} (confirmation s'il contient des lignes)."
     L boutons, "Annuler", "Referme le formulaire sans rien enregistrer."
     L boutons, "Aide", "Ouvre cette aide, sans fermer le formulaire."
 

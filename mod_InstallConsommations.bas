@@ -95,6 +95,9 @@ Private Function PreparerToutesLesDonnees() As Boolean
     If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_ABOS, mod_VarGlobales.NOM_TABLE_ABOS, lignes, "") Then Exit Function
     If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_CONSOS, mod_VarGlobales.NOM_TABLE_CONSOS, lignes, "") Then Exit Function
     If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_TAXES, mod_VarGlobales.NOM_TABLE_TAXES, lignes, "") Then Exit Function
+    ' Blocs libres : un seul tableau, mêmes colonnes que les autres lignes + le nom et le rang du bloc.
+    If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_BLOCS, mod_VarGlobales.NOM_TABLE_BLOCS, _
+        Split("ID_Facture|Bloc|RangBloc|Libelle|DateDebut|DateFin|Quantite|Unite|PrixUnitaireHT|TauxTVA|MontantHT|MontantTTC", "|"), "") Then Exit Function
     PreparerToutesLesDonnees = True
 
 End Function
@@ -488,7 +491,7 @@ Private Function ConstruireFormulaireFacture(ByVal wsPrecedente As Worksheet) As
 
     ' Les trois blocs de lignes (abonnement, consommation, taxes), FF_NB_DEFAUT lignes chacun :
     ' ils sont redessinés à chaque ouverture et grandissent avec leur bouton "+".
-    mod_Factures.DessinerBlocs ws, mod_Factures.FF_NB_DEFAUT, mod_Factures.FF_NB_DEFAUT, mod_Factures.FF_NB_DEFAUT
+    mod_Factures.DessinerBlocsParDefaut ws
 
     ' --- Boutons de la ligne d'en-tête ---
     gauche = ws.Cells(1, 2).Left
@@ -496,6 +499,8 @@ Private Function ConstruireFormulaireFacture(ByVal wsPrecedente As Worksheet) As
         "FacValider", "btnFacValider", mod_InstallCommun.FRM_BTN_L
     mod_InstallCommun.AjouterBoutonEntete ws, LIGNE_BOUTONS, gauche, mod_InstallCommun.CapAnnuler(), _
         "FacAnnuler", "btnFacAnnuler", mod_InstallCommun.FRM_BTN_L
+    mod_InstallCommun.AjouterBoutonEntete ws, LIGNE_BOUTONS, gauche, mod_Display.FR("Ajouter un bloc"), _
+        "FacAjouterBloc", "btnFacAjouterBloc", 102
     mod_InstallCommun.AjouterBoutonAide ws, LIGNE_BOUTONS, gauche
 
     mod_InstallCommun.TerminerFeuille ws, wsPrecedente
@@ -520,8 +525,10 @@ Private Function TexteInstructionsFacture() As String
     t = t & "Les lignes vides sont ignor{e2}es. Le r{e2}capitulatif du bas est indicatif : un {e2}cart avec la facture n'emp{ea}che jamais l'enregistrement."
     t = t & Chr(10) & "Si un champ est incorrect, un message appara{i2}t sous le formulaire et rien n'est enregistr{e2}. "
     t = t & "Si une p{e2}riode de consommation ou d'abonnement en chevauche une autre du m{ea}me type, une confirmation est demand{e2}e."
+    t = t & Chr(10) & "[b:Ajouter un bloc] : cr{e2}e, sous les blocs existants, un bloc de m{ea}me forme (m{ea}mes colonnes) dont vous donnez le nom (exemple : Redevance, Avoir). Il se remplit comme les autres blocs ; le bouton x de son titre le supprime. Ses lignes sont enregistr{e2}es avec le nom du bloc et comptent dans les totaux de la facture."
     t = t & Chr(10) & "Boutons :"
     t = t & Chr(10) & "- [b:Valider] : enregistre la facture puis referme le formulaire."
+    t = t & Chr(10) & "- [b:Ajouter un bloc] : ajoute un bloc nomm{e2} sous les blocs existants."
     t = t & Chr(10) & "- [b:Annuler] : referme le formulaire sans rien enregistrer."
 
     TexteInstructionsFacture = t

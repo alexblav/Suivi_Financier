@@ -12,7 +12,10 @@ Les sections 1 à 4 ci-dessous décrivent la V1 (« relevé » = une période un
 - Le graphique répartit chaque ligne sur les mois **selon ses propres dates** ; indicateurs : Quantité, Prix HT, Consommation, Abonnement, Taxes, Montant total (TTC).
 - Code : `mod_Factures` (nouveau), `mod_Consommations` (contrats + graphique), `mod_InstallConsommations`, `CodeBehind_frm_Facture.txt`.
 
+- **Blocs libres (23/10/2026)** : bouton « Ajouter un bloc » du formulaire ; lignes dans `TblBlocsLibres` (`Conso_Blocs`, colonnes `Bloc` et `RangBloc`). Comptés dans les totaux du formulaire et de la liste, **pas encore dans le graphique** (`ChargerLignes` ne les renvoie que sur demande). À décider ensuite : famille de rattachement (Consommation / Abonnement / Taxes / « Autres »).
+
 ### Tests à faire (rien n'a été exécuté dans Excel)
+- [ ] Blocs libres : ajouter un bloc, le remplir, valider ; rouvrir la facture (bloc et lignes revenus) ; copier ; supprimer le bloc ; ajouter 6 blocs puis tenter un 7e ; totaux du formulaire et de la liste
 - [ ] Installer ; vérifier que les 5 feuilles `Conso_*` existent et sont masquées, puis relancer l'installation : les données restent
 - [ ] Saisir la facture 2018 du dossier (3 abonnements, 3 consommations, 4 taxes) : total TTC calculé = 1 029,00 ; HT 869,94 ; TVA 159,06
 - [ ] Modifier puis supprimer une facture depuis `frm_Factures`

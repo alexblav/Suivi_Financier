@@ -27,7 +27,12 @@ Option Explicit
 '   - Le total de la facture est CALCULÉ À TITRE INDICATIF (somme des lignes) et comparé au
 '     total facturé saisi : l'écart est affiché mais n'empêche jamais l'enregistrement.
 '
-' SAISIE : formulaire frm_Facture (en-tête + trois blocs de lignes de capacité fixe),
+' BLOCS LIBRES : en plus des trois blocs fixes (modèle de toute nouvelle facture), l'opérateur peut ajouter des blocs
+'   nommés (bouton "Ajouter un bloc" du formulaire), de même forme. Leurs lignes sont enregistrées dans le tableau
+'   TblBlocsLibres (feuille Conso_Blocs), avec le nom et le rang du bloc ; elles sont comptées dans les totaux de la
+'   facture (récapitulatif, liste) mais pas encore dans le graphique.
+'
+' SAISIE : formulaire frm_Facture (en-tête + trois blocs de lignes, extensibles),
 '   ouvert par SaisirFacture (nouvelle facture) ou ModifierFactureSelection (liste
 '   frm_Factures). Les montants du formulaire se calculent en direct (formules).
 '
@@ -38,6 +43,7 @@ Option Explicit
 Public Const NAT_ABO As Long = 1
 Public Const NAT_CONSO As Long = 2
 Public Const NAT_TAXE As Long = 3
+Public Const NAT_LIBRE As Long = 4          ' ligne d'un bloc ajouté par l'opérateur (TblBlocsLibres)
 
 ' --- Formulaire frm_Facture : en-tête (B = étiquettes, C = saisie) ---
 Public Const FF_ADR_TYPE As String = "C6"             ' fusion C6:D6
@@ -78,6 +84,15 @@ Public Const FF_LARG_LIBELLE As Double = 44           ' largeur de la colonne B 
 Public Const FF_BLOCS_DEBUT As Long = 24
 Public Const FF_NB_DEFAUT As Long = 3           ' lignes affichées au départ dans chaque bloc
 Public Const FF_MAX_LIGNES As Long = 40         ' limite d'un bloc
+Public Const FF_MAX_BLOCS_LIBRES As Long = 6    ' blocs que l'opérateur peut ajouter aux trois blocs fixes
+Public Const FF_MAX_BLOCS As Long = 9           ' 3 blocs fixes + FF_MAX_BLOCS_LIBRES
+Public Const FF_LONG_NOM_BLOC As Long = 60      ' longueur maximale du nom d'un bloc ajouté
+
+' Modes de ModifierStructure (déclarations de module : elles doivent précéder toute procédure).
+Private Const MODE_PLUS As Long = 1
+Private Const MODE_MOINS As Long = 2
+Private Const MODE_AJOUT_BLOC As Long = 3
+Private Const MODE_SUPPR_BLOC As Long = 4
 
 ' Une facture telle que saisie dans le formulaire.
 Public Type TypeFacture
@@ -95,7 +110,9 @@ End Type
 
 ' Une ligne de facture (abonnement, consommation ou taxe).
 Public Type TypeLigne
-    Nat As Long
+    Nat As Long                 ' 1 abonnement, 2 consommation, 3 taxes, 4 bloc libre
+    Bloc As String              ' nom du bloc (blocs libres seulement)
+    RangBloc As Long            ' rang du bloc libre dans la facture (1, 2...)
     IDFacture As Long
     Typ As String               ' type de la facture (renseigné au chargement)
     Operateur As String         ' opérateur de la facture (renseigné au chargement)
@@ -122,7 +139,9 @@ Private g_FacNomFeuillePrec As String
 Private g_IdEnEdition As Long
 Private g_NbUnites As Long
 Private g_AutoCompleteAvant As Boolean
-Private g_N(NAT_ABO To NAT_TAXE) As Long      ' nombre de lignes affichées dans chaque bloc
+Private g_NbBlocs As Long                     ' blocs affichés : 3 fixes + les blocs libres
+Private g_N(1 To FF_MAX_BLOCS) As Long        ' nombre de lignes affichées dans chaque bloc
+Private g_NomBloc(1 To FF_MAX_BLOCS) As String ' nom des blocs libres (indices 4 et suivants)
 
 
 ' =====================================================================================
@@ -138,6 +157,8 @@ Public Function TableLignes(ByVal nat As Long) As ListObject
             Set TableLignes = mod_Consommations.ObtenirTable(mod_VarGlobales.NOM_FEUILLE_DATA_ABOS, mod_VarGlobales.NOM_TABLE_ABOS)
         Case NAT_CONSO
             Set TableLignes = mod_Consommations.ObtenirTable(mod_VarGlobales.NOM_FEUILLE_DATA_CONSOS, mod_VarGlobales.NOM_TABLE_CONSOS)
+        Case NAT_LIBRE
+            Set TableLignes = mod_Consommations.ObtenirTable(mod_VarGlobales.NOM_FEUILLE_DATA_BLOCS, mod_VarGlobales.NOM_TABLE_BLOCS)
         Case Else
             Set TableLignes = mod_Consommations.ObtenirTable(mod_VarGlobales.NOM_FEUILLE_DATA_TAXES, mod_VarGlobales.NOM_TABLE_TAXES)
     End Select
@@ -149,31 +170,33 @@ End Function
 
 Public Function FacturesInstallees() As Boolean
     FacturesInstallees = Not (TableFactures() Is Nothing) And Not (TableLignes(NAT_ABO) Is Nothing) And _
-                         Not (TableLignes(NAT_CONSO) Is Nothing) And Not (TableLignes(NAT_TAXE) Is Nothing)
+                         Not (TableLignes(NAT_CONSO) Is Nothing) And Not (TableLignes(NAT_TAXE) Is Nothing) And _
+                         Not (TableLignes(NAT_LIBRE) Is Nothing)
 End Function
 
 ' Nombre de lignes affichées dans un bloc, et positions (le formulaire est redessiné quand ce nombre change).
-Private Function BlocN(ByVal nat As Long) As Long
-    BlocN = g_N(nat)
+Private Function BlocN(ByVal b As Long) As Long
+    BlocN = g_N(b)
 End Function
 
-Private Function BlocTitre(ByVal nat As Long) As Long
+Private Function BlocTitre(ByVal b As Long) As Long
     Dim t As Long, k As Long
     t = FF_BLOCS_DEBUT
-    For k = NAT_ABO To nat - 1
+    For k = 1 To b - 1
         t = t + g_N(k) + 4
     Next k
     BlocTitre = t
 End Function
 
-Private Function BlocL1(ByVal nat As Long) As Long
-    BlocL1 = BlocTitre(nat) + 2
+Private Function BlocL1(ByVal b As Long) As Long
+    BlocL1 = BlocTitre(b) + 2
 End Function
 
 Private Function NomNature(ByVal nat As Long) As String
     Select Case nat
         Case NAT_ABO: NomNature = "Abonnement"
         Case NAT_CONSO: NomNature = "Consommation"
+        Case NAT_LIBRE: NomNature = "Bloc ajout" & ChrW(233)
         Case Else: NomNature = "Taxes et contributions"
     End Select
 End Function
@@ -196,17 +219,19 @@ End Function
 ' =====================================================================================
 ' CHARGEMENT DES LIGNES (utilisé par le graphique et par les contrôles)
 ' =====================================================================================
-' Remplit "t" (base 1) avec toutes les lignes valides des trois tableaux, avec le type et
-' l'opérateur de leur facture. Renvoie leur nombre. Si "sauf" > 0, les lignes de cette
-' facture sont ignorées (contrôle de chevauchement lors d'une modification).
-Public Function ChargerLignes(ByRef t() As TypeLigne, Optional ByVal sauf As Long = 0) As Long
+' Remplit "t" (base 1) avec toutes les lignes valides des tableaux, avec le type et l'opérateur de leur
+' facture. Renvoie leur nombre. Si "sauf" > 0, les lignes de cette facture sont ignorées (contrôle de
+' chevauchement lors d'une modification). Les lignes des BLOCS LIBRES (TblBlocsLibres) ne sont renvoyées que
+' si "inclureLibres" : le graphique ne les utilise pas encore (leur rattachement aux indicateurs reste à décider).
+Public Function ChargerLignes(ByRef t() As TypeLigne, Optional ByVal sauf As Long = 0, Optional ByVal inclureLibres As Boolean = False) As Long
 
     Dim loF As ListObject, lo As ListObject
     Dim dTyp As Object, dOp As Object
     Dim vID() As Variant, vT() As Variant, vO() As Variant
     Dim vI() As Variant, vL() As Variant, vD() As Variant, vF() As Variant, vQ() As Variant
     Dim vU() As Variant, vP() As Variant, vV() As Variant, vH() As Variant, vC() As Variant
-    Dim i As Long, n As Long, nat As Long, nb As Long, id As Long
+    Dim vB() As Variant, vR() As Variant
+    Dim i As Long, n As Long, nat As Long, nb As Long, id As Long, natMax As Long
     Dim d As Double, f As Double
     Dim cle As String
 
@@ -229,7 +254,8 @@ Public Function ChargerLignes(ByRef t() As TypeLigne, Optional ByVal sauf As Lon
         Next i
     End If
 
-    For nat = NAT_ABO To NAT_TAXE
+    If inclureLibres Then natMax = NAT_LIBRE Else natMax = NAT_TAXE
+    For nat = NAT_ABO To natMax
         Set lo = TableLignes(nat)
         If Not lo Is Nothing Then
             If Not mod_Consommations.TableVide(lo) Then
@@ -244,6 +270,10 @@ Public Function ChargerLignes(ByRef t() As TypeLigne, Optional ByVal sauf As Lon
                 vV = mod_Consommations.LireColonne(lo, "TauxTVA")
                 vH = mod_Consommations.LireColonne(lo, "MontantHT")
                 vC = mod_Consommations.LireColonne(lo, "MontantTTC")
+                If nat = NAT_LIBRE Then
+                    vB = mod_Consommations.LireColonne(lo, "Bloc")
+                    vR = mod_Consommations.LireColonne(lo, "RangBloc")
+                End If
                 For i = 1 To n
                     If IsNumeric(vI(i)) And Not IsEmpty(vI(i)) Then
                         id = CLng(vI(i))
@@ -255,6 +285,10 @@ Public Function ChargerLignes(ByRef t() As TypeLigne, Optional ByVal sauf As Lon
                             If nb > UBound(t) Then ReDim Preserve t(1 To nb + 63)
                             With t(nb)
                                 .Nat = nat
+                                If nat = NAT_LIBRE Then
+                                    .Bloc = mod_DataStructure.CellText(vB(i))
+                                    .RangBloc = mod_DataStructure.ToLong(vR(i))
+                                End If
                                 .IDFacture = id
                                 .Typ = dTyp(cle)
                                 .Operateur = dOp(cle)
@@ -471,8 +505,8 @@ Private Function ChargerFacture(ByVal id As Long, ByRef f As TypeFacture) As Boo
 
     ' Lignes de la facture.
     g_FacNb = 0
-    ReDim g_FacLignes(1 To 3 * FF_MAX_LIGNES)
-    For nat = NAT_ABO To NAT_TAXE
+    ReDim g_FacLignes(1 To FF_MAX_BLOCS * FF_MAX_LIGNES)
+    For nat = NAT_ABO To NAT_LIBRE
         Set lo = TableLignes(nat)
         If Not lo Is Nothing Then
             If Not mod_Consommations.TableVide(lo) Then
@@ -492,6 +526,10 @@ Private Function ChargerFacture(ByVal id As Long, ByRef f As TypeFacture) As Boo
                                 g_FacLignes(g_FacNb).Unite = mod_DataStructure.CellText(.Cells(1, mod_Consommations.ColIdx(lo, "Unite")).Value2)
                                 g_FacLignes(g_FacNb).Prix = mod_DataStructure.ToDouble(.Cells(1, mod_Consommations.ColIdx(lo, "PrixUnitaireHT")).Value2)
                                 g_FacLignes(g_FacNb).Tva = mod_DataStructure.ToDouble(.Cells(1, mod_Consommations.ColIdx(lo, "TauxTVA")).Value2)
+                                If nat = NAT_LIBRE Then
+                                    g_FacLignes(g_FacNb).Bloc = mod_DataStructure.CellText(.Cells(1, mod_Consommations.ColIdx(lo, "Bloc")).Value2)
+                                    g_FacLignes(g_FacNb).RangBloc = mod_DataStructure.ToLong(.Cells(1, mod_Consommations.ColIdx(lo, "RangBloc")).Value2)
+                                End If
                             End With
                         End If
                     End If
@@ -514,6 +552,15 @@ Private Function EnregistrerFacture(ByRef f As TypeFacture) As Boolean
 
     Set lo = TableFactures()
     If lo Is Nothing Then Exit Function
+
+    ' Tous les tableaux nécessaires doivent exister AVANT de supprimer quoi que ce soit : l'enregistrement d'une
+    ' facture modifiée remplace ses anciennes lignes, un échec en cours de route les ferait perdre.
+    For i = 1 To g_FacNb
+        If TableLignes(g_FacLignes(i).Nat) Is Nothing Then
+            MsgBox mod_Display.FR("Le tableau des lignes de type '") & NomNature(g_FacLignes(i).Nat) & mod_Display.FR("' est introuvable : relancez InstallerConsommations. Rien n'a {e2}t{e2} enregistr{e2}."), vbExclamation
+            Exit Function
+        End If
+    Next i
 
     If f.ID = 0 Then
         f.ID = mod_Consommations.ProchainID(lo, "ID_Facture")
@@ -549,6 +596,10 @@ Private Function EnregistrerFacture(ByRef f As TypeFacture) As Boolean
             .Cells(1, mod_Consommations.ColIdx(lo, "TauxTVA")).Value = g_FacLignes(i).Tva
             .Cells(1, mod_Consommations.ColIdx(lo, "MontantHT")).Value = g_FacLignes(i).HT
             .Cells(1, mod_Consommations.ColIdx(lo, "MontantTTC")).Value = g_FacLignes(i).TTC
+            If g_FacLignes(i).Nat = NAT_LIBRE Then
+                .Cells(1, mod_Consommations.ColIdx(lo, "Bloc")).Value = g_FacLignes(i).Bloc
+                .Cells(1, mod_Consommations.ColIdx(lo, "RangBloc")).Value = g_FacLignes(i).RangBloc
+            End If
         End With
     Next i
 
@@ -556,14 +607,14 @@ Private Function EnregistrerFacture(ByRef f As TypeFacture) As Boolean
 
 End Function
 
-' Supprime, dans les quatre tableaux, la facture et toutes ses lignes.
+' Supprime, dans tous les tableaux (en-tête, trois natures de lignes, blocs libres), la facture et ses lignes.
 Private Sub SupprimerDonneesFacture(ByVal id As Long)
 
     Dim lo As ListObject
     Dim i As Long, nat As Long
     Dim v As Variant
 
-    For nat = 0 To NAT_TAXE
+    For nat = 0 To NAT_LIBRE
         If nat = 0 Then Set lo = TableFactures() Else Set lo = TableLignes(nat)
         If Not lo Is Nothing Then
             If Not mod_Consommations.TableVide(lo) Then
@@ -667,7 +718,7 @@ Public Sub RafraichirListeFactures()
     dst.DataBodyRange.ClearContents
 
     If Not mod_Consommations.TableVide(src) Then
-        nbL = ChargerLignes(t)
+        nbL = ChargerLignes(t, 0, True)
         n = src.ListRows.Count
         OrdreParDateDecroissante src, ordre
         If n > 1 Then dst.Resize dst.Range.Resize(n + 1)
@@ -860,8 +911,8 @@ Private Sub RemplirFormulaire(ByVal ws As Worksheet, ByRef f As TypeFacture)
 
     Dim evenementsAvant As Boolean
     Dim numErr As Long
-    Dim nat As Long, k As Long, r As Long
-    Dim compte(NAT_ABO To NAT_TAXE) As Long
+    Dim k As Long, b As Long, r As Long
+    Dim compte(1 To FF_MAX_BLOCS) As Long
 
     evenementsAvant = Application.EnableEvents
     Application.EnableEvents = False
@@ -879,26 +930,38 @@ Private Sub RemplirFormulaire(ByVal ws As Worksheet, ByRef f As TypeFacture)
     PoserListeType ws
     MettreAJourListeOperateurs ws, f.Typ
 
-    ' Nombre de lignes affichées par bloc : FF_NB_DEFAUT au moins, davantage si la facture en a plus.
+    ' Blocs : les trois blocs fixes + les blocs libres retrouvés dans les lignes de la facture (dans l'ordre
+    ' où ils ont été enregistrés). Chaque bloc affiche au moins FF_NB_DEFAUT lignes.
+    g_NbBlocs = 3
+    For b = 1 To FF_MAX_BLOCS
+        g_NomBloc(b) = ""
+        compte(b) = 0
+    Next b
     For k = 1 To g_FacNb
-        compte(g_FacLignes(k).Nat) = compte(g_FacLignes(k).Nat) + 1
+        b = BlocDeLigne(g_FacLignes(k), True)
+        If b > 0 Then compte(b) = compte(b) + 1
     Next k
-    DessinerBlocs ws, PlusGrand(compte(NAT_ABO), FF_NB_DEFAUT), PlusGrand(compte(NAT_CONSO), FF_NB_DEFAUT), PlusGrand(compte(NAT_TAXE), FF_NB_DEFAUT)
+    For b = 1 To g_NbBlocs
+        g_N(b) = PlusGrand(compte(b), FF_NB_DEFAUT)
+        compte(b) = 0
+    Next b
+    DessinerBlocs ws
 
     ' Les lignes de la facture sont réparties dans les blocs.
-    compte(NAT_ABO) = 0: compte(NAT_CONSO) = 0: compte(NAT_TAXE) = 0
     For k = 1 To g_FacNb
-        nat = g_FacLignes(k).Nat
-        compte(nat) = compte(nat) + 1
-        r = BlocL1(nat) + compte(nat) - 1
-        ws.Cells(r, FF_COL_LIB).Value = g_FacLignes(k).Libelle
-        ws.Cells(r, FF_COL_UNITE).Value = g_FacLignes(k).Unite
-        ws.Cells(r, FF_COL_TVA).Value = g_FacLignes(k).Tva
-        If Not g_FacLignes(k).Copie Then
-            ws.Cells(r, FF_COL_DEB).Value = CDate(g_FacLignes(k).Debut)
-            ws.Cells(r, FF_COL_FIN).Value = CDate(g_FacLignes(k).Fin)
-            ws.Cells(r, FF_COL_QTE).Value = g_FacLignes(k).Qte
-            ws.Cells(r, FF_COL_PRIX).Value = g_FacLignes(k).Prix
+        b = BlocDeLigne(g_FacLignes(k), False)
+        If b > 0 Then
+            compte(b) = compte(b) + 1
+            r = BlocL1(b) + compte(b) - 1
+            ws.Cells(r, FF_COL_LIB).Value = g_FacLignes(k).Libelle
+            ws.Cells(r, FF_COL_UNITE).Value = g_FacLignes(k).Unite
+            ws.Cells(r, FF_COL_TVA).Value = g_FacLignes(k).Tva
+            If Not g_FacLignes(k).Copie Then
+                ws.Cells(r, FF_COL_DEB).Value = CDate(g_FacLignes(k).Debut)
+                ws.Cells(r, FF_COL_FIN).Value = CDate(g_FacLignes(k).Fin)
+                ws.Cells(r, FF_COL_QTE).Value = g_FacLignes(k).Qte
+                ws.Cells(r, FF_COL_PRIX).Value = g_FacLignes(k).Prix
+            End If
         End If
     Next k
 
@@ -1011,7 +1074,7 @@ Private Sub MettreAJourListeUnites(ByVal ws As Worksheet)
         liste(n) = CStr(base(i))
     Next i
 
-    nb = ChargerLignes(t)
+    nb = ChargerLignes(t, 0, True)
     For i = 1 To nb
         u = t(i).Unite
         If u <> "" And n < UBound(liste) Then
@@ -1036,38 +1099,43 @@ Private Sub MettreAJourListeUnites(ByVal ws As Worksheet)
 
 End Sub
 
-' Taux de TVA proposés pour un type : celui de la dernière ligne enregistrée du même type et de la même
-' nature, sinon un taux usuel (eau : 5,5 % ; électricité et gaz : abonnement 5,5 %, consommation et taxes 20 %).
-' tv(nat) vaut -1 tant qu'aucun type n'est choisi.
+' Taux de TVA proposés pour un type, bloc par bloc : celui de la dernière ligne enregistrée du même type dans le
+' même bloc, sinon un taux usuel (eau : 5,5 % ; électricité et gaz : abonnement 5,5 %, consommation et taxes
+' 20 % ; bloc libre : 20 %). tv(b) vaut -1 tant qu'aucun type n'est choisi.
 Private Sub TvaDefauts(ByVal typ As String, ByRef tv() As Double)
 
     Dim t() As TypeLigne
-    Dim nb As Long, i As Long, nat As Long
-    Dim fin(NAT_ABO To NAT_TAXE) As Double
+    Dim nb As Long, i As Long, b As Long
+    Dim fin(1 To FF_MAX_BLOCS) As Double
     Dim eau As Boolean
 
-    For nat = NAT_ABO To NAT_TAXE
-        tv(nat) = -1
-    Next nat
+    For b = 1 To FF_MAX_BLOCS
+        tv(b) = -1
+    Next b
     If typ = "" Then Exit Sub
 
     eau = (StrComp(typ, mod_Consommations.TypeAdduction(), vbTextCompare) = 0 Or _
            StrComp(typ, mod_Consommations.TypeRecyclage(), vbTextCompare) = 0)
-    tv(NAT_ABO) = 0.055
-    If eau Then
-        tv(NAT_CONSO) = 0.055
-        tv(NAT_TAXE) = 0.055
-    Else
-        tv(NAT_CONSO) = 0.2
-        tv(NAT_TAXE) = 0.2
-    End If
+    For b = 1 To g_NbBlocs
+        Select Case b
+            Case NAT_ABO
+                tv(b) = 0.055
+            Case NAT_CONSO, NAT_TAXE
+                If eau Then tv(b) = 0.055 Else tv(b) = 0.2
+            Case Else
+                tv(b) = 0.2
+        End Select
+    Next b
 
-    nb = ChargerLignes(t)
+    nb = ChargerLignes(t, 0, True)
     For i = 1 To nb
         If StrComp(t(i).Typ, typ, vbTextCompare) = 0 Then
-            If t(i).Fin >= fin(t(i).Nat) Then
-                fin(t(i).Nat) = t(i).Fin
-                tv(t(i).Nat) = t(i).Tva
+            b = BlocDeLigne(t(i), False)
+            If b > 0 Then
+                If t(i).Fin >= fin(b) Then
+                    fin(b) = t(i).Fin
+                    tv(b) = t(i).Tva
+                End If
             End If
         End If
     Next i
@@ -1077,21 +1145,21 @@ End Sub
 ' Remplit le taux de TVA des lignes qui n'ont encore AUCUNE autre saisie (une ligne déjà commencée garde son taux).
 Private Sub RemplirTvaDefaut(ByVal ws As Worksheet, ByVal typ As String)
 
-    Dim tv(NAT_ABO To NAT_TAXE) As Double
-    Dim nat As Long, i As Long, r As Long
+    Dim tv(1 To FF_MAX_BLOCS) As Double
+    Dim b As Long, i As Long, r As Long
 
     TvaDefauts typ, tv
-    For nat = NAT_ABO To NAT_TAXE
-        If tv(nat) >= 0 Then
-            For i = 0 To BlocN(nat) - 1
-                r = BlocL1(nat) + i
-                If LigneVide(ws, nat, r) Then
-                    ws.Cells(r, FF_COL_TVA).Value = tv(nat)
-                    If nat = NAT_ABO And Not mod_Consommations.SaisieNonVide(ws.Cells(r, FF_COL_UNITE).Value) Then ws.Cells(r, FF_COL_UNITE).Value = "jours"
+    For b = 1 To g_NbBlocs
+        If tv(b) >= 0 Then
+            For i = 0 To BlocN(b) - 1
+                r = BlocL1(b) + i
+                If LigneVide(ws, r) Then
+                    ws.Cells(r, FF_COL_TVA).Value = tv(b)
+                    If b = NAT_ABO And Not mod_Consommations.SaisieNonVide(ws.Cells(r, FF_COL_UNITE).Value) Then ws.Cells(r, FF_COL_UNITE).Value = "jours"
                 End If
             Next i
         End If
-    Next nat
+    Next b
 
 End Sub
 
@@ -1100,49 +1168,87 @@ Private Function PlusGrand(ByVal a As Long, ByVal b As Long) As Long
 End Function
 
 ' =====================================================================================
-' DESSIN DES BLOCS DE LIGNES (appelé à l'installation, à chaque ouverture et par les boutons + / -)
+' BLOCS DE LIGNES : GÉOMÉTRIE ET CORRESPONDANCE AVEC LES LIGNES DE FACTURE
 ' =====================================================================================
-Private Function LibelleBloc(ByVal nat As Long) As String
-    Select Case nat
+' Un "bloc" du formulaire porte un numéro b : 1 = abonnement, 2 = consommation, 3 = taxes (blocs fixes, modèle
+' de toute nouvelle facture), puis 4 et suivants = blocs LIBRES nommés par l'opérateur (bouton "Ajouter un bloc").
+Private Function NatDuBloc(ByVal b As Long) As Long
+    If b <= 3 Then NatDuBloc = b Else NatDuBloc = NAT_LIBRE
+End Function
+
+Private Function NomDuBloc(ByVal b As Long) As String
+    If b <= 3 Then NomDuBloc = NomNature(b) Else NomDuBloc = g_NomBloc(b)
+End Function
+
+' Numéro de bloc d'une ligne de facture (0 si introuvable). Un bloc libre inconnu est créé si "creer".
+Private Function BlocDeLigne(ByRef l As TypeLigne, ByVal creer As Boolean) As Long
+    Dim b As Long
+    If l.Nat <= 3 Then
+        BlocDeLigne = l.Nat
+        Exit Function
+    End If
+    For b = 4 To g_NbBlocs
+        If StrComp(g_NomBloc(b), l.Bloc, vbTextCompare) = 0 Then
+            BlocDeLigne = b
+            Exit Function
+        End If
+    Next b
+    If creer And g_NbBlocs < FF_MAX_BLOCS Then
+        g_NbBlocs = g_NbBlocs + 1
+        g_NomBloc(g_NbBlocs) = l.Bloc
+        BlocDeLigne = g_NbBlocs
+    End If
+End Function
+
+Private Function LibelleBloc(ByVal b As Long) As String
+    Select Case b
         Case NAT_ABO: LibelleBloc = "Abonnement (une ligne par p" & ChrW(233) & "riode de prix)"
         Case NAT_CONSO: LibelleBloc = "Consommation (une ligne par p" & ChrW(233) & "riode de prix)"
-        Case Else: LibelleBloc = "Taxes et contributions"
+        Case NAT_TAXE: LibelleBloc = "Taxes et contributions"
+        Case Else: LibelleBloc = g_NomBloc(b)
     End Select
 End Function
 
-Private Function SuffixeMacro(ByVal nat As Long) As String
-    Select Case nat
-        Case NAT_ABO: SuffixeMacro = "Abo"
-        Case NAT_CONSO: SuffixeMacro = "Conso"
-        Case Else: SuffixeMacro = "Taxe"
-    End Select
-End Function
+' Blocs fixes par défaut (nouvelle facture) : trois blocs de FF_NB_DEFAUT lignes. Appelé par l'installateur.
+Public Sub DessinerBlocsParDefaut(ByVal ws As Worksheet)
+    Dim b As Long
+    g_NbBlocs = 3
+    For b = 1 To FF_MAX_BLOCS
+        g_NomBloc(b) = ""
+        g_N(b) = IIf(b <= 3, FF_NB_DEFAUT, 0)
+    Next b
+    DessinerBlocs ws
+End Sub
 
-' (Re)dessine les trois blocs : zone effacée puis reconstruite avec n1, n2, n3 lignes.
-' Les valeurs saisies sont perdues : l'appelant les relit avant et les réécrit après (voir AjusterBloc).
-Public Sub DessinerBlocs(ByVal ws As Worksheet, ByVal n1 As Long, ByVal n2 As Long, ByVal n3 As Long)
+' (Re)dessine tous les blocs d'après g_NbBlocs, g_N et g_NomBloc : zone effacée puis reconstruite.
+' Les valeurs saisies sont perdues : l'appelant les relit avant et les réécrit après (voir ModifierStructure).
+Private Sub DessinerBlocs(ByVal ws As Worksheet)
 
-    Dim nat As Long, i As Long, r As Long, titre As Long, l1 As Long, n As Long
+    Dim b As Long, i As Long, r As Long, titre As Long, l1 As Long, n As Long
     Dim entetes As Variant
     Dim zone As Range
     Dim ht As String, ttc As String
+    Dim derniere As Long
 
-    g_N(NAT_ABO) = Borne(n1)
-    g_N(NAT_CONSO) = Borne(n2)
-    g_N(NAT_TAXE) = Borne(n3)
+    For b = 1 To g_NbBlocs
+        g_N(b) = Borne(g_N(b))
+    Next b
 
     ws.Columns(FF_COL_LIB).ColumnWidth = FF_LARG_LIBELLE
     MettreAJourListeUnites ws
 
-    ' Boutons + et - de la version précédente du dessin.
+    ' Boutons de la version précédente du dessin.
     On Error Resume Next
-    For nat = NAT_ABO To NAT_TAXE
-        ws.Shapes("btnPlus" & nat).Delete
-        ws.Shapes("btnMoins" & nat).Delete
-    Next nat
+    For b = 1 To FF_MAX_BLOCS
+        ws.Shapes("btnPlus" & b).Delete
+        ws.Shapes("btnMoins" & b).Delete
+        ws.Shapes("btnSuppr" & b).Delete
+    Next b
     On Error GoTo 0
 
-    Set zone = ws.Range(ws.Rows(FF_BLOCS_DEBUT), ws.Rows(FF_BLOCS_DEBUT + 3 * (FF_MAX_LIGNES + 4)))
+    ' Zone des blocs : colonnes A à K seulement (les listes techniques masquées sont plus à droite).
+    derniere = FF_BLOCS_DEBUT + FF_MAX_BLOCS * (FF_MAX_LIGNES + 4)
+    Set zone = ws.Range(ws.Cells(FF_BLOCS_DEBUT, 1), ws.Cells(derniere, FF_COL_TTC + 1))
     zone.UnMerge
     zone.Clear
     On Error Resume Next
@@ -1151,18 +1257,18 @@ Public Sub DessinerBlocs(ByVal ws As Worksheet, ByVal n1 As Long, ByVal n2 As Lo
     zone.Font.Name = "Calibri"
     zone.Font.Size = 10
     zone.VerticalAlignment = xlCenter
-    zone.RowHeight = mod_InstallCommun.FRM_H_LIGNE
+    ws.Range(ws.Rows(FF_BLOCS_DEBUT), ws.Rows(derniere)).RowHeight = mod_InstallCommun.FRM_H_LIGNE
 
     entetes = Array("Libell" & ChrW(233), "D" & ChrW(233) & "but", "Fin", "Quantit" & ChrW(233), "Unit" & ChrW(233), "Prix HT", "TVA", "Montant HT", "Montant TTC")
     ht = mod_Consommations.AdresseCol(FF_COL_HT)
     ttc = mod_Consommations.AdresseCol(FF_COL_TTC)
 
-    For nat = NAT_ABO To NAT_TAXE
-        titre = BlocTitre(nat)
-        l1 = BlocL1(nat)
-        n = g_N(nat)
+    For b = 1 To g_NbBlocs
+        titre = BlocTitre(b)
+        l1 = BlocL1(b)
+        n = g_N(b)
 
-        mod_InstallCommun.PoserTitreBloc ws.Range(ws.Cells(titre, FF_COL_LIB), ws.Cells(titre, FF_COL_TTC)), LibelleBloc(nat)
+        mod_InstallCommun.PoserTitreBloc ws.Range(ws.Cells(titre, FF_COL_LIB), ws.Cells(titre, FF_COL_TTC)), LibelleBloc(b)
 
         For i = 0 To 8
             ws.Cells(titre + 1, FF_COL_LIB + i).Value = entetes(i)
@@ -1176,7 +1282,7 @@ Public Sub DessinerBlocs(ByVal ws As Worksheet, ByVal n1 As Long, ByVal n2 As Lo
             mod_InstallCommun.PoserChampSaisie ws.Cells(r, FF_COL_LIB), "@"
             mod_InstallCommun.PoserChampDate ws.Cells(r, FF_COL_DEB)
             mod_InstallCommun.PoserChampDate ws.Cells(r, FF_COL_FIN)
-            ' Les trois blocs ont les mêmes colonnes : quantité et unité se saisissent partout (abonnement : 31 jours, 1 mois...).
+            ' Tous les blocs ont les mêmes colonnes : quantité et unité se saisissent partout.
             mod_InstallCommun.PoserChampMontant ws.Cells(r, FF_COL_QTE), "#,##0.00", mod_InstallCommun.MONTANT_POSITIF_OU_NUL
             mod_InstallCommun.PoserChampSaisie ws.Cells(r, FF_COL_UNITE), "@"
             mod_InstallCommun.PoserChampSaisie ws.Cells(r, FF_COL_PRIX), "#,##0.00000"      ' contrôle : PoserGardeFousBloc (prix négatif = remboursement)
@@ -1197,15 +1303,19 @@ Public Sub DessinerBlocs(ByVal ws As Worksheet, ByVal n1 As Long, ByVal n2 As Lo
         ws.Range(ws.Cells(r, FF_COL_HT), ws.Cells(r, FF_COL_TTC)).Font.Bold = True
         ws.Rows(r + 1).RowHeight = mod_InstallCommun.FRM_H_SEP
 
-        ' Boutons "+" (ajoute une ligne au bloc) et "-" (retire la dernière ligne, si elle est vide).
-        mod_InstallCommun.AjouterBoutonCellule ws, ws.Cells(titre, FF_COL_TTC), "+", "FacAjouterLigne" & SuffixeMacro(nat), "btnPlus" & nat, 24, 34
-        mod_InstallCommun.AjouterBoutonCellule ws, ws.Cells(titre, FF_COL_TTC), ChrW(8722), "FacRetirerLigne" & SuffixeMacro(nat), "btnMoins" & nat, 24, 6
-    Next nat
+        ' Boutons du titre : "+" (ajoute une ligne), "-" (retire la dernière ligne si elle est vide) et, pour un
+        ' bloc libre, "x" (supprime le bloc). Une même macro sert à tous les blocs : le numéro est lu dans le nom du bouton.
+        mod_InstallCommun.AjouterBoutonCellule ws, ws.Cells(titre, FF_COL_TTC), "+", "FacAjouterLigne", "btnPlus" & b, 24, 34
+        mod_InstallCommun.AjouterBoutonCellule ws, ws.Cells(titre, FF_COL_TTC), ChrW(8722), "FacRetirerLigne", "btnMoins" & b, 24, 6
+        If b > 3 Then
+            mod_InstallCommun.AjouterBoutonCellule ws, ws.Cells(titre, FF_COL_HT), ChrW(215), "FacSupprimerBloc", "btnSuppr" & b, 24, 34
+        End If
+    Next b
 
     PoserFormulesRecap ws
-    For nat = NAT_ABO To NAT_TAXE
-        PoserGardeFousBloc ws, nat
-    Next nat
+    For b = 1 To g_NbBlocs
+        PoserGardeFousBloc ws, b
+    Next b
 
 End Sub
 
@@ -1219,10 +1329,10 @@ Private Function Borne(ByVal n As Long) As Long
     End If
 End Function
 
-' Formules du récapitulatif (en haut) : elles pointent vers les sous-totaux des blocs, dont la position varie.
+' Formules du récapitulatif (en haut) : elles pointent vers les sous-totaux de TOUS les blocs, dont la position varie.
 Private Sub PoserFormulesRecap(ByVal ws As Worksheet)
 
-    Dim nat As Long
+    Dim b As Long
     Dim fHT As String, fTTC As String
     Dim ht As String, ttc As String
 
@@ -1230,14 +1340,14 @@ Private Sub PoserFormulesRecap(ByVal ws As Worksheet)
     ttc = mod_Consommations.AdresseCol(FF_COL_TTC)
     fHT = "="
     fTTC = "="
-    For nat = NAT_ABO To NAT_TAXE
-        If nat > NAT_ABO Then
+    For b = 1 To g_NbBlocs
+        If b > 1 Then
             fHT = fHT & "+"
             fTTC = fTTC & "+"
         End If
-        fHT = fHT & "N(" & ht & (BlocL1(nat) + g_N(nat)) & ")"
-        fTTC = fTTC & "N(" & ttc & (BlocL1(nat) + g_N(nat)) & ")"
-    Next nat
+        fHT = fHT & "N(" & ht & (BlocL1(b) + g_N(b)) & ")"
+        fTTC = fTTC & "N(" & ttc & (BlocL1(b) + g_N(b)) & ")"
+    Next b
 
     ws.Range(FF_ADR_RECAP_HT).Formula = fHT
     ws.Range(FF_ADR_RECAP_TTC).Formula = fTTC
@@ -1249,106 +1359,189 @@ Private Sub PoserFormulesRecap(ByVal ws As Worksheet)
 End Sub
 
 ' =====================================================================================
-' BOUTONS "+" ET "-" DES BLOCS
+' BOUTONS : + / - (lignes), AJOUTER UN BLOC, SUPPRIMER UN BLOC
 ' =====================================================================================
-Public Sub FacAjouterLigneAbo()
-    AjusterBloc NAT_ABO, 1
+' Numéro de bloc lu dans le nom du bouton qui a déclenché la macro ("btnPlus5" -> 5).
+Private Function BlocDuBouton(ByVal prefixe As String) As Long
+    Dim nom As String
+    On Error Resume Next
+    nom = CStr(Application.Caller)
+    On Error GoTo 0
+    If Left$(nom, Len(prefixe)) = prefixe Then BlocDuBouton = CLng(Val(Mid$(nom, Len(prefixe) + 1)))
+End Function
+
+Public Sub FacAjouterLigne()
+    ModifierStructure MODE_PLUS, BlocDuBouton("btnPlus"), ""
 End Sub
 
-Public Sub FacAjouterLigneConso()
-    AjusterBloc NAT_CONSO, 1
+Public Sub FacRetirerLigne()
+    ModifierStructure MODE_MOINS, BlocDuBouton("btnMoins"), ""
 End Sub
 
-Public Sub FacAjouterLigneTaxe()
-    AjusterBloc NAT_TAXE, 1
+Public Sub FacSupprimerBloc()
+    ModifierStructure MODE_SUPPR_BLOC, BlocDuBouton("btnSuppr"), ""
 End Sub
 
-Public Sub FacRetirerLigneAbo()
-    AjusterBloc NAT_ABO, -1
-End Sub
-
-Public Sub FacRetirerLigneConso()
-    AjusterBloc NAT_CONSO, -1
-End Sub
-
-Public Sub FacRetirerLigneTaxe()
-    AjusterBloc NAT_TAXE, -1
-End Sub
-
-' Ajoute (delta = 1) ou retire (delta = -1) une ligne à un bloc : les blocs suivants sont décalés.
-' Le formulaire est redessiné ; les valeurs déjà saisies sont relues avant et réécrites après.
-Private Sub AjusterBloc(ByVal nat As Long, ByVal delta As Long)
+' Bouton "Ajouter un bloc" : crée, sous les blocs existants, un bloc de même forme (mêmes colonnes) dont le nom est
+' donné par l'opérateur. Ses lignes sont enregistrées dans TblBlocsLibres avec ce nom.
+Public Sub FacAjouterBloc()
 
     Dim ws As Worksheet
-    Dim brut(NAT_ABO To NAT_TAXE) As Variant
-    Dim n(NAT_ABO To NAT_TAXE) As Long
-    Dim k As Long, i As Long, c As Long, m As Long
-    Dim evenementsAvant As Boolean
-    Dim numErr As Long
-    Dim rDerniere As Long
+    Dim nom As String
+    Dim b As Long
 
     If Not g_FacEnCours Then Exit Sub
     Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_FACTURE)
 
-    If delta > 0 And g_N(nat) >= FF_MAX_LIGNES Then
-        AfficherMessage ws, "Ce bloc est limit{e2} {a2} " & FF_MAX_LIGNES & " lignes."
+    If g_NbBlocs - 3 >= FF_MAX_BLOCS_LIBRES Then
+        AfficherMessage ws, "Nombre maximal de blocs ajout{e2}s atteint (" & FF_MAX_BLOCS_LIBRES & ")."
         Exit Sub
     End If
-    If delta < 0 Then
-        If g_N(nat) <= 1 Then
-            AfficherMessage ws, "Un bloc garde au moins une ligne."
-            Exit Sub
-        End If
-        rDerniere = BlocL1(nat) + g_N(nat) - 1
-        If Not LigneVide(ws, nat, rDerniere) Then
-            AfficherMessage ws, "La derni{e1}re ligne de ce bloc n'est pas vide : effacez-la d'abord."
-            Exit Sub
-        End If
+
+    nom = Trim$(InputBox(mod_Display.FR("Nom du nouveau bloc (exemples : Redevance, Avoir, Location du compteur) :"), mod_Display.FR("Ajouter un bloc")))
+    If nom = "" Then Exit Sub
+    nom = Replace(Replace(nom, vbCr, " "), vbLf, " ")
+    If Len(nom) > FF_LONG_NOM_BLOC Then
+        AfficherMessage ws, "Le nom du bloc est limit{e2} {a2} " & FF_LONG_NOM_BLOC & " caract{e1}res."
+        Exit Sub
     End If
+    For b = 1 To g_NbBlocs
+        If StrComp(NomDuBloc(b), nom, vbTextCompare) = 0 Then
+            AfficherMessage ws, "Un bloc porte d{e2}j{a2} ce nom."
+            Exit Sub
+        End If
+    Next b
+    If StrComp(nom, "Taxes", vbTextCompare) = 0 Then
+        AfficherMessage ws, "Ce nom est d{e2}j{a2} pris par le bloc Taxes et contributions."
+        Exit Sub
+    End If
+
+    ModifierStructure MODE_AJOUT_BLOC, 0, nom
+
+End Sub
+
+' Modifie la structure du formulaire (ajout / retrait d'une ligne, ajout / suppression d'un bloc) : les blocs
+' suivants sont décalés, le formulaire est redessiné, et les valeurs déjà saisies sont relues avant et réécrites après.
+Private Sub ModifierStructure(ByVal mode As Long, ByVal b As Long, ByVal nom As String)
+
+    Dim ws As Worksheet
+    Dim brut(1 To FF_MAX_BLOCS) As Variant
+    Dim ancN(1 To FF_MAX_BLOCS) As Long
+    Dim ancNb As Long
+    Dim ob As Long, nb As Long, i As Long, c As Long, m As Long, k As Long, r As Long
+    Dim evenementsAvant As Boolean
+    Dim numErr As Long
+    Dim vide As Boolean
+
+    If Not g_FacEnCours Then Exit Sub
+    Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_FACTURE)
+
+    Select Case mode
+        Case MODE_PLUS, MODE_MOINS, MODE_SUPPR_BLOC
+            If b < 1 Or b > g_NbBlocs Then Exit Sub
+    End Select
+
+    Select Case mode
+        Case MODE_PLUS
+            If g_N(b) >= FF_MAX_LIGNES Then
+                AfficherMessage ws, "Ce bloc est limit{e2} {a2} " & FF_MAX_LIGNES & " lignes."
+                Exit Sub
+            End If
+        Case MODE_MOINS
+            If g_N(b) <= 1 Then
+                AfficherMessage ws, "Un bloc garde au moins une ligne."
+                Exit Sub
+            End If
+            If Not LigneVide(ws, BlocL1(b) + g_N(b) - 1) Then
+                AfficherMessage ws, "La derni{e1}re ligne de ce bloc n'est pas vide : effacez-la d'abord."
+                Exit Sub
+            End If
+        Case MODE_AJOUT_BLOC
+            If g_NbBlocs >= FF_MAX_BLOCS Then Exit Sub
+        Case MODE_SUPPR_BLOC
+            If b <= 3 Then Exit Sub
+            vide = True
+            For i = 0 To g_N(b) - 1
+                If Not LigneVide(ws, BlocL1(b) + i) Then vide = False
+            Next i
+            If Not vide Then
+                If MsgBox(mod_Display.FR("Supprimer le bloc '") & g_NomBloc(b) & mod_Display.FR("' et les lignes qu'il contient ?"), _
+                          vbYesNo + vbQuestion + vbDefaultButton2, mod_Display.FR("Supprimer un bloc")) = vbNo Then Exit Sub
+            End If
+    End Select
 
     evenementsAvant = Application.EnableEvents
     Application.EnableEvents = False
     Application.ScreenUpdating = False
     On Error GoTo Sortie
 
-    ' Relecture des valeurs saisies (colonnes Libellé à TVA).
-    For k = NAT_ABO To NAT_TAXE
-        n(k) = g_N(k)
-        brut(k) = ws.Range(ws.Cells(BlocL1(k), FF_COL_LIB), ws.Cells(BlocL1(k) + n(k) - 1, FF_COL_TVA)).Value
-    Next k
+    ' Relecture des valeurs saisies (colonnes Libellé à TVA) de tous les blocs.
+    ancNb = g_NbBlocs
+    For ob = 1 To ancNb
+        ancN(ob) = g_N(ob)
+        brut(ob) = ws.Range(ws.Cells(BlocL1(ob), FF_COL_LIB), ws.Cells(BlocL1(ob) + ancN(ob) - 1, FF_COL_TVA)).Value
+    Next ob
 
-    DessinerBlocs ws, n(NAT_ABO) + IIf(nat = NAT_ABO, delta, 0), _
-                      n(NAT_CONSO) + IIf(nat = NAT_CONSO, delta, 0), n(NAT_TAXE) + IIf(nat = NAT_TAXE, delta, 0)
+    ' Nouvelle structure.
+    Select Case mode
+        Case MODE_PLUS
+            g_N(b) = g_N(b) + 1
+        Case MODE_MOINS
+            g_N(b) = g_N(b) - 1
+        Case MODE_AJOUT_BLOC
+            g_NbBlocs = g_NbBlocs + 1
+            g_N(g_NbBlocs) = FF_NB_DEFAUT
+            g_NomBloc(g_NbBlocs) = nom
+        Case MODE_SUPPR_BLOC
+            For k = b To g_NbBlocs - 1
+                g_N(k) = g_N(k + 1)
+                g_NomBloc(k) = g_NomBloc(k + 1)
+            Next k
+            g_N(g_NbBlocs) = 0
+            g_NomBloc(g_NbBlocs) = ""
+            g_NbBlocs = g_NbBlocs - 1
+    End Select
 
-    ' Réécriture : les lignes conservées reprennent leurs valeurs (les cellules calculées sont épargnées).
-    For k = NAT_ABO To NAT_TAXE
-        m = n(k)
-        If g_N(k) < m Then m = g_N(k)
-        For i = 1 To m
-            For c = 1 To (FF_COL_TVA - FF_COL_LIB + 1)
-                If Not IsEmpty(brut(k)(i, c)) Then
-                    ws.Cells(BlocL1(k) + i - 1, FF_COL_LIB + c - 1).Value = brut(k)(i, c)
-                End If
-            Next c
-        Next i
-    Next k
+    DessinerBlocs ws
+
+    ' Réécriture : chaque bloc conservé reprend ses valeurs (dans un bloc raccourci, seules les lignes restantes).
+    For ob = 1 To ancNb
+        If Not (mode = MODE_SUPPR_BLOC And ob = b) Then
+            nb = ob
+            If mode = MODE_SUPPR_BLOC And ob > b Then nb = ob - 1
+            m = ancN(ob)
+            If g_N(nb) < m Then m = g_N(nb)
+            For i = 1 To m
+                For c = 1 To (FF_COL_TVA - FF_COL_LIB + 1)
+                    If Not IsEmpty(brut(ob)(i, c)) Then
+                        ws.Cells(BlocL1(nb) + i - 1, FF_COL_LIB + c - 1).Value = brut(ob)(i, c)
+                    End If
+                Next c
+            Next i
+        End If
+    Next ob
 
     RemplirTvaDefaut ws, mod_DataStructure.CellText(ws.Range(FF_ADR_TYPE).Value)
     ws.Range(FF_ADR_MESSAGE).Value = ""
-    If delta > 0 Then ws.Cells(BlocL1(nat) + g_N(nat) - 1, FF_COL_LIB).Select
+    Select Case mode
+        Case MODE_PLUS
+            ws.Cells(BlocL1(b) + g_N(b) - 1, FF_COL_LIB).Select
+        Case MODE_AJOUT_BLOC
+            ws.Cells(BlocL1(g_NbBlocs), FF_COL_LIB).Select
+    End Select
 
 Sortie:
     numErr = Err.Number
     Application.EnableEvents = evenementsAvant
     Application.ScreenUpdating = True
-    If numErr <> 0 Then MsgBox mod_Display.FR("Erreur lors de l'ajustement du bloc : ") & Err.Description, vbExclamation
+    If numErr <> 0 Then MsgBox mod_Display.FR("Erreur lors de la modification du formulaire : ") & Err.Description, vbExclamation
 
 End Sub
 
-' Vrai si la ligne r du bloc ne contient aucune saisie.
-Private Function LigneVide(ByVal ws As Worksheet, ByVal nat As Long, ByVal r As Long) As Boolean
+' Vrai si la ligne r d'un bloc ne contient aucune saisie.
+' La TVA (préremplie) et l'unité ne comptent pas : une ligne sans autre saisie reste vide.
+Private Function LigneVide(ByVal ws As Worksheet, ByVal r As Long) As Boolean
     Dim c As Long
-    ' La TVA (préremplie) et l'unité ne comptent pas : une ligne sans autre saisie reste vide.
     For c = FF_COL_LIB To FF_COL_PRIX
         If c <> FF_COL_UNITE Then
             If mod_Consommations.SaisieNonVide(ws.Cells(r, c).Value) Then Exit Function
@@ -1377,12 +1570,12 @@ Private Sub PoserAidePrix(ByVal c As Range)
 End Sub
 
 ' Validation des cellules de dates, quantités, prix et TVA d'un bloc.
-Public Sub PoserGardeFousBloc(ByVal ws As Worksheet, ByVal nat As Long)
+Public Sub PoserGardeFousBloc(ByVal ws As Worksheet, ByVal b As Long)
 
     Dim l1 As Long, l2 As Long, r As Long
 
-    l1 = BlocL1(nat)
-    l2 = l1 + BlocN(nat) - 1
+    l1 = BlocL1(b)
+    l2 = l1 + BlocN(b) - 1
     ' Les validations de mod_InstallCommun ne portent que sur la première cellule de la plage : une cellule à la fois.
     For r = l1 To l2
         mod_InstallCommun.PoserValidationDate ws.Cells(r, FF_COL_DEB)
@@ -1561,9 +1754,10 @@ Private Function LireLignes(ByVal ws As Worksheet, ByRef f As TypeFacture) As Bo
     Dim texteLigne As String
 
     g_FacNb = 0
-    ReDim g_FacLignes(1 To 3 * FF_MAX_LIGNES)
+    ReDim g_FacLignes(1 To FF_MAX_BLOCS * FF_MAX_LIGNES)
 
-    For nat = NAT_ABO To NAT_TAXE
+    ' "nat" désigne ici le NUMÉRO DU BLOC (1 à 3 : blocs fixes ; 4 et plus : blocs libres).
+    For nat = 1 To g_NbBlocs
         For i = 0 To BlocN(nat) - 1
             r = BlocL1(nat) + i
             vLib = ws.Cells(r, FF_COL_LIB).Value
@@ -1578,7 +1772,7 @@ Private Function LireLignes(ByVal ws As Worksheet, ByRef f As TypeFacture) As Bo
             If Not (mod_Consommations.SaisieNonVide(vLib) Or mod_Consommations.SaisieNonVide(vDeb) Or mod_Consommations.SaisieNonVide(vFin) Or _
                     mod_Consommations.SaisieNonVide(vPrix) Or mod_Consommations.SaisieNonVide(vQte)) Then GoTo Suivante
 
-            texteLigne = NomNature(nat) & ", ligne " & (i + 1) & " : "
+            texteLigne = NomDuBloc(nat) & ", ligne " & (i + 1) & " : "
 
             If Not mod_Consommations.SaisieNonVide(vDeb) Or Not mod_DataStructure.TryLireDate(vDeb, dDeb) Then
                 AfficherMessage ws, texteLigne & "date de d{e2}but absente ou invalide."
@@ -1622,7 +1816,11 @@ Private Function LireLignes(ByVal ws As Worksheet, ByRef f As TypeFacture) As Bo
 
             g_FacNb = g_FacNb + 1
             With g_FacLignes(g_FacNb)
-                .Nat = nat
+                .Nat = NatDuBloc(nat)
+                If nat > 3 Then
+                    .Bloc = g_NomBloc(nat)
+                    .RangBloc = nat - 3
+                End If
                 .Libelle = mod_DataStructure.CellText(vLib)
                 .Debut = CDbl(dDeb)
                 .Fin = CDbl(dFin)
@@ -1651,7 +1849,7 @@ Private Function ControlerChevauchements(ByRef f As TypeFacture) As String
 
     ' Lignes de la même facture entre elles (consommation et abonnement).
     For i = 1 To g_FacNb
-        If g_FacLignes(i).Nat <> NAT_TAXE Then
+        If (g_FacLignes(i).Nat = NAT_ABO Or g_FacLignes(i).Nat = NAT_CONSO) Then
             For j = i + 1 To g_FacNb
                 If g_FacLignes(j).Nat = g_FacLignes(i).Nat Then
                     If g_FacLignes(i).Debut <= g_FacLignes(j).Fin And g_FacLignes(i).Fin >= g_FacLignes(j).Debut Then
@@ -1667,7 +1865,7 @@ Private Function ControlerChevauchements(ByRef f As TypeFacture) As String
     ' Autres factures du même type.
     n = ChargerLignes(t, f.ID)
     For i = 1 To g_FacNb
-        If g_FacLignes(i).Nat <> NAT_TAXE Then
+        If (g_FacLignes(i).Nat = NAT_ABO Or g_FacLignes(i).Nat = NAT_CONSO) Then
             For j = 1 To n
                 If t(j).Nat = g_FacLignes(i).Nat And StrComp(t(j).Typ, f.Typ, vbTextCompare) = 0 Then
                     If g_FacLignes(i).Debut <= t(j).Fin And g_FacLignes(i).Fin >= t(j).Debut Then

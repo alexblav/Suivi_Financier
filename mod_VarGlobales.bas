@@ -242,6 +242,10 @@ Public Const NOM_FEUILLE_DATA_FACTURES As String = "Conso_Factures"
 Public Const NOM_FEUILLE_DATA_ABOS As String = "Conso_Abonnements"
 Public Const NOM_FEUILLE_DATA_CONSOS As String = "Conso_Consommations"
 Public Const NOM_FEUILLE_DATA_TAXES As String = "Conso_Taxes"
+'' Blocs AJOUTES par l'operateur dans le formulaire de facture : un seul tableau pour tous les blocs libres
+'' (colonnes Bloc = nom du bloc, RangBloc = rang dans la facture).
+Public Const NOM_FEUILLE_DATA_BLOCS As String = "Conso_Blocs"
+Public Const NOM_TABLE_BLOCS As String = "TblBlocsLibres"
 Public Const NOM_FEUILLE_DATA_CONTRATS As String = "Conso_Contrats"
 Public Const NOM_TABLE_FACTURES_AFF As String = "TblFacturesAff"
 Public Const NOM_TABLE_CONTRATS_AFF As String = "TblContratsAff"
