@@ -131,11 +131,10 @@ Private Sub Def_Consommations(ByRef titre As String, ByRef intro As String, ByRe
     intro = "Cet {e2}cran suit l'{e2}volution des consommations d'eau, d'{e2}lectricit{e2} et de gaz, mois apr{e1}s mois, en tableau et en graphique. " & _
             "Apr{e1}s tout changement de param{e1}tre, cliquez sur [b:Actualiser]."
 
-    L champs, "Type", "Un type de consommation, ou (tous) pour comparer les montants des diff{e2}rents types."
-    L champs, "Indicateur", "Quantit{e2}, Prix unitaire HT (moyenne pond{e2}r{e2}e par les quantit{e2}s, abonnement et taxes exclus), Consommation, Abonnement, Taxes (montants TTC) ou Montant total (leur somme). Pour (tous), seuls les montants sont comparables."
-    L champs, "P{e2}riode", "Les 12, 36, 60 ou 120 derniers mois (jusqu'{a2} 10 ans) se terminant au mois choisi, ou l'ann{e2}e civile enti{e1}re."
-    L champs, "Ann{e2}e", "Ann{e2}e de la fin de p{e2}riode, ou ann{e2}e civile analys{e2}e."
-    L champs, "Mois (fin de p{e2}riode)", "Dernier mois de la p{e2}riode choisie."
+    L champs, "Type", "Choisir en premier (les autres champs sont masqu{e2}s tant qu'il est vide) : un type de consommation, ou (tous) pour comparer les montants des diff{e2}rents types. Il d{e2}termine les mois propos{e2}s dans D{e2}but et Fin."
+    L champs, "Indicateur", "Consommation (la quantit{e2} consomm{e2}e, en m3 pour l'eau, en kWh pour l'{e2}nergie), Prix unitaire HT (moyenne pond{e2}r{e2}e par les quantit{e2}s, abonnement et taxes exclus), Montant consommation, Abonnement, Taxes (montants TTC en euros) ou Montant total (leur somme). Pour (tous), seuls les montants sont comparables."
+    L champs, "D{e2}but", "Appara{i2}t apr{e1}s l'indicateur. Premier mois de la p{e2}riode, {a2} choisir parmi les mois couverts par les factures du type choisi."
+    L champs, "Fin", "Appara{i2}t apr{e1}s le d{e2}but. Dernier mois de la p{e2}riode, parmi les mois du type {a2} partir du d{e2}but. Laiss{e2} vide, la p{e2}riode va jusqu'au dernier mois du type."
     L champs, "Forme du graphique", "Barres (empil{e2}es par op{e2}rateur, ou par type pour (tous)), Courbes, ou Barres + courbe du prix (pour un type choisi : les barres montrent l'indicateur, le prix unitaire se lit sur l'axe de droite)."
     L champs, "R{e2}partition des lignes", "Au prorata des jours : chaque ligne de facture est r{e2}partie sur les mois qu'elle couvre. Mois de fin de la ligne : elle est imput{e2}e enti{e1}rement au mois de sa date de fin."
 
@@ -170,6 +169,7 @@ Private Sub Def_Factures(ByRef titre As String, ByRef intro As String, ByRef cha
     L champs, "Commentaire", "Texte libre (facultatif)."
 
     L boutons, "Ajouter une facture", "Ouvre [f:frm_Facture] pour saisir une facture."
+    L boutons, "Consulter la s{e2}lection", "Ouvre [f:frm_Facture] sur la facture s{e2}lectionn{e2}e en consultation : un seul bouton Sortir, qui abandonne en silence toute modification (rien ne peut {ea}tre enregistr{e2})."
     L boutons, "Modifier la s{e2}lection", "Rouvre [f:frm_Facture] sur la facture s{e2}lectionn{e2}e."
     L boutons, "Copier la s{e2}lection", "Ouvre [f:frm_Facture] pr{e2}rempli avec le type, l'op{e2}rateur, les libell{e2}s, les unit{e2}s et les taux de TVA de la facture s{e2}lectionn{e2}e ; num{e2}ro, dates, quantit{e2}s et prix sont laiss{e2}s vides. Utile pour saisir la facture suivante."
     L boutons, "Supprimer la s{e2}lection", "Supprime la facture s{e2}lectionn{e2}e et toutes ses lignes."
@@ -220,14 +220,16 @@ Private Sub Def_Facture(ByRef titre As String, ByRef intro As String, ByRef cham
     L champs, "Commentaire (facultatif)", "Texte libre."
     L champs, "Boutons + et -", "En haut {a2} droite de chaque bloc : + ajoute une ligne au bloc (les blocs suivants sont d{e2}cal{e2}s vers le bas), - retire la derni{e1}re ligne si elle est vide. Chaque bloc commence avec 3 lignes."
     L champs, "Abonnement : ligne", "Libell{e2}, d{e2}but, fin (incluse), quantit{e2} (nombre de jours ou de mois), unit{e2} (propos{e2}e : jours), prix HT par unit{e2} (n{e2}gatif pour un remboursement) et TVA. Les montants se calculent."
+    L champs, "Unit{e2} (ligne de consommation)", "Obligatoirement m3 ou kWh pour un bloc d'indicateur Consommation (la liste de la cellule se limite {a2} ces deux valeurs ; m3 est converti automatiquement en m cube)."
     L champs, "Consommation : ligne", "Libell{e2}, d{e2}but, fin, quantit{e2} (kWh, m3...), unit{e2}, prix unitaire HT et TVA."
     L champs, "Taxes : ligne", "Libell{e2}, d{e2}but, fin, quantit{e2} (kWh ou euros de base), unit{e2}, prix HT et TVA."
     L champs, "Montant HT / Montant TTC", "Calcul{e2}s en direct : HT = quantit{e2} x prix, TTC = HT x (1 + TVA), arrondis au centime."
     L champs, "R{e2}capitulatif", "Totaux HT, TVA, TTC calcul{e2}s, total saisi et {e2}cart."
 
     L boutons, "Valider", "Enregistre la facture puis referme le formulaire."
-    L boutons, "Ajouter un bloc", "Demande un nom puis cr{e2}e, sous les blocs existants, un bloc de m{ea}me forme (m{ea}mes colonnes). Ses lignes sont enregistr{e2}es avec ce nom et comptent dans les totaux de la facture. Six blocs au plus."
-    L boutons, "+ / - / x (titre d'un bloc)", "+ ajoute une ligne au bloc (les blocs suivants descendent) ; - retire la derni{e1}re ligne si elle est vide ; x supprime un bloc ajout{e2} (confirmation s'il contient des lignes)."
+    L boutons, "Ajouter un bloc", "Demande un nom, puis l'indicateur que le bloc alimente (liste num{e2}rot{e2}e ; 0 pour cr{e2}er un nouvel indicateur, qui sera propos{e2} dans les listes suivantes), et cr{e2}e sous les blocs existants un bloc de m{ea}me forme (m{ea}mes colonnes). Son titre rappelle l'indicateur entre parenth{e1}ses. Ses lignes sont enregistr{e2}es avec ce nom et cet indicateur et comptent dans les totaux de la facture. Neuf blocs au plus. Pour remettre un bloc du mod{e1}le supprim{e2}, tapez son nom : Abonnement, Consommation ou Taxes et contributions (l'indicateur n'est alors pas redemand{e2})."
+    L boutons, "Indicateur (titre d'un bloc)", "Corrige l'indicateur d'un bloc affect{e2} par erreur (liste num{e2}rot{e2}e, 0 pour en cr{e2}er un). Si ce bloc figure dans d'autres factures, elles sont list{e2}es et une confirmation est demand{e2}e : le changement leur est appliqu{e2} quand vous validez la facture en cours (rien n'est modifi{e2} ailleurs si vous abandonnez). Un bloc ne peut pas passer {a2} Consommation si une facture l'utilise avec une unit{e2} autre que m3 ou kWh."
+    L boutons, "+ / - / x (titre d'un bloc)", "+ ajoute une ligne au bloc (les blocs suivants descendent) ; - retire la derni{e1}re ligne si elle est vide ; x supprime le bloc, m{ea}me un bloc du mod{e1}le (confirmation s'il contient des lignes) : seule cette facture est concern{e2}e, le mod{e1}le des nouvelles factures ne change pas."
     L boutons, "Annuler", "Referme le formulaire sans rien enregistrer."
     L boutons, "Aide", "Ouvre cette aide, sans fermer le formulaire."
 

@@ -149,7 +149,7 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 </svg></figure>
 <p>Une opération entre une seule fois, par l'import, et n'est écrite qu'après votre contrôle. Ensuite, le suivi santé, l'écran de recherche, le bilan mensuel et l'analyse budgétaire travaillent tous sur les deux mêmes tableaux. L'échéancier, lui, garde la liste de ce qui <strong>va</strong> arriver sur le compte et la compare aux opérations à chaque import. Les numéros renvoient aux sections de ce guide.</p>
 <h2 id="les-feuilles-et-tableaux-du-classeur">Les feuilles et tableaux du classeur</h2>
-<p>Toutes les données vivent dans deux tableaux Excel : <strong>TblOperations</strong> (une ligne par opération bancaire) et <strong>TblVentilations</strong> (les « parts » d'une opération découpée). L'échéancier a ses deux propres tableaux (<strong>TblEcheances</strong> et <strong>TblRecurrences</strong>), et le suivi des consommations les siens (<strong>TblFactures</strong>, <strong>TblAbonnements</strong>, <strong>TblConsos</strong>, <strong>TblTaxes</strong> et <strong>TblContrats</strong>). Les autres feuilles servent soit de réglages, soit d'écrans de saisie.</p>
+<p>Toutes les données vivent dans deux tableaux Excel : <strong>TblOperations</strong> (une ligne par opération bancaire) et <strong>TblVentilations</strong> (les « parts » d'une opération découpée). L'échéancier a ses deux propres tableaux (<strong>TblEcheances</strong> et <strong>TblRecurrences</strong>), et le suivi des consommations les siens (<strong>TblFactures</strong>, <strong>TblLignes</strong> et <strong>TblContrats</strong>). Les autres feuilles servent soit de réglages, soit d'écrans de saisie.</p>
 <p>Un point de vocabulaire utile dès le départ : un <strong>tableau Excel</strong> (ou <em>ListObject</em>) est une plage mise en forme avec « Insérer &gt; Tableau ». Le code retrouve toujours ses colonnes par leur <strong>nom d'en-tête</strong>, jamais par leur numéro : on peut donc déplacer une colonne sans rien casser, mais il ne faut <strong>jamais la renommer</strong>.</p>
 <div class="tableau"><table>
 <thead>
@@ -1200,43 +1200,44 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 <p>Le bilan mensuel (section 7) lit seulement TblOperations et compte une opération ventilée une fois. L'analyse remplace cette opération par ses parts, exclut des catégories, et ne retient que les catégories dont le net est une dépense. Les totaux peuvent donc différer légèrement : c'est normal, à ventilations et exclusions près.</p>
 <h2 id="10-le-suivi-des-consommations">10. Le suivi des consommations</h2>
 <p>L'écran <strong>frm_Consommations</strong> répond à une question : <em>combien consomme-t-on d'eau, d'électricité et de gaz, à quel prix, et comment cela évolue-t-il mois après mois ?</em> Il est écrit dans <code>mod_Consommations</code> (contrats et graphique), <code>mod_Factures</code> (saisie des factures) et <code>mod_InstallConsommations</code> (construction des feuilles). <strong>État au 19/10/2026 : modèle « facture » écrit, non encore testé dans Excel</strong> (voir <code>TODO_SuiviConsommations.md</code>). Le suivi est <strong>optionnel</strong> et <strong>indépendant des opérations bancaires</strong>.</p>
-<figure class="diagramme"><svg class="schema" width="448" viewBox="0 0 448 644" role="img" aria-label="Schéma 10" xmlns="http://www.w3.org/2000/svg">
+<figure class="diagramme"><svg class="schema" width="440" viewBox="0 0 440 661" role="img" aria-label="Schéma 10" xmlns="http://www.w3.org/2000/svg">
 <defs><marker id="fl10" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="8" markerHeight="8" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" class="pointe"/></marker></defs>
-<path class="arete" d="M194,74 C194,109 194,109 194,144" marker-end="url(#fl10)"/>
-<path class="arete" d="M194,198 C194,237 76,237 76,276" marker-end="url(#fl10)"/>
-<path class="arete" d="M194,198 C194,233 268,233 268,268" marker-end="url(#fl10)"/>
-<path class="arete" d="M76,330 C76,370 194,370 194,409" marker-end="url(#fl10)"/>
-<path class="arete" d="M268,339 C268,374 194,374 194,409" marker-end="url(#fl10)"/>
-<path class="arete" d="M194,463 C194,498 194,498 194,533" marker-end="url(#fl10)"/>
-<rect class="noeud base" x="94" y="20" width="200" height="54" rx="16"/>
-<text class="txt t1" x="194" y="43.0" text-anchor="middle">TblContrats</text>
-<text class="txt" x="194" y="60.0" text-anchor="middle">opérateur, unité, dates</text>
-<rect class="noeud" x="105" y="144" width="178" height="54" rx="8"/>
-<text class="txt t1" x="194" y="167.0" text-anchor="middle">frm_Facture</text>
-<text class="txt" x="194" y="184.0" text-anchor="middle">saisie d&#x27;une facture</text>
-<rect class="noeud base" x="20" y="276" width="111" height="54" rx="16"/>
-<text class="txt t1" x="76" y="299.5" text-anchor="middle">TblFactures</text>
-<text class="txt" x="76" y="316.5" text-anchor="middle">en-tête</text>
-<rect class="noeud base" x="167" y="268" width="200" height="71" rx="16"/>
-<text class="txt t1" x="268" y="291.0" text-anchor="middle">TblAbonnements</text>
-<text class="txt" x="268" y="308.0" text-anchor="middle">TblConsos, TblTaxes</text>
-<text class="txt" x="268" y="325.0" text-anchor="middle">lignes avec leurs dates</text>
-<rect class="noeud" x="105" y="409" width="178" height="54" rx="8"/>
-<text class="txt t1" x="194" y="432.0" text-anchor="middle">Répartition par mois</text>
-<text class="txt" x="194" y="449.0" text-anchor="middle">au prorata des jours</text>
-<rect class="noeud" x="116" y="533" width="156" height="71" rx="8"/>
-<text class="txt t1" x="194" y="556.0" text-anchor="middle">frm_Consommations</text>
-<text class="txt" x="194" y="573.0" text-anchor="middle">tableau mensuel +</text>
-<text class="txt" x="194" y="590.0" text-anchor="middle">graphique</text>
-<rect class="fond-etiquette" x="105" y="116" width="177" height="18" rx="4"/><text class="etiquette" x="194" y="130" text-anchor="middle">opérateur, unité proposés</text>
+<path class="arete" d="M190,74 C190,109 190,109 190,144" marker-end="url(#fl10)"/>
+<path class="arete" d="M190,198 C190,242 76,242 76,285" marker-end="url(#fl10)"/>
+<path class="arete" d="M190,198 C190,233 264,233 264,268" marker-end="url(#fl10)"/>
+<path class="arete" d="M76,339 C76,382 190,382 190,426" marker-end="url(#fl10)"/>
+<path class="arete" d="M264,356 C264,391 190,391 190,426" marker-end="url(#fl10)"/>
+<path class="arete" d="M190,480 C190,515 190,515 190,550" marker-end="url(#fl10)"/>
+<rect class="noeud base" x="90" y="20" width="200" height="54" rx="16"/>
+<text class="txt t1" x="190" y="43.0" text-anchor="middle">TblContrats</text>
+<text class="txt" x="190" y="60.0" text-anchor="middle">opérateur, unité, dates</text>
+<rect class="noeud" x="101" y="144" width="178" height="54" rx="8"/>
+<text class="txt t1" x="190" y="167.0" text-anchor="middle">frm_Facture</text>
+<text class="txt" x="190" y="184.0" text-anchor="middle">saisie d&#x27;une facture</text>
+<rect class="noeud base" x="20" y="285" width="111" height="54" rx="16"/>
+<text class="txt t1" x="76" y="308.0" text-anchor="middle">TblFactures</text>
+<text class="txt" x="76" y="325.0" text-anchor="middle">en-tête</text>
+<rect class="noeud base" x="167" y="268" width="193" height="88" rx="16"/>
+<text class="txt t1" x="264" y="291.0" text-anchor="middle">TblLignes</text>
+<text class="txt" x="264" y="308.0" text-anchor="middle">toutes les lignes, par</text>
+<text class="txt" x="264" y="325.0" text-anchor="middle">bloc</text>
+<text class="txt" x="264" y="342.0" text-anchor="middle">chacune avec ses dates</text>
+<rect class="noeud" x="101" y="426" width="178" height="54" rx="8"/>
+<text class="txt t1" x="190" y="449.0" text-anchor="middle">Répartition par mois</text>
+<text class="txt" x="190" y="466.0" text-anchor="middle">au prorata des jours</text>
+<rect class="noeud" x="112" y="550" width="156" height="71" rx="8"/>
+<text class="txt t1" x="190" y="573.0" text-anchor="middle">frm_Consommations</text>
+<text class="txt" x="190" y="590.0" text-anchor="middle">tableau mensuel +</text>
+<text class="txt" x="190" y="607.0" text-anchor="middle">graphique</text>
+<rect class="fond-etiquette" x="102" y="116" width="177" height="18" rx="4"/><text class="etiquette" x="190" y="130" text-anchor="middle">opérateur, unité proposés</text>
 </svg></figure>
 <h3 id="les-principes-révisés-le-19102026">Les principes (révisés le 19/10/2026)</h3>
 <ul>
-<li><strong>Une facture reproduit la facture papier</strong> : un en-tête (type, opérateur, numéro, date, période, total TTC facturé) et <strong>trois familles de lignes</strong> : abonnement, consommation, taxes et contributions. <strong>Chaque ligne a ses propres dates</strong>, son nombre de jours (abonnement) ou sa quantité, son prix unitaire HT, son taux de TVA et ses montants HT et TTC. Les périodes d'une famille ne coïncident pas avec celles des autres : le prix de l'abonnement, celui du kWh et les taxes évoluent chacun à leur rythme.</li>
+<li><strong>Une facture reproduit la facture papier</strong> : un en-tête (type, opérateur, numéro, date, période, total TTC facturé) et <strong>trois blocs de lignes</strong> (abonnement, consommation, taxes et contributions) et d'autres que l'on peut ajouter. <strong>Chaque ligne a ses propres dates</strong>, son nombre de jours (abonnement) ou sa quantité, son prix unitaire HT, son taux de TVA et ses montants HT et TTC. Les périodes d'une famille ne coïncident pas avec celles des autres : le prix de l'abonnement, celui du kWh et les taxes évoluent chacun à leur rythme.</li>
 <li><strong>Le total de la facture est indicatif</strong> : somme des lignes saisies, comparée au total TTC réellement facturé. L'écart est affiché mais n'empêche jamais l'enregistrement.</li>
 <li><strong>Quatre types de consommation</strong> : Adduction eau, Recyclage eau, Fourniture élec, Fourniture gaz. Unité par défaut : m³ pour l'eau, kWh pour l'électricité et le gaz.</li>
 <li><strong>Un contrat = un type chez un opérateur, entre deux dates.</strong> Il sert à proposer l'opérateur et l'unité à la saisie d'une facture ; l'opérateur est ensuite mémorisé sur la facture elle-même.</li>
-<li><strong>Les données sont sur des feuilles masquées</strong> (comme TblVentilations) : <code>Conso_Factures</code>, <code>Conso_Abonnements</code>, <code>Conso_Consommations</code>, <code>Conso_Taxes</code>, <code>Conso_Contrats</code>. L'installateur ne les reconstruit jamais : réinstaller ne fait plus perdre de données. Les écrans frm_Contrats et frm_Factures n'en montrent qu'une copie.</li>
+<li><strong>Les données sont sur des feuilles masquées</strong> (comme TblVentilations) : <code>Conso_Factures</code>, <code>Conso_Lignes</code>, <code>Conso_Indicateurs</code>, <code>Conso_Contrats</code>. L'installateur ne les reconstruit jamais : réinstaller ne fait plus perdre de données. Les écrans frm_Contrats et frm_Factures n'en montrent qu'une copie.</li>
 <li><strong>Pas de rapprochement bancaire</strong> dans cette version : les factures sont saisies à la main.</li>
 </ul>
 <h3 id="installer-le-suivi">Installer le suivi</h3>
@@ -1272,14 +1273,14 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 </tbody>
 </table></div>
 <p><strong>Montant HT</strong> = quantité × prix unitaire HT, arrondi au centime ; <strong>Montant TTC</strong> = HT × (1 + TVA), arrondi au centime (règle de la facture du fournisseur). Le taux de TVA est prérempli (dernière ligne enregistrée du même type et de la même nature, sinon eau 5,5 % ; électricité et gaz : abonnement 5,5 %, consommation et taxes 20 %) ; un <strong>prix HT négatif est admis</strong> (remboursement, avoir) : le contrôle de la cellule se limite à une bulle d'aide et la validation du formulaire relit la valeur (virgule ou point décimal, signe moins) ; la quantité, elle, reste positive. La <strong>saisie semi-automatique d'Excel est coupée</strong> pendant la saisie d'une facture (puis rétablie telle qu'elle était) : sinon « M » serait complété en « m³ ». L'unité se choisit dans une liste complétable (unités usuelles + celles déjà saisies). Chaque bloc commence avec <strong>3 lignes</strong> ; le bouton <strong>+</strong> du titre du bloc en ajoute une (les blocs suivants descendent), le bouton <strong>−</strong> retire la dernière ligne si elle est vide (40 lignes au plus par bloc). Les lignes vides sont ignorées. Un récapitulatif indicatif (HT, TVA, TTC calculés, total saisi, écart), placé en haut du formulaire, se met à jour en direct. Le formulaire demande confirmation si une période d'abonnement ou de consommation chevauche une autre ligne de la même facture ou une autre facture du même type (signe d'une double saisie).</p>
-<p><strong>Ajouter un bloc.</strong> Le bouton <strong>Ajouter un bloc</strong> du formulaire demande un nom (par exemple <em>Redevance</em> ou <em>Avoir</em>) et crée, sous les blocs existants, un bloc de même forme (mêmes colonnes, mêmes contrôles, mêmes boutons + et −, plus un bouton × pour le supprimer ; nom de 60 caractères au plus, unique dans la facture). Les trois blocs de départ restent le modèle de toute nouvelle facture ; on peut ajouter jusqu'à six blocs. Les lignes de ces blocs sont enregistrées dans un tableau unique, <strong>TblBlocsLibres</strong> (feuille masquée <code>Conso_Blocs</code>), avec le nom (<code>Bloc</code>) et le rang (<code>RangBloc</code>) du bloc ; à la réouverture d'une facture, ses blocs sont recréés d'après ces colonnes. Leurs montants comptent dans le récapitulatif et dans la liste des factures (total calculé, écart). <strong>Le graphique ne les utilise pas encore</strong> : leur rattachement aux indicateurs (consommation, abonnement, taxes, ou une famille « Autres ») reste à décider. Les factures existantes n'ont besoin d'aucune migration.</p>
+<p><strong>Ajouter un bloc.</strong> Le formulaire propose pour une facture neuve un <strong>modèle</strong> de trois blocs (Abonnement, Consommation, Taxes et contributions, trois lignes chacun). Le bouton <strong>Ajouter un bloc</strong> demande un nom (par exemple <em>Redevance</em> ou <em>Avoir</em>, 60 caractères au plus, unique dans la facture) puis l'<strong>indicateur</strong> que le bloc alimente : on le choisit dans une liste numérotée (Abonnement, Consommation, Taxes, Autre, puis les indicateurs déjà créés) ou on tape <strong>0</strong> pour <strong>créer un nouvel indicateur</strong>, qui est mémorisé (tableau <strong>TblIndicateurs</strong>, feuille masquée <code>Conso_Indicateurs</code>) et proposé dans toutes les listes suivantes. Le <strong>titre de chaque bloc affiche toujours son indicateur entre parenthèses</strong>, même pour les blocs du modèle (<em>Abonnement (Abonnement)</em>, <em>Redevance (Autre)</em>). Le bouton <strong>Indicateur</strong> du titre corrige un bloc affecté au mauvais indicateur : si ce même bloc (même nom) figure dans d'autres factures, elles sont listées et une confirmation est demandée ; le changement leur est appliqué à l'enregistrement de la facture en cours, et rien n'est modifié ailleurs si l'on abandonne le formulaire. Un bloc ne peut pas passer à <em>Consommation</em> tant qu'une autre facture l'utilise avec une unité autre que m³ ou kWh. <strong>Garde-fou d'unité</strong> : une ligne d'un bloc d'indicateur <em>Consommation</em> doit avoir pour unité <strong>m³ ou kWh</strong> (la liste de la cellule se limite à ces deux valeurs, « m3 » est converti en m³, et la validation du formulaire refuse toute autre unité) ; à l'ouverture, les lignes vides de ces blocs reçoivent m³ pour l'eau et kWh pour l'électricité et le gaz. Le bloc créé a exactement la même forme que les autres (mêmes colonnes, mêmes contrôles, boutons + et −). Le bouton <strong>×</strong> du titre existe sur <strong>tous</strong> les blocs, y compris ceux du modèle : on ne garde dans le formulaire que les blocs de la facture réelle, et seule la facture en cours est concernée (le modèle des nouvelles factures ne change pas). Pour remettre un bloc du modèle supprimé, on tape son nom dans « Ajouter un bloc » : il retrouve son indicateur d'origine sans qu'il soit redemandé. <strong>Modifier ou copier une facture reprend exactement la structure de la source</strong> : ses blocs, dans le même ordre, avec autant de lignes. <strong>Toutes les lignes sont dans un seul tableau, TblLignes</strong> (feuille masquée <code>Conso_Lignes</code>), avec les colonnes <code>Bloc</code> (nom du bloc), <code>Indicateur</code> et <code>OrdreBloc</code> (position du bloc dans la facture). Les lignes dont l'indicateur n'est ni Abonnement, ni Consommation, ni Taxes comptent dans le récapitulatif et dans la liste des factures (total calculé, écart) mais <strong>pas encore dans le graphique</strong> (leur rattachement aux indicateurs du graphique reste à décider). <strong>Migration</strong> : <code>InstallerConsommations</code> reprend les lignes des anciens tableaux (<code>Conso_Abonnements</code>, <code>Conso_Consommations</code>, <code>Conso_Taxes</code>, <code>Conso_Blocs</code>) dans <code>Conso_Lignes</code>, contrôle le nombre de lignes et le total TTC, puis renomme les anciennes feuilles en <code>…_ancien</code> et les masque ; <code>SupprimerAnciensTableauxLignes</code> les supprime après vérification. Si le contrôle échoue, rien n'est modifié. Une version intermédiaire de <code>TblLignes</code> qui avait une colonne <code>Famille</code> voit cette colonne renommée <code>Indicateur</code>.</p>
 <h3 id="les-deux-listes_1">Les deux listes</h3>
 <ul>
-<li><strong>frm_Factures</strong> (lecture seule, classée par date de facture décroissante, flèches de filtre sur chaque colonne ; le filtre est mémorisé puis réappliqué à chaque rafraîchissement, et les boutons n'agissent que sur les lignes visibles) : une ligne par facture, avec le total HT, la TVA, le total TTC calculé, le total facturé et l'écart. Boutons : Ajouter une facture, <strong>Modifier la sélection</strong> (rouvre le formulaire), <strong>Copier la sélection</strong> (nouvelle facture préremplie : type, opérateur, libellés, unités et TVA conservés ; numéro, dates, quantités et prix vides), Supprimer la sélection (supprime la facture et toutes ses lignes), Contrats, Retour.</li>
+<li><strong>frm_Factures</strong> (lecture seule, classée par date de facture décroissante, flèches de filtre sur chaque colonne ; le filtre est mémorisé puis réappliqué à chaque rafraîchissement, et les boutons n'agissent que sur les lignes visibles) : une ligne par facture, avec le total HT, la TVA, le total TTC calculé, le total facturé et l'écart. Boutons : Ajouter une facture, <strong>Consulter la sélection</strong> (ouvre la facture sans pouvoir l'enregistrer : un seul bouton <em>Sortir</em> qui abandonne en silence toute modification), <strong>Modifier la sélection</strong> (rouvre le formulaire), <strong>Copier la sélection</strong> (nouvelle facture préremplie : type, opérateur, libellés, unités et TVA conservés ; numéro, dates, quantités et prix vides), Supprimer la sélection (supprime la facture et toutes ses lignes), Contrats, Retour.</li>
 <li><strong>frm_Contrats</strong> (modifiable directement, tableau TblContratsAff) : tous les contrats. Les modifications sont écrites dans les données en quittant l'écran, avant un Ctrl+S et à la fermeture du classeur.</li>
 </ul>
 <h3 id="lécran-frm_consommations">L'écran frm_Consommations</h3>
-<p>Bouton <strong>« Consommations »</strong> de la feuille Synthese. Il affiche un tableau mensuel (mois, quantité, prix unitaire HT, consommation, abonnement, taxes, montant total, opérateur) avec une ligne de total, et un graphique. Après un changement de paramètre, cliquer sur <strong>Actualiser</strong>.</p>
+<p>Bouton <strong>« Consommations »</strong> de la feuille Synthese. Il affiche un tableau mensuel (mois, quantité, prix unitaire HT, consommation, abonnement, taxes, montant total, opérateur) avec une ligne de total, et un graphique. Les mois sans donnée ne sont affichés ni dans le tableau (facture la plus récente en premier) ni dans le graphique (ordre chronologique). Après un changement de paramètre, cliquer sur <strong>Actualiser</strong>.</p>
 <div class="tableau"><table>
 <thead>
 <tr>
@@ -1292,22 +1293,22 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 <tr>
 <td>Type</td>
 <td>(tous) ou un des quatre types</td>
-<td>Un type : une série par opérateur. (tous) : une série par type</td>
+<td><strong>À choisir en premier</strong> : les autres champs sont masqués tant qu'il est vide. Un type : une série par opérateur. (tous) : une série par type. Il détermine les mois proposés dans Début et Fin</td>
 </tr>
 <tr>
 <td>Indicateur</td>
-<td>Quantité / Prix unitaire HT / Consommation / Abonnement / Taxes / Montant total</td>
-<td>Ce que montre le graphique (montants TTC). Pour (tous), seuls les montants sont comparables : le montant total est alors affiché</td>
+<td>Consommation / Prix unitaire HT / Montant consommation / Abonnement / Taxes / Montant total</td>
+<td><strong>Consommation</strong> = la quantité consommée, dans l'unité du type (m³ pour l'eau, kWh pour l'énergie). Les autres montants sont en euros TTC (le prix en € HT par unité). Pour (tous), seules les sommes en euros sont comparables : le montant total est alors affiché</td>
 </tr>
 <tr>
-<td>Période</td>
-<td>12 / 36 / 60 / 120 derniers mois / Année</td>
-<td>Les mois se terminant au mois choisi, ou l'année civile entière</td>
+<td>Début</td>
+<td>liste des mois couverts par les factures du type choisi</td>
+<td>Apparaît après l'indicateur. Premier mois de la période</td>
 </tr>
 <tr>
-<td>Année, Mois (fin de période)</td>
-<td>listes déroulantes</td>
-<td>Période de référence</td>
+<td>Fin</td>
+<td>mêmes mois, à partir de Début</td>
+<td>Apparaît après Début, avec Forme et Répartition. Dernier mois ; vide : jusqu'au dernier mois du type. 120 mois au plus (<code>CO_NB_MOIS_MAX</code>)</td>
 </tr>
 <tr>
 <td>Forme du graphique</td>
@@ -1419,7 +1420,7 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 </tr>
 <tr>
 <td>Suivi des consommations</td>
-<td><code>InstallerConsommations</code> (crée aussi les feuilles de données <code>Conso_*</code>, dont <code>Conso_Blocs</code>) ; <code>NettoyerAnciensReleves</code> supprime seulement les anciennes feuilles du modèle « relevé »</td>
+<td><code>InstallerConsommations</code> (crée aussi les feuilles de données <code>Conso_*</code>, dont <code>Conso_Lignes</code>, et migre les anciennes lignes) ; <code>NettoyerAnciensReleves</code> supprime seulement les anciennes feuilles du modèle « relevé » ; <code>SupprimerAnciensTableauxLignes</code> supprime les feuilles <code>…_ancien</code> archivées par la migration</td>
 <td>Importer <code>mod_Factures.bas</code> (nouveau) avec <code>mod_Consommations</code>, <code>mod_InstallConsommations</code>, <code>mod_InstallAide</code>, <code>mod_VarGlobales</code> et <code>mod_Synchro</code> ; coller <code>CodeBehind_frm_Facture.txt</code> dans frm_Facture et <code>CodeBehind_frm_Contrat.txt</code> dans frm_Contrat (ne pas les confondre avec les listes frm_Factures et frm_Contrats)</td>
 </tr>
 </tbody>
@@ -1478,7 +1479,7 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 <p>Après chaque récupération ou envoi, les empreintes sont recalculées : si les deux fichiers ne sont pas strictement identiques, les éléments en écart sont listés.</p>
 <h3 id="ce-qui-est-synchronisé">Ce qui est synchronisé</h3>
 <ul>
-<li>les tableaux <strong>TblOperations, TblVentilations, TblEcheances, TblRecurrences, TblFactures, TblAbonnements, TblConsos, TblTaxes, TblBlocsLibres, TblContrats, TblCategories, TblDecalagesBudget</strong> (colonnes retrouvées par leur nom ; les colonnes calculées par formule sont ignorées) ;</li>
+<li>les tableaux <strong>TblOperations, TblVentilations, TblEcheances, TblRecurrences, TblFactures, TblLignes, TblIndicateurs, TblContrats, TblCategories, TblDecalagesBudget</strong> (colonnes retrouvées par leur nom ; les colonnes calculées par formule sont ignorées) ;</li>
 <li>les feuilles <strong>Param</strong> (hors tableaux : listes Spécialités, Praticiens...) et <strong>TechDernierImport</strong> ;</li>
 <li>les cellules nommées <strong>soldeRefMontant</strong> et <strong>soldeRefDate</strong>.</li>
 </ul>

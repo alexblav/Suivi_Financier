@@ -28,13 +28,16 @@ Option Explicit
 '   4. Sur Synthese, cliquer sur le bouton "Consommations", puis sur Contrats pour
 '      déclarer les contrats en cours, puis sur Saisir une facture.
 '
-' DONNÉES : TblFactures, TblAbonnements, TblConsos, TblTaxes et TblContrats sont sur des
-' feuilles masquées (Conso_Factures, Conso_Abonnements, Conso_Consommations, Conso_Taxes,
-' Conso_Contrats), comme TblVentilations sur Ventilations. Elles ne sont JAMAIS reconstruites :
-' réinstaller ne touche pas aux données. Les écrans frm_Contrats et frm_Factures n'en montrent
-' qu'une copie. Anciennes versions : les contrats saisis sur frm_Contrats sont déplacés
-' automatiquement ; l'ancien modèle "relevé" (une période unique par facture) est abandonné :
-' ses feuilles (frm_Releve, frm_Releves, Conso_Releves) sont supprimées après confirmation.
+' DONNÉES : TblFactures (en-têtes), TblLignes (TOUTES les lignes de TOUS les blocs de TOUTES les factures) et
+' TblContrats sont sur des feuilles masquées (Conso_Factures, Conso_Lignes, Conso_Contrats), comme TblVentilations
+' sur Ventilations. Elles ne sont JAMAIS reconstruites : réinstaller ne touche pas aux données. Les écrans
+' frm_Contrats et frm_Factures n'en montrent qu'une copie. Anciennes versions : les contrats saisis sur
+' frm_Contrats sont déplacés automatiquement ; l'ancien modèle "relevé" (une période unique par facture) est
+' abandonné : ses feuilles (frm_Releve, frm_Releves, Conso_Releves) sont supprimées après confirmation.
+'
+' MIGRATION (24/10/2026) : les quatre anciens tableaux de lignes (Conso_Abonnements, Conso_Consommations, Conso_Taxes,
+' Conso_Blocs) sont fusionnés dans Conso_Lignes (voir MigrerVersLignes). Les anciennes feuilles sont renommées
+' (suffixe _ancien) et masquées, jamais supprimées : SupprimerAnciensTableauxLignes les supprime après contrôle.
 '
 ' RÉINSTALLATION : possible sans perte. L'écran principal revient à ses paramètres par défaut.
 ' =====================================================================================
@@ -65,12 +68,14 @@ Public Sub InstallerConsommations()
     ConstruireBoutonSynthese
 
     MsgBox mod_Display.FR("Le suivi des consommations est install{e2}.") & vbCrLf & vbCrLf & _
-           mod_Display.FR("PROCHAINE {E2}TAPE (indispensable) : coller le code des {e2}v{e2}nements dans les deux feuilles de formulaire.") & vbCrLf & _
+           mod_Display.FR("PROCHAINE {E2}TAPE (indispensable) : coller le code des {e2}v{e2}nements dans les trois feuilles ci-dessous.") & vbCrLf & _
            "Nom interne (CodeName) de la feuille " & mod_VarGlobales.NOM_FEUILLE_FACTURE & " : " & _
            mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_FACTURE).CodeName & vbCrLf & _
            "Nom interne (CodeName) de la feuille " & mod_VarGlobales.NOM_FEUILLE_CONTRAT & " : " & _
-           mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_CONTRAT).CodeName & vbCrLf & vbCrLf & _
-           mod_Display.FR("Voir les fichiers CodeBehind_frm_Facture.txt et CodeBehind_frm_Contrat.txt."), _
+           mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_CONTRAT).CodeName & vbCrLf & _
+           "Nom interne (CodeName) de la feuille " & mod_VarGlobales.NOM_FEUILLE_CONSO & " : " & _
+           mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_CONSO).CodeName & vbCrLf & vbCrLf & _
+           mod_Display.FR("Voir les fichiers CodeBehind_frm_Facture.txt, CodeBehind_frm_Contrat.txt et CodeBehind_frm_Consommations.txt."), _
            vbInformation, mod_Display.FR("Installation termin{e2}e")
 
 End Sub
@@ -81,23 +86,19 @@ End Sub
 ' =====================================================================================
 Private Function PreparerToutesLesDonnees() As Boolean
 
-    Dim lignes As Variant
-    Dim e As String
-
-    e = "ID_Facture|Libelle|DateDebut|DateFin|Quantite|Unite|PrixUnitaireHT|TauxTVA|MontantHT|MontantTTC"
-    lignes = Split(e, "|")
-
     If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_CONTRATS, mod_VarGlobales.NOM_TABLE_CONTRATS, _
         Split("ID_Contrat|TypeConso|Operateur|Unite|DateDebut|DateFin|AbonnementMensuel|Reference", "|"), _
         mod_VarGlobales.NOM_FEUILLE_CONTRATS) Then Exit Function
     If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_FACTURES, mod_VarGlobales.NOM_TABLE_FACTURES, _
         Split("ID_Facture|TypeConso|Operateur|NumeroFacture|DateFacture|DebutPeriode|FinPeriode|TotalFactureTTC|Commentaire", "|"), "") Then Exit Function
-    If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_ABOS, mod_VarGlobales.NOM_TABLE_ABOS, lignes, "") Then Exit Function
-    If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_CONSOS, mod_VarGlobales.NOM_TABLE_CONSOS, lignes, "") Then Exit Function
-    If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_TAXES, mod_VarGlobales.NOM_TABLE_TAXES, lignes, "") Then Exit Function
-    ' Blocs libres : un seul tableau, mêmes colonnes que les autres lignes + le nom et le rang du bloc.
-    If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_BLOCS, mod_VarGlobales.NOM_TABLE_BLOCS, _
-        Split("ID_Facture|Bloc|RangBloc|Libelle|DateDebut|DateFin|Quantite|Unite|PrixUnitaireHT|TauxTVA|MontantHT|MontantTTC", "|"), "") Then Exit Function
+    ' Toutes les lignes (abonnement, consommation, taxes, blocs ajoutés) : un seul tableau.
+    If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_LIGNES, mod_VarGlobales.NOM_TABLE_LIGNES, _
+        Split("ID_Facture|OrdreBloc|Bloc|Indicateur|Libelle|DateDebut|DateFin|Quantite|Unite|PrixUnitaireHT|TauxTVA|MontantHT|MontantTTC", "|"), "") Then Exit Function
+    ' Liste des indicateurs proposés à la création d'un bloc (les quatre de base, puis ceux créés par l'opérateur).
+    If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_INDIC, mod_VarGlobales.NOM_TABLE_INDIC, Split("Indicateur", "|"), "") Then Exit Function
+    SemerIndicateurs
+    ' Reprise des lignes des anciens tableaux (une seule fois ; voir MigrerVersLignes).
+    If Not MigrerVersLignes() Then Exit Function
     PreparerToutesLesDonnees = True
 
 End Function
@@ -119,6 +120,10 @@ Private Function PreparerDonnees(ByVal nomData As String, ByVal nomTable As Stri
         Set lo = ws.ListObjects(nomTable)
         On Error GoTo 0
         If Not lo Is Nothing Then
+            ' Tableau déjà installé : on n'efface rien. La colonne Famille (version du 24/10/2026) devient Indicateur, puis on ajoute
+            ' les colonnes apparues depuis.
+            If mod_Consommations.ColIdx(lo, "Indicateur") = 0 And mod_Consommations.ColIdx(lo, "Famille") > 0 Then lo.ListColumns("Famille").Name = "Indicateur"
+            AjouterColonnesManquantes lo, entetes
             PreparerDonnees = True
             Exit Function
         End If
@@ -183,6 +188,258 @@ Private Function PreparerDonnees(ByVal nomData As String, ByVal nomTable As Stri
     PreparerDonnees = True
 
 End Function
+
+' Premier remplissage de la liste des indicateurs : les quatre de base. Rien n'est écrit si la liste contient déjà des lignes.
+Private Sub SemerIndicateurs()
+
+    Dim lo As ListObject
+    Dim noms As Variant
+    Dim vals() As Variant
+    Dim i As Long
+
+    Set lo = mod_Factures.TableIndicateurs()
+    If lo Is Nothing Then Exit Sub
+    If Not mod_Consommations.TableVide(lo) Then Exit Sub
+
+    noms = Array("Abonnement", "Consommation", "Taxes", "Autre")
+    ReDim vals(1 To UBound(noms) + 1, 1 To 1)
+    For i = 0 To UBound(noms)
+        vals(i + 1, 1) = noms(i)
+    Next i
+    lo.Resize lo.Range.Resize(UBound(noms) + 2)
+    lo.DataBodyRange.Value2 = vals
+
+End Sub
+
+' Ajoute à un tableau existant les colonnes de "entetes" qui lui manquent (à droite, vides). Aucune donnée n'est touchée.
+Private Sub AjouterColonnesManquantes(ByVal lo As ListObject, ByVal entetes As Variant)
+
+    Dim i As Long
+    Dim nom As String
+    Dim col As ListColumn
+
+    For i = LBound(entetes) To UBound(entetes)
+        nom = CStr(entetes(i))
+        If mod_Consommations.ColIdx(lo, nom) = 0 Then
+            Set col = lo.ListColumns.Add
+            col.Name = nom
+            On Error Resume Next
+            col.DataBodyRange.NumberFormat = mod_Consommations.FormatColonneConso(nom)
+            On Error GoTo 0
+        End If
+    Next i
+
+End Sub
+
+' =====================================================================================
+' MIGRATION vers TblLignes (24/10/2026) : une seule table de lignes pour tous les blocs
+' =====================================================================================
+' Avant : quatre tableaux de lignes (TblAbonnements, TblConsos, TblTaxes, TblBlocsLibres). Maintenant : TblLignes
+' (feuille Conso_Lignes), avec les colonnes Bloc (nom du bloc), Indicateur et OrdreBloc (position du bloc).
+' Étapes, toutes protégées :
+'   1. si aucun ancien tableau n'est présent, il n'y a rien à faire ;
+'   2. si TblLignes contient déjà des données, la migration est ignorée (jamais de doublon) ;
+'   3. les lignes sont copiées avec leur indicateur, leur nom de bloc (Abonnement, Consommation, Taxes et contributions,
+'      ou le nom du bloc libre) et leur position (colonne OrdreBloc d'origine, sinon abonnement 1, consommation 2,
+'      taxes 3, puis les blocs libres à 3 + leur rang) ;
+'   4. le nombre de lignes et le total TTC sont contrôlés ; au moindre écart, TblLignes est vidé et les anciennes
+'      feuilles restent intactes ;
+'   5. sinon, les anciennes feuilles sont RENOMMÉES (suffixe _ancien) et masquées, jamais supprimées : la macro
+'      SupprimerAnciensTableauxLignes les supprime plus tard, quand vous avez contrôlé le résultat.
+Private Function MigrerVersLignes() As Boolean
+
+    Dim noms As Variant, tables As Variant
+    Dim src(1 To 4) As ListObject
+    Dim nbSrc(1 To 4) As Long
+    Dim loN As ListObject
+    Dim total As Long, k As Long, i As Long, j As Long, r As Long
+    Dim vN() As Variant
+    Dim vI() As Variant, vC() As Variant, vO() As Variant, vR() As Variant, vB() As Variant
+    Dim nom As String
+    Dim somme As Double, sommeNouv As Double
+    Dim nbNouv As Long, ordre As Long
+    Dim ws As Worksheet
+
+    MigrerVersLignes = True
+    noms = Array(mod_VarGlobales.NOM_FEUILLE_DATA_ABOS, mod_VarGlobales.NOM_FEUILLE_DATA_CONSOS, _
+                 mod_VarGlobales.NOM_FEUILLE_DATA_TAXES, mod_VarGlobales.NOM_FEUILLE_DATA_BLOCS)
+    tables = Array(mod_VarGlobales.NOM_TABLE_ABOS, mod_VarGlobales.NOM_TABLE_CONSOS, _
+                   mod_VarGlobales.NOM_TABLE_TAXES, mod_VarGlobales.NOM_TABLE_BLOCS)
+
+    ' 1. Anciens tableaux présents ?
+    For k = 1 To 4
+        Set src(k) = mod_Consommations.ObtenirTable(CStr(noms(k - 1)), CStr(tables(k - 1)))
+        If Not src(k) Is Nothing Then
+            If Not mod_Consommations.TableVide(src(k)) Then
+                vI = mod_Consommations.LireColonne(src(k), "ID_Facture")
+                For i = 1 To src(k).ListRows.Count
+                    If mod_DataStructure.CellText(vI(i)) <> "" Then nbSrc(k) = nbSrc(k) + 1
+                Next i
+            End If
+            total = total + nbSrc(k)
+        End If
+    Next k
+    If src(1) Is Nothing And src(2) Is Nothing And src(3) Is Nothing And src(4) Is Nothing Then Exit Function
+
+    Set loN = mod_Factures.TableLignes()
+    If loN Is Nothing Then Exit Function
+
+    ' 2. TblLignes déjà alimenté : pas de doublon.
+    If total > 0 And Not mod_Consommations.TableVide(loN) Then
+        MsgBox mod_Display.FR("Les anciens tableaux de lignes existent encore, mais Conso_Lignes contient d{e2}j{a2} des donn{e2}es : la migration est ignor{e2}e pour ne rien dupliquer.") & vbCrLf & _
+               mod_Display.FR("V{e2}rifiez le contenu de Conso_Lignes ; les anciennes feuilles (Conso_Abonnements, Conso_Consommations, Conso_Taxes, Conso_Blocs) n'ont pas {e2}t{e2} touch{e2}es."), _
+               vbExclamation, mod_Display.FR("Migration des lignes de facture")
+        Exit Function
+    End If
+
+    Application.ScreenUpdating = False
+
+    If total > 0 Then
+        ' 3. Copie.
+        ReDim vN(1 To total, 1 To loN.ListColumns.Count)
+        r = 0
+        For k = 1 To 4
+            If nbSrc(k) > 0 Then
+                vI = mod_Consommations.LireColonne(src(k), "ID_Facture")
+                If mod_Consommations.ColIdx(src(k), "OrdreBloc") > 0 Then vO = mod_Consommations.LireColonne(src(k), "OrdreBloc") Else vO = Array()
+                If k = 4 Then
+                    vB = mod_Consommations.LireColonne(src(k), "Bloc")
+                    If mod_Consommations.ColIdx(src(k), "RangBloc") > 0 Then vR = mod_Consommations.LireColonne(src(k), "RangBloc") Else vR = Array()
+                End If
+                For i = 1 To src(k).ListRows.Count
+                    If mod_DataStructure.CellText(vI(i)) <> "" Then
+                        r = r + 1
+                        ' Position du bloc dans la facture.
+                        ordre = 0
+                        If UBound(vO) >= i Then ordre = mod_DataStructure.ToLong(vO(i))
+                        If ordre <= 0 Then
+                            If k = 4 Then
+                                ordre = 1
+                                If UBound(vR) >= i Then ordre = mod_DataStructure.ToLong(vR(i))
+                                If ordre < 1 Then ordre = 1
+                                ordre = 3 + ordre
+                            Else
+                                ordre = k
+                            End If
+                        End If
+                        For j = 1 To loN.ListColumns.Count
+                            nom = loN.ListColumns(j).Name
+                            Select Case nom
+                                Case "OrdreBloc"
+                                    vN(r, j) = ordre
+                                Case "Indicateur"
+                                    Select Case k
+                                        Case 1: vN(r, j) = "Abonnement"
+                                        Case 2: vN(r, j) = "Consommation"
+                                        Case 3: vN(r, j) = "Taxes"
+                                        Case Else: vN(r, j) = "Autre"
+                                    End Select
+                                Case "Bloc"
+                                    If k = 4 Then
+                                        vN(r, j) = mod_DataStructure.CellText(vB(i))
+                                    Else
+                                        vN(r, j) = mod_Factures.NomBlocModele(k)
+                                    End If
+                                Case Else
+                                    If mod_Consommations.ColIdx(src(k), nom) > 0 Then
+                                        vN(r, j) = src(k).ListColumns(nom).DataBodyRange.Cells(i, 1).Value2
+                                    End If
+                            End Select
+                        Next j
+                    End If
+                Next i
+            End If
+        Next k
+
+        If total > 1 Then loN.Resize loN.Range.Resize(total + 1)
+        loN.DataBodyRange.Value2 = vN
+        For j = 1 To loN.ListColumns.Count
+            loN.ListColumns(j).DataBodyRange.NumberFormat = mod_Consommations.FormatColonneConso(loN.ListColumns(j).Name)
+        Next j
+
+        ' 4. Contrôles : nombre de lignes et total TTC.
+        For k = 1 To 4
+            If nbSrc(k) > 0 Then somme = somme + Application.WorksheetFunction.Sum(src(k).ListColumns("MontantTTC").DataBodyRange)
+        Next k
+        vI = mod_Consommations.LireColonne(loN, "ID_Facture")
+        For i = 1 To loN.ListRows.Count
+            If mod_DataStructure.CellText(vI(i)) <> "" Then nbNouv = nbNouv + 1
+        Next i
+        sommeNouv = Application.WorksheetFunction.Sum(loN.ListColumns("MontantTTC").DataBodyRange)
+        If nbNouv <> total Or Abs(sommeNouv - somme) > 0.005 Then
+            Do While loN.ListRows.Count > 1
+                loN.ListRows(loN.ListRows.Count).Delete
+            Loop
+            loN.DataBodyRange.ClearContents
+            Application.ScreenUpdating = True
+            MsgBox mod_Display.FR("La migration des lignes de facture a {e2}t{e2} ANNUL{E2}E : ") & nbNouv & mod_Display.FR(" ligne(s) copi{e2}e(s) pour ") & total & _
+                   mod_Display.FR(" attendue(s), total TTC ") & Format$(sommeNouv, "#,##0.00") & " pour " & Format$(somme, "#,##0.00") & "." & vbCrLf & _
+                   mod_Display.FR("Rien n'a {e2}t{e2} modifi{e2} dans vos anciennes feuilles. Conservez ce message et signalez-le."), vbCritical, mod_Display.FR("Migration des lignes de facture")
+            MigrerVersLignes = False
+            Exit Function
+        End If
+    End If
+
+    ' 5. Archivage des anciennes feuilles (renommées et masquées, pas supprimées).
+    For k = 1 To 4
+        Set ws = mod_InstallCommun.TrouverFeuille(CStr(noms(k - 1)))
+        If Not ws Is Nothing Then
+            nom = CStr(noms(k - 1)) & "_ancien"
+            i = 1
+            Do While Not mod_InstallCommun.TrouverFeuille(nom) Is Nothing
+                i = i + 1
+                nom = CStr(noms(k - 1)) & "_ancien" & i
+            Loop
+            ws.Name = nom
+            ws.Visible = xlSheetHidden
+        End If
+    Next k
+    Application.ScreenUpdating = True
+
+    MsgBox mod_Display.FR("Migration termin{e2}e : ") & total & mod_Display.FR(" ligne(s) de facture copi{e2}e(s) dans Conso_Lignes (total TTC ") & Format$(somme, "#,##0.00") & _
+           mod_Display.FR(", contr{o2}l{e2}).") & vbCrLf & vbCrLf & _
+           mod_Display.FR("Les anciennes feuilles ont {e2}t{e2} renomm{e2}es en ...") & "_ancien" & mod_Display.FR(" et masqu{e2}es. Apr{e1}s avoir v{e2}rifi{e2} vos factures, ") & _
+           mod_Display.FR("lancez SupprimerAnciensTableauxLignes (Ctrl+G) pour les supprimer."), _
+           vbInformation, mod_Display.FR("Migration des lignes de facture")
+
+End Function
+
+' Outil développeur (Ctrl+G) : supprime les anciennes feuilles de lignes archivées par la migration (suffixe _ancien).
+' À lancer seulement après avoir contrôlé que toutes les factures s'affichent correctement. IRRÉVERSIBLE.
+Public Sub SupprimerAnciensTableauxLignes()
+
+    Dim ws As Worksheet
+    Dim aSupprimer As Collection
+    Dim liste As String
+    Dim v As Variant
+
+    Set aSupprimer = New Collection
+    For Each ws In ThisWorkbook.Worksheets
+        If Left$(ws.Name, 6) = "Conso_" And InStr(ws.Name, "_ancien") > 0 Then
+            aSupprimer.Add ws.Name
+            liste = liste & vbCrLf & " - " & ws.Name
+        End If
+    Next ws
+    If aSupprimer.Count = 0 Then
+        MsgBox mod_Display.FR("Aucune ancienne feuille de lignes {a2} supprimer."), vbInformation
+        Exit Sub
+    End If
+
+    If MsgBox(mod_Display.FR("Supprimer d{e2}finitivement ces feuilles ?") & liste & vbCrLf & vbCrLf & _
+              mod_Display.FR("Cette action est IRR{E2}VERSIBLE. N'y consentez qu'apr{e1}s avoir v{e2}rifi{e2} vos factures."), _
+              vbYesNo + vbExclamation + vbDefaultButton2, mod_Display.FR("Supprimer les anciennes feuilles")) = vbNo Then Exit Sub
+
+    Application.DisplayAlerts = False
+    For Each v In aSupprimer
+        On Error Resume Next
+        ThisWorkbook.Worksheets(CStr(v)).Visible = xlSheetVisible
+        ThisWorkbook.Worksheets(CStr(v)).Delete
+        On Error GoTo 0
+    Next v
+    Application.DisplayAlerts = True
+    MsgBox mod_Display.FR("Anciennes feuilles supprim{e2}es."), vbInformation
+
+End Sub
 
 ' Ancien modèle "relevé" : ses feuilles sont supprimées. Si Conso_Releves contient des données,
 ' une confirmation est demandée (elles seraient perdues).
@@ -297,6 +554,7 @@ Private Function ConstruireListeFactures(ByVal wsPrecedente As Worksheet) As Boo
 
     boutons = Array( _
         mod_Display.FR("Ajouter une facture"), "SaisirFacture", "btnAjouterFacture", 118, _
+        mod_Display.FR("Consulter la s{e2}lection"), "ConsulterFactureSelection", "btnConsulterFacture", 118, _
         mod_Display.FR("Modifier la s{e2}lection"), "ModifierFactureSelection", "btnModifierFacture", 118, _
         mod_Display.FR("Copier la s{e2}lection"), "CopierFactureSelection", "btnCopierFacture", 112, _
         mod_Display.FR("Supprimer la s{e2}lection"), "SupprimerFactureSelection", "btnSupprimerFacture", 118, _
@@ -310,6 +568,7 @@ Private Function ConstruireListeFactures(ByVal wsPrecedente As Worksheet) As Boo
     t = t & "(indicatif) ; [c:TotalFactureTTC] est le montant r{e2}ellement factur{e2} ; [c:Ecart] est leur diff{e2}rence."
     t = t & Chr(10) & "Boutons :"
     t = t & Chr(10) & "- [b:Ajouter une facture] : ouvre le formulaire de saisie."
+    t = t & Chr(10) & "- [b:Consulter la s{e2}lection] : ouvre la facture s{e2}lectionn{e2}e dans le formulaire, sans pouvoir l'enregistrer : un seul bouton Sortir, qui abandonne en silence toute modification."
     t = t & Chr(10) & "- [b:Modifier la s{e2}lection] : rouvre le formulaire sur la facture s{e2}lectionn{e2}e."
     t = t & Chr(10) & "- [b:Copier la s{e2}lection] : ouvre le formulaire avec le type, l'op{e2}rateur, les libell{e2}s, les unit{e2}s et les taux de TVA de la facture s{e2}lectionn{e2}e ; num{e2}ro, dates, quantit{e2}s et prix sont laiss{e2}s vides. Utile pour saisir la facture suivante."
     t = t & Chr(10) & "- [b:Supprimer la s{e2}lection] : supprime la facture et toutes ses lignes."
@@ -525,7 +784,10 @@ Private Function TexteInstructionsFacture() As String
     t = t & "Les lignes vides sont ignor{e2}es. Le r{e2}capitulatif du bas est indicatif : un {e2}cart avec la facture n'emp{ea}che jamais l'enregistrement."
     t = t & Chr(10) & "Si un champ est incorrect, un message appara{i2}t sous le formulaire et rien n'est enregistr{e2}. "
     t = t & "Si une p{e2}riode de consommation ou d'abonnement en chevauche une autre du m{ea}me type, une confirmation est demand{e2}e."
-    t = t & Chr(10) & "[b:Ajouter un bloc] : cr{e2}e, sous les blocs existants, un bloc de m{ea}me forme (m{ea}mes colonnes) dont vous donnez le nom (exemple : Redevance, Avoir). Il se remplit comme les autres blocs ; le bouton x de son titre le supprime. Ses lignes sont enregistr{e2}es avec le nom du bloc et comptent dans les totaux de la facture."
+    t = t & Chr(10) & "[b:Ajouter un bloc] : cr{e2}e, sous les blocs existants, un bloc de m{ea}me forme (m{ea}mes colonnes) dont vous donnez le nom (exemple : Redevance, Avoir), puis l'indicateur qu'il alimente, choisi dans une liste ou cr{e2}{e2} {a2} la vol{e2}e (il sera propos{e2} ensuite dans les listes). Le titre de chaque bloc rappelle son indicateur entre parenth{e1}ses. Il se remplit comme les autres blocs. Ses lignes sont enregistr{e2}es avec le nom du bloc et comptent dans les totaux de la facture. Pour remettre un bloc du mod{e1}le supprim{e2}, tapez son nom (Abonnement, Consommation ou Taxes et contributions)."
+    t = t & Chr(10) & "[c:Titre d'un bloc] : il indique toujours l'indicateur aliment{e2}, entre parenth{e1}ses (par exemple Abonnement (Abonnement), Redevance (Autre)). Le bouton [b:Indicateur] de chaque bloc corrige un indicateur affect{e2} par erreur : si ce bloc figure dans d'autres factures, elles sont list{e2}es et une confirmation est demand{e2}e ; le changement leur est appliqu{e2} quand vous validez la facture en cours."
+    t = t & Chr(10) & "[c:Unit{e2}] : une ligne d'un bloc d'indicateur Consommation a obligatoirement pour unit{e2} m3 ou kWh (la validation convertit m3 en m" & ChrW(179) & " et refuse toute autre unit{e2}) ; la liste de la cellule se limite {a2} ces deux valeurs."
+    t = t & Chr(10) & "[b:x] (titre de chaque bloc) : supprime le bloc, y compris un bloc du mod{e1}le, pour que le formulaire corresponde {a2} la facture r{e2}elle. Seule la facture en cours est concern{e2}e : le mod{e1}le des nouvelles factures (trois blocs de trois lignes) ne change pas. Quand vous modifiez ou copiez une facture, le formulaire reprend exactement sa structure : seuls ses blocs, avec leur nombre de lignes."
     t = t & Chr(10) & "Boutons :"
     t = t & Chr(10) & "- [b:Valider] : enregistre la facture puis referme le formulaire."
     t = t & Chr(10) & "- [b:Ajouter un bloc] : ajoute un bloc nomm{e2} sous les blocs existants."
@@ -643,28 +905,25 @@ Private Function ConstruireEcranConso(ByVal wsPrecedente As Worksheet) As Boolea
     mod_InstallCommun.PoserTitreBloc ws.Range("B6:G6"), mod_Display.FR("Param{e1}tres")
     mod_InstallCommun.PoserEtiquette ws.Range("B7"), "Type"
     mod_InstallCommun.PoserEtiquette ws.Range("B8"), "Indicateur"
-    mod_InstallCommun.PoserEtiquette ws.Range("B9"), mod_Display.FR("P{e2}riode")
-    mod_InstallCommun.PoserEtiquette ws.Range("B10"), mod_Display.FR("Ann{e2}e")
-    mod_InstallCommun.PoserEtiquette ws.Range("B11"), mod_Display.FR("Mois (fin de p{e2}riode)")
-    mod_InstallCommun.PoserEtiquette ws.Range("B12"), "Forme du graphique"
-    mod_InstallCommun.PoserEtiquette ws.Range("B13"), mod_Display.FR("R{e2}partition des lignes")
-    For l = 7 To 13
+    mod_InstallCommun.PoserEtiquette ws.Range("B9"), mod_Display.FR("D{e2}but")
+    mod_InstallCommun.PoserEtiquette ws.Range("B10"), "Fin"
+    mod_InstallCommun.PoserEtiquette ws.Range("B11"), "Forme du graphique"
+    mod_InstallCommun.PoserEtiquette ws.Range("B12"), mod_Display.FR("R{e2}partition des lignes")
+    For l = 7 To 12
         mod_InstallCommun.PoserChampSaisie ws.Range(ws.Cells(l, 3), ws.Cells(l, 5))
     Next l
 
-    ws.Range(mod_Consommations.CO_ADR_TYPE).Value = mod_Consommations.LibTous()
-    ws.Range(mod_Consommations.CO_ADR_INDIC).Value = mod_Consommations.LibIndMontant()
-    ws.Range(mod_Consommations.CO_ADR_PERIODE).Value = mod_Consommations.LibPeriode12()
-    ws.Range(mod_Consommations.CO_ADR_ANNEE).Value = Year(Date)
-    ws.Range(mod_Consommations.CO_ADR_MOIS).Value = Month(Date)
+    ' Type, indicateur, début et fin restent vides : les champs apparaissent au fil de la saisie
+    ' (mod_Consommations.AppliquerVisibilite) ; Forme et Répartition ont leur valeur par défaut.
+    ws.Range(mod_Consommations.CO_ADR_DEBUT).NumberFormat = "mmm yyyy"
+    ws.Range(mod_Consommations.CO_ADR_FIN).NumberFormat = "mmm yyyy"
     ws.Range(mod_Consommations.CO_ADR_FORME).Value = mod_Consommations.LibFormeBarres()
     ws.Range(mod_Consommations.CO_ADR_REPART).Value = mod_Consommations.LibRepartProrata()
 
     mod_InstallCommun.PoserListeDeroulante ws.Range(mod_Consommations.CO_ADR_TYPE), "ListeTypeConsoGraph"
     mod_InstallCommun.PoserListeDeroulante ws.Range(mod_Consommations.CO_ADR_INDIC), "ListeIndicConso"
-    mod_InstallCommun.PoserListeDeroulante ws.Range(mod_Consommations.CO_ADR_PERIODE), "ListePeriodeConso"
-    mod_InstallCommun.PoserListeDeroulante ws.Range(mod_Consommations.CO_ADR_ANNEE), "ListeAnneesConso"
-    mod_InstallCommun.PoserListeDeroulante ws.Range(mod_Consommations.CO_ADR_MOIS), "ListeMoisConso"
+    mod_InstallCommun.PoserListeDeroulante ws.Range(mod_Consommations.CO_ADR_DEBUT), "ListeDebutConso"
+    mod_InstallCommun.PoserListeDeroulante ws.Range(mod_Consommations.CO_ADR_FIN), "ListeFinConso"
     mod_InstallCommun.PoserListeDeroulante ws.Range(mod_Consommations.CO_ADR_FORME), "ListeFormeConso"
     mod_InstallCommun.PoserListeDeroulante ws.Range(mod_Consommations.CO_ADR_REPART), "ListeRepartConso"
 
@@ -673,12 +932,14 @@ Private Function ConstruireEcranConso(ByVal wsPrecedente As Worksheet) As Boolea
     ws.Range("B15").Font.Bold = True
     ws.Range("B15").Font.Color = mod_InstallCommun.CoulEtiquette()
 
+    mod_Consommations.AppliquerVisibilite ws
+
     ' --- Tableau mensuel ---
     ent = mod_Consommations.CO_LIGNE_ENTETE
     ws.Cells(ent, 2).Value = "Mois"
-    ws.Cells(ent, 3).Value = mod_Display.FR("Quantit{e2}")
+    ws.Cells(ent, 3).Value = "Consommation"
     ws.Cells(ent, 4).Value = "Prix unitaire HT"
-    ws.Cells(ent, 5).Value = "Consommation (" & ChrW(8364) & ")"
+    ws.Cells(ent, 5).Value = "Montant consommation (" & ChrW(8364) & ")"
     ws.Cells(ent, 6).Value = "Abonnement (" & ChrW(8364) & ")"
     ws.Cells(ent, 7).Value = "Taxes (" & ChrW(8364) & ")"
     ws.Cells(ent, 8).Value = "Montant total (" & ChrW(8364) & ")"
@@ -703,7 +964,7 @@ Private Function ConstruireEcranConso(ByVal wsPrecedente As Worksheet) As Boolea
     co.Chart.ChartTitle.Text = "Consommations"
 
     ' Colonnes techniques (données du graphique, listes déroulantes) : masquées.
-    ws.Range(ws.Columns(mod_Consommations.CO_COL_H_LIB), ws.Columns(mod_Consommations.CO_COL_LISTE_ANNEE)).EntireColumn.Hidden = True
+    ws.Range(ws.Columns(mod_Consommations.CO_COL_H_LIB), ws.Columns(mod_Consommations.CO_COL_LISTE_DATES + mod_Consommations.CO_NB_COL_DATES - 1)).EntireColumn.Hidden = True
 
     ' --- Boutons (en dernier : ils se placent d'après les hauteurs de lignes) ---
     ConstruireBoutonsConso ws
@@ -740,10 +1001,12 @@ Private Function TexteInstructionsConso() As String
 
     t = "Cet {e2}cran suit l'{e2}volution des consommations d'eau, d'{e2}lectricit{e2} et de gaz, mois apr{e1}s mois, d'apr{e1}s les lignes des factures. "
     t = t & "[b:Actualiser] recalcule le tableau et le graphique apr{e1}s un changement de param{e1}tre."
-    t = t & Chr(10) & "[c:Type] : un type de consommation, ou (tous) pour comparer les montants. [c:Indicateur] : Quantit{e2}, Prix unitaire HT "
-    t = t & "(moyenne pond{e2}r{e2}e par les quantit{e2}s, abonnement et taxes exclus), Consommation, Abonnement, Taxes (montants TTC) ou Montant total (leur somme). "
+    t = t & Chr(10) & "Les champs apparaissent au fil de la saisie. [c:Type] : un type de consommation, ou (tous) pour comparer les montants. "
+    t = t & "[c:Indicateur] : Consommation (la quantit{e2} consomm{e2}e, en m3 ou kWh), Prix unitaire HT "
+    t = t & "(moyenne pond{e2}r{e2}e par les quantit{e2}s, abonnement et taxes exclus), Montant consommation, Abonnement, Taxes (montants TTC en euros) ou Montant total (leur somme). "
     t = t & "Pour (tous), seuls les montants sont comparables."
-    t = t & Chr(10) & "[c:P{e2}riode] : les 12, 36, 60 ou 120 derniers mois (jusqu'{a2} 10 ans) se terminant au [c:Mois (fin de p{e2}riode)] de l'[c:Ann{e2}e] choisie, ou l'ann{e2}e civile enti{e1}re."
+    t = t & Chr(10) & "[c:D{e2}but] : un mois couvert par les factures du type choisi ; [c:Fin] : un mois du type {a1} partir du d{e2}but (vide : jusqu'au dernier mois). "
+    t = t & "Seuls les mois qui ont des donn{e2}es sont affich{e2}s : le tableau montre la facture la plus r{e2}cente en premier, le graphique reste dans l'ordre chronologique."
     t = t & Chr(10) & "[c:R{e2}partition des lignes] : 'Au prorata des jours' r{e2}partit chaque ligne de facture sur les mois qu'elle couvre (chaque ligne a ses propres dates) ; "
     t = t & "'Mois de fin de la ligne' l'impute enti{e1}rement au mois de sa date de fin."
     t = t & Chr(10) & "[c:Forme du graphique] : Barres (empil{e2}es par op{e2}rateur, ou par type pour (tous)), Courbes, ou Barres + courbe du prix "
@@ -780,12 +1043,6 @@ Private Sub ConstruireListesTechniques(ByVal ws As Worksheet)
     ws.Cells(6, mod_Consommations.CO_COL_LISTE_INDIC).Value = mod_Consommations.LibIndTaxes()
     ws.Cells(7, mod_Consommations.CO_COL_LISTE_INDIC).Value = mod_Consommations.LibIndMontant()
 
-    ws.Cells(2, mod_Consommations.CO_COL_LISTE_PERIODE).Value = mod_Consommations.LibPeriode12()
-    ws.Cells(3, mod_Consommations.CO_COL_LISTE_PERIODE).Value = mod_Consommations.LibPeriode36()
-    ws.Cells(4, mod_Consommations.CO_COL_LISTE_PERIODE).Value = mod_Consommations.LibPeriode60()
-    ws.Cells(5, mod_Consommations.CO_COL_LISTE_PERIODE).Value = mod_Consommations.LibPeriode120()
-    ws.Cells(6, mod_Consommations.CO_COL_LISTE_PERIODE).Value = mod_Consommations.LibPeriodeAnnee()
-
     ws.Cells(2, mod_Consommations.CO_COL_LISTE_FORME).Value = mod_Consommations.LibFormeBarres()
     ws.Cells(3, mod_Consommations.CO_COL_LISTE_FORME).Value = mod_Consommations.LibFormeCourbes()
     ws.Cells(4, mod_Consommations.CO_COL_LISTE_FORME).Value = mod_Consommations.LibFormeMixte()
@@ -793,21 +1050,16 @@ Private Sub ConstruireListesTechniques(ByVal ws As Worksheet)
     ws.Cells(2, mod_Consommations.CO_COL_LISTE_REPART).Value = mod_Consommations.LibRepartProrata()
     ws.Cells(3, mod_Consommations.CO_COL_LISTE_REPART).Value = mod_Consommations.LibRepartFin()
 
-    For i = 1 To 12
-        ws.Cells(1 + i, mod_Consommations.CO_COL_LISTE_MOIS).Value = i
-    Next i
-
-    ws.Cells(2, mod_Consommations.CO_COL_LISTE_ANNEE).Value = Year(Date)
-
     PoserNomListe "ListeTypeConsoGraph", ws, mod_Consommations.CO_COL_LISTE_TYPE, 2, 2 + UBound(tps) + 1
     PoserNomListe "ListeIndicConso", ws, mod_Consommations.CO_COL_LISTE_INDIC, 2, 7
-    PoserNomListe "ListePeriodeConso", ws, mod_Consommations.CO_COL_LISTE_PERIODE, 2, 6
     PoserNomListe "ListeFormeConso", ws, mod_Consommations.CO_COL_LISTE_FORME, 2, 4
     PoserNomListe "ListeRepartConso", ws, mod_Consommations.CO_COL_LISTE_REPART, 2, 3
-    PoserNomListe "ListeMoisConso", ws, mod_Consommations.CO_COL_LISTE_MOIS, 2, 13
 
-    ' Liste dont la longueur varie (remplie par mod_Consommations à chaque actualisation).
-    PoserNomDynamique "ListeAnneesConso", ws, mod_Consommations.CO_COL_LISTE_ANNEE, 60
+    ' Les listes Début et Fin (mois disponibles en base) sont posées par mod_Consommations à chaque actualisation ;
+    ' les noms sont créés ici pour que les listes déroulantes existent dès l'installation.
+    ws.Range(ws.Cells(2, mod_Consommations.CO_COL_LISTE_DATES), ws.Cells(mod_Consommations.CO_NB_LISTE_DATES + 1, mod_Consommations.CO_COL_LISTE_DATES + mod_Consommations.CO_NB_COL_DATES - 1)).NumberFormat = "mmm yyyy"
+    PoserNomListe "ListeDebutConso", ws, mod_Consommations.CO_COL_LISTE_DATES, 2, 2
+    PoserNomListe "ListeFinConso", ws, mod_Consommations.CO_COL_LISTE_DATES, 2, 2
 
 End Sub
 

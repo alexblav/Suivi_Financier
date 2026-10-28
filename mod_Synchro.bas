@@ -98,8 +98,7 @@ End Function
 Private Function ListeTables() As Variant
     ListeTables = Array("TblOperations", "TblVentilations", _
                         mod_VarGlobales.NOM_TABLE_ECHEANCES, mod_VarGlobales.NOM_TABLE_RECURRENCES, _
-                        mod_VarGlobales.NOM_TABLE_FACTURES, mod_VarGlobales.NOM_TABLE_ABOS, mod_VarGlobales.NOM_TABLE_CONSOS, _
-                        mod_VarGlobales.NOM_TABLE_TAXES, mod_VarGlobales.NOM_TABLE_BLOCS, mod_VarGlobales.NOM_TABLE_CONTRATS, _
+                        mod_VarGlobales.NOM_TABLE_FACTURES, mod_VarGlobales.NOM_TABLE_LIGNES, mod_VarGlobales.NOM_TABLE_INDIC, mod_VarGlobales.NOM_TABLE_CONTRATS, _
                         mod_Categories.NOM_TABLE_CATEGORIES, mod_VarGlobales.NOM_TABLE_DECALAGES_BUDGET)
 End Function
 

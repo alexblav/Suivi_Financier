@@ -1,0 +1,27 @@
+' =====================================================================================
+' CODE À COLLER DANS LE MODULE DE LA FEUILLE "frm_Consommations"
+' =====================================================================================
+' Même principe que pour frm_Contrat (voir CodeBehind_frm_Contrat.txt) : les événements
+' d'une feuille doivent obligatoirement être écrits dans le module de code de LA FEUILLE
+' ELLE-MÊME. Ce code ne fait qu'appeler mod_Consommations.
+'
+' Il fait apparaître les champs au fil de la saisie (Type, puis Indicateur, puis Début,
+' puis Fin / Forme / Répartition) et remet Début et Fin à zéro quand on change de type.
+' SANS ce code, l'écran fonctionne quand même : le bouton Actualiser applique alors les
+' mêmes règles, mais les champs n'apparaissent qu'après un clic sur Actualiser.
+'
+' COMMENT FAIRE :
+'   1. Alt+F11 pour ouvrir l'éditeur VBA.
+'   2. Dans l'explorateur de projet (Ctrl+R si absent), repérez la ligne :
+'          <CodeName> (frm_Consommations)
+'      (le CodeName vous est indiqué dans le message de fin d'installation).
+'      Double-cliquez dessus.
+'   3. Collez-y LES LIGNES CI-DESSOUS, à partir de "Private Sub Worksheet_Change".
+'   4. Ne collez pas ce code dans une autre feuille (surtout pas frm_Factures ni
+'      frm_Contrats) : il s'y déclencherait à tort.
+'   5. À refaire après chaque relance de InstallerConsommations (la feuille est reconstruite).
+' =====================================================================================
+
+Private Sub Worksheet_Change(ByVal Target As Range)
+    mod_Consommations.ConsoTraiterChangement Me, Target
+End Sub

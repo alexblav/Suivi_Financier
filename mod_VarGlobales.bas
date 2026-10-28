@@ -242,8 +242,16 @@ Public Const NOM_FEUILLE_DATA_FACTURES As String = "Conso_Factures"
 Public Const NOM_FEUILLE_DATA_ABOS As String = "Conso_Abonnements"
 Public Const NOM_FEUILLE_DATA_CONSOS As String = "Conso_Consommations"
 Public Const NOM_FEUILLE_DATA_TAXES As String = "Conso_Taxes"
-'' Blocs AJOUTES par l'operateur dans le formulaire de facture : un seul tableau pour tous les blocs libres
-'' (colonnes Bloc = nom du bloc, RangBloc = rang dans la facture).
+'' TOUTES les lignes de facture (tous blocs, toutes familles) sont dans UN SEUL tableau. Colonnes : Bloc (nom du
+'' bloc), Indicateur (Abonnement, Consommation, Taxes, Autre ou un indicateur cree), OrdreBloc (position du bloc dans la facture).
+Public Const NOM_FEUILLE_DATA_LIGNES As String = "Conso_Lignes"
+Public Const NOM_TABLE_LIGNES As String = "TblLignes"
+'' Liste des INDICATEURS que peut alimenter un bloc de facture (Abonnement, Consommation, Taxes, Autre + ceux crees par
+'' l'operateur) : une colonne Indicateur.
+Public Const NOM_FEUILLE_DATA_INDIC As String = "Conso_Indicateurs"
+Public Const NOM_TABLE_INDIC As String = "TblIndicateurs"
+'' Anciens tableaux de lignes (avant la fusion du 24/10/2026) : utilises UNIQUEMENT par la migration de
+'' l'installateur (mod_InstallConsommations.MigrerVersLignes). Le reste du code ne les lit plus.
 Public Const NOM_FEUILLE_DATA_BLOCS As String = "Conso_Blocs"
 Public Const NOM_TABLE_BLOCS As String = "TblBlocsLibres"
 Public Const NOM_FEUILLE_DATA_CONTRATS As String = "Conso_Contrats"

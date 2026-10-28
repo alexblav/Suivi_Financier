@@ -465,7 +465,9 @@ Si une période d'abonnement ou de consommation en chevauche une autre (même fa
 
 **Gagner du temps :** dans **Voir les factures**, sélectionnez une facture puis **Copier la sélection** : le formulaire s'ouvre avec le type, l'opérateur, les libellés, les unités et les taux de TVA de cette facture ; le numéro, les dates, les quantités et les prix sont laissés vides, à compléter pour la nouvelle facture.
 
-**Ajouter un bloc :** si votre facture comporte un poste que les trois blocs ne couvrent pas (une redevance, un avoir…), cliquez sur **Ajouter un bloc** en haut du formulaire et donnez-lui un nom (60 caractères au plus, différent des autres blocs). Le bloc apparaît sous les autres avec les mêmes colonnes ; le bouton **×** sur son titre le supprime. Il est conservé avec la facture, que vous pouvez rouvrir ou copier. Ses montants comptent dans les totaux de la facture ; le graphique des consommations ne les prend pas encore en compte.
+**Ajouter un bloc :** si votre facture comporte un poste que les trois blocs ne couvrent pas (une redevance, un avoir…), cliquez sur **Ajouter un bloc** en haut du formulaire, donnez-lui un nom (60 caractères au plus, différent des autres blocs) puis choisissez l'**indicateur** qu'il alimente dans la liste (Abonnement, Consommation, Taxes, Autre et ceux que vous avez déjà créés), ou tapez **0** pour **créer un nouvel indicateur** : il sera proposé dans toutes les listes suivantes. Le titre de chaque bloc affiche toujours son indicateur entre parenthèses (par exemple *Abonnement (Abonnement)* ou *Redevance (Autre)*). Si un bloc a été affecté au mauvais indicateur, le bouton **Indicateur** de son titre permet de le corriger ; si ce même bloc existe dans d'autres factures, le classeur les liste et demande confirmation avant de les modifier aussi (le changement s'applique quand vous validez la facture en cours). **Règle d'unité :** une ligne d'un bloc d'indicateur *Consommation* doit avoir pour unité **m³ ou kWh** ; toute autre unité est refusée. Le bloc apparaît sous les autres avec les mêmes colonnes. Le bouton **×** sur le titre de **chaque** bloc le supprime, y compris les trois blocs de départ : vous ne gardez ainsi que les blocs de votre facture, sans toucher au modèle des nouvelles factures (trois blocs de trois lignes). Pour remettre un bloc de départ supprimé, tapez son nom (Abonnement, Consommation ou Taxes et contributions) dans « Ajouter un bloc ». Il est conservé avec la facture. Quand vous rouvrez ou copiez une facture, le formulaire reprend **exactement sa structure** : seulement ses blocs, dans le même ordre, avec leur nombre de lignes. Ses montants comptent dans les totaux de la facture ; le graphique des consommations ne les prend pas encore en compte.
+
+**Consulter sans risque :** dans **Voir les factures**, **Consulter la sélection** ouvre la facture dans le formulaire avec un seul bouton **Sortir** : rien ne peut être enregistré et toute modification faite à l'écran est abandonnée en silence.
 
 **Corriger une facture :** bouton **Voir les factures**, sélectionnez une ligne, puis **Modifier la sélection**. **Supprimer la sélection** supprime la facture et toutes ses lignes.
 
@@ -475,14 +477,35 @@ L'écran principal présente un tableau mensuel avec un graphique. Réglages :
 
 | Réglage | Choix |
 | --- | --- |
-| **Type** | *(tous)* ou un type (une courbe par opérateur) |
-| **Indicateur** | Quantité, prix unitaire HT, consommation, abonnement, taxes ou montant total (montants TTC) |
-| **Période** | 12, 36, 60 ou 120 derniers mois, ou une année |
-| **Année, Mois** | La fin de la période |
+| **Type** | À choisir **en premier** : *(tous)* ou un type (une courbe par opérateur). Les autres champs apparaissent au fil de la saisie : Indicateur, puis Début, puis Fin, Forme et Répartition |
+| **Indicateur** | Consommation (quantité en m³ ou kWh), prix unitaire HT, montant consommation, abonnement, taxes ou montant total (montants en euros TTC) |
+| **Début** | Premier mois de la période, à choisir parmi les mois couverts par les factures du type choisi (la période effectivement saisie) |
+| **Fin** | Dernier mois, parmi les mêmes mois à partir du début. Facultatif : vide, la période va jusqu'au dernier mois du type |
 | **Forme du graphique** | Barres, courbes, ou barres + courbe du prix |
 | **Répartition des lignes** | *Au prorata des jours* (conseillé : étale chaque ligne de facture sur les mois qu'elle couvre) ou *Mois de fin de la ligne* (les lignes « telles que reçues ») |
 
-Cliquez sur **Actualiser** après un changement. La forme « Barres + courbe du prix » permet de distinguer *« je consomme plus »* de *« le tarif a augmenté »*.
+Le tableau place la facture la plus récente en premier et n'affiche pas les mois sans donnée ; le graphique, lui, reste dans l'ordre chronologique et saute aussi les mois vides. Cliquez sur **Actualiser** après un changement. La forme « Barres + courbe du prix » permet de distinguer *« je consomme plus »* de *« le tarif a augmenté »*.
+
+### Ce que chaque indicateur lit dans vos factures
+
+Le graphique ne lit que les **lignes** des factures, pas les totaux. Pour qu'un indicateur soit juste, voici ce qu'il faut renseigner à la saisie.
+
+| Indicateur | Lignes utilisées | À saisir |
+| --- | --- | --- |
+| **Consommation** | Lignes de **consommation** | Colonne **Quantité** de chaque ligne, affichée dans son unité (m³ pour l'eau, kWh pour l'énergie). Les abonnements et taxes n'ont pas de quantité à compter |
+| **Prix unitaire HT** | Lignes de consommation | Quantité **et** prix unitaire HT. Prix du mois = total HT de consommation ÷ quantité (moyenne pondérée) ; abonnement et taxes exclus. Un mois sans quantité n'a pas de prix |
+| **Montant consommation** | Lignes de consommation | Montant TTC en euros (calculé depuis la quantité, le prix et la TVA) |
+| **Abonnement** | Lignes d'abonnement | Montant TTC de chaque période d'abonnement |
+| **Taxes** | Lignes de taxes | Montant TTC de chaque taxe |
+| **Montant total** | Consommation + abonnement + taxes | Rien de plus : c'est leur somme |
+
+Règles à respecter :
+
+- **Mettez chaque ligne dans le bon bloc.** L'*indicateur* du bloc (Abonnement, Consommation, Taxes) décide de ce qui est alimenté. Les lignes dont l'indicateur est **Autre** ou un indicateur créé par vous comptent dans le total de la facture mais **pas** (pour l'instant) dans le graphique ni dans le tableau.
+- **Chaque ligne a ses propres dates.** Début et fin sont obligatoires (la fin ne précède pas le début) : une ligne sans date n'apparaît pas. Avec la répartition *Au prorata des jours*, une ligne est étalée sur les mois qu'elle couvre ; avec *Mois de fin de la ligne*, elle est imputée tout entière au mois de sa date de fin.
+- **Le type et l'opérateur viennent de l'en-tête de la facture.** C'est le type de la facture qui range ses lignes sous Eau, Électricité, Gaz… Les listes Début et Fin ne proposent que les mois couverts par les lignes de ce type.
+- **Le tableau ne montre que les mois qui ont des données**, le plus récent en premier. Un mois absent signifie qu'aucune ligne ne le couvre : vérifiez alors les dates de vos lignes.
+- **Évitez les chevauchements** : deux lignes de même indicateur qui se recouvrent s'additionnent.
 
 > **Attention :** une correction faite directement dans les listes de relevés ou de contrats n'est **pas contrôlée** (chevauchements, contrat). Préférez les formulaires.
 

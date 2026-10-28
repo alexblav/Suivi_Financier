@@ -40,15 +40,15 @@ Option Explicit
 
 ' --- Disposition de l'écran frm_Consommations (partagée avec mod_InstallConsommations) ---
 Public Const CO_ADR_TYPE As String = "C7"
-Public Const CO_ADR_INDIC As String = "C8"
-Public Const CO_ADR_PERIODE As String = "C9"
-Public Const CO_ADR_ANNEE As String = "C10"
-Public Const CO_ADR_MOIS As String = "C11"
-Public Const CO_ADR_FORME As String = "C12"
-Public Const CO_ADR_REPART As String = "C13"
+Public Const CO_ADR_INDIC As String = "C8"      ' les champs C8 à C12 n'apparaissent qu'au fil de la saisie (voir AppliquerVisibilite)
+Public Const CO_ADR_DEBUT As String = "C9"      ' premier mois de la période (liste des mois en base)
+Public Const CO_ADR_FIN As String = "C10"       ' dernier mois (au plus 11 mois après le début)
+Public Const CO_ADR_FORME As String = "C11"
+Public Const CO_ADR_REPART As String = "C12"
 Public Const CO_ADR_MESSAGE As String = "B15"
 Public Const CO_LIGNE_ENTETE As Long = 17       ' en-tête du tableau mensuel
 Public Const CO_NB_LIGNES_MAX As Long = 120     ' lignes de données (120 mois = 10 ans au plus)
+Public Const CO_NB_MOIS_MAX As Long = 120       ' mois au plus entre Début et Fin (12 = un an ; ne pas dépasser CO_NB_LIGNES_MAX)
 Public Const CO_NB_COL_TABLE As Long = 8        ' colonnes B à I du tableau mensuel
 Public Const CO_COL_GRAPH_DEB As Long = 11      ' le graphique occupe les colonnes K à S
 Public Const CO_COL_GRAPH_FIN As Long = 19
@@ -62,11 +62,11 @@ Public Const CO_COL_H_PRIX As Long = 31         ' AE
 Public Const CO_COL_H_SERIE As Long = 32        ' AF à AK
 Public Const CO_COL_LISTE_TYPE As Long = 40     ' AN
 Public Const CO_COL_LISTE_INDIC As Long = 41
-Public Const CO_COL_LISTE_PERIODE As Long = 42
 Public Const CO_COL_LISTE_FORME As Long = 43
 Public Const CO_COL_LISTE_REPART As Long = 44
-Public Const CO_COL_LISTE_MOIS As Long = 45
-Public Const CO_COL_LISTE_ANNEE As Long = 46    ' AT
+Public Const CO_COL_LISTE_DATES As Long = 46    ' AT à AX : mois disponibles en base, une colonne par choix de type (listes Début et Fin)
+Public Const CO_NB_COL_DATES As Long = 5        ' (tous) + les 4 types
+Public Const CO_NB_LISTE_DATES As Long = 200    ' mois au plus dans chaque colonne
 
 ' --- Formulaire frm_Contrat ---
 Public Const CF_ADR_TYPE As String = "C6"
@@ -96,6 +96,10 @@ Private g_CtrValide As Boolean
 Private g_CtrRes As TypeContrat
 Private g_CtrLigneAClore As Long
 Private g_CtrNomFeuillePrec As String
+
+' --- Premier et dernier mois (année * 12 + mois - 1) couverts par les factures, par choix de type ((tous), puis chaque type) ; -1 = aucun ---
+Private g_MinType() As Long
+Private g_MaxType() As Long
 
 ' --- Contrats chargés en mémoire (voir ChargerContrats) ---
 ' Les dates sont des nombres entiers (numéro de série Excel) ; 0 = absente.
@@ -137,7 +141,7 @@ Public Function LibTous() As String
 End Function
 
 Public Function LibIndQuantite() As String
-    LibIndQuantite = mod_Display.FR("Quantit{e2}")
+    LibIndQuantite = "Consommation"          ' la quantité consommée, dans l'unité du type (m³, kWh)
 End Function
 
 Public Function LibIndPrix() As String
@@ -145,7 +149,7 @@ Public Function LibIndPrix() As String
 End Function
 
 Public Function LibIndConso() As String
-    LibIndConso = "Consommation"
+    LibIndConso = "Montant consommation"     ' le montant TTC des lignes de consommation (€)
 End Function
 
 Public Function LibIndTaxes() As String
@@ -158,26 +162,6 @@ End Function
 
 Public Function LibIndMontant() As String
     LibIndMontant = "Montant total"
-End Function
-
-Public Function LibPeriode12() As String
-    LibPeriode12 = "12 derniers mois"
-End Function
-
-Public Function LibPeriode36() As String
-    LibPeriode36 = "36 derniers mois"
-End Function
-
-Public Function LibPeriode60() As String
-    LibPeriode60 = "60 derniers mois"
-End Function
-
-Public Function LibPeriode120() As String
-    LibPeriode120 = "120 derniers mois"
-End Function
-
-Public Function LibPeriodeAnnee() As String
-    LibPeriodeAnnee = mod_Display.FR("Ann{e2}e")
 End Function
 
 Public Function LibFormeBarres() As String
@@ -263,7 +247,7 @@ End Function
 ' Format d'affichage d'une colonne des tableaux de consommations (par son NOM).
 Public Function FormatColonneConso(ByVal nom As String) As String
     Select Case nom
-        Case "ID_Contrat", "ID_Facture", "RangBloc": FormatColonneConso = "0"
+        Case "ID_Contrat", "ID_Facture", "OrdreBloc": FormatColonneConso = "0"
         Case "DateDebut", "DateFin", "DateFacture", "DebutPeriode", "FinPeriode": FormatColonneConso = "dd/mm/yyyy"
         Case "Quantite": FormatColonneConso = "#,##0.00"
         Case "PrixUnitaireHT": FormatColonneConso = "#,##0.00000"
@@ -620,11 +604,14 @@ Public Sub ActualiserConsommations()
 
     On Error GoTo Erreur
     Application.ScreenUpdating = False
+    Application.EnableEvents = False        ' les écritures de Début/Fin ne doivent pas relancer ConsoTraiterChangement
     RafraichirConso
+    Application.EnableEvents = True
     Application.ScreenUpdating = True
     Exit Sub
 
 Erreur:
+    Application.EnableEvents = True
     Application.ScreenUpdating = True
     MsgBox mod_Display.FR("Erreur pendant le calcul des consommations.") & vbLf & _
            "Erreur " & Err.Number & " : " & Err.Description, vbExclamation, mod_Display.FR("Suivi des consommations")
@@ -634,8 +621,10 @@ End Sub
 Private Sub RafraichirConso()
 
     Dim ws As Worksheet
-    Dim typ As String, indic As String, indicSerie As String, periode As String, forme As String, repart As String
-    Dim annee As Long, mois As Long, idxDeb As Long, nbM As Long
+    Dim typ As String, indic As String, indicSerie As String, forme As String, repart As String
+    Dim idxDeb As Long, nbM As Long
+    Dim nbRows As Long, r As Long, g As Long, nbGraph As Long
+    Dim hasM() As Boolean
     Dim tous As Boolean, prorata As Boolean
     Dim note As String
     Dim serNoms() As String, nS As Long
@@ -648,6 +637,7 @@ Private Sub RafraichirConso()
     Dim nbLignesPrises As Long
     Dim unite As String, texte As String
     Dim lignes() As TypeLigne, nbL As Long
+    Dim etape As Long
 
     Set ws = FeuilleConso()
     If ws Is Nothing Or Not ConsoInstallee() Then
@@ -655,10 +645,16 @@ Private Sub RafraichirConso()
         Exit Sub
     End If
 
-    If Not LireParametresConso(ws, typ, indic, periode, annee, mois, forme, repart, idxDeb, nbM) Then Exit Sub
     ChargerContrats
     nbL = mod_Factures.ChargerLignes(lignes)
     MettreAJourListesConso ws, lignes, nbL
+    AppliquerVisibilite ws
+    etape = EtapeSaisie(ws)
+    If etape < 3 Then
+        EffacerResultats ws, etape
+        Exit Sub
+    End If
+    If Not LireParametresConso(ws, typ, indic, forme, repart, idxDeb, nbM) Then Exit Sub
 
     tous = (StrComp(typ, LibTous(), vbTextCompare) = 0)
     prorata = (StrComp(repart, LibRepartProrata(), vbTextCompare) = 0)
@@ -688,13 +684,30 @@ Private Sub RafraichirConso()
     ws.Range(ws.Cells(ent + 1, 2), ws.Cells(ent + CO_NB_LIGNES_MAX + 1, 1 + CO_NB_COL_TABLE)).Font.Bold = False
     ws.Range(ws.Cells(ent, CO_COL_H_LIB), ws.Cells(ent + CO_NB_LIGNES_MAX, CO_COL_H_SERIE + CO_NB_SERIES - 1)).ClearContents
 
-    ReDim tabT(1 To nbM + 1, 1 To CO_NB_COL_TABLE)
-    ReDim tabH(1 To nbM, 1 To 2 + CO_NB_SERIES)
-
+    ' Seuls les mois qui ont des données sont affichés (tableau et graphique).
+    ReDim hasM(1 To nbM)
+    nbRows = 0
     For p = 1 To nbM
+        For s = 1 To nS
+            If aHas(p, s) Then hasM(p) = True
+        Next s
+        If hasM(p) Then nbRows = nbRows + 1
+    Next p
+    nbGraph = nbRows
+
+    ReDim tabT(1 To nbRows + 1, 1 To CO_NB_COL_TABLE)
+    ReDim tabH(1 To IIf(nbGraph > 0, nbGraph, 1), 1 To 2 + CO_NB_SERIES)
+
+    ' Les mois sont parcourus du plus ancien au plus récent : le graphique est dans cet ordre
+    ' (ligne g) ; le tableau est dans l'ordre inverse, la facture la plus récente en premier.
+    g = 0
+    For p = 1 To nbM
+        If Not hasM(p) Then GoTo MoisSuivant
+        g = g + 1
+        r = nbRows - g + 1
         idx = idxDeb + p - 1
-        tabT(p, 1) = DateSerial(idx \ 12, (idx Mod 12) + 1, 1)
-        tabH(p, 1) = tabT(p, 1)
+        tabT(r, 1) = DateSerial(idx \ 12, (idx Mod 12) + 1, 1)
+        tabH(g, 1) = tabT(r, 1)
         q = 0: ht = 0: co = 0: ab = 0: tx = 0: oper = ""
         For s = 1 To nS
             q = q + aQ(p, s)
@@ -706,65 +719,71 @@ Private Sub RafraichirConso()
                 If oper <> "" Then oper = oper & " / "
                 oper = oper & serNoms(s)
             End If
-            tabH(p, 2 + s) = ValeurIndic(indicSerie, aQ(p, s), aHT(p, s), aCo(p, s), aAb(p, s), aTx(p, s), aHas(p, s))
+            tabH(g, 2 + s) = ValeurIndic(indicSerie, aQ(p, s), aHT(p, s), aCo(p, s), aAb(p, s), aTx(p, s), aHas(p, s))
         Next s
-        has = (q <> 0 Or ht <> 0 Or co <> 0 Or ab <> 0 Or tx <> 0)
-        If has Then
-            If Not tous Then
-                tabT(p, 2) = q
-                If q > 0 Then
-                    tabT(p, 3) = ht / q
-                    tabH(p, 2) = ht / q
-                End If
+        If Not tous Then
+            tabT(r, 2) = q
+            If q > 0 Then
+                tabT(r, 3) = ht / q
+                tabH(g, 2) = ht / q
             End If
-            tabT(p, 4) = co
-            tabT(p, 5) = ab
-            tabT(p, 6) = tx
-            tabT(p, 7) = co + ab + tx
-            tabT(p, 8) = oper
         End If
+        tabT(r, 4) = co
+        tabT(r, 5) = ab
+        tabT(r, 6) = tx
+        tabT(r, 7) = co + ab + tx
+        tabT(r, 8) = oper
         totQ = totQ + q
         totHT = totHT + ht
         totCo = totCo + co
         totAb = totAb + ab
         totTx = totTx + tx
+MoisSuivant:
     Next p
 
-    ' Ligne de total, juste sous le dernier mois.
-    tabT(nbM + 1, 1) = "Total"
+    ' Ligne de total, juste sous le dernier mois affiché.
+    tabT(nbRows + 1, 1) = "Total"
     If Not tous Then
-        tabT(nbM + 1, 2) = totQ
-        If totQ > 0 Then tabT(nbM + 1, 3) = totHT / totQ
+        tabT(nbRows + 1, 2) = totQ
+        If totQ > 0 Then tabT(nbRows + 1, 3) = totHT / totQ
     End If
-    tabT(nbM + 1, 4) = totCo
-    tabT(nbM + 1, 5) = totAb
-    tabT(nbM + 1, 6) = totTx
-    tabT(nbM + 1, 7) = totCo + totAb + totTx
+    tabT(nbRows + 1, 4) = totCo
+    tabT(nbRows + 1, 5) = totAb
+    tabT(nbRows + 1, 6) = totTx
+    tabT(nbRows + 1, 7) = totCo + totAb + totTx
 
     ' Colonne des mois au format "mmm yyyy" partout (le mot "Total" s'y affiche tel quel).
     ws.Range(ws.Cells(ent + 1, 2), ws.Cells(ent + CO_NB_LIGNES_MAX + 1, 2)).NumberFormat = "mmm yyyy"
-    ws.Range(ws.Cells(ent + 1, 2), ws.Cells(ent + nbM + 1, 1 + CO_NB_COL_TABLE)).Value = tabT
-    ws.Range(ws.Cells(ent + nbM + 1, 2), ws.Cells(ent + nbM + 1, 1 + CO_NB_COL_TABLE)).Font.Bold = True
+    ws.Range(ws.Cells(ent + 1, 2), ws.Cells(ent + nbRows + 1, 1 + CO_NB_COL_TABLE)).Value = tabT
+    ws.Range(ws.Cells(ent + nbRows + 1, 2), ws.Cells(ent + nbRows + 1, 1 + CO_NB_COL_TABLE)).Font.Bold = True
 
-    ' Données du graphique : en-têtes, puis une ligne par mois.
+    ' Données du graphique : en-têtes, puis une ligne par mois non vide (ordre chronologique).
     ws.Cells(ent, CO_COL_H_LIB).Value = "Mois"
     ws.Cells(ent, CO_COL_H_PRIX).Value = "Prix unitaire HT"
     For s = 1 To nS
         ws.Cells(ent, CO_COL_H_SERIE + s - 1).Value = serNoms(s)
     Next s
-    ws.Range(ws.Cells(ent + 1, CO_COL_H_LIB), ws.Cells(ent + nbM, CO_COL_H_SERIE + CO_NB_SERIES - 1)).Value = tabH
-    ws.Range(ws.Cells(ent + 1, CO_COL_H_LIB), ws.Cells(ent + nbM, CO_COL_H_LIB)).NumberFormat = "mmm yyyy"
+    If nbGraph > 0 Then
+        ws.Range(ws.Cells(ent + 1, CO_COL_H_LIB), ws.Cells(ent + nbGraph, CO_COL_H_SERIE + CO_NB_SERIES - 1)).Value = tabH
+        ws.Range(ws.Cells(ent + 1, CO_COL_H_LIB), ws.Cells(ent + nbGraph, CO_COL_H_LIB)).NumberFormat = "mmm yyyy"
+    End If
 
-    ' Libellé de la colonne Quantité / Prix avec l'unité (ou rien pour "tous").
+    ' Libellé de la colonne Consommation (quantité) / Prix avec l'unité (ou rien pour "tous").
     If tous Then
-        ws.Cells(ent, 3).Value = mod_Display.FR("Quantit{e2}")
+        ws.Cells(ent, 3).Value = "Consommation"
         ws.Cells(ent, 4).Value = "Prix unitaire HT"
         unite = ""
     Else
         unite = UniteDuType(typ, lignes, nbL)
-        ws.Cells(ent, 3).Value = mod_Display.FR("Quantit{e2} (") & unite & ")"
+        ws.Cells(ent, 3).Value = "Consommation (" & unite & ")"
         ws.Cells(ent, 4).Value = "Prix HT (" & SymboleEuro() & "/" & unite & ")"
     End If
+
+    ' Les autres en-têtes sont reposés aussi : un écran construit avant un changement de libellé les met ainsi à jour.
+    ws.Cells(ent, 5).Value = "Montant consommation (" & SymboleEuro() & ")"
+    ws.Cells(ent, 6).Value = "Abonnement (" & SymboleEuro() & ")"
+    ws.Cells(ent, 7).Value = "Taxes (" & SymboleEuro() & ")"
+    ws.Cells(ent, 8).Value = "Montant total (" & SymboleEuro() & ")"
 
     ' Résumé.
     texte = IIf(tous, mod_Display.FR("Tous les types"), typ) & " -- " & _
@@ -774,61 +793,207 @@ Private Sub RafraichirConso()
     If nbLignesPrises = 0 Then texte = texte & mod_Display.FR(". Aucune facture sur cette p{e2}riode.")
     ws.Range(CO_ADR_MESSAGE).Value = texte & mod_Display.FR(note)
 
-    ConstruireGraphiqueConso ws, nbM, nS, serNoms, indic, indicSerie, forme, typ, tous, unite
+    AjusterLargeursTableau ws, nbRows
+
+    If nbGraph = 0 Then nS = 0      ' aucun mois à tracer : le graphique indique qu'il n'y a pas de facture
+    ConstruireGraphiqueConso ws, nbGraph, nS, serNoms, indic, indicSerie, forme, typ, tous, unite
 
 End Sub
 
 ' Lit et contrôle les paramètres de l'écran. Renvoie Faux (avec un message) s'ils sont incorrects.
 Private Function LireParametresConso(ByVal ws As Worksheet, ByRef typ As String, ByRef indic As String, _
-                                     ByRef periode As String, ByRef annee As Long, ByRef mois As Long, _
                                      ByRef forme As String, ByRef repart As String, _
                                      ByRef idxDeb As Long, ByRef nbM As Long) As Boolean
 
-    Dim idxFin As Long
+    Dim idxFin As Long, c As Long
 
     typ = mod_DataStructure.CellText(ws.Range(CO_ADR_TYPE).Value2)
     indic = mod_DataStructure.CellText(ws.Range(CO_ADR_INDIC).Value2)
-    periode = mod_DataStructure.CellText(ws.Range(CO_ADR_PERIODE).Value2)
-    annee = mod_DataStructure.ToLong(ws.Range(CO_ADR_ANNEE).Value2)
-    mois = mod_DataStructure.ToLong(ws.Range(CO_ADR_MOIS).Value2)
     forme = mod_DataStructure.CellText(ws.Range(CO_ADR_FORME).Value2)
     repart = mod_DataStructure.CellText(ws.Range(CO_ADR_REPART).Value2)
 
-    If typ = "" Then typ = LibTous()
-    If indic = "" Then indic = LibIndMontant()
     If forme = "" Then forme = LibFormeBarres()
     If repart = "" Then repart = LibRepartProrata()
 
-    If annee < 1900 Or annee > 2200 Then
-        MsgBox mod_Display.FR("L'ann{e2}e de r{e2}f{e2}rence est incorrecte."), vbExclamation
+    ' Début : un mois couvert par les factures du type choisi (sinon la saisie reprend à Début, par
+    ' exemple après un changement de type fait sans le code des événements de la feuille).
+    c = IndexTypeListe(typ)
+    idxDeb = IndexMois(ws.Range(CO_ADR_DEBUT).Value2)
+    If c < 0 Then
+        EffacerResultats ws, 0
         Exit Function
     End If
-    If mois < 1 Or mois > 12 Then
-        MsgBox mod_Display.FR("Le mois de r{e2}f{e2}rence est incorrect (1 {a2} 12)."), vbExclamation
+    If g_MinType(c) < 0 Or idxDeb < g_MinType(c) Or idxDeb > g_MaxType(c) Then
+        ws.Range(CO_ADR_DEBUT).MergeArea.ClearContents
+        ws.Range(CO_ADR_FIN).MergeArea.ClearContents
+        AppliquerVisibilite ws
+        EffacerResultats ws, 2
         Exit Function
     End If
 
-    idxFin = annee * 12 + mois - 1
-    If StrComp(periode, LibPeriodeAnnee(), vbTextCompare) = 0 Then
-        idxDeb = annee * 12
-        nbM = 12
-    ElseIf StrComp(periode, LibPeriode36(), vbTextCompare) = 0 Then
-        idxDeb = idxFin - 35
-        nbM = 36
-    ElseIf StrComp(periode, LibPeriode60(), vbTextCompare) = 0 Then
-        idxDeb = idxFin - 59
-        nbM = 60
-    ElseIf StrComp(periode, LibPeriode120(), vbTextCompare) = 0 Then
-        idxDeb = idxFin - 119
-        nbM = 120
-    Else
-        idxDeb = idxFin - 11
-        nbM = 12
+    ' Fin : vide, elle va jusqu'au dernier mois du type (dans la limite de CO_NB_MOIS_MAX mois).
+    idxFin = IndexMois(ws.Range(CO_ADR_FIN).Value2)
+    If idxFin < 0 Then
+        idxFin = g_MaxType(c)
+        If idxFin - idxDeb >= CO_NB_MOIS_MAX Then idxFin = idxDeb + CO_NB_MOIS_MAX - 1
     End If
+
+    If idxFin < idxDeb Then
+        MsgBox mod_Display.FR("La date de fin ne peut pas {e1}tre ant{e2}rieure {a1} la date de d{e2}but."), vbExclamation
+        Exit Function
+    End If
+    If idxFin - idxDeb >= CO_NB_MOIS_MAX Then
+        MsgBox mod_Display.FR("La p{e2}riode ne peut pas d{e2}passer ") & CO_NB_MOIS_MAX & mod_Display.FR(" mois : choisissez une date de fin plus proche du d{e2}but."), vbExclamation
+        Exit Function
+    End If
+
+    nbM = idxFin - idxDeb + 1
+    EcrireMois ws.Range(CO_ADR_DEBUT), idxDeb
+    EcrireMois ws.Range(CO_ADR_FIN), idxFin
 
     LireParametresConso = True
 
 End Function
+
+' Rang du type dans le bloc des mois (0 = (tous), 1 à 4 = types) ; -1 si le texte n'est pas un type.
+Private Function IndexTypeListe(ByVal typ As String) As Long
+    Dim tps As Variant, i As Long
+    IndexTypeListe = -1
+    If StrComp(typ, LibTous(), vbTextCompare) = 0 Then
+        IndexTypeListe = 0
+        Exit Function
+    End If
+    tps = TypesConso()
+    For i = 0 To UBound(tps)
+        If StrComp(typ, tps(i), vbTextCompare) = 0 Then IndexTypeListe = i + 1
+    Next i
+End Function
+
+' Ajuste la largeur des colonnes du tableau mensuel à leur contenu (en-têtes compris), sans descendre
+' sous la largeur d'origine de l'écran. Seules les cellules du tableau comptent : les paramètres au-dessus
+' et le résumé ne sont pas pris en compte.
+Private Sub AjusterLargeursTableau(ByVal ws As Worksheet, ByVal nbRows As Long)
+
+    Dim largeurs As Variant
+    Dim j As Long
+    Dim w As Double
+
+    largeurs = Array(24, 12, 12, 12, 12, 12, 12, 26)       ' colonnes B à I, comme à la construction de l'écran
+    ws.Range(ws.Cells(CO_LIGNE_ENTETE, 2), ws.Cells(CO_LIGNE_ENTETE + nbRows + 1, 1 + CO_NB_COL_TABLE)).Columns.AutoFit
+    For j = 0 To CO_NB_COL_TABLE - 1
+        w = ws.Columns(2 + j).ColumnWidth + 2
+        If w < largeurs(j) Then w = largeurs(j)
+        ws.Columns(2 + j).ColumnWidth = w
+    Next j
+
+End Sub
+
+' Étape de la saisie d'après les cellules : 0 = type à choisir, 1 = indicateur, 2 = début, 3 = complète.
+' Fin est facultative (vide : jusqu'au dernier mois du type).
+Private Function EtapeCellules(ByVal ws As Worksheet) As Long
+    If mod_DataStructure.CellText(ws.Range(CO_ADR_TYPE).Value2) = "" Then Exit Function
+    EtapeCellules = 1
+    If mod_DataStructure.CellText(ws.Range(CO_ADR_INDIC).Value2) = "" Then Exit Function
+    EtapeCellules = 2
+    If IndexMois(ws.Range(CO_ADR_DEBUT).Value2) < 0 Then Exit Function
+    EtapeCellules = 3
+End Function
+
+' Même étape, avec le contrôle du type et du début : à appeler après MettreAJourListesConso.
+Private Function EtapeSaisie(ByVal ws As Worksheet) As Long
+    Dim c As Long, idx As Long
+    EtapeSaisie = EtapeCellules(ws)
+    c = IndexTypeListe(mod_DataStructure.CellText(ws.Range(CO_ADR_TYPE).Value2))
+    If c < 0 Then
+        EtapeSaisie = 0
+    ElseIf EtapeSaisie = 3 Then
+        idx = IndexMois(ws.Range(CO_ADR_DEBUT).Value2)
+        If g_MinType(c) < 0 Or idx < g_MinType(c) Or idx > g_MaxType(c) Then EtapeSaisie = 2
+    End If
+End Function
+
+' Les champs apparaissent au fil de la saisie : Type d'abord ; puis Indicateur ; puis Début ;
+' puis Fin, Forme du graphique et Répartition des lignes.
+Public Sub AppliquerVisibilite(ByVal ws As Worksheet)
+    Dim etape As Long
+    etape = EtapeCellules(ws)
+    ws.Rows(ws.Range(CO_ADR_INDIC).Row).Hidden = (etape < 1)
+    ws.Rows(ws.Range(CO_ADR_DEBUT).Row).Hidden = (etape < 2)
+    ws.Rows(ws.Range(CO_ADR_FIN).Row).Hidden = (etape < 3)
+    ws.Rows(ws.Range(CO_ADR_FORME).Row).Hidden = (etape < 3)
+    ws.Rows(ws.Range(CO_ADR_REPART).Row).Hidden = (etape < 3)
+End Sub
+
+' Appelée par le code de la feuille (Worksheet_Change, voir CodeBehind_frm_Consommations.txt) :
+' un nouveau type efface Début et Fin (leurs listes changent) ; un nouveau début efface Fin.
+Public Sub ConsoTraiterChangement(ByVal ws As Worksheet, ByVal Target As Range)
+
+    If Intersect(Target, ws.Range("B7:G13")) Is Nothing Then Exit Sub
+
+    On Error GoTo Sortie
+    Application.EnableEvents = False
+    If Not Intersect(Target, ws.Range(CO_ADR_TYPE).MergeArea) Is Nothing Then
+        ws.Range(CO_ADR_DEBUT).MergeArea.ClearContents
+        ws.Range(CO_ADR_FIN).MergeArea.ClearContents
+    ElseIf Not Intersect(Target, ws.Range(CO_ADR_DEBUT).MergeArea) Is Nothing Then
+        ws.Range(CO_ADR_FIN).MergeArea.ClearContents
+    End If
+    AppliquerVisibilite ws
+
+    ' Le focus passe sur le champ qui vient d'apparaître : sinon la flèche de liste du champ
+    ' précédent reste affichée et propose encore l'ancienne liste.
+    On Error Resume Next
+    If Not Intersect(Target, ws.Range(CO_ADR_TYPE).MergeArea) Is Nothing Then
+        If mod_DataStructure.CellText(ws.Range(CO_ADR_TYPE).Value2) <> "" Then ws.Range(CO_ADR_INDIC).Select
+    ElseIf Not Intersect(Target, ws.Range(CO_ADR_INDIC).MergeArea) Is Nothing Then
+        If mod_DataStructure.CellText(ws.Range(CO_ADR_INDIC).Value2) <> "" Then ws.Range(CO_ADR_DEBUT).Select
+    ElseIf Not Intersect(Target, ws.Range(CO_ADR_DEBUT).MergeArea) Is Nothing Then
+        If IndexMois(ws.Range(CO_ADR_DEBUT).Value2) >= 0 Then ws.Range(CO_ADR_FIN).Select
+    End If
+    On Error GoTo 0
+
+Sortie:
+    Application.EnableEvents = True
+
+End Sub
+
+' Saisie incomplète : le tableau, le graphique et le résumé sont vidés et un message dit quoi choisir.
+Private Sub EffacerResultats(ByVal ws As Worksheet, ByVal etape As Long)
+    Dim co As ChartObject
+    Dim msg As String
+    ws.Range(ws.Cells(CO_LIGNE_ENTETE + 1, 2), ws.Cells(CO_LIGNE_ENTETE + CO_NB_LIGNES_MAX + 1, 1 + CO_NB_COL_TABLE)).ClearContents
+    ws.Range(ws.Cells(CO_LIGNE_ENTETE, CO_COL_H_LIB), ws.Cells(CO_LIGNE_ENTETE + CO_NB_LIGNES_MAX, CO_COL_H_SERIE + CO_NB_SERIES - 1)).ClearContents
+    Select Case etape
+        Case 0: msg = "Choisissez d'abord un type de consommation."
+        Case 1: msg = "Choisissez un indicateur."
+        Case Else: msg = "Choisissez le mois de d{e2}but (la fin est facultative)."
+    End Select
+    On Error Resume Next
+    Set co = ws.ChartObjects(CO_GRAPH)
+    On Error GoTo 0
+    If Not co Is Nothing Then
+        Do While co.Chart.SeriesCollection.Count > 0
+            co.Chart.SeriesCollection(1).Delete
+        Loop
+        co.Chart.HasTitle = True
+        co.Chart.ChartTitle.Text = mod_Display.FR(msg)
+    End If
+    ws.Range(CO_ADR_MESSAGE).Value = mod_Display.FR(msg)
+End Sub
+
+' Numéro de mois (année * 12 + mois - 1) d'une date de cellule ; -1 si la cellule ne contient pas de date.
+Private Function IndexMois(ByVal v As Variant) As Long
+    IndexMois = -1
+    If IsEmpty(v) Then Exit Function
+    If VarType(v) <> vbDouble Then Exit Function
+    If v < 1 Then Exit Function
+    IndexMois = Year(CDate(v)) * 12 + Month(CDate(v)) - 1
+End Function
+
+Private Sub EcrireMois(ByVal c As Range, ByVal idx As Long)
+    c.NumberFormat = "mmm yyyy"
+    c.Value = DateSerial(idx \ 12, (idx Mod 12) + 1, 1)
+End Sub
 
 ' Répartit les lignes de factures sur les mois de la période. Pour chaque (mois, série) :
 '   aQ = quantité consommée, aHT = montant HT de consommation, aCo = consommation TTC,
@@ -957,30 +1122,82 @@ Private Function ValeurIndic(ByVal indic As String, ByVal q As Double, ByVal ht 
 
 End Function
 
-' Années proposées : de la plus ancienne année de facture (ou de l'année en cours) à l'année suivante.
+' Mois disponibles en base (listes Début et Fin) et mise en forme du tableau.
 Private Sub MettreAJourListesConso(ByVal ws As Worksheet, ByRef t() As TypeLigne, ByVal nb As Long)
 
-    Dim i As Long, anMin As Long, anMax As Long, an As Long
+    Dim i As Long, c As Long, iDeb As Long, iFin As Long, m As Long, n As Long
+    Dim dic As Object
+    Dim tps As Variant
+    Dim tabMois() As Variant
+    Dim lib As String, bloc As String, entetes As String, prem As String, cType As String, cDeb As String
+    Dim k As String, colK As String
+    Dim retenue As Boolean
 
-    anMin = Year(Date)
-    anMax = Year(Date) + 1
-    For i = 1 To nb
-        an = Year(CDate(t(i).Debut))
-        If an < anMin Then anMin = an
-        an = Year(CDate(t(i).Fin))
-        If an + 1 > anMax Then anMax = an + 1
-    Next i
+    ' Un bloc de colonnes par choix de type ((tous) puis chaque type) : les mois couverts par les
+    ' lignes de factures de ce type, c'est-à-dire la période effectivement saisie (hors trous entre
+    ' deux factures). Ils alimentent les listes Début et Fin, qui suivent donc le type choisi.
+    tps = TypesConso()
+    ReDim g_MinType(0 To CO_NB_COL_DATES - 1)
+    ReDim g_MaxType(0 To CO_NB_COL_DATES - 1)
+    ReDim tabMois(1 To CO_NB_LISTE_DATES, 1 To CO_NB_COL_DATES)
 
-    ' Périodes proposées (liste reposée à chaque actualisation : un classeur déjà installé
-    ' reçoit ainsi les nouvelles périodes sans réinstallation).
-    ws.Range(ws.Cells(2, CO_COL_LISTE_PERIODE), ws.Cells(10, CO_COL_LISTE_PERIODE)).ClearContents
-    ws.Cells(2, CO_COL_LISTE_PERIODE).Value = LibPeriode12()
-    ws.Cells(3, CO_COL_LISTE_PERIODE).Value = LibPeriode36()
-    ws.Cells(4, CO_COL_LISTE_PERIODE).Value = LibPeriode60()
-    ws.Cells(5, CO_COL_LISTE_PERIODE).Value = LibPeriode120()
-    ws.Cells(6, CO_COL_LISTE_PERIODE).Value = LibPeriodeAnnee()
-    ThisWorkbook.Names.Add Name:="ListePeriodeConso", RefersTo:="='" & ws.Name & "'!" & _
-        ws.Range(ws.Cells(2, CO_COL_LISTE_PERIODE), ws.Cells(6, CO_COL_LISTE_PERIODE)).Address(True, True)
+    For c = 0 To CO_NB_COL_DATES - 1
+        Set dic = CreateObject("Scripting.Dictionary")
+        g_MinType(c) = -1
+        g_MaxType(c) = -1
+        For i = 1 To nb
+            retenue = (c = 0)
+            If Not retenue Then retenue = (StrComp(t(i).Typ, tps(c - 1), vbTextCompare) = 0)
+            If retenue Then
+                iDeb = Year(CDate(t(i).Debut)) * 12 + Month(CDate(t(i).Debut)) - 1
+                iFin = Year(CDate(t(i).Fin)) * 12 + Month(CDate(t(i).Fin)) - 1
+                If iFin - iDeb > 240 Then iFin = iDeb + 240
+                For m = iDeb To iFin
+                    dic(m) = True
+                    If g_MinType(c) < 0 Or m < g_MinType(c) Then g_MinType(c) = m
+                    If m > g_MaxType(c) Then g_MaxType(c) = m
+                Next m
+            End If
+        Next i
+        If c = 0 Then
+            ws.Cells(1, CO_COL_LISTE_DATES).Value = LibTous()
+        Else
+            ws.Cells(1, CO_COL_LISTE_DATES + c).Value = tps(c - 1)
+        End If
+        n = 0
+        If g_MinType(c) >= 0 Then
+            For m = g_MinType(c) To g_MaxType(c)
+                If dic.Exists(m) And n < CO_NB_LISTE_DATES Then
+                    n = n + 1
+                    tabMois(n, c + 1) = DateSerial(m \ 12, (m Mod 12) + 1, 1)
+                End If
+            Next m
+        End If
+    Next c
+
+    With ws.Range(ws.Cells(2, CO_COL_LISTE_DATES), ws.Cells(CO_NB_LISTE_DATES + 1, CO_COL_LISTE_DATES + CO_NB_COL_DATES - 1))
+        .ClearContents
+        .NumberFormat = "mmm yyyy"
+        .Value = tabMois
+    End With
+
+    ' Listes reposées à chaque actualisation (un classeur déjà installé les reçoit sans réinstallation).
+    ' Elles se recalculent seules quand on change de type ou de début. Sans type choisi, elles sont vides.
+    ' Début : tous les mois du type. Fin : les mois du type à partir de Début (au plus CO_NB_MOIS_MAX mois),
+    ' ce qui interdit une fin antérieure au début.
+    lib = "'" & ws.Name & "'!"
+    prem = lib & ws.Cells(2, CO_COL_LISTE_DATES).Address(True, True)
+    bloc = lib & ws.Range(ws.Cells(2, CO_COL_LISTE_DATES), ws.Cells(CO_NB_LISTE_DATES + 1, CO_COL_LISTE_DATES + CO_NB_COL_DATES - 1)).Address(True, True)
+    entetes = lib & ws.Range(ws.Cells(1, CO_COL_LISTE_DATES), ws.Cells(1, CO_COL_LISTE_DATES + CO_NB_COL_DATES - 1)).Address(True, True)
+    cType = lib & ws.Range(CO_ADR_TYPE).Address(True, True)
+    cDeb = lib & ws.Range(CO_ADR_DEBUT).Address(True, True)
+    k = "IFERROR(MATCH(" & cType & "," & entetes & ",0),0)"            ' rang du type dans le bloc, 0 = aucun
+    colK = "INDEX(" & bloc & ",0," & k & ")"                          ' colonne des mois du type
+    PoserNomConso "ListeDebutConso", "=IF(" & k & "=0,OFFSET(" & prem & "," & CO_NB_LISTE_DATES & ",0,1,1)," & _
+        "OFFSET(" & prem & ",0," & k & "-1,MAX(1,COUNT(" & colK & ")),1))"
+    PoserNomConso "ListeFinConso", "=IF(" & k & "=0,OFFSET(" & prem & "," & CO_NB_LISTE_DATES & ",0,1,1)," & _
+        "OFFSET(" & prem & ",IFERROR(MATCH(" & cDeb & "," & colK & ",0)-1,0)," & k & "-1," & _
+        "MAX(1,COUNTIFS(" & colK & ","">=""&" & cDeb & "," & colK & ",""<=""&EDATE(" & cDeb & "," & (CO_NB_MOIS_MAX - 1) & "))),1))"
 
     ' Mise en forme de la zone du tableau jusqu'à CO_NB_LIGNES_MAX lignes.
     mod_InstallCommun.PoserCorpsTableauLecture ws.Range(ws.Cells(CO_LIGNE_ENTETE + 1, 2), ws.Cells(CO_LIGNE_ENTETE + CO_NB_LIGNES_MAX + 1, 1 + CO_NB_COL_TABLE))
@@ -989,11 +1206,13 @@ Private Sub MettreAJourListesConso(ByVal ws As Worksheet, ByRef t() As TypeLigne
     ws.Range(ws.Cells(CO_LIGNE_ENTETE + 1, 4), ws.Cells(CO_LIGNE_ENTETE + CO_NB_LIGNES_MAX + 1, 4)).NumberFormat = "#,##0.00000"
     ws.Range(ws.Cells(CO_LIGNE_ENTETE + 1, 5), ws.Cells(CO_LIGNE_ENTETE + CO_NB_LIGNES_MAX + 1, 8)).NumberFormat = "#,##0.00"
 
-    ws.Range(ws.Cells(2, CO_COL_LISTE_ANNEE), ws.Cells(60, CO_COL_LISTE_ANNEE)).ClearContents
-    For an = anMin To anMax
-        If an - anMin + 2 <= 60 Then ws.Cells(an - anMin + 2, CO_COL_LISTE_ANNEE).Value = an
-    Next an
+End Sub
 
+Private Sub PoserNomConso(ByVal nom As String, ByVal formule As String)
+    On Error Resume Next
+    ThisWorkbook.Names(nom).Delete
+    On Error GoTo 0
+    ThisWorkbook.Names.Add Name:=nom, RefersTo:=formule
 End Sub
 
 Private Sub ConstruireGraphiqueConso(ByVal ws As Worksheet, ByVal nbM As Long, ByVal nS As Long, _
@@ -1028,14 +1247,14 @@ Private Sub ConstruireGraphiqueConso(ByVal ws As Worksheet, ByVal nbM As Long, B
     courbes = (StrComp(forme, LibFormeCourbes(), vbTextCompare) = 0)
     mixte = (StrComp(forme, LibFormeMixte(), vbTextCompare) = 0)
 
-    If courbes Then co.Chart.ChartType = xlLineMarkers Else co.Chart.ChartType = xlColumnStacked
+    If courbes Then co.Chart.ChartType = xlLine Else co.Chart.ChartType = xlColumnStacked
 
     For s = 1 To nS
         Set se = co.Chart.SeriesCollection.NewSeries
         se.Name = serNoms(s)
         se.Values = ws.Range(ws.Cells(ent + 1, CO_COL_H_SERIE + s - 1), ws.Cells(ent + nbM, CO_COL_H_SERIE + s - 1))
         se.XValues = xr
-        If courbes Then se.ChartType = xlLineMarkers Else se.ChartType = xlColumnStacked
+        If courbes Then se.ChartType = xlLine Else se.ChartType = xlColumnStacked
     Next s
 
     If mixte Then
@@ -1043,13 +1262,14 @@ Private Sub ConstruireGraphiqueConso(ByVal ws As Worksheet, ByVal nbM As Long, B
         se.Name = "Prix unitaire"
         se.Values = ws.Range(ws.Cells(ent + 1, CO_COL_H_PRIX), ws.Cells(ent + nbM, CO_COL_H_PRIX))
         se.XValues = xr
-        se.ChartType = xlLineMarkers
+        se.ChartType = xlLine
         se.AxisGroup = xlSecondary
     End If
 
     co.Chart.HasLegend = True
     co.Chart.Legend.Position = xlLegendPositionBottom
-    co.Chart.DisplayBlanksAs = xlNotPlotted
+    ' Courbes sans points : un mois sans valeur est enjambé, sinon un opérateur présent un seul mois ne serait pas visible.
+    If courbes Or mixte Then co.Chart.DisplayBlanksAs = xlInterpolated Else co.Chart.DisplayBlanksAs = xlNotPlotted
 
     ' Axe des mois : étiquettes textuelles (un graduation par mois), pas d'axe temporel.
     On Error Resume Next
@@ -1149,6 +1369,27 @@ End Sub
 
 Public Sub AfficherContrats()
     MontrerEcran mod_VarGlobales.NOM_FEUILLE_CONTRATS
+End Sub
+
+' Diagnostic (Ctrl+G) : état de visibilité de toutes les feuilles et nombre de feuilles sélectionnées.
+' Sert à comprendre un refus de masquer une feuille (Excel refuse de masquer la dernière feuille
+' visible, ou une feuille quand plusieurs feuilles sont sélectionnées en groupe).
+Public Sub DiagnostiquerFeuilles()
+
+    Dim sh As Object
+    Dim t As String, etat As String
+
+    For Each sh In ThisWorkbook.Sheets
+        Select Case sh.Visible
+            Case xlSheetVisible: etat = "VISIBLE"
+            Case xlSheetHidden: etat = "masquee"
+            Case Else: etat = "tres masquee"
+        End Select
+        t = t & sh.Name & " : " & etat & vbLf
+    Next sh
+    t = t & vbLf & "Feuille active : " & ActiveSheet.Name & vbLf & "Feuilles selectionnees : " & ActiveWindow.SelectedSheets.Count
+    MsgBox t, vbInformation, "Diagnostic des feuilles"
+
 End Sub
 
 ' Sortie vers Synthese (bouton Sortir de l'écran graphique).
