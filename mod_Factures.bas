@@ -49,8 +49,10 @@ Public Const FF_ADR_FIN As String = "C11"
 Public Const FF_ADR_TOTAL As String = "C12"
 Public Const FF_ADR_COMMENT As String = "C13"         ' fusion C13:J13
 
-' Colonne de TblFactures qui relie la facture à son opération bancaire (voir ColonneLien).
-Public Const FAC_COL_LIEN As String = "ID_Transaction"
+' Colonne de TblFactures qui relie la facture à ses opérations bancaires (voir ColonneLien) : les ID_Transaction des
+' opérations qui l'ont réglée, séparés par FAC_SEP_LIENS (une facture peut être réglée en plusieurs échéances).
+Public Const FAC_COL_LIEN As String = "ID_Transactions"
+Public Const FAC_SEP_LIENS As String = ";"
 
 ' --- Blocs de lignes : colonnes ---
 Public Const FF_COL_LIB As Long = 2
@@ -830,12 +832,13 @@ Private Function LienDeFacture(ByVal lo As ListObject, ByVal id As Long) As Stri
 
 End Function
 
-' Relie la facture à l'opération (idTransaction = "" : supprime le lien). Faux si la facture est introuvable.
+' AJOUTE l'opération à celles déjà liées à la facture (sans doublon). Faux si la facture est introuvable.
 Public Function LierFacture(ByVal idFacture As Long, ByVal idTransaction As String) As Boolean
 
     Dim lo As ListObject
     Dim i As Long, idxLien As Long
     Dim v As Variant
+    Dim existant As String
 
     Set lo = TableFactures()
     If lo Is Nothing Then Exit Function
@@ -847,7 +850,12 @@ Public Function LierFacture(ByVal idFacture As Long, ByVal idTransaction As Stri
             If CLng(v) = idFacture Then
                 With lo.DataBodyRange.Cells(i, idxLien)
                     .NumberFormat = "@"
-                    .Value = idTransaction
+                    existant = mod_DataStructure.CellText(.Value2)
+                    If existant = "" Then
+                        .Value = idTransaction
+                    ElseIf InStr(1, FAC_SEP_LIENS & existant & FAC_SEP_LIENS, FAC_SEP_LIENS & idTransaction & FAC_SEP_LIENS, vbBinaryCompare) = 0 Then
+                        .Value = existant & FAC_SEP_LIENS & idTransaction
+                    End If
                 End With
                 LierFacture = True
                 Exit Function

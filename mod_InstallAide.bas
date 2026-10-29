@@ -47,6 +47,7 @@ Public Function ChargerAide(ByVal nomForm As String, ByRef titre As String, ByRe
         Case "frm_SuiviSante":           Def_SuiviSante titre, intro, champs, boutons
         Case "frm_Ventilation":          Def_Ventilation titre, intro, champs, boutons
         Case "frm_Remediation_OFX":      Def_RemediationOFX titre, intro, champs, boutons
+        Case "frm_AffectationFacture":   Def_AffectationFacture titre, intro, champs, boutons
         Case Else:                       ChargerAide = False
     End Select
 
@@ -488,6 +489,26 @@ Private Sub Def_GenerationCle(ByRef titre As String, ByRef intro As String, ByRe
 
 End Sub
 
+Private Sub Def_AffectationFacture(ByRef titre As String, ByRef intro As String, ByRef champs As String, ByRef boutons As String)
+
+    titre = "Affectation d'une facture {a2} une op{e2}ration"
+    intro = "Cet {e2}cran relie l'op{e2}ration bancaire affich{e2}e en haut {a2} la facture qui l'a r{e2}gl{e2}e (Eau, {E2}lectricit{e2} - gaz - chauffage). " & _
+            "Choisissez le type de consommation, puis la facture dans la liste, la plus r{e2}cente en premier, et cliquez sur [b:Valider]. " & _
+            "Une m{ea}me facture peut {ea}tre li{e2}e {a2} plusieurs op{e2}rations (r{e2}glement en plusieurs {e2}ch{e2}ances) : les factures d{e2}j{a2} li{e2}es restent donc propos{e2}es. " & _
+            "Une fois li{e2}e, l'op{e2}ration quitte le tableau Factures non li{e2}es de la feuille [f:Synthese]."
+
+    L champs, "Date op{e2}ration, Tiers, Cat{e2}gorie, Montant", "Lecture seule : rappel de l'op{e2}ration {a2} affecter."
+    L champs, "Type de consommation", "Liste : premier crit{e1}re, les types des factures enregistr{e2}es."
+    L champs, "Date de la facture", "Liste des factures du type choisi, la plus r{e2}cente en premier : date, op{e2}rateur, num{e2}ro et total TTC."
+    L champs, "Facture retenue", "Lecture seule : rappel de la facture choisie et du nombre d'op{e2}rations qui lui sont d{e2}j{a2} li{e2}es."
+
+    L boutons, "Valider", "{E2}crit le lien entre l'op{e2}ration et la facture retenue, puis revient sur [f:Synthese]."
+    L boutons, "Nouvelle facture", "Aucune facture de la liste ne convient : ouvre la saisie d'une nouvelle facture, d{e2}j{a2} li{e2}e {a2} l'op{e2}ration. Si vous l'abandonnez, ce formulaire r{e2}appara{i2}t."
+    L boutons, "Annuler", "Ferme le formulaire sans rien modifier et revient sur [f:Synthese]."
+    L boutons, "Aide", "Ouvre cette aide, sans fermer le formulaire."
+
+End Sub
+
 Private Sub Def_SuiviSante(ByRef titre As String, ByRef intro As String, ByRef champs As String, ByRef boutons As String)
 
     titre = "Suivi sant{e2} : compl{e2}ter une d{e2}pense"
@@ -540,6 +561,7 @@ Private Sub Def_RechercheOperations(ByRef titre As String, ByRef intro As String
     L boutons, "D{e2}caler cette op{e2}ration", "D{e2}calage ponctuel d'une op{e2}ration ; le calcul repart toujours de la date de l'op{e2}ration (pour revenir au mois d'origine, indiquez 0)."
     L boutons, "Aide", "Ouvre cette aide, sans fermer l'{e2}cran."
     L boutons, "Rendre r{e2}currente", "Ouvre [f:frm_Echeance] pr{e2}rempli avec l'op{e2}ration s{e2}lectionn{e2}e (tiers, cat{e2}gorie, montant, p{e2}riodicit{e2} mensuelle, prochaine date). Vous pouvez tout modifier avant de valider ; l'op{e2}ration elle-m{ea}me n'est pas modifi{e2}e."
+    L boutons, "Affecter une facture", "Relie l'op{e2}ration s{e2}lectionn{e2}e {a2} la facture qui l'a r{e2}gl{e2}e : ouvre [f:frm_AffectationFacture] (type de consommation, puis facture). Une part de ventilation ou une op{e2}ration d{e2}j{a2} li{e2}e est refus{e2}e. Ouvert par [b:Afficher tout] de la feuille [f:Synthese], l'{e2}cran ne montre que les factures non li{e2}es, sans limite de lignes."
 
 End Sub
 

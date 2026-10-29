@@ -284,6 +284,9 @@ Private Sub RO_ConstruireBoutons(ByVal ws As Worksheet)
         "RendreRecurrenteRO", "btnRendreRecurrenteRO", 105
     mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Ajouter {a2} l'{e2}ch{e2}ancier"), _
         "AjouterPonctuelleRO", "btnAjouterPonctuelleRO", 125
+    ' Ajout 29/10/2026 : relie l'operation selectionnee a une facture (formulaire frm_AffectationFacture).
+    mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Affecter une facture"), _
+        "AffecterFactureRO", "btnAffecterFactureRO", 115
 
 End Sub
 

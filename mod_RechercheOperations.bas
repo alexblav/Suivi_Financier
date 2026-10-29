@@ -56,6 +56,10 @@ Private Const CATEGORIE_VENTILE As String = "Ventil" ' + « é » accentué, voi
 Private g_ROPrefiltreActif As String
 Private g_ROParamActif As Variant
 
+' Ajout 29/10/2026 (prefiltre "FacturesNonLiees") : ID_Transaction deja cites par une facture
+' (mod_Synthese.ChargerLiensFactures), charges une fois par recherche.
+Private liensFacturesRO As Object
+
 ' Sous-catégorie "santé" : depuis le 07/10/2026 (préfiltre "SuiviSante"), ce module
 ' la teste directement, toujours via la constante centralisée
 ' mod_VarGlobales.SOUS_CATEGORIE_SANTE (jamais un texte recopié en dur ici).
@@ -334,6 +338,9 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
         Case "Analyse"
             ' Ajout 10/10/2026 (analyse budgetaire) : param = "cat|sous|debut|fin|exclues"
             mod_Analyse.PreparerFiltreAnalyse CStr(param)
+        Case "FacturesNonLiees"
+            ' Ajout 29/10/2026 : memes operations que le bloc "Factures non liees" de Synthese, sans limite de lignes.
+            Set liensFacturesRO = mod_Synthese.ChargerLiensFactures()
     End Select
 
     ' Les lignes de TblVentilations n'ont pas de mois/année budgétaire ni de
@@ -836,6 +843,10 @@ Private Function DecrireFiltreActifRO(ByVal prefiltre As String, ByVal param As 
         Case "Analyse"
             texte = mod_Analyse.DecrireFiltreAnalyse() & " " & nbTotal & FR(" ligne(s).")
 
+        Case "FacturesNonLiees"
+            texte = FR("Factures non li{e2}es -- d{e2}penses Eau et {E2}lectricit{e2} - gaz - chauffage qu'aucune facture ne cite encore (parts ventil{e2}es exclues, tous mois confondus) -- ") & _
+                    nbTotal & FR(" ligne(s). S{e2}lectionnez une ligne puis [Affecter une facture].")
+
         Case "SuiviSante"
             ' Ajout 07/10/2026, revu le 08/10/2026 (phrase enrichie, puis périmètre
             ' élargi à la catégorie "Santé, prévoyance"). Exemple de résultat :
@@ -870,6 +881,7 @@ Private Function LigneOpRetenuePourPrefiltre(ByVal i As Long, ByVal prefiltre As
                                               ByVal showTypeDetail As String, ByRef listeDernierImport As Object) As Boolean
 
     Dim Montant As Double
+    Dim factureEligible As Boolean
 
     Select Case prefiltre
 
@@ -906,6 +918,18 @@ Private Function LigneOpRetenuePourPrefiltre(ByVal i As Long, ByVal prefiltre As
                 LigneOpRetenuePourPrefiltre = mod_Analyse.LigneRetenueAnalyse(mod_DataStructure.CellText(tblData(i, colCategorie)), _
                     "", mod_DataStructure.ToLong(tblData(i, colAnneeBud)), _
                     mod_DataStructure.ToLong(tblData(i, colMoisBud)), tblData(i, colDate))
+            End If
+        Case "FacturesNonLiees"
+            ' Ajout 29/10/2026 : meme regle que mod_Synthese.BlocFacturesNonLiees (depense Eau ou
+            ' Electricite, gaz, chauffage, en categorie OU en sous-categorie, jamais citee par une facture).
+            If mod_DataStructure.ToDouble(tblData(i, colMontant)) < 0 Then
+                factureEligible = mod_Synthese.EstCategorieFacturee(mod_DataStructure.CellText(tblData(i, colCategorie)))
+                If Not factureEligible And colSousCategorie <> 0 Then
+                    factureEligible = mod_Synthese.EstCategorieFacturee(mod_DataStructure.CellText(tblData(i, colSousCategorie)))
+                End If
+                If factureEligible Then
+                    LigneOpRetenuePourPrefiltre = Not liensFacturesRO.Exists(mod_DataStructure.CellText(tblData(i, colID)))
+                End If
             End If
         Case "SuiviSante"
             ' Ajout 07/10/2026 (remplace l'ancien Synthese_Care), élargi le 08/10/2026
@@ -1488,6 +1512,13 @@ Public Sub SortirRechercheOperations()
         mod_Aide.MasquerFormulaire ws
         Exit Sub
     End If
+    ' Ajout 29/10/2026 : ouvert depuis le bloc "Factures non liees" -> retour sur Synthese
+    ' (son affichage la recalcule : les operations affectees n'y figurent plus).
+    If g_ROPrefiltreActif = "FacturesNonLiees" Then
+        mod_Aide.MasquerFormulaire ws
+        mod_InstallCommun.ActiverFeuille mod_VarGlobales.NOM_FEUILLE_SYNTHESE
+        Exit Sub
+    End If
     On Error Resume Next
     If g_ROPrefiltreActif = "DetailTotal" Then
         ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RESULTAT).Activate
@@ -1537,6 +1568,44 @@ Public Sub AjouterPonctuelleRO()
 End Sub
 
 
+' =====================================================================================
+' BOUTON "Affecter une facture" (ajout du 29/10/2026) : relie l'operation selectionnee a une facture
+' via le formulaire frm_AffectationFacture (mod_AffectationFacture). Disponible dans tous les
+' prefiltres ; une part de ventilation ou une operation deja liee est refusee. Au retour, l'ecran
+' revient ICI ; pour le prefiltre "FacturesNonLiees" il est recharge (l'operation affectee en disparait).
+' =====================================================================================
+Public Sub AffecterFactureRO()
+
+    Dim idTransaction As String, tiersSel As String, categorieSel As String, sousCategorieSel As String
+    Dim sourceSel As String, libelleCategorie As String
+    Dim jourSel As Double, montantSel As Double
+    Dim liens As Object
+
+    LireSelectionRO idTransaction, tiersSel, categorieSel, sousCategorieSel, jourSel, montantSel, sourceSel
+    If idTransaction = "" Then Exit Sub
+
+    If sourceSel = "V" Then
+        MsgBox mod_Display.FR("Cette ligne est une part de ventilation : s{e2}lectionnez l'op{e2}ration elle-m{ea}me (cat{e2}gorie Ventil{e2}e)."), vbInformation
+        Exit Sub
+    End If
+
+    Set liens = mod_Synthese.ChargerLiensFactures()
+    If liens.Exists(idTransaction) Then
+        MsgBox mod_Display.FR("Cette op{e2}ration est d{e2}j{a2} li{e2}e {a2} une facture."), vbInformation
+        Exit Sub
+    End If
+
+    libelleCategorie = categorieSel
+    If sousCategorieSel <> "" And sousCategorieSel <> categorieSel Then libelleCategorie = categorieSel & " / " & sousCategorieSel
+
+    If mod_AffectationFacture.AffecterFacture(idTransaction, jourSel, tiersSel, libelleCategorie, montantSel, _
+                                              mod_VarGlobales.NOM_FEUILLE_RECHERCHE) Then
+        If g_ROPrefiltreActif = "FacturesNonLiees" Then RechercherOperations g_ROPrefiltreActif, g_ROParamActif
+    End If
+
+End Sub
+
+
 ' Relit la ligne SÉLECTIONNÉE dans les résultats de recherche et renvoie son
 ' ID_Transaction, Tiers, Categorie et SousCategorie tels qu'affichés à l'écran.
 ' Reprend le mécanisme de RevoirVentilationRO (ActiveCell.Row -> ligne relative ->
@@ -1544,7 +1613,9 @@ End Sub
 ' idTransaction si aucune ligne valide n'est sélectionnée et affiche alors le message
 ' d'erreur; l'appelant n'a qu'à tester idTransaction = "".
 Private Sub LireSelectionRO(ByRef idTransaction As String, ByRef tiersSel As String, _
-                             ByRef categorieSel As String, ByRef sousCategorieSel As String)
+                             ByRef categorieSel As String, ByRef sousCategorieSel As String, _
+                             Optional ByRef jourSel As Double, Optional ByRef montantSel As Double, _
+                             Optional ByRef sourceSel As String)
 
     Dim ws As Worksheet
     Dim tblRecherche As ListObject
@@ -1572,6 +1643,13 @@ Private Sub LireSelectionRO(ByRef idTransaction As String, ByRef tiersSel As Str
     tiersSel = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_TIERS).value))
     categorieSel = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_CATEGORIE).value))
     sousCategorieSel = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_SOUSCATEGORIE).value))
+    ' Ajout 29/10/2026 (affectation d'une facture) : date, montant et source (O = operation, V = part de ventilation).
+    jourSel = 0
+    If IsNumeric(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_DATE).Value2) Then
+        jourSel = mod_DataStructure.ToDouble(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_DATE).Value2)
+    End If
+    montantSel = mod_DataStructure.ToDouble(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_MONTANT).Value2)
+    sourceSel = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_SOURCE).value))
 
     If idTransaction = "" Then
         MsgBox mod_Display.FR("Impossible de retrouver l'ID_Transaction de cette ligne."), vbExclamation

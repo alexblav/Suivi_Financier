@@ -759,6 +759,7 @@ Le classeur contient du code VBA (Alt+F11), versionné dans ce dépôt sous form
 | Ventilation | `PreparerPhase4Ventilation`, `CreerFeuilleVentilation` | Prépare aussi TblVentilations et les colonnes d'annulation ; `CodeBehind_frm_Ventilation.txt` |
 | Résolution des catégories | `CreerFeuilleResolutionCategories` | `CodeBehind_frm_ResolutionCategories.txt` (le fichier `frmResolutionCategories.frm` est l'ancienne version, en fenêtre VBA classique) |
 | Rapprochement et génération de clé santé | `CreerFeuilleRapprochementNotes`, `CreerFeuilleGenerationCle` | Formulaires du suivi santé |
+| Affectation d'une facture à une opération | `CreerFeuilleAffectationFacture` | Ouvert par le bouton « Affecter une facture » de la feuille Synthèse ; le lien est stocké dans la colonne `ID_Transactions` de `TblFactures` (plusieurs opérations possibles par facture) |
 | Suivi santé (cas non soldés) | `CreerFeuilleSuiviSante` | |
 | Écran de recherche | `CreerFeuilleRechercheOperations` | Construit l'en-tête et les colonnes ; les lignes sont remplies à chaque ouverture |
 | Décalages de budget | `AjouterColonneDecalageManuel` | Ajoute la colonne technique DecalageManuel à TblOperations |

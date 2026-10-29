@@ -30,10 +30,11 @@ Option Explicit
 '     depassee ; pour une precision "Mois", une fois le mois ecoule).
 '   - Facture non liee : operation de DEPENSE (montant negatif) de categorie ou sous-categorie
 '     "Eau" ou "Electricite, gaz, chauffage" (accents et casse ignores) dont l'ID_Transaction
-'     n'est cite dans la colonne ID_Transaction de TblFactures (mod_Factures.FAC_COL_LIEN).
-'     Le bouton "Affecter une facture" de l'entete du bloc relie l'operation selectionnee a une
-'     facture non liee (macro AffecterFactureOperation, avec confirmation avant ecriture) ou ouvre
-'     la saisie d'une facture neuve deja liee a l'operation.
+'     n'est cite dans la colonne ID_Transactions de TblFactures (mod_Factures.FAC_COL_LIEN ; une
+'     facture peut etre liee a plusieurs operations, separees par ";").
+'     Le bouton "Affecter une facture" de l'entete du bloc ouvre le formulaire frm_AffectationFacture
+'     (macro AffecterFactureOperation, voir mod_AffectationFacture) pour relier l'operation
+'     selectionnee a une facture existante ou a une facture neuve.
 '   - Sante : operations de sante (categorie "Sante, prevoyance" ou sous-categorie "Frais, remb sante")
 '     dont StatutSante = "KO" et dont le depassement d'honoraires n'est pas valide (ce sont les cas que
 '     propose l'ecran de suivi sante). "En attente" = il reste un solde positif (depense pas encore
@@ -48,10 +49,10 @@ Private Const SYN_COL_RAPPELS As Long = 4         ' colonne D : debut des rappel
 Private Const SYN_NB_COL As Long = 5              ' D:H
 Private Const SYN_NB_MAX As Long = 15             ' lignes affichees au maximum par rappel
 Private Const SYN_COL_ID_OPERATION As Long = 9    ' colonne I (masquee) : ID_Transaction de chaque operation du bloc "Factures non liees"
-Private Const SYN_NB_CANDIDATES As Long = 8       ' factures proposees au maximum dans la boite d'affectation
 
 Private Const NOM_BOUTON_ACTUALISER As String = "btnActualiserSynthese"
 Private Const NOM_BOUTON_AFFECTER As String = "btnAffecterFacture"
+Private Const NOM_BOUTON_AFFICHER_TOUT As String = "btnAfficherToutFactures"
 
 
 ' =====================================================================================
@@ -361,6 +362,7 @@ Private Sub PoserBoutonAffecter(ByVal ws As Worksheet, ByVal ligneTitre As Long)
 
     On Error Resume Next
     ws.Shapes(NOM_BOUTON_AFFECTER).Delete
+    ws.Shapes(NOM_BOUTON_AFFICHER_TOUT).Delete
     On Error GoTo 0
 
     Set cel = ws.Cells(ligneTitre, SYN_COL_RAPPELS + SYN_NB_COL - 1)
@@ -369,27 +371,34 @@ Private Sub PoserBoutonAffecter(ByVal ws As Worksheet, ByVal ligneTitre As Long)
     btn.OnAction = "AffecterFactureOperation"
     btn.Name = NOM_BOUTON_AFFECTER
 
+    Set btn = ws.Buttons.Add(cel.Left + cel.Width - 150 - 92, cel.Top + 1, 90, cel.Height - 2)
+    btn.Caption = "Afficher tout"
+    btn.OnAction = "AfficherToutesFacturesNonLiees"
+    btn.Name = NOM_BOUTON_AFFICHER_TOUT
+
 End Sub
 
+' Bouton "Afficher tout" : toutes les operations du bloc (sans la limite de SYN_NB_MAX lignes) dans
+' frm_RechercheOperations, ou elles peuvent aussi etre reliees a une facture (bouton "Affecter une facture").
+Public Sub AfficherToutesFacturesNonLiees()
+    mod_RechercheOperations.RechercherOperations "FacturesNonLiees"
+End Sub
 
 ' =====================================================================================
 ' AFFECTATION D'UNE FACTURE A L'OPERATION SELECTIONNEE (bouton de l'entete du bloc 2)
 ' =====================================================================================
 ' 1. L'operateur clique une ligne du bloc "Factures non liees" puis sur le bouton.
-' 2. Une boite propose les factures non liees, les plus proches du montant en premier :
-'    numero = affecter cette facture (apres confirmation : Non = annulation, rien n'est ecrit),
-'    0 = aucune ne convient, saisie d'une facture neuve deja liee a l'operation,
-'    Annuler = abandon.
+' 2. Le formulaire frm_AffectationFacture (mod_AffectationFacture) reprend l'operation en entete et
+'    propose, par filtres progressifs (type de consommation, puis date de la facture), la facture
+'    qui l'a reglee. Valider ecrit le lien, Annuler n'ecrit rien, Nouvelle facture ouvre la saisie
+'    d'une facture deja liee a l'operation.
+' Plusieurs operations peuvent etre liees a une meme facture (echeances).
 Public Sub AffecterFactureOperation()
 
     Dim ws As Worksheet
     Dim ligne As Long
-    Dim idOperation As String, descrOperation As String
-    Dim montantOp As Double
-    Dim ids() As Long, libs() As String
-    Dim nb As Long, k As Long
-    Dim prompt As String, saisie As String
-    Dim choix As Long, idFacture As Long
+    Dim idOperation As String
+    Dim montantOp As Double, jourOp As Double
 
     Set ws = mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
     If ws Is Nothing Then Exit Sub
@@ -407,140 +416,20 @@ Public Sub AffecterFactureOperation()
         MsgBox mod_Display.FR("S{e2}lectionnez d'abord UNE ligne d'op{e2}ration du tableau Factures non li{e2}es, puis cliquez sur le bouton."), vbInformation
         Exit Sub
     End If
+    If IsNumeric(ws.Cells(ligne, SYN_COL_RAPPELS).Value2) Then jourOp = CDbl(ws.Cells(ligne, SYN_COL_RAPPELS).Value2)
     montantOp = mod_DataStructure.ToDouble(ws.Cells(ligne, SYN_COL_RAPPELS + 3).Value2)
-    descrOperation = Format(ws.Cells(ligne, SYN_COL_RAPPELS).Value2, "dd/mm/yyyy") & " - " & _
-                     mod_DataStructure.CellText(ws.Cells(ligne, SYN_COL_RAPPELS + 1).Value2) & " - " & Format(montantOp, "#,##0.00")
 
-    ' --- Choix de la facture ---
-    nb = ChargerCandidates(Abs(montantOp), ids, libs)
-    prompt = mod_Display.FR("Op{e2}ration : ") & descrOperation & vbCrLf & vbCrLf
-    If nb = 0 Then
-        prompt = prompt & mod_Display.FR("Aucune facture non li{e2}e n'est enregistr{e2}e.") & vbCrLf & vbCrLf
-    Else
-        prompt = prompt & mod_Display.FR("Factures non li{e2}es (montant le plus proche d'abord) :") & vbCrLf
-        For k = 1 To nb
-            prompt = prompt & k & " = " & libs(k) & vbCrLf
-        Next k
-        prompt = prompt & vbCrLf
+    If mod_AffectationFacture.AffecterFacture(idOperation, jourOp, _
+            mod_DataStructure.CellText(ws.Cells(ligne, SYN_COL_RAPPELS + 1).Value2), _
+            mod_DataStructure.CellText(ws.Cells(ligne, SYN_COL_RAPPELS + 2).Value2), montantOp) Then
+        ActualiserSynthese
     End If
-    prompt = prompt & mod_Display.FR("Tapez le num{e2}ro de la facture {a2} affecter,") & vbCrLf & _
-             mod_Display.FR("ou 0 si aucune ne convient (saisie d'une nouvelle facture).") & vbCrLf & _
-             "Annuler = abandon."
-
-    saisie = InputBox(prompt, mod_Display.FR("Affecter une facture"), IIf(nb = 0, "0", "1"))
-    saisie = Trim$(saisie)
-    If saisie = "" Then Exit Sub                       ' Annuler (ou zone vide)
-    If Not IsNumeric(saisie) Then
-        MsgBox mod_Display.FR("Num{e2}ro non valide : rien n'a {e2}t{e2} modifi{e2}."), vbExclamation
-        Exit Sub
-    End If
-    choix = CLng(Val(saisie))
-    If choix < 0 Or choix > nb Then
-        MsgBox mod_Display.FR("Num{e2}ro non valide : rien n'a {e2}t{e2} modifi{e2}."), vbExclamation
-        Exit Sub
-    End If
-
-    If choix = 0 Then
-        ' Aucune facture existante ne convient : saisie d'une facture neuve liee d'office a l'operation.
-        If MsgBox(mod_Display.FR("Cr{e2}er une nouvelle facture li{e2}e {a2} l'op{e2}ration :") & vbCrLf & descrOperation & " ?", _
-                  vbYesNo + vbQuestion, mod_Display.FR("Nouvelle facture")) <> vbYes Then Exit Sub
-        idFacture = mod_Factures.SaisirFacturePourOperation(idOperation)
-        If idFacture = 0 Then Exit Sub                 ' formulaire abandonne : aucun lien
-    Else
-        ' Confirmation : permet d'annuler une erreur de clic ou de numero avant toute ecriture.
-        If MsgBox(mod_Display.FR("Affecter cette facture {a2} l'op{e2}ration ?") & vbCrLf & vbCrLf & _
-                  mod_Display.FR("Op{e2}ration : ") & descrOperation & vbCrLf & _
-                  "Facture : " & libs(choix), vbYesNo + vbQuestion + vbDefaultButton2, _
-                  mod_Display.FR("Confirmer l'affectation")) <> vbYes Then Exit Sub
-        If Not mod_Factures.LierFacture(ids(choix), idOperation) Then
-            MsgBox mod_Display.FR("Facture introuvable : rien n'a {e2}t{e2} modifi{e2}."), vbExclamation
-            Exit Sub
-        End If
-    End If
-
-    ActualiserSynthese
-    MsgBox mod_Display.FR("Facture affect{e2}e. L'op{e2}ration quitte la liste des factures non li{e2}es."), vbInformation, mod_Display.FR("Affecter une facture")
 
 End Sub
 
-' Factures de TblFactures qui n'ont pas encore d'operation, classees par ecart croissant avec le montant de
-' l'operation (puis les plus recentes d'abord). Retourne leur nombre (SYN_NB_CANDIDATES au plus).
-Private Function ChargerCandidates(ByVal montantOp As Double, ByRef ids() As Long, ByRef libs() As String) As Long
-
-    Dim lo As ListObject
-    Dim nbL As Long, i As Long, j As Long, nb As Long, n As Long
-    Dim vId As Variant, vTyp As Variant, vOper As Variant, vNum As Variant, vDate As Variant, vTot As Variant, vLien As Variant
-    Dim ecart() As Double, tousIds() As Long, tousLibs() As String
-    Dim ordre() As Long
-    Dim libelle As String
-    Dim totalTexte As String
-    Dim courant As Long
-
-    Set lo = mod_Factures.TableFactures()
-    If lo Is Nothing Then Exit Function
-    If mod_Consommations.TableVide(lo) Then Exit Function
-
-    nbL = lo.DataBodyRange.Rows.Count
-    vId = ValeursColonne(lo, "ID_Facture", nbL)
-    vTyp = ValeursColonne(lo, "TypeConso", nbL)
-    vOper = ValeursColonne(lo, "Operateur", nbL)
-    vNum = ValeursColonne(lo, "NumeroFacture", nbL)
-    vDate = ValeursColonne(lo, "DateFacture", nbL)
-    vTot = ValeursColonne(lo, "TotalFactureTTC", nbL)
-    vLien = ValeursColonne(lo, mod_Factures.FAC_COL_LIEN, nbL)
-    ReDim ecart(1 To nbL)
-    ReDim tousIds(1 To nbL)
-    ReDim tousLibs(1 To nbL)
-
-    For i = 1 To nbL
-        If IsNumeric(Cellule(vId, i)) And Not IsEmpty(Cellule(vId, i)) Then
-            If mod_DataStructure.CellText(Cellule(vLien, i)) = "" Then
-                nb = nb + 1
-                tousIds(nb) = CLng(Cellule(vId, i))
-                libelle = mod_DataStructure.CellText(Cellule(vTyp, i))
-                If mod_DataStructure.CellText(Cellule(vOper, i)) <> "" Then libelle = libelle & " " & mod_DataStructure.CellText(Cellule(vOper, i))
-                If mod_DataStructure.CellText(Cellule(vNum, i)) <> "" Then libelle = libelle & " n" & ChrW(176) & " " &mod_DataStructure.CellText(Cellule(vNum, i))
-                If IsNumeric(Cellule(vDate, i)) And Not IsEmpty(Cellule(vDate, i)) Then libelle = libelle & " du " & Format(CDate(CDbl(Cellule(vDate, i))), "dd/mm/yyyy")
-                If mod_Consommations.SaisieNonVide(Cellule(vTot, i)) Then
-                    totalTexte = Format(mod_DataStructure.ToDouble(Cellule(vTot, i)), "#,##0.00")
-                    ecart(nb) = Abs(mod_DataStructure.ToDouble(Cellule(vTot, i)) - montantOp)
-                Else
-                    totalTexte = mod_Display.FR("total non saisi")
-                    ecart(nb) = 1E+30
-                End If
-                tousLibs(nb) = Trim$(libelle) & " - " & totalTexte
-            End If
-        End If
-    Next i
-    If nb = 0 Then Exit Function
-
-    ' Tri par insertion (stable : a ecart egal, l'ordre du tableau est conserve).
-    ReDim ordre(1 To nb)
-    For i = 1 To nb
-        courant = i
-        j = i - 1
-        Do While j >= 1
-            If Not (ecart(courant) < ecart(ordre(j))) Then Exit Do
-            ordre(j + 1) = ordre(j)
-            j = j - 1
-        Loop
-        ordre(j + 1) = courant
-    Next i
-
-    n = nb
-    If n > SYN_NB_CANDIDATES Then n = SYN_NB_CANDIDATES
-    ReDim ids(1 To n)
-    ReDim libs(1 To n)
-    For i = 1 To n
-        ids(i) = tousIds(ordre(i))
-        libs(i) = tousLibs(ordre(i))
-    Next i
-    ChargerCandidates = n
-
-End Function
-
 ' Vrai si le texte est la categorie Eau ou Electricite, gaz, chauffage (accents et casse ignores).
-Private Function EstCategorieFacturee(ByVal texte As String) As Boolean
+' Public : la meme regle sert au prefiltre "FacturesNonLiees" de frm_RechercheOperations.
+Public Function EstCategorieFacturee(ByVal texte As String) As Boolean
     Dim t As String
     t = NormaliserTexte(texte)
     If t = "" Then Exit Function
@@ -558,13 +447,14 @@ End Function
 
 ' ID_Transaction des operations deja reliees a une facture. Vide tant que TblFactures n'a pas la
 ' colonne de liaison (voir mod_Factures.FAC_COL_LIEN) : aucune operation n'est alors consideree comme liee.
-Private Function ChargerLiensFactures() As Object
+Public Function ChargerLiensFactures() As Object
 
     Dim dic As Object
     Dim lo As ListObject
     Dim nbL As Long, i As Long
     Dim vLien As Variant
     Dim cle As String
+    Dim element As Variant
 
     Set dic = CreateObject("Scripting.Dictionary")
     Set lo = mod_Factures.TableFactures()
@@ -573,10 +463,13 @@ Private Function ChargerLiensFactures() As Object
             nbL = lo.DataBodyRange.Rows.Count
             vLien = ValeursColonne(lo, mod_Factures.FAC_COL_LIEN, nbL)
             For i = 1 To nbL
-                cle = mod_DataStructure.CellText(Cellule(vLien, i))
-                If cle <> "" Then
-                    If Not dic.Exists(cle) Then dic.Add cle, True
-                End If
+                ' Une facture peut etre reglee par plusieurs operations : la cellule en contient la liste.
+                For Each element In Split(mod_DataStructure.CellText(Cellule(vLien, i)), mod_Factures.FAC_SEP_LIENS)
+                    cle = Trim$(CStr(element))
+                    If cle <> "" Then
+                        If Not dic.Exists(cle) Then dic.Add cle, True
+                    End If
+                Next element
             Next i
         End If
     End If
