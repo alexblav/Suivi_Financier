@@ -258,6 +258,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
 
     Dim resultat() As Variant
     Dim cleVerrouillee() As Boolean
+    Dim jourTri() As Double             ' ajout 29/10/2026 : date servant au tri de chaque ligne affichee
     Dim notesTexte As String, seg0 As String
     Dim catTexte As String, sousTexte As String
 
@@ -507,6 +508,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
 
     ReDim resultat(1 To nbTotal, 1 To nbColRO)
     ReDim cleVerrouillee(1 To nbTotal)
+    ReDim jourTri(1 To nbTotal)
 
 
     ligneEcran = 0
@@ -520,6 +522,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
 
         resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_VALIDER) = ""
         resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_DATE) = tblData(i, colDate)
+        jourTri(ligneEcran) = JourPourTriRO(tblData(i, colDate))
         resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_TIERS) = mod_DataStructure.CellText(tblData(i, colTiers))
         resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_MONTANT) = tblData(i, colMontant)
 
@@ -596,6 +599,8 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
             ' trie comme une dépense ordinaire. indexParIDPourTiers (construit juste
             ' au-dessus pour le Tiers) donne déjà la ligne parente : on le réutilise.
             resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_DATE) = Empty
+            ' Tri : une part se classe a la date de son operation d'origine (meme si sa date affichee reste vide).
+            If indexParIDPourTiers.Exists(idParentVen) Then jourTri(ligneEcran) = JourPourTriRO(tblData(indexParIDPourTiers(idParentVen), colDate))
             If prefiltre = "SuiviSante" Or prefiltre = "Analyse" Then
                 If indexParIDPourTiers.Exists(idParentVen) Then
                     resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_DATE) = _
@@ -650,6 +655,11 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
 
         Next k
     End If
+
+    ' --- Ajout 29/10/2026 : tri par date decroissante (plus recent en premier), tous prefiltres. Le tri est
+    ' fait ICI, en memoire, car celui pose plus haut s'applique a un tableau vide : sans cela l'ordre
+    ' etait celui de TblOperations, ou les lignes ajoutees apres le dernier import restent en bas.
+    TrierResultatParDateRO resultat, cleVerrouillee, jourTri, nbTotal, nbColRO
 
     ' --- Redimensionner le tableau, puis écrire les données en bloc ---
     tblRecherche.Resize tblRecherche.HeaderRowRange.Resize(nbTotal + 1, nbColRO)
@@ -788,6 +798,58 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ' recherche (voir RestaurerFiltresRO plus haut) -- sans ca, un filtre de colonne
     ' actif avant un "Revoir la ventilation" semblait disparaitre apres coup.
     RestaurerFiltresRO tblRecherche, filtresSauvegardes
+
+End Sub
+
+' Jour (numero de serie) d'une valeur de date pour le tri ; 0 si elle est vide ou illisible (ces lignes passent en dernier).
+Private Function JourPourTriRO(ByVal valeur As Variant) As Double
+    If IsEmpty(valeur) Or IsError(valeur) Then Exit Function
+    If IsNumeric(valeur) Then
+        JourPourTriRO = CDbl(valeur)
+    ElseIf IsDate(valeur) Then
+        JourPourTriRO = CDbl(CDate(valeur))
+    End If
+End Function
+
+' Classe les nb lignes de "resultat" (et leur indicateur cleVerrouillee) par jourTri decroissant. Tri par insertion,
+' STABLE : a date egale l'ordre d'origine est conserve (une operation avant ses parts de ventilation), et tres
+' rapide ici car les donnees arrivent deja presque triees.
+Private Sub TrierResultatParDateRO(ByRef resultat() As Variant, ByRef cleVerrouillee() As Boolean, _
+                                   ByRef jourTri() As Double, ByVal nb As Long, ByVal nbCol As Long)
+
+    Dim ordre() As Long
+    Dim i As Long, j As Long, c As Long, courant As Long
+    Dim dejaTrie As Boolean
+    Dim resultatTrie() As Variant
+    Dim verrouTrie() As Boolean
+
+    If nb < 2 Then Exit Sub
+
+    ReDim ordre(1 To nb)
+    dejaTrie = True
+    For i = 1 To nb
+        courant = i
+        j = i - 1
+        Do While j >= 1
+            If Not (jourTri(courant) > jourTri(ordre(j))) Then Exit Do
+            ordre(j + 1) = ordre(j)
+            j = j - 1
+            dejaTrie = False
+        Loop
+        ordre(j + 1) = courant
+    Next i
+    If dejaTrie Then Exit Sub
+
+    ReDim resultatTrie(1 To nb, 1 To nbCol)
+    ReDim verrouTrie(1 To nb)
+    For i = 1 To nb
+        For c = 1 To nbCol
+            resultatTrie(i, c) = resultat(ordre(i), c)
+        Next c
+        verrouTrie(i) = cleVerrouillee(ordre(i))
+    Next i
+    resultat = resultatTrie
+    cleVerrouillee = verrouTrie
 
 End Sub
 
