@@ -49,6 +49,9 @@ Public Const FF_ADR_FIN As String = "C11"
 Public Const FF_ADR_TOTAL As String = "C12"
 Public Const FF_ADR_COMMENT As String = "C13"         ' fusion C13:J13
 
+' Colonne de TblFactures qui relie la facture à son opération bancaire (voir ColonneLien).
+Public Const FAC_COL_LIEN As String = "ID_Transaction"
+
 ' --- Blocs de lignes : colonnes ---
 Public Const FF_COL_LIB As Long = 2
 Public Const FF_COL_DEB As Long = 3
@@ -142,7 +145,8 @@ Private g_N(1 To FF_MAX_BLOCS) As Long        ' nombre de lignes affichées dans
 Private g_Nat(1 To FF_MAX_BLOCS) As Long      ' code de l'indicateur de chaque bloc : 1 abonnement, 2 consommation, 3 taxes, 4 autre
 Private g_Indic(1 To FF_MAX_BLOCS) As String  ' nom de l'indicateur de chaque bloc (affiché entre parenthèses dans son titre)
 Private g_FacConsultation As Boolean          ' formulaire ouvert en consultation : rien n'est enregistré
-Private g_Pend As Object                      ' changements d'indicateur d'un bloc à répercuter sur d'autres factures à l'enregistrement
+Private g_LienAEnregistrer As String          ' ID_Transaction à écrire sur la facture neuve en cours de saisie (depuis la feuille Synthese)
+Private g_Pend As Object                   ' changements d'indicateur d'un bloc à répercuter sur d'autres factures à l'enregistrement
 Private g_NomBloc(1 To FF_MAX_BLOCS) As String ' nom des blocs libres
 
 
@@ -730,6 +734,7 @@ Private Function EnregistrerFacture(ByRef f As TypeFacture) As Boolean
     Dim lo As ListObject
     Dim lr As ListRow
     Dim i As Long, nat As Long
+    Dim lienOperation As String
 
     Set lo = TableFactures()
     If lo Is Nothing Then Exit Function
@@ -741,15 +746,20 @@ Private Function EnregistrerFacture(ByRef f As TypeFacture) As Boolean
         Exit Function
     End If
 
+    ColonneLien lo
     If f.ID = 0 Then
         f.ID = mod_Consommations.ProchainID(lo, "ID_Facture")
+        lienOperation = g_LienAEnregistrer
     Else
+        ' La facture est supprimée puis réécrite : son lien avec une opération doit être relu avant.
+        lienOperation = LienDeFacture(lo, f.ID)
         SupprimerDonneesFacture f.ID
     End If
 
     Set lr = mod_Consommations.NouvelleLigne(lo)
     With lr.Range
         .Cells(1, mod_Consommations.ColIdx(lo, "ID_Facture")).Value = f.ID
+        If lienOperation <> "" Then .Cells(1, mod_Consommations.ColIdx(lo, FAC_COL_LIEN)).Value = lienOperation
         .Cells(1, mod_Consommations.ColIdx(lo, "TypeConso")).Value = f.Typ
         .Cells(1, mod_Consommations.ColIdx(lo, "Operateur")).Value = f.Operateur
         .Cells(1, mod_Consommations.ColIdx(lo, "NumeroFacture")).Value = f.Numero
@@ -782,6 +792,97 @@ Private Function EnregistrerFacture(ByRef f As TypeFacture) As Boolean
     Next i
 
     EnregistrerFacture = True
+
+End Function
+
+' --- Liaison facture / opération (ajout 29/10/2026, feuille Synthese) ---
+' La colonne ID_Transaction de TblFactures contient l'ID_Transaction de l'opération bancaire qui a payé la facture
+' (vide = facture non liée). Elle est créée au premier besoin : aucune réinstallation n'est nécessaire.
+Public Function ColonneLien(ByVal lo As ListObject) As Long
+
+    Dim col As ListColumn
+
+    ColonneLien = mod_Consommations.ColIdx(lo, FAC_COL_LIEN)
+    If ColonneLien > 0 Then Exit Function
+    Set col = lo.ListColumns.Add
+    col.Name = FAC_COL_LIEN
+    col.DataBodyRange.NumberFormat = "@"
+    ColonneLien = col.Index
+
+End Function
+
+Private Function LienDeFacture(ByVal lo As ListObject, ByVal id As Long) As String
+
+    Dim i As Long, idxLien As Long
+    Dim v As Variant
+
+    idxLien = mod_Consommations.ColIdx(lo, FAC_COL_LIEN)
+    If idxLien = 0 Or mod_Consommations.TableVide(lo) Then Exit Function
+    For i = 1 To lo.ListRows.Count
+        v = lo.ListColumns("ID_Facture").DataBodyRange.Cells(i, 1).Value2
+        If IsNumeric(v) And Not IsEmpty(v) Then
+            If CLng(v) = id Then
+                LienDeFacture = mod_DataStructure.CellText(lo.DataBodyRange.Cells(i, idxLien).Value2)
+                Exit Function
+            End If
+        End If
+    Next i
+
+End Function
+
+' Relie la facture à l'opération (idTransaction = "" : supprime le lien). Faux si la facture est introuvable.
+Public Function LierFacture(ByVal idFacture As Long, ByVal idTransaction As String) As Boolean
+
+    Dim lo As ListObject
+    Dim i As Long, idxLien As Long
+    Dim v As Variant
+
+    Set lo = TableFactures()
+    If lo Is Nothing Then Exit Function
+    If mod_Consommations.TableVide(lo) Then Exit Function
+    idxLien = ColonneLien(lo)
+    For i = 1 To lo.ListRows.Count
+        v = lo.ListColumns("ID_Facture").DataBodyRange.Cells(i, 1).Value2
+        If IsNumeric(v) And Not IsEmpty(v) Then
+            If CLng(v) = idFacture Then
+                With lo.DataBodyRange.Cells(i, idxLien)
+                    .NumberFormat = "@"
+                    .Value = idTransaction
+                End With
+                LierFacture = True
+                Exit Function
+            End If
+        End If
+    Next i
+
+End Function
+
+' Ouvre le formulaire de saisie d'une facture neuve, liée d'office à l'opération idTransaction.
+' Renvoie l'ID de la facture enregistrée, 0 si l'opérateur a abandonné.
+Public Function SaisirFacturePourOperation(ByVal idTransaction As String) As Long
+
+    Dim f As TypeFacture
+
+    mod_Consommations.EnregistrerListesSiOuvertes
+    If Not FacturesInstallees() Then
+        MsgBox mod_Display.FR("Le suivi des consommations n'est pas install{e2}. Ex{e2}cutez d'abord la macro InstallerConsommations."), vbExclamation
+        Exit Function
+    End If
+
+    g_FacNb = 0
+    ReDim g_FacLignes(1 To 1)
+    f.ID = 0
+    g_LienAEnregistrer = idTransaction
+    On Error GoTo Fin
+    If OuvrirFormFacture(f) Then
+        If EnregistrerFacture(g_FacRes) Then
+            AppliquerChangementsIndicateurs g_FacRes.ID
+            RafraichirListeFactures
+            SaisirFacturePourOperation = g_FacRes.ID
+        End If
+    End If
+Fin:
+    g_LienAEnregistrer = ""
 
 End Function
 

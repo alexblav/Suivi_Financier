@@ -47,7 +47,10 @@ Private Const DECALAGE_BOUTON_PLUS As Double = 24
 Private Const LIGNE_ENTETE_LISTE As Long = 6
 
 ' --- Bloc de la feuille Synthese ---
-Private Const SYN_LIGNE_TITRE As Long = 14
+' Ligne du titre du bloc sur la feuille Synthese (voir mod_Synthese) ; les 3 boutons de saisie
+' restent sur la feuille Menu, a partir de cette ligne.
+Private Const SYN_LIGNE_TITRE As Long = 3
+Private Const MENU_LIGNE_BOUTONS As Long = 14
 
 
 ' =====================================================================================
@@ -419,9 +422,9 @@ End Function
 ' =====================================================================================
 ' Placé sous le bouton Importer (lignes 14 à 20, colonnes A et B) ; 2 boutons à droite.
 ' Les 2 cellules de saisie portent un nom (soldeRefMontant, soldeRefDate) utilisé par les formules.
-Private Sub ConstruireBlocSynthese()
+Public Sub ConstruireBlocSynthese()
 
-    Dim ws As Worksheet
+    Dim ws As Worksheet, wsMenu As Worksheet
     Dim l As Long, k As Long
     Dim libelles(0 To 7) As String
     Dim neuf(0 To 7) As Boolean
@@ -525,7 +528,13 @@ Private Sub ConstruireBlocSynthese()
         End With
     End If
 
-    PoserBoutonsSynthese ws, l
+    ' Les boutons sont sur la feuille Menu (avant la creation de Synthese : sur la meme feuille que le bloc).
+    Set wsMenu = mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_MENU)
+    If wsMenu Is Nothing Then
+        PoserBoutonsSynthese ws, l
+    Else
+        PoserBoutonsSynthese wsMenu, MENU_LIGNE_BOUTONS
+    End If
 
 End Sub
 

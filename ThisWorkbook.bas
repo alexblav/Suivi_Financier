@@ -121,6 +121,19 @@ End Sub
 Private Sub Workbook_Open()
     mod_Synchro.SynchroniserALOuverture
     mod_Echeancier.MettreAJourEcheancier
+    PositionnerSurSynthese
+End Sub
+
+' AJOUT 29/10/2026 : le classeur s'ouvre toujours sur la feuille Synthese (si elle existe et est
+' visible). L'activation declenche Workbook_SheetActivate, donc les rappels sont recalcules.
+Private Sub PositionnerSurSynthese()
+    Dim feuilleSynthese As Worksheet
+    On Error Resume Next
+    Set feuilleSynthese = Me.Worksheets(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+    If Not feuilleSynthese Is Nothing Then
+        If feuilleSynthese.Visible = xlSheetVisible Then feuilleSynthese.Activate
+    End If
+    On Error GoTo 0
 End Sub
 
 ' AJOUT 11/10/2026 : à la fermeture, envoi des données vers le fichier central. Si la
@@ -134,4 +147,10 @@ End Sub
 ' ouverte est écrite dans les données avant l'enregistrement.
 Private Sub Workbook_BeforeSave(ByVal SaveAsUI As Boolean, Cancel As Boolean)
     mod_Consommations.EnregistrerListesSiOuvertes
+End Sub
+
+' AJOUT 28/10/2026 (feuille Synthese, voir mod_Synthese) : les rappels (echeances en retard,
+' factures non liees, sante a traiter) sont recalcules a chaque affichage de la feuille Synthese.
+Private Sub Workbook_SheetActivate(ByVal Sh As Object)
+    If StrComp(Sh.Name, mod_VarGlobales.NOM_FEUILLE_SYNTHESE, vbTextCompare) = 0 Then mod_Synthese.ActualiserSynthese
 End Sub

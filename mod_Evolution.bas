@@ -727,7 +727,7 @@ Public Sub AfficherEvolution()
         Exit Sub
     End If
 
-    Set wsSyn = mod_Criteres.GetFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+    Set wsSyn = mod_Criteres.GetFeuille(mod_VarGlobales.NOM_FEUILLE_MENU)
 
     ws.Visible = xlSheetVisible
     ws.Activate

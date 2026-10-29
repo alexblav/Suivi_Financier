@@ -45,7 +45,7 @@ End Function
 ' critTriOrdre     <- lit B6 : ordre de tri du détail (croissant/décroissant)
 Public Sub GetSelectCriteres()
     If wsSynthese Is Nothing Then
-        Set wsSynthese = mod_Criteres.GetFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+        Set wsSynthese = mod_Criteres.GetFeuille(mod_VarGlobales.NOM_FEUILLE_MENU)
     End If
     critAnnee = mod_DataStructure.CellText(wsSynthese.Range("critAnnee").Value2)
     critMois = mod_DataStructure.CellText(wsSynthese.Range("critMois").Value2)

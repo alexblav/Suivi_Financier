@@ -2,7 +2,7 @@
 Classeur           = Suivi_Financier_V2.xlsm
 CodeName           = Feuil2
 Visibilite         = visible
-Exporte le         = 2026-10-11 19:19:59
+Exporte le         = 2026-10-28 05:14:59
 Version Excel      = 16.0
 Plage utilisee     = A4:B24
 Zone detaillee     = A1:D24  (lignes plafonnees a EXPORT_NB_LIGNES_MAX = 100)
@@ -10,7 +10,7 @@ Largeur standard   = 10.07
 Hauteur standard   = 14.3
 Protection contenu = Non
 Nb tableaux        = 0
-Nb formes          = 28
+Nb formes          = 29
 Contenu des tableaux NON exporte (confidentialite).
 
 ## FENETRE
@@ -79,34 +79,35 @@ B6:B7 | validation=xlValidateList Formula1="=Années" alerte=xlValidAlertStop
 (aucune)
 
 ## FORMES ET BOUTONS (nom | genre | ancrage | gauche,haut,largeur,hauteur | texte | macro | visible)
-Rounded Rectangle 2 | Forme automatique | G4:K7 | 462,46.5,246.800003051758,54.7999992370605 | "" |  | Oui
-TextBox 3 | Zone de texte | H4:K5 | 503.200012207031,48.7999992370605,171.800003051758,21 | "Le retraitement des données" |  | Oui
-Button 8 | Bouton (controle de formulaire) | H5:K6 | 495.799987792969,69,175.5,17.2000007629395 | "Traitement des données de santé" | Suivi_Financier_V2.xlsm!RetraiterSuiviSante | Oui
-Rounded Rectangle 4 | Forme automatique | C4:G14 | 197.300003051758,46.5,246,144.800003051758 | "" |  | Oui
-TextBox 5 | Zone de texte | D4:F7 | 250.5,51,153,41.2000007629395 | "La recherche de donnéessur une plage de date" |  | Oui
-Button 6 | Bouton (controle de formulaire) | C7:F8 | 235.5,90.8000030517578,171.800003051758,17.2000007629395 | "Opérations du mois sélectionné" | Suivi_Financier_V2.xlsm!RchOperationsDuMois | Oui
-Button 14 | Bouton (controle de formulaire) | C8:F9 | 235.5,114,171.800003051758,17.2000007629395 | "Bilan mensuel" | Suivi_Financier_V2.xlsm!Budget_Bilan_Mensuel | Oui
-Button 9 | Bouton (controle de formulaire) | C10:F11 | 235.5,137.199996948242,171.800003051758,17.2000007629395 | "Dernier Import" | Suivi_Financier_V2.xlsm!RchDernierImport | Oui
-Rounded Rectangle 6 | Forme automatique | G8:K14 | 461.299987792969,103.5,246.800003051758,88.5 | "" |  | Oui
-TextBox 7 | Zone de texte | H8:K10 | 490.5,104.199996948242,190.5,41.2000007629395 | "Traitement du suivi des données de santé" |  | Oui
-Button 15 | Bouton (controle de formulaire) | H10:K11 | 495.799987792969,141,175.5,17.2000007629395 | "Erreur Import Santé" | Suivi_Financier_V2.xlsm!RchErreursSante | Oui
-Button 4 | Bouton (controle de formulaire) | H12:K13 | 495.799987792969,163.5,175.5,17.2000007629395 | "Suivi Santé" | Suivi_Financier_V2.xlsm!Synthese_Care | Oui
-Button 16 | Bouton (controle de formulaire) | C12:F13 | 235.5,160.5,171.800003051758,17.2000007629395 | "Recherche Générale" | Suivi_Financier_V2.xlsm!RchGenerale | Oui
+Rounded Rectangle 2 | Forme automatique | G4:K7 | 461.600006103516,46.5,246.800003051758,54.7999992370605 | "" |  | Oui
+TextBox 3 | Zone de texte | H4:K5 | 502.899993896484,48.7999992370605,171.800003051758,21 | "Le retraitement des données" |  | Oui
+Button 8 | Bouton (controle de formulaire) | H5:K6 | 495.399993896484,69,175.5,17.2000007629395 | "Traitement des données de santé" | Suivi_Financier_V2.xlsm!RetraiterSuiviSante | Oui
+Rounded Rectangle 4 | Forme automatique | C4:G14 | 196.899993896484,46.5,246,144.800003051758 | "" |  | Oui
+TextBox 5 | Zone de texte | D4:F7 | 250.100006103516,51,153,41.2000007629395 | "La recherche de donnéessur une plage de date" |  | Oui
+Button 6 | Bouton (controle de formulaire) | C7:F8 | 235.100006103516,90.8000030517578,171.800003051758,17.2000007629395 | "Opérations du mois sélectionné" | Suivi_Financier_V2.xlsm!RchOperationsDuMois | Oui
+Button 14 | Bouton (controle de formulaire) | C8:F9 | 235.100006103516,114,171.800003051758,17.2000007629395 | "Bilan mensuel" | Suivi_Financier_V2.xlsm!Budget_Bilan_Mensuel | Oui
+Button 9 | Bouton (controle de formulaire) | C10:F11 | 235.100006103516,137.199996948242,171.800003051758,17.2000007629395 | "Dernier Import" | Suivi_Financier_V2.xlsm!RchDernierImport | Oui
+Rounded Rectangle 6 | Forme automatique | G8:K14 | 460.899993896484,103.5,246.800003051758,88.5 | "" |  | Oui
+TextBox 7 | Zone de texte | H8:K10 | 490.100006103516,104.199996948242,190.5,41.2000007629395 | "Traitement du suivi des données de santé" |  | Oui
+Button 15 | Bouton (controle de formulaire) | H10:K11 | 495.399993896484,141,175.5,17.2000007629395 | "Erreur Import Santé" | Suivi_Financier_V2.xlsm!RchErreursSante | Oui
+Button 4 | Bouton (controle de formulaire) | H12:K13 | 495.399993896484,163.5,175.5,17.2000007629395 | "Suivi Santé" | Suivi_Financier_V2.xlsm!Synthese_Care | Oui
+Button 16 | Bouton (controle de formulaire) | C12:F13 | 235.100006103516,160.5,171.800003051758,17.2000007629395 | "Recherche Générale" | Suivi_Financier_V2.xlsm!RchGenerale | Oui
 Button 18 | Bouton (controle de formulaire) | A1:B2 | 15.8000001907349,4.5,108,20.2000007629395 | "Importer" | Suivi_Financier_V2.xlsm!ImporterOperationsOFX | Oui
-Button 29 | Bouton (controle de formulaire) | B1:D2 | 124.5,3.79999995231628,152.199996948242,21 | "Définir fichier Central" | Suivi_Financier_V2.xlsm!DefinirFichierCentral | Oui
-Button 30 | Bouton (controle de formulaire) | D1:F2 | 278.200012207031,4.5,132.800003051758,20.2000007629395 | "Synchroniser" | Suivi_Financier_V2.xlsm!SynchroniserMaintenant | Oui
-Rounded Rectangle 1 | Forme automatique | C14:G21 | 198,197.199996948242,246,102.099998474121 | "" |  | Oui
-btnSaisirEcheance | Bouton (controle de formulaire) | C16:F17 | 235.5,224.199996948242,170.199996948242,17.2000007629395 | "Saisir une échéance" | Suivi_Financier_V2.xlsm!SaisirEcheance | Oui
-btnVoirEcheancier | Bouton (controle de formulaire) | C18:F19 | 235.5,249,170.199996948242,17.2000007629395 | "Voir l'échéancier" | Suivi_Financier_V2.xlsm!AfficherEcheancier | Oui
-TextBox 8 | Zone de texte | D14:F16 | 258,201,129.800003051758,21.7999992370605 | "Gestion Prévisionnelle" |  | Oui
-Rounded Rectangle 9 | Forme automatique | G14:K18 | 462,201,246,54.7999992370605 | "" |  | Oui
-btnAnalyseBudgetaire | Bouton (controle de formulaire) | H16:K17 | 506.200012207031,228,151.5,17.2000007629395 | "Analyse budgétaire" | Suivi_Financier_V2.xlsm!AfficherAnalyse | Oui
-TextBox 10 | Zone de texte | H15:J16 | 526.5,204.800003051758,116.199996948242,18 | "Analyse Budgetaire" |  | Oui
-Rounded Rectangle 11 | Forme automatique | G19:K23 | 462.799987792969,263.200012207031,246,54.7999992370605 | "" |  | Oui
-TextBox 12 | Zone de texte | H19:K20 | 528,264,133.5,18.7999992370605 | "Analyse Energetique" |  | Oui
-btnConsommations | Bouton (controle de formulaire) | H21:K22 | 510,288.799987792969,151.5,17.2000007629395 | "Consommations" | Suivi_Financier_V2.xlsm!AfficherConsommations | Oui
-btnSaisirSolde | Bouton (controle de formulaire) | C19:F21 | 235.5,273.799987792969,170.199996948242,17.2000007629395 | "Saisir / contrôler le solde" | Suivi_Financier_V2.xlsm!SaisirSoldeReference | Oui
-Drop Down 32 | Liste deroulante |  | 87.8000030517578,89.1999969482422,108.400001525879,14.1999998092651 | "" |  | Oui
+Button 29 | Bouton (controle de formulaire) | B1:D2 | 124.5,3.79999995231628,151.899993896484,21 | "Définir fichier Central" | Suivi_Financier_V2.xlsm!DefinirFichierCentral | Oui
+Button 30 | Bouton (controle de formulaire) | D1:F2 | 277.899993896484,4.5,132.800003051758,20.2000007629395 | "Synchroniser" | Suivi_Financier_V2.xlsm!SynchroniserMaintenant | Oui
+Rounded Rectangle 1 | Forme automatique | C14:G21 | 197.600006103516,197.199996948242,246,101.800003051758 | "" |  | Oui
+btnSaisirEcheance | Bouton (controle de formulaire) | C16:F17 | 235.100006103516,224.199996948242,170.199996948242,17.2000007629395 | "Saisir une échéance" | Suivi_Financier_V2.xlsm!SaisirEcheance | Oui
+btnVoirEcheancier | Bouton (controle de formulaire) | C18:F19 | 235.100006103516,249,170.199996948242,17.2000007629395 | "Voir l'échéancier" | Suivi_Financier_V2.xlsm!AfficherEcheancier | Oui
+TextBox 8 | Zone de texte | D14:F16 | 257.600006103516,201,129.800003051758,21.7999992370605 | "Gestion Prévisionnelle" |  | Oui
+Rounded Rectangle 9 | Forme automatique | G14:K19 | 461.600006103516,201,246,69.8000030517578 | "" |  | Oui
+TextBox 10 | Zone de texte | H15:J16 | 526.099975585938,204.800003051758,116.199996948242,18 | "Analyse Budgetaire" |  | Oui
+Rounded Rectangle 11 | Forme automatique | G20:K24 | 461.600006103516,278.600006103516,246,54.7999992370605 | "" |  | Oui
+TextBox 12 | Zone de texte | H20:K21 | 526.900024414063,279.399993896484,133.5,18.7999992370605 | "Analyse Energetique" |  | Oui
+btnSaisirSolde | Bouton (controle de formulaire) | C19:F21 | 235.100006103516,273.799987792969,170.199996948242,17.2000007629395 | "Saisir / contrôler le solde" | Suivi_Financier_V2.xlsm!SaisirSoldeReference | Oui
+btnAnalyseBudgetaire | Bouton (controle de formulaire) | H16:K17 | 505.899993896484,223.899993896484,151.899993896484,17.2000007629395 | "Analyse budgétaire" | Suivi_Financier_V2.xlsm!AfficherAnalyse | Oui
+btnEvolutionDepenses | Bouton (controle de formulaire) | H18:K19 | 505.899993896484,247.899993896484,151.899993896484,17.2000007629395 | "Évolution des dépenses" | Suivi_Financier_V2.xlsm!AfficherEvolution | Oui
+btnRemediationOFX | Bouton (controle de formulaire) | F1:I2 | 412.899993896484,4.5,151.5,20.2000007629395 | "Remédiation OFX" | Suivi_Financier_V2.xlsm!AfficherRemediationOFX | Oui
+btnConsommations | Bouton (controle de formulaire) | H21:K23 | 505.899993896484,301.899993896484,151.899993896484,17.2000007629395 | "Consommations" | Suivi_Financier_V2.xlsm!AfficherConsommations | Oui
 
 ## NOMS DEFINIS (nom | portee | fait reference a | visible)
 Synthese!_FilterDatabase | feuille Synthese | =Synthese!#REF! | Non

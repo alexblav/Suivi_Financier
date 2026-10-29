@@ -90,7 +90,7 @@ Private Function PreparerToutesLesDonnees() As Boolean
         Split("ID_Contrat|TypeConso|Operateur|Unite|DateDebut|DateFin|AbonnementMensuel|Reference", "|"), _
         mod_VarGlobales.NOM_FEUILLE_CONTRATS) Then Exit Function
     If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_FACTURES, mod_VarGlobales.NOM_TABLE_FACTURES, _
-        Split("ID_Facture|TypeConso|Operateur|NumeroFacture|DateFacture|DebutPeriode|FinPeriode|TotalFactureTTC|Commentaire", "|"), "") Then Exit Function
+        Split("ID_Facture|TypeConso|Operateur|NumeroFacture|DateFacture|DebutPeriode|FinPeriode|TotalFactureTTC|Commentaire|ID_Transaction", "|"), "") Then Exit Function
     ' Toutes les lignes (abonnement, consommation, taxes, blocs ajoutés) : un seul tableau.
     If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_LIGNES, mod_VarGlobales.NOM_TABLE_LIGNES, _
         Split("ID_Facture|OrdreBloc|Bloc|Indicateur|Libelle|DateDebut|DateFin|Quantite|Unite|PrixUnitaireHT|TauxTVA|MontantHT|MontantTTC", "|"), "") Then Exit Function
@@ -1091,7 +1091,7 @@ Private Sub ConstruireBoutonSynthese()
     Dim ws As Worksheet
     Dim btn As Button
 
-    Set ws = mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+    Set ws = mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_MENU)
     If ws Is Nothing Then
         MsgBox mod_Display.FR("La feuille Synthese est introuvable : le bouton d'acc{e1}s n'a pas {e2}t{e2} cr{e2}{e2}."), vbExclamation
         Exit Sub

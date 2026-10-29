@@ -712,7 +712,7 @@ Public Sub ImporterOperationsOFX()
     ' active par hasard.
     If Not unEcranOuvertSurDemande Then
         If mod_VarGlobales.wsSynthese Is Nothing Then
-            Set mod_VarGlobales.wsSynthese = mod_Criteres.GetFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+            Set mod_VarGlobales.wsSynthese = mod_Criteres.GetFeuille(mod_VarGlobales.NOM_FEUILLE_MENU)
         End If
         mod_InstallCommun.AfficherSynthese      ' Synthese est masquee pendant les formulaires du controle
     End If

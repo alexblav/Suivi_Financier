@@ -132,6 +132,9 @@ Public Const NOM_FEUILLE_DONNEES As String = "Import_Data"
 Public Const NOM_FEUILLE_RAPPROCHEMENT As String = "frm_RapprochementNotes"
 Public Const NOM_FEUILLE_GENERATION As String = "frm_GenerationCle"
 Public Const NOM_FEUILLE_RESULTAT As String = "frm_Resultat"
+' Ecran central (boutons + parametres de recherche) : ancienne feuille "Synthese", renommee "Menu".
+Public Const NOM_FEUILLE_MENU As String = "Menu"
+' Feuille "Synthese" (bloc Previsionnel de tresorerie + rappels), creee par mod_Synthese.CreerFeuilleSynthese.
 Public Const NOM_FEUILLE_SYNTHESE As String = "Synthese"
 Public Const NOM_TABLE_RECHERCHE As String = "TblRechercheOperations"
 Public Const NOM_FEUILLE_RECHERCHE As String = "frm_RechercheOperations"

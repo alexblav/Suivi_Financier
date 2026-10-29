@@ -19,7 +19,7 @@ Public Sub Budget_Bilan_Mensuel()
     Dim reponse As VbMsgBoxResult
     
     ' 1. Récupération des pointeurs vers la feuille et le tableau
-    Set wsSynthese = mod_Criteres.GetFeuille(NOM_FEUILLE_SYNTHESE)
+    Set wsSynthese = mod_Criteres.GetFeuille(NOM_FEUILLE_MENU)
     Set wsResultat = mod_Criteres.GetFeuille(NOM_FEUILLE_RESULTAT)
     Set tbl = mod_DonneesTable.GetOperationsValue(NOM_FEUILLE_DONNEES, "TblOperations")
     If tbl Is Nothing Then

@@ -296,24 +296,33 @@ End Sub
 ' Masque Synthese (tres masquee) si la feuille active est un formulaire (frm_...). Sans effet sinon,
 ' pour ne jamais masquer l'ecran central quand aucun formulaire n'est affiche.
 Public Sub MasquerSynthese()
+    Dim nomFeuille As Variant
     Dim wsSyn As Worksheet
     On Error Resume Next
     If Left$(ActiveSheet.Name, 4) <> "frm_" Then Exit Sub
-    Set wsSyn = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
-    If Not wsSyn Is Nothing Then
-        If wsSyn.Visible = xlSheetVisible Then wsSyn.Visible = xlSheetVeryHidden
-    End If
+    ' Menu ET Synthese (28/10/2026) : les deux ecrans centraux sont masques pendant un formulaire.
+    For Each nomFeuille In Array(mod_VarGlobales.NOM_FEUILLE_MENU, mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+        Set wsSyn = Nothing
+        Set wsSyn = ThisWorkbook.Worksheets(CStr(nomFeuille))
+        If Not wsSyn Is Nothing Then
+            If wsSyn.Visible = xlSheetVisible Then wsSyn.Visible = xlSheetVeryHidden
+        End If
+    Next nomFeuille
     On Error GoTo 0
 End Sub
 
 ' Sortie vers Synthese : la rend visible puis l'active (Activate echoue sur une feuille masquee).
+' Menu ET Synthese redeviennent visibles ; c'est le Menu qui est active.
 Public Sub AfficherSynthese()
-    Dim wsSyn As Worksheet
+    Dim wsSyn As Worksheet, wsMenu As Worksheet
+    Set wsMenu = TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_MENU)
     Set wsSyn = TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
-    If wsSyn Is Nothing Then Exit Sub
     On Error Resume Next
-    wsSyn.Visible = xlSheetVisible
-    wsSyn.Activate
+    If Not wsSyn Is Nothing Then wsSyn.Visible = xlSheetVisible
+    If Not wsMenu Is Nothing Then
+        wsMenu.Visible = xlSheetVisible
+        wsMenu.Activate
+    End If
     On Error GoTo 0
 End Sub
 
@@ -321,8 +330,16 @@ End Sub
 ' elle est rendue visible d'abord. Une feuille introuvable (renommee, supprimee) est ignoree.
 Public Sub ActiverFeuille(ByVal nomFeuille As String)
     Dim ws As Worksheet
+    If StrComp(nomFeuille, mod_VarGlobales.NOM_FEUILLE_MENU, vbTextCompare) = 0 Then
+        AfficherSynthese
+        Exit Sub
+    End If
+    ' Retour sur la Synthese : les deux ecrans centraux sont rendus visibles, puis la Synthese est activee.
     If StrComp(nomFeuille, mod_VarGlobales.NOM_FEUILLE_SYNTHESE, vbTextCompare) = 0 Then
         AfficherSynthese
+        On Error Resume Next
+        TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE).Activate
+        On Error GoTo 0
         Exit Sub
     End If
     Set ws = TrouverFeuille(nomFeuille)
@@ -350,6 +367,10 @@ Public Sub TerminerFeuille(ByVal ws As Worksheet, ByVal wsPrecedente As Workshee
     ws.Range("A1").Select
     ' Garde-fou : Synthese (écran central) doit rester visible pendant une installation,
     ' sinon il ne reste aucune feuille vers laquelle revenir.
+    Set wsSyn = TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_MENU)
+    If Not wsSyn Is Nothing Then
+        If wsSyn.Visible <> xlSheetVisible Then wsSyn.Visible = xlSheetVisible
+    End If
     Set wsSyn = TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
     If Not wsSyn Is Nothing Then
         If wsSyn.Visible <> xlSheetVisible Then wsSyn.Visible = xlSheetVisible

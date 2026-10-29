@@ -217,7 +217,7 @@ Private Sub ConstruireBoutonSynthese()
     Dim btn As Button
     Dim gauche As Double, haut As Double
 
-    Set ws = mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+    Set ws = mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_MENU)
     If ws Is Nothing Then
         MsgBox mod_Display.FR("La feuille Synthese est introuvable : le bouton d'acc{e1}s n'a pas {e2}t{e2} cr{e2}{e2}."), vbExclamation
         Exit Sub

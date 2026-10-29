@@ -551,7 +551,7 @@ Public Sub AfficherAnalyse()
         Exit Sub
     End If
 
-    Set wsSyn = mod_Criteres.GetFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+    Set wsSyn = mod_Criteres.GetFeuille(mod_VarGlobales.NOM_FEUILLE_MENU)
     If Not wsSyn Is Nothing Then
         On Error Resume Next
         If mod_DataStructure.ToLong(wsSyn.Range("critAnnee").Value2) >= 1900 Then ws.Range(AN_ADR_ANNEE).Value = mod_DataStructure.ToLong(wsSyn.Range("critAnnee").Value2)
