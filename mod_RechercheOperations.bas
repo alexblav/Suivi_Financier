@@ -1245,6 +1245,127 @@ Public Sub AppliquerLignesMarquees()
 End Sub
 
 ' =====================================================================================
+' TraiterChangementNotesRO (ajout du 30/10/2026, ergonomie)
+' =====================================================================================
+' Appelée par Workbook_SheetChange (ThisWorkbook) à chaque modification d'une cellule de
+' l'écran de recherche. Si la cellule modifiée est dans la colonne Notes, la saisie est
+' enregistrée tout de suite dans la table source (TblOperations, ou TblVentilations pour
+' une part de ventilation), avec les mêmes contrôles que AppliquerLignesMarquees : une
+' note dont la clé santé est déjà valide est verrouillée (l'ancienne valeur est remise),
+' puis les statuts santé sont revérifiés. "Valider = Oui" et le bouton ne sont donc plus
+' nécessaires pour Notes.
+'
+' Les événements sont coupés pendant les écritures (on remet la cellule dans son état sans
+' relancer cette procédure), puis RÉACTIVÉS avant VerifierNotesSante : ses formulaires ont
+' besoin de Worksheet_Change pour fonctionner. RechercherOperations coupe lui-même les
+' événements pendant le rechargement du tableau : ce rechargement ne passe pas ici.
+Public Sub TraiterChangementNotesRO(ByVal ws As Worksheet, ByVal Target As Range)
+
+    Dim tblR As ListObject, tblOp As ListObject, tblVen As ListObject
+    Dim zone As Range, cellule As Range
+    Dim feuilleActive As Object, celluleActive As Range
+    Dim indexParID As Object
+    Dim donneesOp As Variant
+    Dim iOp As Long, ligneEcran As Long, ligneCible As Long
+    Dim sourceLigne As String, idCible As String
+    Dim notesValeur As String, notesOrigine As String
+    Dim nbEcrites As Long, nbVerrouillees As Long
+    Dim messageErreur As String
+    Dim evAvant As Boolean
+
+    If ws Is Nothing Then Exit Sub
+    If StrComp(ws.Name, mod_VarGlobales.NOM_FEUILLE_RECHERCHE, vbTextCompare) <> 0 Then Exit Sub
+
+    On Error Resume Next
+    Set tblR = ws.ListObjects(mod_VarGlobales.NOM_TABLE_RECHERCHE)
+    On Error GoTo 0
+    If tblR Is Nothing Then Exit Sub
+    If tblR.DataBodyRange Is Nothing Then Exit Sub
+
+    Set zone = Intersect(Target, tblR.ListColumns("Notes").DataBodyRange)
+    If zone Is Nothing Then Exit Sub
+
+    evAvant = Application.EnableEvents
+    On Error GoTo Erreur
+    Application.EnableEvents = False
+
+    Set tblOp = mod_DonneesTable.GetOperationsTable()
+    If tblOp Is Nothing Then GoTo Fin
+    If tblOp.DataBodyRange Is Nothing Then GoTo Fin
+    mod_Display.RecupIndexCol
+    donneesOp = tblOp.DataBodyRange.value
+
+    Set indexParID = CreateObject("Scripting.Dictionary")
+    indexParID.CompareMode = 1
+    For iOp = 1 To UBound(donneesOp, 1)
+        indexParID(mod_DataStructure.CellText(donneesOp(iOp, colID))) = iOp
+    Next iOp
+
+    Set tblVen = ObtenirTableVentilationsRO()
+
+    For Each cellule In zone.Cells
+        ligneEcran = cellule.Row - tblR.HeaderRowRange.Row
+        sourceLigne = Trim(CStr(tblR.DataBodyRange.Cells(ligneEcran, mod_InstallRechercheOperations.RO_COL_SOURCE).value))
+        notesValeur = mod_DataStructure.CellText(cellule.value)
+
+        If sourceLigne = "V" Then
+            If tblVen Is Nothing Then GoTo LigneSuivante
+            If tblVen.DataBodyRange Is Nothing Then GoTo LigneSuivante
+            ligneCible = CLng(tblR.DataBodyRange.Cells(ligneEcran, mod_InstallRechercheOperations.RO_COL_LIGNEVEN).value)
+            notesOrigine = mod_DataStructure.CellText(tblVen.ListColumns("Notes").DataBodyRange.rows(ligneCible).value)
+            If mod_ImportOFX.EstDateValide(mod_ImportOFX.SegmentTexte(notesOrigine, ";", 0)) Then
+                cellule.value = notesOrigine
+                nbVerrouillees = nbVerrouillees + 1
+            Else
+                tblVen.ListColumns("Notes").DataBodyRange.rows(ligneCible).value = notesValeur
+                nbEcrites = nbEcrites + 1
+            End If
+        Else
+            idCible = Trim(CStr(tblR.DataBodyRange.Cells(ligneEcran, mod_InstallRechercheOperations.RO_COL_ID).value))
+            If Not indexParID.Exists(idCible) Then GoTo LigneSuivante
+            ligneCible = indexParID(idCible)
+            notesOrigine = mod_DataStructure.CellText(donneesOp(ligneCible, colNotes))
+            If mod_ImportOFX.EstDateValide(mod_ImportOFX.SegmentTexte(notesOrigine, ";", 0)) Then
+                cellule.value = notesOrigine
+                nbVerrouillees = nbVerrouillees + 1
+            Else
+                tblOp.ListColumns("Notes").DataBodyRange.rows(ligneCible).value = notesValeur
+                nbEcrites = nbEcrites + 1
+            End If
+        End If
+LigneSuivante:
+    Next cellule
+
+Fin:
+    Application.EnableEvents = evAvant
+
+    If nbVerrouillees > 0 Then
+        MsgBox mod_Display.FR("Cette note est verrouill{e2}e (la cl{e2} sant{e2} est d{e2}j{a2} valide) : elle n'est pas modifiable ici."), vbInformation
+    End If
+
+    If nbEcrites > 0 Then
+        ' Mêmes contrôles que le bouton "Appliquer les lignes marquées", événements actifs.
+        Set feuilleActive = ActiveSheet
+        Set celluleActive = ActiveCell
+        mod_FormulairesNotes.VerifierNotesSante
+        mod_SuiviSante.CalculerSuiviSante AfficherResume:=False
+        On Error Resume Next
+        If Not feuilleActive Is Nothing Then
+            If Not ActiveSheet Is feuilleActive Then feuilleActive.Activate
+            If Not celluleActive Is Nothing Then celluleActive.Select
+        End If
+        On Error GoTo 0
+    End If
+    Exit Sub
+
+Erreur:
+    messageErreur = Err.Description
+    Application.EnableEvents = True
+    MsgBox mod_Display.FR("Erreur lors de l'enregistrement de la note : ") & messageErreur, vbExclamation
+
+End Sub
+
+' =====================================================================================
 ' RevoirVentilationRO (ajout à la suite d'un test opérateur)
 ' =====================================================================================
 ' Rouvre le formulaire de ventilation pour la ligne actuellement sélectionnée dans

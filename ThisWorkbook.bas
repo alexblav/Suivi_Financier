@@ -109,6 +109,9 @@ End Sub
 ' pas une cellule de pointage : le coût est négligeable pour toutes les autres feuilles.
 Private Sub Workbook_SheetChange(ByVal Sh As Object, ByVal Target As Range)
     mod_Pointage.TraiterChangementFeuille Sh, Target
+    ' AJOUT 30/10/2026 : la saisie d'une Notes sur l'écran de recherche s'enregistre et se contrôle
+    ' toute seule (plus besoin de Valider = Oui ni du bouton). Sortie immédiate hors de cet écran.
+    mod_RechercheOperations.TraiterChangementNotesRO Sh, Target
 End Sub
 
 ' AJOUT 09/10/2026 (échéancier) : à l'ouverture du classeur, complète les occurrences des règles
