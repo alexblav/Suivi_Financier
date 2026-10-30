@@ -284,7 +284,7 @@ Au-dessus du tableau, une ligne rappelle le filtre actif et le nombre de lignes.
 | --- | --- |
 | Changer la catégorie ou sous-catégorie | **Double-clic** sur la cellule Categorie ou SousCategorie |
 | Découper une opération | **Double-clic** sur la colonne Ventile |
-| Corriger plusieurs notes d'un coup | Modifier les cellules Notes, écrire **Oui** dans la colonne Valider des lignes concernées, puis **Appliquer les lignes marquées** |
+| Corriger une note | Modifier la cellule Notes : elle est enregistrée et contrôlée dès que vous quittez la cellule (une note dont la clé santé est déjà valide est verrouillée) |
 | Décaler le mois de budget | **Ajouter un décalage** (règle) ou **Décaler cette opération** (une seule) |
 | Marquer une opération comme analysée | Choisir **Oui** dans la colonne **Pointe** (section 11) |
 | Déclarer une opération récurrente | Sélectionner la ligne puis **Rendre récurrente** (section 8) |

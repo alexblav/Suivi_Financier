@@ -10,18 +10,18 @@ Option Explicit
 '                            ET, PHASE 5, depuis TblVentilations (filtre ensuite
 '                            avec les flèches natives d'Excel dans l'en-tête du
 '                            tableau).
-'   AppliquerLignesMarquees : pour chaque ligne du tableau de recherche ou
-'                            "Valider" = "Oui", écrit Catégorie/SousCategorie et
-'                            Notes dans la table SOURCE de la ligne (TblOperations
+'   TraiterChangementNotesRO : à la sortie d'une cellule Notes modifiée, écrit la note
+'                            dans la table SOURCE de la ligne (TblOperations
 '                            ou TblVentilations -- voir colonne technique
-'                            SourceLigne), puis efface la marque.
+'                            SourceLigne) et relance les contrôles santé. Elle a
+'                            remplacé (30/10/2026) la colonne Valider et le bouton
+'                            "Appliquer les lignes marquées", supprimés.
 '
 '   Verrouillage "souple" de Notes : il n'y a pas de vraie protection de
 '   feuille (déjà abandonnée ailleurs dans ce chantier à cause d'une erreur
 '   1004). La cellule Notes d'une ligne dont la clé est déjà valide est
-'   simplement grisée (indication visuelle), et AppliquerLignesMarquees
-'   IGNORE tout changement sur cette colonne pour cette ligne, quel que soit
-'   ce qui y est écrit à l'écran.
+'   simplement grisée (indication visuelle), et TraiterChangementNotesRO
+'   REMET l'ancienne valeur si l'opérateur modifie cette cellule.
 '
 ' PHASE 5 -- CE QUI CHANGE PAR RAPPORT À LA VERSION D'ORIGINE :
 '   (a) [Historique] les colonnes Catégorie/SousCategorie ont porté une liste
@@ -218,8 +218,15 @@ End Sub
 '   (voir mod_InstallRechercheOperations.DefinirColonnesVisibles).
 ' =====================================================================================
  
-Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optional ByVal param As Variant)
- 
+' CORRECTIF 30/10/2026 (constat operateur : operations importees absentes de "Operations du mois"
+' tant qu'Excel n'etait pas relance) : les filtres de colonne poses par l'operateur ne sont
+' plus restaures a chaque appel. Un filtre "par valeurs" (liste de dates, de tiers...) memorise
+' puis reapplique cachait toute valeur nouvelle, y compris sur une colonne masquee par le
+' prefiltre (donc invisible), alors que le compteur annoncait toutes les lignes. Ils ne sont
+' conserves que si conserverFiltres = True, passe par les rechargements internes qui suivent
+' une modification (ventilation, categorie, decalage...) dans le MEME contexte.
+Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optional ByVal param As Variant, Optional ByVal conserverFiltres As Boolean = False)
+
     ' AJOUT 08/10/2026 (décision opérateur) : « enveloppe » de sécurité autour du
     ' traitement réel, RechercherOperationsCoeur (juste en dessous, inchangé).
     '   1. Pendant la reconstruction de l'écran, les événements Excel sont COUPÉS :
@@ -236,7 +243,7 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
     ' apostrophe devant "On Error GoTo Erreur" ci-dessous.
     On Error GoTo Erreur
     Application.EnableEvents = False
-    RechercherOperationsCoeur prefiltre, param
+    RechercherOperationsCoeur prefiltre, param, conserverFiltres
     Application.EnableEvents = True
     Exit Sub
  
@@ -250,7 +257,7 @@ End Sub
  
 ' Traitement réel de l'écran de recherche (ex-RechercherOperations, contenu inchangé
 ' hormis les ajouts datés du 08/10/2026). Toujours appelé via l'enveloppe ci-dessus.
-Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", Optional ByVal param As Variant)
+Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", Optional ByVal param As Variant, Optional ByVal conserverFiltres As Boolean = False)
 
     Dim ws As Worksheet
     Dim tblRecherche As ListObject
@@ -429,7 +436,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
         tblRecherche.DataBodyRange.Delete
         With tblRecherche.Sort
             .SortFields.Clear
-            .SortFields.Add2 Key:=tblRecherche.ListColumns(2).Range, _
+            .SortFields.Add2 Key:=tblRecherche.ListColumns(mod_InstallRechercheOperations.RO_COL_DATE).Range, _
                      SortOn:=xlSortOnValues, _
                      Order:=xlDescending
             .Header = xlYes
@@ -520,7 +527,6 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
         i = indicesOp(k)
         ligneEcran = ligneEcran + 1
 
-        resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_VALIDER) = ""
         resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_DATE) = tblData(i, colDate)
         jourTri(ligneEcran) = JourPourTriRO(tblData(i, colDate))
         resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_TIERS) = mod_DataStructure.CellText(tblData(i, colTiers))
@@ -591,7 +597,6 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
                 tiersParentVen = mod_DataStructure.CellText(tblData(indexParIDPourTiers(idParentVen), colTiers))
             End If
 
-            resultat(ligneEcran, mod_InstallRechercheOperations.RO_COL_VALIDER) = ""
             ' Une part ventilée n'a pas de date propre : la date reste vide pour
             ' les autres préfiltres (convention d'origine). Ajout 07/10/2026 (demande
             ' opérateur) : pour le préfiltre "SuiviSante" UNIQUEMENT, on reprend la
@@ -674,7 +679,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
 
     ' --- Ajout 09/10/2026 : couleurs de la charte commune (voir mod_InstallCommun) ---
     ' Le tableau n'a plus de style Excel : tout le corps est gris (cellules non
-    ' modifiables), sauf les colonnes que l'opérateur remplit (Valider et Notes, cette
+    ' modifiables), sauf les colonnes que l'opérateur remplit (Notes, cette
     ' dernière redevenant grise ligne par ligne quand sa clé santé est verrouillée,
     ' voir la boucle plus bas).
     With tblRecherche.DataBodyRange
@@ -683,7 +688,6 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
         .Borders.Weight = xlThin
         .Borders.Color = mod_InstallCommun.CoulBordureLecture()
     End With
-    tblRecherche.ListColumns("Valider").DataBodyRange.Interior.Color = mod_InstallCommun.CoulFondSaisie()
     tblRecherche.ListColumns("Notes").DataBodyRange.Interior.Color = mod_InstallCommun.CoulFondSaisie()
 
     ' Ajout 11/10/2026 : colonne Pointe modifiable (liste Oui / vide, posee a chaque
@@ -797,7 +801,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ' On remet en place le(s) filtre(s) que l'operateur avait poses avant cette
     ' recherche (voir RestaurerFiltresRO plus haut) -- sans ca, un filtre de colonne
     ' actif avant un "Revoir la ventilation" semblait disparaitre apres coup.
-    RestaurerFiltresRO tblRecherche, filtresSauvegardes
+    If conserverFiltres Then RestaurerFiltresRO tblRecherche, filtresSauvegardes
 
 End Sub
 
@@ -1127,130 +1131,12 @@ End Sub
 
 
 ' =====================================================================================
-' AppliquerLignesMarquees : applique Catégorie/SousCategorie/Notes pour les lignes
-' marquées "Oui", en écrivant dans la table source de chacune (colonne technique
-' SourceLigne : "O" = TblOperations, "V" = TblVentilations).
-' =====================================================================================
-Public Sub AppliquerLignesMarquees()
-
-    Dim ws As Worksheet
-    Dim tblRecherche As ListObject
-    Dim n As Long, nTbl As Long, i As Long
-    Dim nbAppliquees As Long
-    Dim indexParID As Object
-    Dim donnees As Variant
-
-    Dim tblVen As ListObject
-    Dim venDisponible As Boolean
-
-    Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RECHERCHE)
-    Set tblRecherche = ws.ListObjects(mod_VarGlobales.NOM_TABLE_RECHERCHE)
-
-    If tblRecherche.DataBodyRange Is Nothing Then
-        MsgBox mod_Display.FR("Aucune ligne {a2} traiter. Utilise d'abord 'Rechercher'."), vbInformation
-        Exit Sub
-    End If
-
-    Set tbl = mod_DonneesTable.GetOperationsTable()
-    If tbl Is Nothing Then Exit Sub
-    If tbl.DataBodyRange Is Nothing Then Exit Sub
-
-    mod_Display.RecupIndexCol
-    tblData = tbl.DataBodyRange.value
-    nTbl = UBound(tblData, 1)
-
-    Set indexParID = CreateObject("Scripting.Dictionary")
-    indexParID.CompareMode = 1
-    For i = 1 To nTbl
-        indexParID(mod_DataStructure.CellText(tblData(i, colID))) = i
-    Next i
-
-    venDisponible = False
-    Set tblVen = ObtenirTableVentilationsRO()
-    If Not tblVen Is Nothing Then
-        If Not tblVen.DataBodyRange Is Nothing Then venDisponible = True
-    End If
-
-    donnees = tblRecherche.DataBodyRange.value
-    n = UBound(donnees, 1)
-
-    nbAppliquees = 0
-
-    For i = 1 To n
-        Dim marque As String
-        marque = Trim(CStr(donnees(i, mod_InstallRechercheOperations.RO_COL_VALIDER)))
-
-        If LCase(marque) = "oui" Then
-            Dim sourceLigne As String
-            sourceLigne = Trim(CStr(donnees(i, mod_InstallRechercheOperations.RO_COL_SOURCE)))
-
-            ' Ajout du 02/10/2026 (après discussion avec l'opérateur, option 2) : Categorie
-            ' et SousCategorie ne sont plus gérées par ce mécanisme; elles se modifient
-            ' désormais par double-clic (voir EditerCategorieRO et RevoirVentilationRO),
-            ' qui écrivent immédiatement dans la table source, sans passer par "Valider"
-            ' ni par ce bouton. Seul Notes reste traité ici par lot, comme auparavant.
-            Dim notesValeur As String
-            notesValeur = CStr(donnees(i, mod_InstallRechercheOperations.RO_COL_NOTES))
-
-            If sourceLigne = "V" Then
-                ' --- PHASE 5 : ligne de TblVentilations, identifiée directement
-                '     par sa position (colonne technique LigneVentilation) --------
-                If venDisponible Then
-                    Dim ligneVenCible As Long
-                    ligneVenCible = CLng(donnees(i, mod_InstallRechercheOperations.RO_COL_LIGNEVEN))
-
-                    Dim notesOrigineVen As String, seg0Ven As String, verrouilleeVen As Boolean
-                    notesOrigineVen = mod_DataStructure.CellText(tblVen.ListColumns("Notes").DataBodyRange.rows(ligneVenCible).value)
-                    seg0Ven = mod_ImportOFX.SegmentTexte(notesOrigineVen, ";", 0)
-                    verrouilleeVen = mod_ImportOFX.EstDateValide(seg0Ven)
-                    If Not verrouilleeVen Then
-                        tblVen.ListColumns("Notes").DataBodyRange.rows(ligneVenCible).value = notesValeur
-                    End If
-
-                    nbAppliquees = nbAppliquees + 1
-                    tblRecherche.ListColumns("Valider").DataBodyRange.Cells(i).value = ""
-                End If
-            Else
-                ' --- Ligne de TblOperations (Notes uniquement; voir le commentaire ci-dessus) ---
-                Dim idCible As String
-                idCible = Trim(CStr(donnees(i, mod_InstallRechercheOperations.RO_COL_ID)))
-
-                If indexParID.Exists(idCible) Then
-                    Dim ligneCible As Long
-                    ligneCible = indexParID(idCible)
-
-                    Dim notesOriginale As String, seg0 As String, verrouillee As Boolean
-                    notesOriginale = mod_DataStructure.CellText(tblData(ligneCible, colNotes))
-                    seg0 = mod_ImportOFX.SegmentTexte(notesOriginale, ";", 0)
-                    verrouillee = mod_ImportOFX.EstDateValide(seg0)
-
-                    If Not verrouillee Then
-                        tbl.ListColumns("Notes").DataBodyRange.rows(ligneCible).value = notesValeur
-                    End If
-
-                    nbAppliquees = nbAppliquees + 1
-                    tblRecherche.ListColumns("Valider").DataBodyRange.Cells(i).value = ""
-                End If
-            End If
-        End If
-    Next i
-
-    If nbAppliquees > 0 Then
-        mod_FormulairesNotes.VerifierNotesSante
-        mod_SuiviSante.CalculerSuiviSante AfficherResume:=False
-    End If
-
-    MsgBox nbAppliquees & mod_Display.FR(" ligne(s) appliqu{e2}e(s)."), vbInformation
-
-End Sub
-
-' =====================================================================================
 ' TraiterChangementNotesRO (ajout du 30/10/2026, ergonomie)
 ' =====================================================================================
 ' Appelée par Workbook_SheetChange (ThisWorkbook) à chaque modification d'une cellule de
 ' l'écran de recherche. Si la cellule modifiée est dans la colonne Notes, la saisie est
 ' enregistrée tout de suite dans la table source (TblOperations, ou TblVentilations pour
-' une part de ventilation), avec les mêmes contrôles que AppliquerLignesMarquees : une
+' une part de ventilation), avec les contrôles de l'ancien bouton "Appliquer les lignes marquées" : une
 ' note dont la clé santé est déjà valide est verrouillée (l'ancienne valeur est remise),
 ' puis les statuts santé sont revérifiés. "Valider = Oui" et le bouton ne sont donc plus
 ' nécessaires pour Notes.
@@ -1487,7 +1373,7 @@ Public Sub RevoirVentilationRO()
         End If
         ' PHASE 6 : on recharge l'ecran dans le MEME contexte qu'avant (meme
         ' prefiltre/param), plutot que de retomber en recherche libre.
-        RechercherOperations g_ROPrefiltreActif, g_ROParamActif
+        RechercherOperations g_ROPrefiltreActif, g_ROParamActif, True
     ElseIf ventilationSupprimee Then
         ' Ajout 01/10/2026 (point 4 : annuler une ventilation) : l'operateur a
         ' supprime la ventilation existante (bouton "Supprimer cette ventilation" de
@@ -1496,7 +1382,7 @@ Public Sub RevoirVentilationRO()
         ' plus bas), puis on recharge l'ecran dans le meme contexte qu'avant, exactement
         ' comme pour une ventilation validee normalement.
         RestaurerCategorieAvantVentilation tblOp, ligneParent
-        RechercherOperations g_ROPrefiltreActif, g_ROParamActif
+        RechercherOperations g_ROPrefiltreActif, g_ROParamActif, True
     End If
 
 End Sub
@@ -1678,7 +1564,7 @@ Public Sub EditerCategorieRO()
 
     If ok Then
         mod_SuiviSante.CalculerSuiviSante AfficherResume:=False
-        RechercherOperations g_ROPrefiltreActif, g_ROParamActif
+        RechercherOperations g_ROPrefiltreActif, g_ROParamActif, True
     End If
 
 End Sub
@@ -1783,7 +1669,7 @@ Public Sub AffecterFactureRO()
 
     If mod_AffectationFacture.AffecterFacture(idTransaction, jourSel, tiersSel, libelleCategorie, montantSel, _
                                               mod_VarGlobales.NOM_FEUILLE_RECHERCHE) Then
-        If g_ROPrefiltreActif = "FacturesNonLiees" Then RechercherOperations g_ROPrefiltreActif, g_ROParamActif
+        If g_ROPrefiltreActif = "FacturesNonLiees" Then RechercherOperations g_ROPrefiltreActif, g_ROParamActif, True
     End If
 
 End Sub
@@ -1925,7 +1811,7 @@ Public Sub DecalerBudgetOperationRO()
     If mod_DecalagesBudget.AppliquerDecalageManuel(idTransaction, decalage) Then
         MsgBox mod_Display.FR("D{e2}calage de ") & decalage & mod_Display.FR(" mois appliqu{e2} {a2} cette op{e2}ration uniquement.") & vbCrLf & _
                mod_Display.FR("Les autres op{e2}rations de m{ea}me Tiers/Cat{e2}gorie ne sont pas affect{e2}es."), vbInformation
-        RechercherOperations g_ROPrefiltreActif, g_ROParamActif
+        RechercherOperations g_ROPrefiltreActif, g_ROParamActif, True
     End If
 
 End Sub

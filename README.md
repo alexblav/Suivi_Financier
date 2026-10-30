@@ -403,22 +403,21 @@ Une ligne de texte au-dessus du tableau rappelle le filtre actif et le nombre de
 
 | Colonne | Signification | Modifiable ? |
 | --- | --- | --- |
-| Valider | Tapez « Oui » pour marquer une ligne à enregistrer | Oui |
-| Pointe | « Oui » = opération déjà analysée, vide = à analyser (section 13) ; dernière colonne, toujours visible | Oui, par la liste déroulante : enregistré tout de suite |
+| Pointe | « Oui » = opération déjà analysée, vide = à analyser (section 13) ; première colonne, toujours visible | Oui, par la liste déroulante : enregistré tout de suite |
 | Date, Tiers, Montant | Données de l'opération | Non |
 | Categorie, SousCategorie | Rangement | Par double-clic sur Categorie ou SousCategorie |
 | Notes | Libellé ou clé santé | Oui, sauf une clé santé déjà valide (cellule grisée) |
 | Ventile | « Oui » sur une part de ventilation | Par double-clic |
-| Budget, StatutSante, SoldeSante, Date\_consult, Spe\_Consult | Informations calculées | Non |
+| StatutSante, SoldeSante, Date_consult, Spe_Consult | Informations calculées, affichées selon le filtre demandé | Non |
 
-Les colonnes techniques (identifiant, source O/V, numéro de ligne de ventilation) sont masquées. Une opération ventilée se retrouve donc de deux façons : par sa ligne d'origine (catégorie « Ventilé ») ou par chacune de ses parts (Ventile = Oui).
+Les colonnes techniques (identifiant, source O/V, numéro de ligne de ventilation) et la colonne Budget sont masquées. Une opération ventilée se retrouve donc de deux façons : par sa ligne d'origine (catégorie « Ventilé ») ou par chacune de ses parts (Ventile = Oui).
 
 ### Les actions
 
-La barre de boutons de l'écran contient : Recherche globale, Appliquer les lignes marquées, Ajouter un décalage, Décaler cette opération, Rendre récurrente, Ajouter à l'échéancier et Sortir.
+La barre de boutons de l'écran contient : Recherche globale, Ajouter un décalage, Décaler cette opération, Rendre récurrente, Ajouter à l'échéancier et Sortir.
 
-- **Corriger des Notes en lot** : modifiez les cellules Notes, mettez « Oui » dans Valider, puis cliquez sur **« Appliquer les lignes marquées »**. Les Notes sont écrites dans la bonne table, la marque « Oui » est effacée, puis la vérification et le calcul santé sont relancés.
-- **Double-clic sur Categorie ou SousCategorie** : ouvre le formulaire de contrôle des catégories pour cette seule opération, prérempli avec ses valeurs actuelles. À la validation, l'enregistrement est immédiat (sans passer par Valider), les statuts santé sont recalculés sans message et l'écran se recharge avec le même préfiltre. Sur une opération ventilée, un message vous renvoie vers la colonne Ventile.
+- **Corriger une Note** : modifiez la cellule Notes ; dès que vous la quittez, elle est écrite dans la bonne table puis la vérification et le calcul santé sont relancés. Une note dont la clé santé est déjà valide est verrouillée (l’ancienne valeur est remise).
+- **Double-clic sur Categorie ou SousCategorie** : ouvre le formulaire de contrôle des catégories pour cette seule opération, prérempli avec ses valeurs actuelles. À la validation, l'enregistrement est immédiat, les statuts santé sont recalculés sans message et l'écran se recharge avec le même préfiltre. Sur une opération ventilée, un message vous renvoie vers la colonne Ventile.
 - **Double-clic sur Ventile** : démarre ou revoit une ventilation (section 3).
 - **Ajouter un décalage** / **Décaler cette opération** : voir section 4.
 - **Rendre récurrente** : ouvre le formulaire d'échéance prérempli avec la ligne sélectionnée (voir section 8). Disponible dans tous les préfiltres, donc aussi juste après un import.

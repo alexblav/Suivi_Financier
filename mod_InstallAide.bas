@@ -546,16 +546,14 @@ Private Sub Def_RechercheOperations(ByRef titre As String, ByRef intro As String
             "Utilisez les fl{e1}ches de filtre de l'en-t{ea}te de chaque colonne pour restreindre la liste. " & _
             "Double-clic sur une cellule Categorie ou SousCategorie : [f:frm_ControleCategories] s'ouvre pour l'{e2}diter. Double-clic sur la colonne Ventile : [f:frm_Ventilation] s'ouvre (nouvelle ventilation si vide, revue ou suppression si Oui)."
 
-    L champs, "Valider", "Inscrivez Oui pour que la ligne soit prise en compte par [b:Appliquer les lignes marqu{e2}es] (possible sur plusieurs lignes {a2} la fois)."
     L champs, "Date, Tiers, Montant", "Lecture seule : informations de l'op{e2}ration."
-    L champs, "Categorie, SousCategorie", "Modifiables par double-clic (formulaire de contr{o2}le des cat{e2}gories), plus avec la colonne Valider."
-    L champs, "Notes", "Modifiable directement dans la cellule ; enregistr{e2} par [b:Appliquer les lignes marqu{e2}es], avec contr{o2}le de la saisie."
+    L champs, "Categorie, SousCategorie", "Modifiables par double-clic (formulaire de contr{o2}le des cat{e2}gories) ; enregistrement imm{e2}diat."
+    L champs, "Notes", "Modifiable directement dans la cellule ; enregistr{e2} d{e1}s la sortie de la cellule, avec contr{o2}le de la saisie (une note dont la cl{e2} sant{e2} est d{e2}j{a2} valide est verrouill{e2}e)."
     L champs, "Ventile", "Oui si l'op{e2}ration est ventil{e2}e. Double-clic pour d{e2}marrer ou revoir une ventilation."
     L champs, "Pointe", "Oui si l'op{e2}ration est d{e2}j{a2} analys{e2}e (liste). Enregistr{e2} tout de suite ; retirer un pointage demande confirmation. Une part de ventilation suit le pointage de son op{e2}ration. Filtrez la colonne pour ne garder que les op{e2}rations {a2} analyser."
     L champs, "Num_Cheque, Budget, Date_consult, Spe_consult, StatutSante, SoldeSante", "Colonnes d'information, affich{e2}es selon le filtre demand{e2} (budget, suivi sant{e2})."
 
     L boutons, "Recherche globale", "Recharge toutes les op{e2}rations, sans filtre."
-    L boutons, "Appliquer les lignes marqu{e2}es", "Pour chaque ligne dont Valider contient Oui, enregistre le champ Notes en contr{o2}lant la saisie."
     L boutons, "Sortir", "Ferme l'{e2}cran (et cette aide si elle est ouverte) et revient sur l'{e2}cran d'origine ([f:Synthese], bilan mensuel ou analyse)."
     L boutons, "Ajouter un d{e2}calage", "Ajoute un d{e2}calage de budget r{e2}current."
     L boutons, "D{e2}caler cette op{e2}ration", "D{e2}calage ponctuel d'une op{e2}ration ; le calcul repart toujours de la date de l'op{e2}ration (pour revenir au mois d'origine, indiquez 0)."

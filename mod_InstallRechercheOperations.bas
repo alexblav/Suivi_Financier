@@ -11,7 +11,17 @@ Option Explicit
 '   personnalisé).
 '
 '   Colonnes du tableau (dans cet ordre) :
-'     A - Valider       : l'opérateur y inscrit "Oui" sur les lignes finies
+'     (30/10/2026 : la colonne Valider et le bouton "Appliquer les lignes marquées" sont
+'      supprimés; une Notes modifiée est enregistrée et contrôlée à la sortie de la cellule,
+'      voir mod_RechercheOperations.TraiterChangementNotesRO. Toutes les lettres de colonnes
+'      ci-dessous ont donc reculé d'un cran : il faut relancer CreerFeuilleRechercheOperations.)
+'     (30/10/2026, bis : Pointe passe en TÊTE de tableau, et Budget n'est plus jamais affiché.)
+'     A - Pointe        : POINTAGE (ajout 11/10/2026) : "Oui" = opération déjà analysée,
+'                         vide = à analyser. Liste déroulante Oui / vide, TOUJOURS visible,
+'                         filtrable avec les flèches d'Excel. Une modification s'enregistre
+'                         tout de suite dans TblOperations (retirer un "Oui" demande
+'                         confirmation) ; une part de ventilation affiche et modifie le
+'                         pointage de son opération d'origine (voir mod_Pointage).
 '     B - Date
 '     C - Tiers
 '     D - Montant
@@ -30,20 +40,15 @@ Option Explicit
 '                         de l'opération PARENTE pour une part ventilée)
 '     J - SourceLigne    : colonne technique MASQUÉE, PHASE 5 : "O" (ligne de
 '                         TblOperations) ou "V" (part de TblVentilations),
-'                         sert à savoir où écrire au moment d'appliquer
+'                         sert à savoir où écrire au moment d'enregistrer une note
 '     K - LigneVentilation : colonne technique MASQUÉE, PHASE 5 : pour une
 '                         ligne "V", position de la part DANS TblVentilations
 '                         (DataBodyRange). Vide/non utilisée pour une ligne "O".
-'   PHASE 6 (refonte "écran central") : 5 colonnes RÉELLES supplémentaires, affichées
-'   ou masquées dynamiquement selon le "préfiltre" demandé (DefinirColonnesVisibles) :
-'     L - Budget / M - StatutSante / N - SoldeSante / O - Date_consult / P - Spe_consult
-'   POINTAGE (ajout 11/10/2026) :
-'     Q - Pointe        : "Oui" = opération déjà analysée, vide = à analyser. Liste
-'                         déroulante Oui / vide, TOUJOURS visible, filtrable avec les flèches
-'                         d'Excel. Une modification s'enregistre tout de suite dans
-'                         TblOperations (retirer un "Oui" demande confirmation) ; une part de
-'                         ventilation affiche et modifie le pointage de son opération
-'                         d'origine (voir mod_Pointage).
+'   PHASE 6 (refonte "écran central") : 5 colonnes RÉELLES supplémentaires :
+'     L - Budget (TOUJOURS masquée depuis le 30/10/2026, la donnée reste dans le tableau)
+'     M - StatutSante / N - SoldeSante / O - Date_consult / P - Spe_consult : affichées ou
+'     masquées dynamiquement selon le "préfiltre" demandé (DefinirColonnesVisibles)
+'     Q - Num_Cheque    : toujours visible
 '
 '   Ce module ne construit QUE ce qui est fixe : l'en-tête commun (boutons, compteur,
 '   Instructions) et la ligne d'en-têtes du tableau. Les lignes du tableau elles-mêmes
@@ -85,7 +90,9 @@ Private Const RO_LIGNE_INSTRUCTIONS As Long = 6
 Public Const RO_LIGNE_ENTETES As Long = 8
 
 ' Position des colonnes DANS LE TABLEAU (1 = première colonne du tableau, A)
-Public Const RO_COL_VALIDER As Long = 1
+' (30/10/2026 : la colonne Valider, qui était la 1re, est supprimée; tout a reculé d'un cran)
+' POINTAGE (ajout 11/10/2026, déplacé en 1re colonne le 30/10/2026), toujours visible
+Public Const RO_COL_POINTE As Long = 1
 Public Const RO_COL_DATE As Long = 2
 Public Const RO_COL_TIERS As Long = 3
 Public Const RO_COL_MONTANT As Long = 4
@@ -99,16 +106,14 @@ Public Const RO_COL_LIGNEVEN As Long = 11       ' PHASE 5 : ligne dans TblVentil
 
 ' PHASE 6 : colonnes issues des anciens écrans "Synthese_*", visibles ou non
 ' selon le préfiltre demandé (voir DefinirColonnesVisibles plus bas)
-Public Const RO_COL_BUDGET As Long = 12
+Public Const RO_COL_BUDGET As Long = 12         ' toujours masquée depuis le 30/10/2026
 Public Const RO_COL_STATUTSANTE As Long = 13
 Public Const RO_COL_SOLDESANTE As Long = 14
 Public Const RO_COL_DATECONSULT As Long = 15
 Public Const RO_COL_SPECONSULT As Long = 16
-' POINTAGE (ajout 11/10/2026) : 17e colonne du tableau, toujours visible
-Public Const RO_COL_POINTE As Long = 17
-' CHEQUE (ajout 12/10/2026) : 18e colonne du tableau, toujours visible (N° de chèque de l'opération)
-Public Const RO_COL_CHEQUE As Long = 18
-Public Const RO_NB_COLONNES As Long = 18
+' CHEQUE (ajout 12/10/2026) : 17e colonne du tableau, toujours visible (N° de chèque de l'opération)
+Public Const RO_COL_CHEQUE As Long = 17
+Public Const RO_NB_COLONNES As Long = 17
 
 
 ' =====================================================================================
@@ -126,11 +131,11 @@ Sub CreerFeuilleRechercheOperations()
 
     Application.ScreenUpdating = False
 
-    ' Largeurs relevées sur la feuille réelle (A passe de 9 à 11 pour loger l'étiquette
-    ' "Instructions"). Colonnes I à K et L à P : techniques ou affichées selon le
-    ' préfiltre (masquées plus bas); Q : Pointe (toujours visible); R : liste technique des catégories.
+    ' Largeurs relevées sur la feuille réelle (A = 11 pour loger l'étiquette "Instructions" :
+    ' c'est la colonne Pointe). Colonnes I à K : techniques; L : Budget (toujours masquée);
+    ' M à P : affichées selon le préfiltre (masquées plus bas); Q : Num_Cheque.
     mod_InstallCommun.MettreEnForme ws, Array(11, 9.07, 28.27, 8.93, 16.8, 24.67, 86.8, 7.87, _
-                                              12, 10, 10, 12, 14, 12, 14, 16, 10.13, 28), RO_LIGNE_ENTETES
+                                              12, 10, 10, 12, 14, 12, 14, 16, 28), RO_LIGNE_ENTETES
 
     RO_ConstruireEntete ws
     RO_ConstruireEnteteTableau ws
@@ -171,10 +176,10 @@ Private Sub RO_ConstruireEntete(ByVal ws As Worksheet)
     ' Compteur "Opération: x/y" (A4:C4), rempli par mod_RechercheOperations.RechercherOperations
     mod_InstallCommun.PoserCompteur ws, RO_LIGNE_FILTRE, 1, 3
 
-    ' Phrase du filtre actif (D4:H4), recalculée à chaque recherche (voir
+    ' Phrase du filtre actif (D4:G4), recalculée à chaque recherche (voir
     ' mod_RechercheOperations.DecrireFiltreActifRO) : elle rappelle à l'opérateur sur quel
     ' sous-ensemble d'opérations il travaille. Vide avant la toute première recherche.
-    With ws.Range("D" & RO_LIGNE_FILTRE & ":H" & RO_LIGNE_FILTRE)
+    With ws.Range("D" & RO_LIGNE_FILTRE & ":G" & RO_LIGNE_FILTRE)
         .Merge
         .Value = ""
         .Font.Size = 9
@@ -185,8 +190,8 @@ Private Sub RO_ConstruireEntete(ByVal ws As Worksheet)
         .VerticalAlignment = xlCenter
     End With
 
-    ' Étiquette en colonne A, texte sur B:H (les colonnes I à P sont masquées).
-    mod_InstallCommun.EcrireInstructions ws, RO_LIGNE_INSTRUCTIONS, 1, 1, 2, 8, RO_TexteInstructions()
+    ' Étiquette en colonne A, texte sur B:G (les colonnes I à P sont masquées).
+    mod_InstallCommun.EcrireInstructions ws, RO_LIGNE_INSTRUCTIONS, 1, 1, 2, 7, RO_TexteInstructions()
 
 End Sub
 
@@ -199,16 +204,15 @@ Private Function RO_TexteInstructions() As String
     t = t & "la ligne du dessus rappelle le filtre actif et le nombre de lignes affich{e2}es."
     t = t & Chr(10) & "Utilisez les fl{e1}ches de filtre de l'en-t{ea}te de chaque colonne pour restreindre la liste affich{e2}e. "
     t = t & "Corrigez directement la cellule [c:Notes] : la saisie est enregistr{e2}e et contr{o2}l{e2}e d{e1}s la sortie de la cellule "
-    t = t & "(inutile d'inscrire Oui dans [c:Valider] ni de cliquer sur [b:Appliquer les lignes marqu{e2}es])."
+    t = t & "(une note dont la cl{e2} sant{e2} est d{e2}j{a2} valide est verrouill{e2}e)."
     t = t & Chr(10) & "La colonne [c:Pointe] indique les op{e2}rations d{e2}j{a2} analys{e2}es : choisissez Oui dans la liste pour pointer une op{e2}ration "
     t = t & "(le changement est enregistr{e2} tout de suite). Pour retirer un pointage, videz la cellule : une confirmation vous est demand{e2}e. "
     t = t & "Filtrez la colonne avec sa fl{e1}che pour ne garder que les op{e2}rations {a2} analyser. Une part de ventilation suit le pointage de son op{e2}ration."
     t = t & Chr(10) & "Double-cliquez sur une cellule [c:Categorie] pour l'{e2}diter, elle et sa [c:SousCategorie], via le formulaire [f:frm_ControleCategories] "
-    t = t & "(elles ne se modifient plus avec [c:Valider]). Double-cliquez sur une cellule vide de la colonne [c:Ventile] pour d{e2}marrer une nouvelle "
+    t = t & "(enregistrement imm{e2}diat). Double-cliquez sur une cellule vide de la colonne [c:Ventile] pour d{e2}marrer une nouvelle "
     t = t & "ventilation sur cette op{e2}ration ([f:frm_Ventilation]), ou sur une cellule Oui pour revoir ou supprimer une ventilation d{e2}j{a2} enregistr{e2}e."
     t = t & Chr(10) & "Boutons :"
     t = t & Chr(10) & "- [b:Recherche globale] : recharge toutes les op{e2}rations sans filtre."
-    t = t & Chr(10) & "- [b:Appliquer les lignes marqu{e2}es] : pour chaque ligne dont [c:Valider] contient Oui, enregistre le champ [c:Notes] en contr{o2}lant la saisie."
     t = t & Chr(10) & "- [b:Sortir] : referme cet {e2}cran et revient sur [f:Synthese]."
     t = t & Chr(10) & "- [b:Ajouter un d{e2}calage] : ajoute un d{e2}calage de budget r{e2}current au syst{e2}me."
     t = t & Chr(10) & "- [b:D{e2}caler cette op{e2}ration] : d{e2}calage ponctuel d'une op{e2}ration ; le calcul repart toujours de la date de l'op{e2}ration "
@@ -233,9 +237,9 @@ Private Function RO_ConstruireEnteteTableau(ByVal ws As Worksheet) As ListObject
     Dim noms As Variant
     Dim i As Long
 
-    noms = Array("Valider", "Date", "Tiers", "Montant", "Categorie", "SousCategorie", "Notes", "Ventile", _
+    noms = Array(mod_VarGlobales.NOM_COL_POINTE, "Date", "Tiers", "Montant", "Categorie", "SousCategorie", "Notes", "Ventile", _
                  "ID_Transaction", "SourceLigne", "LigneVentilation", "Budget", "StatutSante", "SoldeSante", _
-                 "Date_consult", "Spe_consult", mod_VarGlobales.NOM_COL_POINTE, "Num_Cheque")
+                 "Date_consult", "Spe_consult", "Num_Cheque")
 
     For i = 0 To UBound(noms)
         ws.Cells(RO_LIGNE_ENTETES, i + 1).Value = noms(i)
@@ -270,8 +274,6 @@ Private Sub RO_ConstruireBoutons(ByVal ws As Worksheet)
 
     mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Recherche globale"), _
         "RechercherOperations", "btnRechercherOperations", 108
-    mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Appliquer les lignes marqu{e2}es"), _
-        "AppliquerLignesMarquees", "btnAppliquerLignesMarquees", 154.5
     mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_InstallCommun.CapSortir(), _
         "SortirRechercheOperations", "btnSortirRechercheOperations", mod_InstallCommun.FRM_BTN_L
     mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Ajouter un d{e2}calage"), _
@@ -295,12 +297,13 @@ End Sub
 ' DefinirColonnesVisibles (PHASE 6) : affiche/masque les 5 colonnes issues des
 ' anciens écrans "Synthese_*" selon le préfiltre demandé par l'opérateur.
 ' Appelée par mod_RechercheOperations.RechercherOperations à chaque ouverture.
-' Les colonnes A à H (Valider...Ventile) et I/J/K (techniques) ne sont JAMAIS
-' concernées ici : elles restent gérées comme avant (I/J/K toujours masquées).
+' Les colonnes A à H (Pointe...Ventile), I/J/K (techniques) et L (Budget) ne sont JAMAIS
+' affichées ici : elles restent gérées comme avant (I/J/K et L toujours masquées).
 ' =====================================================================================
 Public Sub DefinirColonnesVisibles(ByVal ws As Worksheet, ByVal prefiltre As String)
 
     ' On repart d'un état neutre : les 5 colonnes "Synthese_*" masquées.
+    ' Budget (L) : masquée en permanence depuis le 30/10/2026, quel que soit le préfiltre.
     ws.Columns("L").Hidden = True   ' Budget
     ws.Columns("M").Hidden = True   ' StatutSante
     ws.Columns("N").Hidden = True   ' SoldeSante
@@ -311,8 +314,6 @@ Public Sub DefinirColonnesVisibles(ByVal ws As Worksheet, ByVal prefiltre As Str
         Case "DernierImport"
             ws.Columns("M").Hidden = False
             ws.Columns("N").Hidden = False
-        Case "OperationsDuMois", "DetailTotal", "Analyse"
-            ws.Columns("L").Hidden = False
         Case "ErreursSante"
             ws.Columns("O").Hidden = False
             ws.Columns("P").Hidden = False

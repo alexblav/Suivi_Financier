@@ -757,13 +757,8 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 </thead>
 <tbody>
 <tr>
-<td>Valider</td>
-<td>Tapez « Oui » pour marquer une ligne à enregistrer</td>
-<td>Oui</td>
-</tr>
-<tr>
 <td>Pointe</td>
-<td>« Oui » = opération déjà analysée, vide = à analyser (section 13) ; dernière colonne, toujours visible</td>
+<td>« Oui » = opération déjà analysée, vide = à analyser (section 13) ; première colonne, toujours visible</td>
 <td>Oui, par la liste déroulante : enregistré tout de suite</td>
 </tr>
 <tr>
@@ -787,18 +782,18 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 <td>Par double-clic</td>
 </tr>
 <tr>
-<td>Budget, StatutSante, SoldeSante, Date_consult, Spe_Consult</td>
-<td>Informations calculées</td>
+<td>StatutSante, SoldeSante, Date_consult, Spe_Consult</td>
+<td>Informations calculées, affichées selon le filtre demandé</td>
 <td>Non</td>
 </tr>
 </tbody>
 </table></div>
-<p>Les colonnes techniques (identifiant, source O/V, numéro de ligne de ventilation) sont masquées. Une opération ventilée se retrouve donc de deux façons : par sa ligne d'origine (catégorie « Ventilé ») ou par chacune de ses parts (Ventile = Oui).</p>
+<p>Les colonnes techniques (identifiant, source O/V, numéro de ligne de ventilation) et la colonne Budget sont masquées. Une opération ventilée se retrouve donc de deux façons : par sa ligne d'origine (catégorie « Ventilé ») ou par chacune de ses parts (Ventile = Oui).</p>
 <h3 id="les-actions">Les actions</h3>
-<p>La barre de boutons de l'écran contient : Recherche globale, Appliquer les lignes marquées, Ajouter un décalage, Décaler cette opération, Rendre récurrente, Ajouter à l'échéancier et Sortir.</p>
+<p>La barre de boutons de l'écran contient : Recherche globale, Ajouter un décalage, Décaler cette opération, Rendre récurrente, Ajouter à l'échéancier et Sortir.</p>
 <ul>
-<li><strong>Corriger des Notes en lot</strong> : modifiez les cellules Notes, mettez « Oui » dans Valider, puis cliquez sur <strong>« Appliquer les lignes marquées »</strong>. Les Notes sont écrites dans la bonne table, la marque « Oui » est effacée, puis la vérification et le calcul santé sont relancés.</li>
-<li><strong>Double-clic sur Categorie ou SousCategorie</strong> : ouvre le formulaire de contrôle des catégories pour cette seule opération, prérempli avec ses valeurs actuelles. À la validation, l'enregistrement est immédiat (sans passer par Valider), les statuts santé sont recalculés sans message et l'écran se recharge avec le même préfiltre. Sur une opération ventilée, un message vous renvoie vers la colonne Ventile.</li>
+<li><strong>Corriger une Note</strong> : modifiez la cellule Notes ; dès que vous la quittez, elle est écrite dans la bonne table puis la vérification et le calcul santé sont relancés. Une note dont la clé santé est déjà valide est verrouillée (l’ancienne valeur est remise).</li>
+<li><strong>Double-clic sur Categorie ou SousCategorie</strong> : ouvre le formulaire de contrôle des catégories pour cette seule opération, prérempli avec ses valeurs actuelles. À la validation, l'enregistrement est immédiat, les statuts santé sont recalculés sans message et l'écran se recharge avec le même préfiltre. Sur une opération ventilée, un message vous renvoie vers la colonne Ventile.</li>
 <li><strong>Double-clic sur Ventile</strong> : démarre ou revoit une ventilation (section 3).</li>
 <li><strong>Ajouter un décalage</strong> / <strong>Décaler cette opération</strong> : voir section 4.</li>
 <li><strong>Rendre récurrente</strong> : ouvre le formulaire d'échéance prérempli avec la ligne sélectionnée (voir section 8). Disponible dans tous les préfiltres, donc aussi juste après un import.</li>
@@ -1377,6 +1372,11 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 <td>Rapprochement et génération de clé santé</td>
 <td><code>CreerFeuilleRapprochementNotes</code>, <code>CreerFeuilleGenerationCle</code></td>
 <td>Formulaires du suivi santé</td>
+</tr>
+<tr>
+<td>Affectation d'une facture à une opération</td>
+<td><code>CreerFeuilleAffectationFacture</code></td>
+<td>Ouvert par le bouton « Affecter une facture » de la feuille Synthèse ; le lien est stocké dans la colonne <code>ID_Transactions</code> de <code>TblFactures</code> (plusieurs opérations possibles par facture)</td>
 </tr>
 <tr>
 <td>Suivi santé (cas non soldés)</td>
