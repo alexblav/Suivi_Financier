@@ -74,7 +74,7 @@ Les écrans de saisie (contrôle des catégories, ventilation, échéance…) s'
 
 À chaque récupération de relevé, dans cet ordre :
 
-1. **Exporter** les opérations depuis Linxo (fichier **OFX** ; le CSV est facultatif) et l'enregistrer.
+1. **Exporter** les opérations depuis Linxo (fichiers **OFX** et **CSV**, tous deux obligatoires) et l'enregistrer.
 2. Sur Synthese, cliquer sur **Importer** et suivre les écrans (section 1).
 3. **Contrôler le rangement** des opérations qui le demandent (section 2).
 4. Confirmer les **rapprochements avec l'échéancier** si le classeur en propose (section 8).
@@ -99,7 +99,7 @@ Une fois importées, les modifications faites dans Linxo **ne sont plus reprises
 
 1. Cliquez sur **Importer** (feuille Synthese, ou bouton de l'Accueil).
 2. Choisissez le fichier **OFX**. Si vous annulez, rien n'est modifié.
-3. Le classeur demande si vous souhaitez joindre aussi le fichier **CSV**. Réponse par défaut : **Non**. Le CSV ne sert que de secours pour retrouver la catégorie des opérations que le classeur n'a pas su ranger tout seul.
+3. Le classeur vous demande ensuite le fichier **CSV**. Il est **obligatoire** : il contient le nom du compte (colonne *Nom du compte*) et sert de secours pour retrouver la catégorie des opérations que le classeur n'a pas su ranger tout seul. Si vous annulez l'une des deux sélections, l'import est impossible et un message vous l'indique.
 4. Le classeur lit les opérations et **ignore celles déjà enregistrées**. Vous pouvez donc réimporter un relevé qui chevauche le précédent sans crainte de doublons.
 5. Si certaines opérations ont plusieurs catégories possibles (cas du CSV), un écran vous demande de choisir pour chacune dans une liste, puis **Terminer et appliquer**.
 6. Vient ensuite le **contrôle des catégories** (section 2).
@@ -349,6 +349,8 @@ Pendant l'import, après le contrôle des catégories et avant l'écriture, le c
 
 Si vous annulez tout l'import, aucune échéance n'est supprimée.
 
+**Rapprochement à la main.** Si le classeur n'a pas reconnu une échéance (écart de montant ou de date trop grand, tiers différent…), affichez l'opération dans le contrôle des catégories et cliquez sur **Échéancier…**. Choisissez l'échéance dans la liste (classée de la plus proche à la plus éloignée, avec les écarts de date et de montant) ; le détail indique pourquoi elle n'a pas été reconnue. **Rapprocher** lie l'opération à l'échéance, **Défaire** annule ce lien. L'opération, qui vient de la banque, n'est jamais modifiée. Si l'échéance vient d'une règle de récurrence et que l'opération en diffère (montant, tiers, catégorie, sous-catégorie), le classeur demande s'il faut mettre à jour la règle et ses échéances à venir avec les valeurs de l'opération. Comme pour un rapprochement automatique, rien n'est supprimé ni modifié avant l'enregistrement de l'import.
+
 Une échéance est candidate quand le montant est de même signe et dans la tolérance, la date est dans la fenêtre attendue (de 5 jours avant à 10 jours après pour une précision Jour), le Tiers contient celui de l'échéance et la catégorie correspond (si ces éléments sont renseignés).
 
 ### Les deux listes
@@ -593,7 +595,7 @@ Utilisez **Annuler**, rien n'est enregistré tant que vous n'avez pas validé. P
 
 | Terme | Signification |
 | --- | --- |
-| **OFX / CSV** | Les deux formats d'export de la banque (Linxo). L'OFX suffit ; le CSV est un secours facultatif |
+| **OFX / CSV** | Les deux formats d'export de la banque (Linxo). Les deux sont nécessaires à l'import : le CSV porte le nom du compte |
 | **Tiers** | Le commerçant, organisme ou personne concerné par l'opération |
 | **Catégorie / Sous-catégorie** | Le rangement des opérations sur deux niveaux |
 | **Ventilation / part** | Découpage d'une opération en plusieurs montants de catégories différentes |

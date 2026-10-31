@@ -38,6 +38,7 @@ Public Function ChargerAide(ByVal nomForm As String, ByRef titre As String, ByRe
         Case "frm_Echeancier":           Def_Echeancier titre, intro, champs, boutons
         Case "frm_Recurrences":          Def_Recurrences titre, intro, champs, boutons
         Case "frm_Echeance":             Def_Echeance titre, intro, champs, boutons
+        Case "frm_ChoixEcheance":        Def_ChoixEcheance titre, intro, champs, boutons
         Case "frm_ControleCategories":   Def_ControleCategories titre, intro, champs, boutons
         Case "frm_RapprochementNotes":   Def_RapprochementNotes titre, intro, champs, boutons
         Case "frm_GenerationCle":        Def_GenerationCle titre, intro, champs, boutons
@@ -347,6 +348,26 @@ End Sub
 ' =====================================================================================
 ' IMPORT : contrôle, ventilation, résolution, notes, santé
 ' =====================================================================================
+Private Sub Def_ChoixEcheance(ByRef titre As String, ByRef intro As String, ByRef champs As String, ByRef boutons As String)
+
+    titre = "Rapprochement manuel avec l'{e2}ch{e2}ancier"
+    intro = "Ce formulaire permet de d{e2}signer {a2} la main l'{e2}ch{e2}ance qui correspond {a2} l'op{e2}ration affich{e2}e dans [f:frm_ControleCategories], " & _
+            "quand la d{e2}tection automatique ne l'a pas propos{e2}e (par exemple {e2}cart de montant ou de date trop grand). " & _
+            "L'op{e2}ration vient de la banque : elle n'est jamais modifi{e2}e. " & _
+            "Comme pour un rapprochement automatique, l'{e2}ch{e2}ance n'est retir{e2}e de l'{e2}ch{e2}ancier qu'{a2} l'enregistrement de l'import."
+
+    L champs, "Op{e2}ration import{e2}e", "Lecture seule : date, tiers, montant, cat{e2}gorie et ch{e1}que de l'op{e2}ration."
+    L champs, "{E2}ch{e2}ance", "Liste d{e2}roulante des {e2}ch{e2}ances, de la plus proche {a2} la plus {e2}loign{e2}e de l'op{e2}ration, avec les {e2}carts de date et de montant. Les {e2}ch{e2}ances d{e2}j{a2} rapproch{e2}es avec une autre op{e2}ration de l'import ne sont pas propos{e2}es."
+    L champs, "D{e2}tail de l'{e2}ch{e2}ance", "Lecture seule : libell{e2}, tiers, cat{e2}gorie, montant, date et p{e2}riodicit{e2} de l'{e2}ch{e2}ance choisie."
+    L champs, "Pourquoi pas d{e2}tect{e2}e", "Lecture seule : le ou les crit{e1}res (date, montant, tiers, cat{e2}gorie, ch{e1}que) qui ont emp{ea}ch{e2} la d{e2}tection automatique."
+
+    L boutons, "Rapprocher", "Lie l'op{e2}ration {a2} l'{e2}ch{e2}ance choisie. Si l'{e2}ch{e2}ance vient d'une r{e1}gle de r{e2}currence et que l'op{e2}ration en diff{e1}re (montant, tiers, cat{e2}gorie, sous-cat{e2}gorie), une question propose de mettre {a2} jour la r{e1}gle et ses {e2}ch{e2}ances {a2} venir. La mise {a2} jour n'est faite qu'{a2} l'enregistrement de l'import."
+    L boutons, "D{e2}faire", "Annule le rapprochement d{e2}j{a2} fait pour cette op{e2}ration."
+    L boutons, "Annuler", "Revient au contr{o2}le des cat{e2}gories sans rien changer."
+    L boutons, "Aide", "Ouvre cette aide, sans fermer le formulaire."
+
+End Sub
+
 Private Sub Def_ControleCategories(ByRef titre As String, ByRef intro As String, ByRef champs As String, ByRef boutons As String)
 
     titre = "Contr{o2}le des cat{e2}gories"
@@ -369,6 +390,7 @@ Private Sub Def_ControleCategories(ByRef titre As String, ByRef intro As String,
     L boutons, "< Pr{e2}c{e2}dent  /  Suivant >", "Naviguent entre les op{e2}rations ; les choix d{e2}j{a2} faits sont conserv{e2}s."
     L boutons, "Ventiler", "R{e2}partit le montant de l'op{e2}ration entre plusieurs sous-cat{e2}gories (ouvre [f:frm_Ventilation])."
     L boutons, "+", "Cr{e2}e une nouvelle cat{e2}gorie ou sous-cat{e2}gorie (ouvre [f:frm_NouvelleCategorie])."
+    L boutons, "{E2}ch{e2}ancier...", "Rapproche {a2} la main l'op{e2}ration d'une {e2}ch{e2}ance de l'{e2}ch{e2}ancier quand la d{e2}tection automatique ne l'a pas propos{e2}e (ouvre [f:frm_ChoixEcheance]). L'op{e2}ration n'est jamais modifi{e2}e."
     L boutons, "Enregistrer", "Applique tous les choix faits et poursuit l'import."
     L boutons, "Annuler", "Abandonne l'import en cours."
     L boutons, "Aide", "Ouvre cette aide, sans fermer le formulaire."

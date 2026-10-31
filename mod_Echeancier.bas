@@ -110,6 +110,8 @@ Private g_PreRapprochementFait As Boolean
 Private g_EcheancesValidees As Object      ' ID_Echeance validés par l'opérateur -> True
 Private g_OpSignature As Object            ' ID_Transaction -> empreinte (date, tiers, montant, catégorie...) déjà examinée
 Private g_OpEcheance As Object             ' ID_Transaction -> ID_Echeance validée ("" si aucune)
+Private g_OpManuel As Object               ' ID_Transaction -> True : rapprochement choisi à la main (prioritaire, voir RapprocherManuellement)
+Private g_MajEcheances As Object           ' ID_Echeance rapprochée à la main -> valeurs de l'opération à reporter sur sa règle (appliquées après l'import)
 
 
 ' =====================================================================================
@@ -488,8 +490,10 @@ Public Sub TraiterApresImport(ByRef listeID() As String, ByVal nb As Long)
     If g_PreRapprochementFait Then
         ' Les rapprochements ont déjà été proposés AVANT l'écriture (PreRapprocherAvantEcriture) :
         ' on applique seulement ceux que l'opérateur a validés, sans reposer la question.
+        AppliquerMajEcheancier              ' mises à jour acceptées lors d'un rapprochement manuel
         SupprimerEcheancesParID g_EcheancesValidees
         Set g_EcheancesValidees = Nothing
+        Set g_MajEcheances = Nothing
         g_PreRapprochementFait = False
     ElseIf nb > 0 Then
         Rapprocher listeID, nb
@@ -604,6 +608,7 @@ Erreur:
            mod_Display.FR("L'import continue ; le rapprochement sera propos{e2} apr{e1}s l'{e2}criture."), vbExclamation, mod_Display.FR("{E2}ch{e2}ancier")
     g_PreRapprochementFait = False
     Set g_EcheancesValidees = Nothing
+    Set g_MajEcheances = Nothing
 
 End Sub
 
@@ -612,6 +617,8 @@ Public Sub InitialiserRapprochementImport()
     Set g_EcheancesValidees = CreateObject("Scripting.Dictionary")
     Set g_OpSignature = CreateObject("Scripting.Dictionary")
     Set g_OpEcheance = CreateObject("Scripting.Dictionary")
+    Set g_OpManuel = CreateObject("Scripting.Dictionary")
+    Set g_MajEcheances = CreateObject("Scripting.Dictionary")
     g_PreRapprochementFait = False
 End Sub
 
@@ -638,9 +645,10 @@ Public Sub RapprocherOperationImport(ByVal idOp As String, ByVal d As Variant, B
     If Not EcheancierInstalle() Then Exit Sub
     If TableVide(TableEcheances()) Then Exit Sub
 
-    sig = Format(VersDate(d), "yyyymmdd") & "|" & mod_DataStructure.CellText(tiers) & "|" & _
-          Format(mod_DataStructure.ToDouble(montant), "0.00") & "|" & mod_DataStructure.CellText(cat) & "|" & _
-          mod_DataStructure.CellText(sous) & "|" & mod_DataStructure.CellText(cheque)
+    ' Rapprochement choisi à la main (RapprocherManuellement) : prioritaire, jamais remis en cause ici.
+    If g_OpManuel.Exists(idOp) Then Exit Sub
+
+    sig = SignatureOperation(d, tiers, montant, cat, sous, cheque)
 
     If g_OpSignature.Exists(idOp) Then
         If g_OpSignature(idOp) = sig Then Exit Sub
@@ -668,6 +676,487 @@ Public Sub RapprocherOperationImport(ByVal idOp As String, ByVal d As Variant, B
 Erreur:
     MsgBox mod_Display.FR("La reconnaissance de l'{e2}ch{e2}ance a {e2}chou{e2} pour cette op{e2}ration :") & vbCrLf & _
            Err.Number & " - " & Err.Description, vbExclamation, mod_Display.FR("{E2}ch{e2}ancier")
+
+End Sub
+
+' Empreinte d'une opération (date, tiers, montant, catégorie, sous-catégorie, chèque) : sert à ne pas
+' réexaminer une opération dont rien n'a changé.
+Private Function SignatureOperation(ByVal d As Variant, ByVal tiers As Variant, ByVal montant As Variant, _
+                                    ByVal cat As Variant, ByVal sous As Variant, ByVal cheque As Variant) As String
+    SignatureOperation = Format(VersDate(d), "yyyymmdd") & "|" & mod_DataStructure.CellText(tiers) & "|" & _
+          Format(mod_DataStructure.ToDouble(montant), "0.00") & "|" & mod_DataStructure.CellText(cat) & "|" & _
+          mod_DataStructure.CellText(sous) & "|" & mod_DataStructure.CellText(cheque)
+End Function
+
+
+' =====================================================================================
+' RAPPROCHEMENT MANUEL (bouton « Échéancier... » du contrôle des catégories)
+' =====================================================================================
+' Quand la détection automatique n'a pas reconnu une échéance (écart de montant ou de date trop
+' grand, Tiers différent...), l'opérateur la désigne lui-même dans frm_ChoixEcheance.
+'
+' RÈGLES :
+'   - L'OPÉRATION N'EST JAMAIS MODIFIÉE (elle vient de la banque) : seul l'échéancier peut l'être.
+'   - Comme pour un rapprochement automatique, rien n'est supprimé tout de suite : l'échéance est
+'     retirée à l'écriture de l'import (TraiterApresImport). Si l'import est abandonné, tout reste intact.
+'   - Si l'échéance vient d'une règle de récurrence ET que l'opération diffère d'elle (montant,
+'     Tiers, catégorie, sous-catégorie), on demande à l'opérateur s'il faut aligner la règle et ses
+'     échéances à venir sur les valeurs de l'opération. La modification est elle aussi différée
+'     jusqu'à l'écriture de l'import (AppliquerMajEcheancier). Une échéance ponctuelle disparaît au
+'     rapprochement : il n'y a alors rien à mettre à jour.
+'   - Un rapprochement manuel est prioritaire : la détection automatique ne le remet jamais en cause
+'     (g_OpManuel), même si l'opérateur modifie ensuite la catégorie ou le Tiers de l'opération.
+'
+' Renvoie le texte à afficher dans le formulaire de contrôle ("" si rien n'a changé).
+Public Function RapprocherManuellement(ByVal idOp As String, ByVal d As Variant, ByVal tiers As Variant, _
+                                       ByVal montant As Variant, ByVal cat As Variant, ByVal sous As Variant, _
+                                       ByVal cheque As Variant) As String
+
+    Dim loE As ListObject
+    Dim eV As Variant
+    Dim iId As Long, iLib As Long, iTiers As Long, iCat As Long, iSous As Long, iMont As Long
+    Dim iDate As Long, iPrec As Long, iPer As Long, iTol As Long, iChq As Long
+    Dim nE As Long, nC As Long, nPrises As Long
+    Dim i As Long, k As Long, j As Long, tmp As Long
+    Dim dOp As Date, dE As Date
+    Dim mOp As Double, mEch As Double, sc As Double
+    Dim tiersOp As String, catOp As String, sousOp As String, chqOp As String
+    Dim idE As String, idCourant As String, idChoisi As String
+    Dim prec As String, periode As String, chqE As String, qui As String
+    Dim texteJ As String, textePct As String, raisons As String, sig As String
+    Dim idU() As String, libU() As String, detU() As String, scoreU() As Double, ligneU() As Long
+    Dim ordre() As Long
+    Dim libS() As String, detS() As String, idS() As String, ligneS() As Long
+    Dim libCourant As String, libChoisi As String, info As String
+    Dim lignesDiff As String
+    Dim reponse As VbMsgBoxResult
+    Dim resultat As Long
+    Dim maj As Variant
+
+    On Error GoTo Erreur
+
+    If g_OpSignature Is Nothing Or g_EcheancesValidees Is Nothing Or g_MajEcheances Is Nothing Or g_OpManuel Is Nothing Then InitialiserRapprochementImport
+    If Not EcheancierInstalle() Then
+        MsgBox mod_Display.FR("L'{e2}ch{e2}ancier n'est pas install{e2}. Ex{e2}cutez d'abord la macro InstallerEcheancier."), vbExclamation
+        Exit Function
+    End If
+    If TableVide(TableEcheances()) Then
+        MsgBox mod_Display.FR("L'{e2}ch{e2}ancier ne contient aucune {e2}ch{e2}ance."), vbInformation, mod_Display.FR("{E2}ch{e2}ancier")
+        Exit Function
+    End If
+    Set loE = TableEcheances()
+
+    dOp = VersDate(d)
+    mOp = mod_DataStructure.ToDouble(montant)
+    tiersOp = mod_DataStructure.CellText(tiers)
+    catOp = mod_DataStructure.CellText(cat)
+    sousOp = mod_DataStructure.CellText(sous)
+    chqOp = NormaliserCheque(cheque)
+    sig = SignatureOperation(d, tiers, montant, cat, sous, cheque)
+
+    If g_OpEcheance.Exists(idOp) Then idCourant = CStr(g_OpEcheance(idOp))
+
+    ' --- Échéances ---
+    eV = loE.DataBodyRange.Value2
+    nE = UBound(eV, 1)
+    iId = ColIdx(loE, "ID_Echeance"): iLib = ColIdx(loE, "Libelle"): iTiers = ColIdx(loE, "Tiers")
+    iCat = ColIdx(loE, "Categorie"): iSous = ColIdx(loE, "SousCategorie"): iMont = ColIdx(loE, "Montant")
+    iDate = ColIdx(loE, "DatePrevue"): iPrec = ColIdx(loE, "PrecisionDate"): iPer = ColIdx(loE, "Periodicite")
+    iTol = ColIdx(loE, "TolerancePct")
+    iChq = ColIdx(loE, "NumCheque")      ' 0 si la colonne n'existe pas encore
+
+    ReDim idU(1 To nE): ReDim libU(1 To nE): ReDim detU(1 To nE, 1 To mod_ChoixEcheance.CE_NB_DETAILS)
+    ReDim scoreU(1 To nE): ReDim ligneU(1 To nE)
+
+    ' --- Échéances candidates : toutes, sauf celles déjà rapprochées avec UNE AUTRE opération ---
+    For i = 1 To nE
+        If Not IsError(eV(i, iId)) Then
+            If mod_DataStructure.CellText(eV(i, iId)) <> "" Then
+                idE = CStr(eV(i, iId))
+                If g_EcheancesValidees.Exists(idE) And idE <> idCourant Then
+                    nPrises = nPrises + 1
+                Else
+                    dE = VersDate(eV(i, iDate))
+                    mEch = mod_DataStructure.ToDouble(eV(i, iMont))
+                    prec = mod_DataStructure.CellText(eV(i, iPrec))
+                    periode = mod_DataStructure.CellText(eV(i, iPer))
+                    chqE = ""
+                    If iChq > 0 Then chqE = NormaliserCheque(eV(i, iChq))
+
+                    ' Écarts de date et de montant, pour aider l'opérateur à reconnaître l'échéance.
+                    If dE = 0 Then
+                        texteJ = mod_Display.FR("date inconnue")
+                    ElseIf prec = PRECISION_MOIS Then
+                        j = (Year(dOp) - Year(dE)) * 12 + Month(dOp) - Month(dE)
+                        If j = 0 Then
+                            texteJ = mod_Display.FR("m{ea}me mois")
+                        Else
+                            texteJ = Format(j, "+0;-0") & " mois"
+                        End If
+                    Else
+                        texteJ = Format(CLng(dOp - dE), "+0;-0;0") & " j"
+                    End If
+                    If (mOp > 0) <> (mEch > 0) Then
+                        textePct = mod_Display.FR("signe oppos{e2}")
+                    ElseIf mEch = 0 Then
+                        textePct = ""
+                    Else
+                        textePct = Format((Abs(mOp) - Abs(mEch)) / Abs(mEch) * 100#, "+0;-0;0") & " %"
+                    End If
+
+                    ' Pourquoi la détection automatique n'a pas retenu cette échéance.
+                    raisons = ""
+                    If chqE <> "" Then
+                        If chqE <> chqOp Then raisons = mod_Display.FR("le num{e2}ro de ch{e1}que ne correspond pas")
+                    Else
+                        If Not FenetreOk(dOp, dE, prec, periode) Then raisons = mod_Display.FR("date hors fen{ea}tre")
+                        If Not MontantOk(mOp, mEch, ToleranceDe(eV(i, iTol))) Then
+                            If raisons <> "" Then raisons = raisons & " ; "
+                            raisons = raisons & mod_Display.FR("montant hors tol{e2}rance (") & ToleranceDe(eV(i, iTol)) & " %)"
+                        End If
+                        If Not TextesOk(tiersOp, catOp, sousOp, mod_DataStructure.CellText(eV(i, iTiers)), _
+                                        mod_DataStructure.CellText(eV(i, iCat)), mod_DataStructure.CellText(eV(i, iSous))) Then
+                            If raisons <> "" Then raisons = raisons & " ; "
+                            raisons = raisons & mod_Display.FR("Tiers ou cat{e2}gorie diff{e2}rents")
+                        End If
+                    End If
+                    If raisons = "" Then raisons = mod_Display.FR("tous les crit{e1}res sont remplis")
+
+                    ' Libellé de la liste : « #12  05/11/2026  EDF  -118,00 €  (+12 j, +37 %) »
+                    qui = mod_DataStructure.CellText(eV(i, iTiers))
+                    If qui = "" Then qui = mod_DataStructure.CellText(eV(i, iLib))
+                    If qui = "" Then qui = mod_DataStructure.CellText(eV(i, iCat))
+                    If Len(qui) > 30 Then qui = Left$(qui, 30)
+
+                    nC = nC + 1
+                    idU(nC) = idE
+                    ligneU(nC) = i
+                    libU(nC) = LibelleListe("#" & idE & "  " & Format(dE, "dd/mm/yyyy") & "  " & qui & "  " & _
+                                            Format(mEch, "#,##0.00") & " " & ChrW(8364) & "  (" & texteJ & IIf(textePct <> "", ", " & textePct, "") & ")")
+                    detU(nC, 1) = mod_DataStructure.CellText(eV(i, iLib))
+                    detU(nC, 2) = mod_DataStructure.CellText(eV(i, iTiers))
+                    detU(nC, 3) = mod_DataStructure.CellText(eV(i, iCat))
+                    If mod_DataStructure.CellText(eV(i, iSous)) <> "" Then detU(nC, 3) = detU(nC, 3) & " / " & mod_DataStructure.CellText(eV(i, iSous))
+                    detU(nC, 4) = Format(mEch, "#,##0.00") & " " & ChrW(8364)
+                    detU(nC, 5) = Format(dE, "dd/mm/yyyy")
+                    If prec = PRECISION_MOIS Then detU(nC, 5) = detU(nC, 5) & mod_Display.FR(" (mois entier)")
+                    If periode = "" Then periode = PERIODE_PONCTUELLE
+                    detU(nC, 6) = periode
+                    detU(nC, 7) = mod_Display.FR("Ecart : ") & texteJ & IIf(textePct <> "", " ; " & textePct, "") & _
+                                  mod_Display.FR(". Non d{e2}tect{e2}e car : ") & raisons
+
+                    ' Classement : numéro de chèque identique, puis signe identique, puis écart de date, puis de montant.
+                    sc = Abs(CDbl(dOp) - CDbl(dE)) * 1000# + Abs(Abs(mOp) - Abs(mEch))
+                    If (mOp > 0) <> (mEch > 0) Then sc = sc + 1E+12
+                    If chqE <> "" And chqE = chqOp Then sc = -1
+                    scoreU(nC) = sc
+                    If idE = idCourant Then libCourant = libU(nC)
+                End If
+            End If
+        End If
+    Next i
+
+    If nC = 0 Then
+        MsgBox mod_Display.FR("Aucune {e2}ch{e2}ance n'est disponible : toutes sont d{e2}j{a2} rapproch{e2}es avec d'autres op{e2}rations de cet import."), _
+               vbInformation, mod_Display.FR("{E2}ch{e2}ancier")
+        Exit Function
+    End If
+
+    ' --- Tri par score croissant (tri par insertion sur un tableau d'indices) ---
+    ReDim ordre(1 To nC)
+    For k = 1 To nC
+        ordre(k) = k
+    Next k
+    For k = 2 To nC
+        tmp = ordre(k)
+        j = k - 1
+        Do While j >= 1
+            If scoreU(ordre(j)) <= scoreU(tmp) Then Exit Do
+            ordre(j + 1) = ordre(j)
+            j = j - 1
+        Loop
+        ordre(j + 1) = tmp
+    Next k
+    ReDim libS(1 To nC): ReDim idS(1 To nC): ReDim ligneS(1 To nC)
+    ReDim detS(1 To nC, 1 To mod_ChoixEcheance.CE_NB_DETAILS)
+    For k = 1 To nC
+        libS(k) = libU(ordre(k))
+        idS(k) = idU(ordre(k))
+        ligneS(k) = ligneU(ordre(k))
+        For j = 1 To mod_ChoixEcheance.CE_NB_DETAILS
+            detS(k, j) = detU(ordre(k), j)
+        Next j
+    Next k
+
+    info = mod_Display.FR("Les {e2}ch{e2}ances sont class{e2}es de la plus proche {a2} la plus {e2}loign{e2}e de l'op{e2}ration. ")
+    If nPrises > 0 Then
+        info = info & nPrises & mod_Display.FR(" {e2}ch{e2}ance(s) d{e2}j{a2} rapproch{e2}e(s) avec une autre op{e2}ration ne sont pas propos{e2}es.")
+    End If
+
+    resultat = mod_ChoixEcheance.OuvrirChoixEcheance(Format(dOp, "dd/mm/yyyy"), tiersOp, _
+                   Format(mOp, "#,##0.00") & " " & ChrW(8364), LibelleCategorie(catOp, sousOp), _
+                   mod_DataStructure.CellText(cheque), libS, detS, nC, libCourant, info, libChoisi)
+
+    Select Case resultat
+
+        Case mod_ChoixEcheance.CE_DEFAIRE
+            LibererEcheance idCourant
+            g_OpEcheance(idOp) = ""
+            If g_OpManuel.Exists(idOp) Then g_OpManuel.Remove idOp
+            g_OpSignature(idOp) = sig        ' la détection automatique ne repose pas la question tout de suite
+            RapprocherManuellement = mod_Display.FR("Rapprochement avec l'{e2}ch{e2}ance #") & idCourant & mod_Display.FR(" d{e2}fait.")
+
+        Case mod_ChoixEcheance.CE_RAPPROCHER
+            For k = 1 To nC
+                If libS(k) = libChoisi Then
+                    idChoisi = idS(k)
+                    Exit For
+                End If
+            Next k
+            If idChoisi = "" Then Exit Function
+
+            ' Faut-il aligner la règle de récurrence sur les valeurs de l'opération ? (jamais l'inverse)
+            maj = ProposerMajEcheance(loE, eV, ligneS(k), tiersOp, mOp, catOp, sousOp, lignesDiff)
+            If IsArray(maj) Then
+                reponse = MsgBox(mod_Display.FR("L'{e2}ch{e2}ance choisie (#") & idChoisi & mod_Display.FR(") provient d'une r{e1}gle de r{e2}currence. ") & _
+                                 mod_Display.FR("Les valeurs de l'op{e2}ration diff{e1}rent de celles de l'{e2}ch{e2}ancier :") & vbCrLf & vbCrLf & _
+                                 lignesDiff & vbCrLf & _
+                                 mod_Display.FR("Mettre {a2} jour la r{e1}gle et ses {e2}ch{e2}ances {a2} venir avec les valeurs de l'op{e2}ration ?") & vbCrLf & _
+                                 mod_Display.FR("(l'op{e2}ration elle-m{ea}me n'est jamais modifi{e2}e)") & vbCrLf & vbCrLf & _
+                                 mod_Display.FR("OUI : rapprocher et mettre {a2} jour l'{e2}ch{e2}ancier.") & vbCrLf & _
+                                 mod_Display.FR("NON : rapprocher sans modifier l'{e2}ch{e2}ancier.") & vbCrLf & _
+                                 mod_Display.FR("ANNULER : ne pas rapprocher."), _
+                                 vbYesNoCancel + vbQuestion, mod_Display.FR("Mise {a2} jour de l'{e2}ch{e2}ancier"))
+                If reponse = vbCancel Then Exit Function
+            End If
+
+            ' Une éventuelle autre échéance déjà liée à cette opération est libérée.
+            If idCourant <> "" And idCourant <> idChoisi Then LibererEcheance idCourant
+            LibererEcheance idChoisi
+            g_EcheancesValidees(idChoisi) = True
+            g_OpEcheance(idOp) = idChoisi
+            g_OpManuel(idOp) = True
+            g_OpSignature(idOp) = sig
+            If IsArray(maj) Then
+                If reponse = vbYes Then g_MajEcheances.Add idChoisi, maj
+            End If
+
+            RapprocherManuellement = mod_Display.FR("Op{e2}ration rapproch{e2}e {a2} la main avec l'{e2}ch{e2}ance #") & idChoisi & _
+                mod_Display.FR(" : elle sera retir{e2}e de l'{e2}ch{e2}ancier {a2} l'enregistrement")
+            If IsArray(maj) Then
+                If reponse = vbYes Then
+                    RapprocherManuellement = RapprocherManuellement & mod_Display.FR(" et la r{e1}gle sera mise {a2} jour.")
+                Else
+                    RapprocherManuellement = RapprocherManuellement & "."
+                End If
+            Else
+                RapprocherManuellement = RapprocherManuellement & "."
+            End If
+
+    End Select
+    Exit Function
+
+Erreur:
+    MsgBox mod_Display.FR("Le rapprochement manuel a {e2}chou{e2} :") & vbCrLf & Err.Number & " - " & Err.Description, _
+           vbExclamation, mod_Display.FR("{E2}ch{e2}ancier")
+
+End Function
+
+' Retire une échéance des rapprochements validés (et de sa mise à jour éventuelle).
+Private Sub LibererEcheance(ByVal idEcheance As String)
+    If idEcheance = "" Then Exit Sub
+    If g_EcheancesValidees.Exists(idEcheance) Then g_EcheancesValidees.Remove idEcheance
+    If g_MajEcheances.Exists(idEcheance) Then g_MajEcheances.Remove idEcheance
+End Sub
+
+' « Catégorie / Sous-catégorie » (ou la catégorie seule) pour l'affichage.
+Private Function LibelleCategorie(ByVal cat As String, ByVal sous As String) As String
+    If sous <> "" Then
+        LibelleCategorie = cat & " / " & sous
+    Else
+        LibelleCategorie = cat
+    End If
+End Function
+
+' Libellé d'une entrée de la liste : sans * ? ~ (jokers de la fonction EQUIV qui relit le libellé) et
+' limité à 200 caractères (EQUIV refuse les valeurs plus longues que 255).
+Private Function LibelleListe(ByVal texte As String) As String
+    texte = Replace(texte, "*", "-")
+    texte = Replace(texte, "?", "-")
+    texte = Replace(texte, "~", "-")
+    If Len(texte) > 200 Then texte = Left$(texte, 200)
+    LibelleListe = texte
+End Function
+
+' Compare l'opération à l'échéance choisie. Si cette échéance vient d'une règle de récurrence qui existe
+' encore ET que l'opération diffère d'elle, renvoie le tableau des valeurs à reporter
+' (Montant ?, valeur, Tiers ?, valeur, Catégorie ?, valeur, Sous-catégorie ?, valeur), voir EcrireMajLigne.
+' Sinon renvoie Empty (échéance ponctuelle : elle disparaît au rapprochement, rien à mettre à jour).
+' lignesDiff reçoit la liste des différences, une par ligne, pour la question posée à l'opérateur.
+' Un champ n'est comparé que s'il est RENSEIGNÉ dans l'échéance (c'est alors un critère de
+' reconnaissance) ; le Tiers de l'échéance est un mot-clé, il n'est changé que s'il n'est pas déjà
+' contenu dans celui de l'opération ; le montant n'est repris que si le signe est le même.
+Private Function ProposerMajEcheance(ByVal loE As ListObject, ByRef eV As Variant, ByVal ligne As Long, _
+                                     ByVal tiersOp As String, ByVal mOp As Double, ByVal catOp As String, _
+                                     ByVal sousOp As String, ByRef lignesDiff As String) As Variant
+
+    Dim loR As ListObject
+    Dim iRec As Long, idRec As Long
+    Dim mEch As Double
+    Dim tiersE As String, catE As String, sousE As String
+    Dim majMontant As Boolean, majTiers As Boolean, majCat As Boolean, majSous As Boolean
+    Dim fleche As String
+
+    lignesDiff = ""
+    iRec = ColIdx(loE, "ID_Recurrence")
+    If iRec = 0 Then Exit Function
+    If IsError(eV(ligne, iRec)) Then Exit Function
+    idRec = mod_DataStructure.ToLong(eV(ligne, iRec))
+    If idRec <= 0 Then Exit Function
+
+    Set loR = TableRecurrences()
+    If loR Is Nothing Then Exit Function
+    If TableVide(loR) Then Exit Function
+    If LigneRegle(loR, idRec) = 0 Then Exit Function
+
+    fleche = " " & ChrW(8594) & " "
+
+    mEch = mod_DataStructure.ToDouble(eV(ligne, ColIdx(loE, "Montant")))
+    If (mOp > 0) = (mEch > 0) Then
+        If Abs(Abs(mOp) - Abs(mEch)) > 0.005 Then
+            majMontant = True
+            lignesDiff = lignesDiff & "- Montant : " & Format(mEch, "#,##0.00") & fleche & Format(mOp, "#,##0.00") & vbCrLf
+        End If
+    End If
+
+    tiersE = mod_DataStructure.CellText(eV(ligne, ColIdx(loE, "Tiers")))
+    If tiersE <> "" And tiersOp <> "" Then
+        If InStr(1, tiersOp, tiersE, vbTextCompare) = 0 Then
+            majTiers = True
+            lignesDiff = lignesDiff & "- Tiers : " & tiersE & fleche & tiersOp & vbCrLf
+        End If
+    End If
+
+    catE = mod_DataStructure.CellText(eV(ligne, ColIdx(loE, "Categorie")))
+    If catE <> "" And catOp <> "" Then
+        If StrComp(catOp, catE, vbTextCompare) <> 0 Then
+            majCat = True
+            lignesDiff = lignesDiff & mod_Display.FR("- Cat{e2}gorie : ") & catE & fleche & catOp & vbCrLf
+        End If
+    End If
+
+    sousE = mod_DataStructure.CellText(eV(ligne, ColIdx(loE, "SousCategorie")))
+    If sousE <> "" And sousOp <> "" Then
+        If StrComp(sousOp, sousE, vbTextCompare) <> 0 Then
+            majSous = True
+            lignesDiff = lignesDiff & mod_Display.FR("- Sous-cat{e2}gorie : ") & sousE & fleche & sousOp & vbCrLf
+        End If
+    End If
+
+    If Not (majMontant Or majTiers Or majCat Or majSous) Then Exit Function
+    ProposerMajEcheance = Array(majMontant, mOp, majTiers, tiersOp, majCat, catOp, majSous, sousOp)
+
+End Function
+
+' Numéro de la ligne (1 = première ligne de données) de la règle dans TblRecurrences ; 0 si introuvable.
+Private Function LigneRegle(ByVal loR As ListObject, ByVal idRec As Long) As Long
+    Dim v() As Variant
+    Dim i As Long
+    v = LireColonne(loR, "ID_Recurrence")
+    For i = 1 To UBound(v)
+        If Not IsError(v(i)) Then
+            If Not IsEmpty(v(i)) Then
+                If IsNumeric(v(i)) Then
+                    If CLng(v(i)) = idRec Then
+                        LigneRegle = i
+                        Exit Function
+                    End If
+                End If
+            End If
+        End If
+    Next i
+End Function
+
+' Numéro de la règle d'une échéance (lue par son ID_Echeance) ; 0 si l'échéance n'a pas de règle ou n'existe plus.
+Private Function RegleDeEcheance(ByVal loE As ListObject, ByVal idEcheance As String) As Long
+    Dim vId() As Variant, vRec() As Variant
+    Dim i As Long
+    If ColIdx(loE, "ID_Recurrence") = 0 Then Exit Function
+    vId = LireColonne(loE, "ID_Echeance")
+    vRec = LireColonne(loE, "ID_Recurrence")
+    For i = 1 To UBound(vId)
+        If Not IsError(vId(i)) Then
+            If CStr(vId(i)) = idEcheance Then
+                If Not IsError(vRec(i)) Then
+                    If Not IsEmpty(vRec(i)) Then
+                        If IsNumeric(vRec(i)) Then RegleDeEcheance = CLng(vRec(i))
+                    End If
+                End If
+                Exit Function
+            End If
+        End If
+    Next i
+End Function
+
+' Reporte sur UNE ligne d'un tableau (TblRecurrences ou TblEcheances : mêmes noms de colonnes) les
+' valeurs retenues par l'opérateur. maj : voir ProposerMajEcheance.
+Private Sub EcrireMajLigne(ByVal lo As ListObject, ByVal ligne As Long, ByRef maj As Variant)
+    Dim col As Long
+    If maj(0) Then
+        col = ColIdx(lo, "Montant")
+        If col > 0 Then lo.DataBodyRange.Cells(ligne, col).Value = maj(1)
+    End If
+    If maj(2) Then
+        col = ColIdx(lo, "Tiers")
+        If col > 0 Then lo.DataBodyRange.Cells(ligne, col).Value = maj(3)
+    End If
+    If maj(4) Then
+        col = ColIdx(lo, "Categorie")
+        If col > 0 Then lo.DataBodyRange.Cells(ligne, col).Value = maj(5)
+    End If
+    If maj(6) Then
+        col = ColIdx(lo, "SousCategorie")
+        If col > 0 Then lo.DataBodyRange.Cells(ligne, col).Value = maj(7)
+    End If
+End Sub
+
+' Appliquée par TraiterApresImport, une fois l'import écrit : pour chaque échéance rapprochée à la main
+' dont l'opérateur a accepté la mise à jour, la règle d'origine et TOUTES ses échéances encore dans la
+' liste prennent les valeurs de l'opération. Les occurrences futures, créées ensuite par GenererHorizon,
+' reprennent celles de la règle.
+Private Sub AppliquerMajEcheancier()
+
+    Dim loE As ListObject, loR As ListObject
+    Dim cle As Variant
+    Dim maj As Variant
+    Dim vRec() As Variant
+    Dim idRec As Long, ligneR As Long, i As Long
+
+    If g_MajEcheances Is Nothing Then Exit Sub
+    If g_MajEcheances.Count = 0 Then Exit Sub
+    Set loE = TableEcheances()
+    Set loR = TableRecurrences()
+    If loE Is Nothing Or loR Is Nothing Then Exit Sub
+    If TableVide(loE) Or TableVide(loR) Then Exit Sub
+
+    For Each cle In g_MajEcheances.Keys
+        maj = g_MajEcheances(cle)
+        idRec = RegleDeEcheance(loE, CStr(cle))
+        If idRec > 0 Then
+            ligneR = LigneRegle(loR, idRec)
+            If ligneR > 0 Then EcrireMajLigne loR, ligneR, maj
+            vRec = LireColonne(loE, "ID_Recurrence")
+            For i = 1 To UBound(vRec)
+                If Not IsError(vRec(i)) Then
+                    If Not IsEmpty(vRec(i)) Then
+                        If IsNumeric(vRec(i)) Then
+                            If CLng(vRec(i)) = idRec Then EcrireMajLigne loE, i, maj
+                        End If
+                    End If
+                End If
+            Next i
+        End If
+    Next cle
 
 End Sub
 

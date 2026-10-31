@@ -2,8 +2,8 @@ Option Explicit
 
 ' ============================================================================
 '  MODULE : mod_ImportOFX
-'  RÔLE   : Importer les opérations bancaires depuis un fichier OFX (et,
-'           facultativement, un fichier CSV complémentaire), récupérer la
+'  RÔLE   : Importer les opérations bancaires depuis un fichier OFX et son fichier
+'           CSV (tous deux obligatoires : le CSV porte le nom du compte), récupérer la
 '           catégorie source, calculer les colonnes budgétaires, puis tout
 '           écrire dans la feuille "data_import" sous la forme d'un tableau
 '           Excel trié et filtrable.
@@ -12,7 +12,8 @@ Option Explicit
 '  sous la forme "<Catégorie> - <Notes>". La catégorie est reconnue contre la
 '  colonne CategorieSource de TblCategories (ExtraireCategorieMemo) et retirée
 '  de Notes. Un MEMO non reconnu est laissé tel quel dans Notes (analyse manuelle).
-'  Le CSV n'est qu'un repli facultatif pour ces MEMO non reconnus.
+'  Le CSV sert de repli pour ces MEMO non reconnus et fournit le nom du compte
+'  (colonne "Nom du compte"), converti en clé via TblComptes (voir mod_Comptes).
 '
 '  En cas de catégorie ambiguë via le CSV (plusieurs valeurs possibles pour une
 '  même opération), le formulaire frmResolutionCategories s'ouvre pour laisser
@@ -67,19 +68,22 @@ Public Sub ImporterOperationsOFX()
 
     ' --- ÉTAPE 1 : sélection des deux fichiers à importer ---------------------
     cheminOFX = ChoisirFichier("Fichiers OFX (*.ofx), *.ofx", "Selectionner l'export bancaire OFX")
-    If cheminOFX = "" Then Exit Sub
+    If cheminOFX = "" Then
+        MsgBox "Importation impossible : le fichier OFX n'a pas ete selectionne." & vbCrLf & _
+               "Les deux fichiers (OFX et CSV) sont necessaires.", vbExclamation, "Import annule"
+        Exit Sub
+    End If
 
-    ' CHANGEMENT du 17/10/2026 : le CSV est désormais FACULTATIF. La catégorie source est lue
-    ' dans le MEMO de l'OFX ("<Catégorie> - <Notes>", voir ExtraireCategorieMemo); le CSV ne sert
-    ' plus que de repli pour les opérations dont le MEMO n'est pas reconnu. Annuler la fenêtre
-    ' de sélection du CSV revient à l'ignorer (l'import continue).
-    cheminCSV = ""
-    If MsgBox("Joindre aussi le fichier CSV ?" & vbCrLf & vbCrLf & _
-              "Facultatif : la categorie est lue dans l'OFX. Le CSV ne sert que de secours " & _
-              "pour les operations dont la categorie n'est pas reconnue dans l'OFX.", _
-              vbYesNo + vbDefaultButton2 + vbQuestion, "Fichier CSV complementaire") = vbYes Then
-        cheminCSV = ChoisirFichier("Fichiers CSV (*.csv), *.csv", _
-            "Selectionner le fichier CSV complementaire (memes operations) - Annuler = ignorer")
+    ' CORRECTIF du 31/10/2026 : le CSV est OBLIGATOIRE. Lui seul contient le nom du compte
+    ' bancaire (colonne "Nom du compte"), nécessaire au multi-comptes. Il sert aussi de repli pour les
+    ' catégories dont le MEMO OFX n'est pas reconnu. Annuler l'une des deux sélections
+    ' interrompt l'import.
+    cheminCSV = ChoisirFichier("Fichiers CSV (*.csv), *.csv", _
+        "Selectionner le fichier CSV de la banque (memes operations que l'OFX)")
+    If cheminCSV = "" Then
+        MsgBox "Importation impossible : le fichier CSV n'a pas ete selectionne." & vbCrLf & _
+               "Les deux fichiers (OFX et CSV) sont necessaires.", vbExclamation, "Import annule"
+        Exit Sub
     End If
 
     ' --- ÉTAPE 2 : chargement du fichier OFX comme document XML ----------------
@@ -100,13 +104,11 @@ Public Sub ImporterOperationsOFX()
     ' --- ÉTAPE 3 : chargement du CSV -> dictionnaire des catégories par clé ---
     ' Clé = Date + Montant + Tiers. Une même clé peut avoir plusieurs catégories
     ' candidates (cas de plusieurs opérations identiques le même jour).
-    ' Sans CSV : dictionnaire vide (Exists renvoie toujours False, aucun repli possible).
-    If cheminCSV <> "" Then
-        Set dictCategoriesCSV = ChargerCategoriesCSV(cheminCSV)
-        If dictCategoriesCSV Is Nothing Then Exit Sub  ' l'erreur a déjà été affichée
-    Else
-        Set dictCategoriesCSV = CreateObject("Scripting.Dictionary")
-    End If
+    ' Le nom du compte (colonne "Nom du compte" du CSV) est lu en même temps; sa clé n'est créée dans
+    ' TblComptes qu'à l'écriture (ÉTAPE 8quinquies), pour ne rien modifier si l'import est annulé.
+    Dim nomCompte As String
+    Set dictCategoriesCSV = ChargerCategoriesCSV(cheminCSV, nomCompte)
+    If dictCategoriesCSV Is Nothing Then Exit Sub  ' l'erreur a déjà été affichée
 
     ' Catégories source connues (colonne CategorieSource de TblCategories) : elles servent à
     ' reconnaître sans ambiguïté le préfixe "<catégorie> - " du MEMO OFX.
@@ -569,6 +571,32 @@ Public Sub ImporterOperationsOFX()
         End If
     End If
 
+    ' --- ÉTAPE 8quinquies (ajout du 31/10/2026, multi-comptes) ---
+    ' Écrit la clé du compte (TblComptes, créée si le compte est nouveau) dans la colonne
+    ' CleCompte des lignes importées. Comme SousCategorie et Pointe, cette étape doit rester
+    ' AVANT le tri de l'ÉTAPE 9 (lignes contiguës). Si l'installation n'est pas faite
+    ' (mod_Comptes.InstallerGestionComptes), on prévient sans bloquer l'import.
+    If nbAjoutees > 0 Then
+        Dim cleCompteImport As Long, colCleCompteFeuille As Long
+        On Error Resume Next
+        colCleCompteFeuille = 0
+        colCleCompteFeuille = wsDonnees.ListObjects(NOM_TABLE).ListColumns(mod_VarGlobales.NOM_COL_CLE_COMPTE).index
+        On Error GoTo 0
+        cleCompteImport = mod_Comptes.ObtenirOuCreerCleCompte(nomCompte)
+
+        If colCleCompteFeuille = 0 Or cleCompteImport = 0 Then
+            MsgBox "La gestion des comptes n'est pas installee (tableau " & mod_VarGlobales.NOM_TABLE_COMPTES & _
+                   " ou colonne '" & mod_VarGlobales.NOM_COL_CLE_COMPTE & "' introuvable)." & vbCrLf & _
+                   "L'import continue, mais le compte '" & nomCompte & "' n'a pas ete enregistre pour les " & _
+                   nbAjoutees & " operation(s) importees." & vbCrLf & _
+                   "Executez InstallerGestionComptes (mod_Comptes) puis saisissez la cle dans Import_data.", _
+                   vbExclamation, "Compte non enregistre"
+        Else
+            wsDonnees.Range(wsDonnees.Cells(premiereLigneEcriture, colCleCompteFeuille), _
+                            wsDonnees.Cells(premiereLigneEcriture + nbAjoutees - 1, colCleCompteFeuille)).Value2 = cleCompteImport
+        End If
+    End If
+
     ' --- ÉTAPE 9 : conversion/redimensionnement en tableau Excel, tri et filtre --
     Dim tbl As ListObject
     Dim wsDerniereLigneFinale As Long, plageComplete As Range
@@ -617,7 +645,7 @@ Public Sub ImporterOperationsOFX()
     ' RIEN : l'opérateur peut recommencer avec les mêmes fichiers.
     Dim msgSuppr As String
     msgSuppr = SupprimerFichierSensible(cheminOFX)
-    If cheminCSV <> "" Then msgSuppr = msgSuppr & SupprimerFichierSensible(cheminCSV)
+    msgSuppr = msgSuppr & SupprimerFichierSensible(cheminCSV)
 
     ' --- ÉTAPE 9bis-0 : mémorisation du dernier import (toujours effectuée) ---
     ' Écriture rapide, sans affichage, dans la feuille technique très masquée
@@ -701,7 +729,8 @@ Public Sub ImporterOperationsOFX()
            "     - categorie reprise du CSV : " & nbReperCSV & vbCrLf & _
            "     - sans categorie (a ranger) : " & nbSansCategorie & vbCrLf & _
            "  dont categorie ambigue (CSV) traitee via le formulaire : " & nbAmbigus & vbCrLf & _
-           IIf(cheminCSV <> "", "  ecarts OFX/CSV (le MEMO fait foi) : " & nbDivergencesCSV, "  CSV non utilise") & msgSuppr, _
+           "  ecarts OFX/CSV (le MEMO fait foi) : " & nbDivergencesCSV & vbCrLf & _
+           "Compte : " & nomCompte & msgSuppr, _
            vbInformation, "Import OFX"
 
     ' --- ÉTAPE 11 : retour à Synthese (demande opérateur du 03/10/2026) -----------
@@ -998,10 +1027,13 @@ End Function
 '   clé "Date|Montant|Tiers" -> Collection des catégories trouvées pour cette clé.
 ' Une clé peut avoir plusieurs catégories si plusieurs opérations identiques
 ' existent le même jour (voir CategorieCommuneOuVide pour la resolution).
-Private Function ChargerCategoriesCSV(chemin As String) As Object
+' Renseigne aussi nomCompte (colonne "Nom du compte"). Le CSV doit désigner UN SEUL compte non vide,
+' sinon un message est affiché et la fonction renvoie Nothing (import impossible).
+Private Function ChargerCategoriesCSV(chemin As String, ByRef nomCompte As String) As Object
     Dim flux As Object, contenuBrut As String
     Dim lignes() As String, entetes() As String, champs() As String
     Dim colDate As Integer, colLibelle As Integer, colCategorie As Integer, colMontant As Integer
+    Dim colCompte As Integer, comptesVus As Object, compteOp As String
     Dim i As Long
     Dim dict As Object
     Dim cle As String
@@ -1029,13 +1061,18 @@ Private Function ChargerCategoriesCSV(chemin As String) As Object
     colLibelle = TrouverColonne(entetes, "Libell" & Chr(233))       ' "Libelle"
     colCategorie = TrouverColonne(entetes, "Cat" & Chr(233) & "gorie")  ' "Catégorie"
     colMontant = TrouverColonne(entetes, "Montant")
+    colCompte = TrouverColonne(entetes, "Nom du compte")
 
-    If colDate = -1 Or colLibelle = -1 Or colCategorie = -1 Or colMontant = -1 Then
+    If colDate = -1 Or colLibelle = -1 Or colCategorie = -1 Or colMontant = -1 Or colCompte = -1 Then
         MsgBox "Le fichier CSV n'a pas la structure attendue (colonnes Date, Libell" & Chr(233) & _
-               ", Cat" & Chr(233) & "gorie, Montant introuvables).", vbCritical
+               ", Cat" & Chr(233) & "gorie, Montant, Nom du compte introuvables)." & vbCrLf & _
+               "Importation impossible.", vbCritical
         Set ChargerCategoriesCSV = Nothing
         Exit Function
     End If
+
+    Set comptesVus = CreateObject("Scripting.Dictionary")
+    comptesVus.CompareMode = vbTextCompare
 
     For i = 1 To UBound(lignes)
         If Trim(lignes(i)) <> "" Then
@@ -1052,10 +1089,28 @@ Private Function ChargerCategoriesCSV(chemin As String) As Object
                     dict.Add cle, New Collection
                 End If
                 dict(cle).Add categorieOp
+
+                compteOp = Trim(champs(colCompte))
+                If compteOp <> "" Then
+                    If Not comptesVus.Exists(compteOp) Then comptesVus.Add compteOp, True
+                End If
             End If
         End If
     Next i
 
+    If comptesVus.count <> 1 Then
+        If comptesVus.count = 0 Then
+            MsgBox "Le fichier CSV ne contient aucun nom de compte (colonne Nom du compte vide)." & vbCrLf & _
+                   "Importation impossible.", vbCritical
+        Else
+            MsgBox "Le fichier CSV contient plusieurs comptes (" & Join(comptesVus.Keys, ", ") & ")." & vbCrLf & _
+                   "Importation impossible : exportez un seul compte a la fois.", vbCritical
+        End If
+        Set ChargerCategoriesCSV = Nothing
+        Exit Function
+    End If
+
+    nomCompte = CStr(comptesVus.Keys()(0))
     Set ChargerCategoriesCSV = dict
 End Function
 

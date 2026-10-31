@@ -196,6 +196,16 @@ Public Const DECALAGES_BUDGET_NB_COL As Long = 4        ' S,T,U,V = Tiers/Catego
 Public Const NOM_COL_DECALAGE_MANUEL As String = "DecalageManuel"
 
 '' -------------------------------------------------------------------------------------
+'' COMPTES BANCAIRES (ajout 31/10/2026, preparation du multi-comptes, voir mod_Comptes)
+'' -------------------------------------------------------------------------------------
+'' Liste des comptes (cle + nom, le nom vient du CSV de la banque) dans Param, a droite de
+'' TblDecalagesBudget (S:V); la cle est reportee dans la colonne CleCompte de TblOperations.
+Public Const NOM_TABLE_COMPTES As String = "TblComptes"
+Public Const COMPTES_COL_DEBUT As Long = 25      ' colonne Y
+Public Const COMPTES_NB_COL As Long = 2          ' Y,Z = CleCompte / NomCompte
+Public Const NOM_COL_CLE_COMPTE As String = "CleCompte"
+
+'' -------------------------------------------------------------------------------------
 '' ECHEANCIER / PREVISIONNEL DE TRESORERIE (ajout 09/10/2026, voir mod_Echeancier)
 '' -------------------------------------------------------------------------------------
 '' Trois feuilles masquees (ouvertes par des boutons, comme les autres ecrans frm_*) :
@@ -204,6 +214,8 @@ Public Const NOM_COL_DECALAGE_MANUEL As String = "DecalageManuel"
 Public Const NOM_FEUILLE_ECHEANCIER As String = "frm_Echeancier"
 Public Const NOM_FEUILLE_RECURRENCES As String = "frm_Recurrences"
 Public Const NOM_FEUILLE_ECHEANCE As String = "frm_Echeance"
+' Choix manuel d'une echeance pendant le controle des categories de l'import (voir mod_ChoixEcheance)
+Public Const NOM_FEUILLE_CHOIX_ECHEANCE As String = "frm_ChoixEcheance"
 Public Const NOM_TABLE_ECHEANCES As String = "TblEcheances"
 Public Const NOM_TABLE_RECURRENCES As String = "TblRecurrences"
 

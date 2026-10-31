@@ -151,6 +151,7 @@ Private Function TexteInstructions() As String
     t = t & Chr(10) & "- [b:< Pr{e2}c{e2}dent] et [b:Suivant >] : naviguent entre les op{e2}rations (les choix d{e2}j{a2} faits sont conserv{e2}s)."
     t = t & Chr(10) & "- [b:Ventiler] : r{e2}partit le [c:Montant] de l'op{e2}ration entre plusieurs sous-cat{e2}gories (ouvre [f:frm_Ventilation])."
     t = t & Chr(10) & "- [b:+] : cr{e2}e une nouvelle cat{e2}gorie ou sous-cat{e2}gorie (ouvre [f:frm_NouvelleCategorie])."
+    t = t & Chr(10) & "- [b:{E2}ch{e2}ancier...] : rapproche {a2} la main l'op{e2}ration d'une {e2}ch{e2}ance de l'{e2}ch{e2}ancier, quand la d{e2}tection automatique ne l'a pas propos{e2}e (ouvre [f:frm_ChoixEcheance]). L'op{e2}ration n'est pas modifi{e2}e."
     t = t & Chr(10) & "- [b:Enregistrer] : applique tous les choix faits et poursuit l'import."
     t = t & Chr(10) & "- [b:Annuler] : abandonne l'import en cours."
     t = t & Chr(10) & "ATTENTION : vos choix ne sont pris en compte qu'apr{e1}s un clic sur [b:Enregistrer]."
@@ -244,6 +245,47 @@ Private Sub ConstruireBoutons(ByVal ws As Worksheet)
     ' Il ouvre la feuille frm_NouvelleCategorie (voir mod_InstallNouvelleCategorie).
     mod_InstallCommun.AjouterBoutonCellule ws, ws.Range("D14"), mod_InstallCommun.CapAjouter(), _
         "ControleNouvelleCategorie", "btnCtrlNouvelleCategorie", mod_InstallCommun.FRM_BTN_PLUS
+
+    PoserBoutonEcheancier ws
+
+End Sub
+
+' --- Bouton "Échéancier..." (ajout 30/10/2026), sous le bouton "Ventiler" ---
+' Rapprochement manuel de l'opération avec une échéance (ouvre frm_ChoixEcheance, voir
+' mod_InstallChoixEcheance). La logique est dans mod_ControleCategories.ControleEcheancier.
+Private Sub PoserBoutonEcheancier(ByVal ws As Worksheet)
+    mod_InstallCommun.AjouterBoutonCellule ws, ws.Range("D12"), mod_Display.FR("{E2}ch{e2}ancier..."), _
+        "ControleEcheancier", "btnCtrlEcheancier", mod_InstallCommun.FRM_BTN_L
+End Sub
+
+' Ajoute le bouton « Échéancier... » à la feuille EXISTANTE, sans la reconstruire (la mise en page
+' retouchée à la main est conservée), et met à jour son aide. Appelée par InstallerChoixEcheance;
+' sans danger si le bouton existe déjà (il est remplacé).
+Public Sub AjouterBoutonEcheancierControle()
+
+    Dim ws As Worksheet
+    Dim wsPrecedente As Worksheet
+    Dim etatAvant As XlSheetVisibility
+
+    Set ws = mod_InstallCommun.TrouverFeuille(CTRL_NOM_FEUILLE)
+    If ws Is Nothing Then Exit Sub      ' pas encore créée : CreerFeuilleControleCategories posera le bouton
+
+    Set wsPrecedente = ActiveSheet
+    etatAvant = ws.Visible
+    ws.Visible = xlSheetVisible
+    ws.Activate
+
+    On Error Resume Next
+    ws.Shapes("btnCtrlEcheancier").Delete
+    On Error GoTo 0
+    PoserBoutonEcheancier ws
+
+    ' L'aide du formulaire mentionne le nouveau bouton.
+    mod_InstallCommun.EcrireInstructions ws, CTRL_LIGNE_INSTRUCTIONS, 2, 2, 3, 5, TexteInstructions()
+
+    ' La feuille retrouve son état d'avant (très masquée) : on revient d'abord sur la feuille précédente.
+    If wsPrecedente.Name <> ws.Name Then wsPrecedente.Activate
+    ws.Visible = etatAvant
 
 End Sub
 

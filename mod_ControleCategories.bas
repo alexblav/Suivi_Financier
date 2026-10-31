@@ -915,6 +915,53 @@ Private Sub InformerEcheancier(ByVal i As Long)
         g_CtrlTiers(i), g_CtrlOps(i, CTRL_OP_MONTANT), g_CtrlCat(i), g_CtrlSous(i), g_CtrlOps(i, CTRL_OP_CHEQUE)
 End Sub
 
+' --- Bouton "Échéancier..." (ajout 30/10/2026) ---
+' Rapprochement MANUEL de l'opération affichée avec une échéance de l'échéancier, quand la détection
+' automatique (InformerEcheancier) ne l'a pas proposée. Ouvre frm_ChoixEcheance; la logique est dans
+' mod_Echeancier.RapprocherManuellement. L'opération n'est JAMAIS modifiée (elle vient de la banque).
+' Disponible uniquement pendant un import.
+Public Sub ControleEcheancier()
+
+    Dim ws As Worksheet
+    Dim i As Long
+    Dim texte As String
+
+    If Not g_CtrlEnCours Then Exit Sub
+    On Error GoTo Erreur
+
+    If g_CtrlModeUnique Then
+        MsgBox mod_Display.FR("Le rapprochement avec l'{e2}ch{e2}ancier n'est disponible que pendant un import."), vbInformation
+        Exit Sub
+    End If
+
+    Set ws = ThisWorkbook.Worksheets(CTRL_NOM_FEUILLE)
+
+    ' Les valeurs saisies (catégorie, Tiers...) sont prises en compte avant la comparaison avec l'échéance.
+    If Not EnregistrerOperationAffichee(ws) Then Exit Sub
+    i = g_CtrlIndices(g_CtrlPos)
+
+    ' Verrou d'activation suspendu pendant l'affichage de l'autre formulaire (voir ControleVentiler).
+    g_CtrlVerrouActif = False
+    texte = mod_Echeancier.RapprocherManuellement(CStr(g_CtrlOps(i, CTRL_OP_ID)), g_CtrlOps(i, CTRL_OP_DATE), _
+                g_CtrlTiers(i), g_CtrlOps(i, CTRL_OP_MONTANT), g_CtrlCat(i), g_CtrlSous(i), g_CtrlOps(i, CTRL_OP_CHEQUE))
+    g_CtrlVerrouActif = True
+    ws.Activate
+
+    If texte <> "" Then
+        Application.EnableEvents = False
+        ws.Range(CTRL_ADR_MESSAGE).value = texte
+        ws.Range(CTRL_ADR_MESSAGE).Font.Color = RGB(31, 120, 60)
+        Application.EnableEvents = True
+    End If
+    Exit Sub
+
+Erreur:
+    g_CtrlVerrouActif = True
+    Application.EnableEvents = True
+    SignalerErreur "ControleEcheancier"
+
+End Sub
+
 ' --- Bouton "Suivant" ---
 Public Sub ControleOperationSuivante()
     Dim ws As Worksheet

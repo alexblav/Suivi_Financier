@@ -1359,6 +1359,11 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 <td><code>CodeBehind_frm_NouvelleCategorie.txt</code></td>
 </tr>
 <tr>
+<td>Rapprochement manuel avec l'échéancier</td>
+<td><code>InstallerChoixEcheance</code></td>
+<td>Crée <code>frm_ChoixEcheance</code> et ajoute le bouton « Échéancier… » à <code>frm_ControleCategories</code> sans la reconstruire ; <code>CodeBehind_frm_ChoixEcheance.txt</code> (verrou). Logique : <code>mod_ChoixEcheance</code> (écran) et <code>mod_Echeancier.RapprocherManuellement</code> (données ; la mise à jour de la règle est différée jusqu'à l'écriture de l'import)</td>
+</tr>
+<tr>
 <td>Ventilation</td>
 <td><code>PreparerPhase4Ventilation</code>, <code>CreerFeuilleVentilation</code></td>
 <td>Prépare aussi TblVentilations et les colonnes d'annulation ; <code>CodeBehind_frm_Ventilation.txt</code></td>
@@ -1738,6 +1743,7 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 <li><strong>Suivi des consommations non testé.</strong> Le modèle « facture » (19/10/2026) est écrit mais n'a jamais tourné dans Excel. Les outils de lecture de tableau (<code>ObtenirTable</code>, <code>TableVide</code>, <code>LireColonne</code>…) sont <strong>recopiés</strong> de <code>mod_Echeancier</code> dans <code>mod_Consommations</code> (désormais publics, <code>mod_Factures</code> s'en sert) : une factorisation est possible.</li>
 <li><strong>Numéro de chèque : contrôle de la liste = signal visuel, pas un blocage.</strong> Dans frm_Echeancier, la colonne NumCheque est colorée (rouge / orange) mais une valeur incorrecte reste acceptée ; seul le formulaire frm_Echeance refuse. De plus, une échéance avec numéro est rapprochée par ce seul numéro : une erreur de frappe sur le numéro empêche le rapprochement (l'échéance reste alors à venir).</li>
 <li><strong>Contrôle du solde : contournable à la main.</strong> Les cellules « Solde de réf. » et « Date du solde » ne sont pas protégées ; une saisie directe ne déclenche pas le calcul d'écart. Le contrôle repose sur l'usage du bouton « Saisir / contrôler le solde ».</li>
+<li><strong>Rapprochement manuel avec l'échéancier non testé (30/10/2026).</strong> Le bouton « Échéancier… » de <code>frm_ControleCategories</code> (<code>mod_ChoixEcheance</code>, <code>mod_Echeancier.RapprocherManuellement</code>) est écrit mais n'a jamais tourné dans Excel. <strong>À tester :</strong> (a) choix d'une échéance ponctuelle non reconnue automatiquement, puis enregistrement de l'import : l'échéance disparaît, l'opération est inchangée ; (b) <strong>cas d'une échéance issue d'une règle de récurrence dont l'opération diffère</strong> : la question de mise à jour doit apparaître, et, si Oui, la règle et ses échéances à venir doivent prendre les valeurs de l'opération <em>après</em> l'enregistrement (aucune opération récurrente n'était disponible pour ce test) ; (c) « Défaire » ; (d) annulation de l'import : l'échéancier reste intact ; (e) changement de catégorie après un rapprochement manuel : le lien est conservé.</li>
 </ol>
 </main>
 </div>
