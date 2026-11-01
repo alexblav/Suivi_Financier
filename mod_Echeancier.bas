@@ -490,7 +490,7 @@ Public Sub TraiterApresImport(ByRef listeID() As String, ByVal nb As Long)
     If g_PreRapprochementFait Then
         ' Les rapprochements ont déjà été proposés AVANT l'écriture (PreRapprocherAvantEcriture) :
         ' on applique seulement ceux que l'opérateur a validés, sans reposer la question.
-        AppliquerMajEcheancier              ' mises à jour acceptées lors d'un rapprochement manuel
+        AppliquerMajEcheancier g_MajEcheances   ' mises à jour acceptées lors d'un rapprochement manuel
         SupprimerEcheancesParID g_EcheancesValidees
         Set g_EcheancesValidees = Nothing
         Set g_MajEcheances = Nothing
@@ -710,7 +710,9 @@ End Function
 ' Renvoie le texte à afficher dans le formulaire de contrôle ("" si rien n'a changé).
 Public Function RapprocherManuellement(ByVal idOp As String, ByVal d As Variant, ByVal tiers As Variant, _
                                        ByVal montant As Variant, ByVal cat As Variant, ByVal sous As Variant, _
-                                       ByVal cheque As Variant) As String
+                                       ByVal cheque As Variant, _
+                                       Optional ByVal immediat As Boolean = False, _
+                                       Optional ByVal idImposee As String = "") As String
 
     Dim loE As ListObject
     Dim eV As Variant
@@ -732,10 +734,15 @@ Public Function RapprocherManuellement(ByVal idOp As String, ByVal d As Variant,
     Dim reponse As VbMsgBoxResult
     Dim resultat As Long
     Dim maj As Variant
+    Dim prise As Boolean
+    Dim dicId As Object, dicMaj As Object
 
     On Error GoTo Erreur
 
-    If g_OpSignature Is Nothing Or g_EcheancesValidees Is Nothing Or g_MajEcheances Is Nothing Or g_OpManuel Is Nothing Then InitialiserRapprochementImport
+    ' Mode immediat (hors import) : l'etat du rapprochement d'import n'est ni lu ni modifie.
+    If Not immediat Then
+        If g_OpSignature Is Nothing Or g_EcheancesValidees Is Nothing Or g_MajEcheances Is Nothing Or g_OpManuel Is Nothing Then InitialiserRapprochementImport
+    End If
     If Not EcheancierInstalle() Then
         MsgBox mod_Display.FR("L'{e2}ch{e2}ancier n'est pas install{e2}. Ex{e2}cutez d'abord la macro InstallerEcheancier."), vbExclamation
         Exit Function
@@ -754,7 +761,11 @@ Public Function RapprocherManuellement(ByVal idOp As String, ByVal d As Variant,
     chqOp = NormaliserCheque(cheque)
     sig = SignatureOperation(d, tiers, montant, cat, sous, cheque)
 
-    If g_OpEcheance.Exists(idOp) Then idCourant = CStr(g_OpEcheance(idOp))
+    If immediat Then
+        idCourant = idImposee       ' échéance de départ (bloc "Échéances en retard") : présélectionnée dans la liste
+    ElseIf g_OpEcheance.Exists(idOp) Then
+        idCourant = CStr(g_OpEcheance(idOp))
+    End If
 
     ' --- Échéances ---
     eV = loE.DataBodyRange.Value2
@@ -773,7 +784,9 @@ Public Function RapprocherManuellement(ByVal idOp As String, ByVal d As Variant,
         If Not IsError(eV(i, iId)) Then
             If mod_DataStructure.CellText(eV(i, iId)) <> "" Then
                 idE = CStr(eV(i, iId))
-                If g_EcheancesValidees.Exists(idE) And idE <> idCourant Then
+                prise = False
+                If Not immediat Then prise = (g_EcheancesValidees.Exists(idE) And idE <> idCourant)
+                If prise Then
                     nPrises = nPrises + 1
                 Else
                     dE = VersDate(eV(i, iDate))
@@ -893,13 +906,18 @@ Public Function RapprocherManuellement(ByVal idOp As String, ByVal d As Variant,
         info = info & nPrises & mod_Display.FR(" {e2}ch{e2}ance(s) d{e2}j{a2} rapproch{e2}e(s) avec une autre op{e2}ration ne sont pas propos{e2}es.")
     End If
 
+    If immediat Then
+        info = info & mod_Display.FR("Le rapprochement est imm{e2}diat : l'{e2}ch{e2}ance est retir{e2}e de l'{e2}ch{e2}ancier d{e1}s la validation.")
+    End If
+
     resultat = mod_ChoixEcheance.OuvrirChoixEcheance(Format(dOp, "dd/mm/yyyy"), tiersOp, _
                    Format(mOp, "#,##0.00") & " " & ChrW(8364), LibelleCategorie(catOp, sousOp), _
-                   mod_DataStructure.CellText(cheque), libS, detS, nC, libCourant, info, libChoisi)
+                   mod_DataStructure.CellText(cheque), libS, detS, nC, libCourant, info, libChoisi, immediat)
 
     Select Case resultat
 
         Case mod_ChoixEcheance.CE_DEFAIRE
+            If immediat Then Exit Function
             LibererEcheance idCourant
             g_OpEcheance(idOp) = ""
             If g_OpManuel.Exists(idOp) Then g_OpManuel.Remove idOp
@@ -928,6 +946,27 @@ Public Function RapprocherManuellement(ByVal idOp As String, ByVal d As Variant,
                                  mod_Display.FR("ANNULER : ne pas rapprocher."), _
                                  vbYesNoCancel + vbQuestion, mod_Display.FR("Mise {a2} jour de l'{e2}ch{e2}ancier"))
                 If reponse = vbCancel Then Exit Function
+            End If
+
+            ' Rapprochement IMMEDIAT (opération déjà enregistrée, depuis l'écran de recherche) : la mise à jour
+            ' acceptée de la règle puis le retrait de l'échéance sont faits tout de suite.
+            If immediat Then
+                Set dicId = CreateObject("Scripting.Dictionary")
+                dicId(idChoisi) = True
+                Set dicMaj = CreateObject("Scripting.Dictionary")
+                If IsArray(maj) Then
+                    If reponse = vbYes Then dicMaj.Add idChoisi, maj
+                End If
+                AppliquerMajEcheancier dicMaj
+                SupprimerEcheancesParID dicId
+                GenererHorizon
+                RapprocherManuellement = mod_Display.FR("Op{e2}ration rapproch{e2}e : l'{e2}ch{e2}ance #") & idChoisi & mod_Display.FR(" est retir{e2}e de l'{e2}ch{e2}ancier")
+                If dicMaj.Count > 0 Then
+                    RapprocherManuellement = RapprocherManuellement & mod_Display.FR(" et sa r{e1}gle est mise {a2} jour.")
+                Else
+                    RapprocherManuellement = RapprocherManuellement & "."
+                End If
+                Exit Function
             End If
 
             ' Une éventuelle autre échéance déjà liée à cette opération est libérée.
@@ -1124,7 +1163,7 @@ End Sub
 ' dont l'opérateur a accepté la mise à jour, la règle d'origine et TOUTES ses échéances encore dans la
 ' liste prennent les valeurs de l'opération. Les occurrences futures, créées ensuite par GenererHorizon,
 ' reprennent celles de la règle.
-Private Sub AppliquerMajEcheancier()
+Private Sub AppliquerMajEcheancier(ByVal majs As Object)
 
     Dim loE As ListObject, loR As ListObject
     Dim cle As Variant
@@ -1132,15 +1171,15 @@ Private Sub AppliquerMajEcheancier()
     Dim vRec() As Variant
     Dim idRec As Long, ligneR As Long, i As Long
 
-    If g_MajEcheances Is Nothing Then Exit Sub
-    If g_MajEcheances.Count = 0 Then Exit Sub
+    If majs Is Nothing Then Exit Sub
+    If majs.Count = 0 Then Exit Sub
     Set loE = TableEcheances()
     Set loR = TableRecurrences()
     If loE Is Nothing Or loR Is Nothing Then Exit Sub
     If TableVide(loE) Or TableVide(loR) Then Exit Sub
 
-    For Each cle In g_MajEcheances.Keys
-        maj = g_MajEcheances(cle)
+    For Each cle In majs.Keys
+        maj = majs(cle)
         idRec = RegleDeEcheance(loE, CStr(cle))
         If idRec > 0 Then
             ligneR = LigneRegle(loR, idRec)
@@ -1159,6 +1198,93 @@ Private Sub AppliquerMajEcheancier()
     Next cle
 
 End Sub
+
+' =====================================================================================
+' RAPPROCHEMENT IMMÉDIAT D'UNE OPÉRATION DÉJÀ ENREGISTRÉE (écran de recherche, bloc « Échéances en retard »)
+' =====================================================================================
+' Même écran de choix que le rapprochement manuel de l'import (frm_ChoixEcheance), mais l'opération est déjà dans
+' TblOperations : l'échéance est donc retirée de l'échéancier TOUT DE SUITE (et la règle mise à jour si l'opérateur
+' l'accepte). L'opération n'est jamais modifiée. idEcheanceDepart : échéance présélectionnée ("" = aucune).
+' Renvoie Vrai si un rapprochement a été fait.
+Public Function AffecterOperationAEcheance(ByVal idOp As String, ByVal d As Variant, ByVal tiers As Variant, _
+                                           ByVal montant As Variant, ByVal cat As Variant, ByVal sous As Variant, _
+                                           ByVal cheque As Variant, Optional ByVal idEcheanceDepart As String = "") As Boolean
+
+    Dim texte As String
+
+    texte = RapprocherManuellement(idOp, d, tiers, montant, cat, sous, cheque, True, idEcheanceDepart)
+    If texte <> "" Then
+        MsgBox texte, vbInformation, mod_Display.FR("{E2}ch{e2}ancier")
+        AffecterOperationAEcheance = True
+    End If
+
+End Function
+
+' Fenêtre de recherche des opérations d'une échéance : tout le MOIS de sa date prévue (bornes comprises, numéros de
+' série) et le signe de son montant (-1 dépense, 1 entrée d'argent). Renvoie Faux si l'échéance n'existe plus.
+Public Function FenetreRechercheEcheance(ByVal idEcheance As String, ByRef debut As Double, ByRef fin As Double, _
+                                         ByRef signe As Long) As Boolean
+
+    Dim loE As ListObject
+    Dim ligne As Long
+    Dim dPrevue As Date
+    Dim mEch As Double
+
+    If Not EcheancierInstalle() Then Exit Function
+    Set loE = TableEcheances()
+    ligne = LigneEcheance(loE, idEcheance)
+    If ligne = 0 Then Exit Function
+
+    dPrevue = VersDate(loE.DataBodyRange.Cells(ligne, ColIdx(loE, "DatePrevue")).Value2)
+    If dPrevue = 0 Then Exit Function
+    mEch = mod_DataStructure.ToDouble(loE.DataBodyRange.Cells(ligne, ColIdx(loE, "Montant")).Value2)
+
+    debut = CDbl(DateSerial(Year(dPrevue), Month(dPrevue), 1))
+    fin = CDbl(DateSerial(Year(dPrevue), Month(dPrevue) + 1, 0))
+    If mEch < 0 Then signe = -1 Else signe = 1
+    FenetreRechercheEcheance = True
+
+End Function
+
+' « #12 - EDF - 05/10/2026 - -118,00 € » : de quoi reconnaître l'échéance dans la ligne de rappel du filtre.
+Public Function DescriptionEcheance(ByVal idEcheance As String) As String
+
+    Dim loE As ListObject
+    Dim ligne As Long
+    Dim quoi As String
+
+    If Not EcheancierInstalle() Then Exit Function
+    Set loE = TableEcheances()
+    ligne = LigneEcheance(loE, idEcheance)
+    If ligne = 0 Then
+        DescriptionEcheance = "#" & idEcheance
+        Exit Function
+    End If
+    With loE.DataBodyRange
+        quoi = mod_DataStructure.CellText(.Cells(ligne, ColIdx(loE, "Tiers")).Value2)
+        If quoi = "" Then quoi = mod_DataStructure.CellText(.Cells(ligne, ColIdx(loE, "Libelle")).Value2)
+        DescriptionEcheance = "#" & idEcheance & " - " & quoi & " - " & _
+            Format(VersDate(.Cells(ligne, ColIdx(loE, "DatePrevue")).Value2), "dd/mm/yyyy") & " - " & _
+            Format(mod_DataStructure.ToDouble(.Cells(ligne, ColIdx(loE, "Montant")).Value2), "#,##0.00") & " " & ChrW(8364)
+    End With
+
+End Function
+
+' Numéro de la ligne (1 = première ligne de données) de l'échéance dans TblEcheances ; 0 si introuvable.
+Private Function LigneEcheance(ByVal loE As ListObject, ByVal idEcheance As String) As Long
+    Dim vId() As Variant
+    Dim i As Long
+    If TableVide(loE) Then Exit Function
+    vId = LireColonne(loE, "ID_Echeance")
+    For i = 1 To UBound(vId)
+        If Not IsError(vId(i)) Then
+            If CStr(vId(i)) = idEcheance Then
+                LigneEcheance = i
+                Exit Function
+            End If
+        End If
+    Next i
+End Function
 
 ' Noyau commun : cherche les paires (opération, échéance) compatibles, affiche les propositions et
 ' fait valider l'opérateur. Renvoie un dictionnaire des ID_Echeance validés (vide si aucun).

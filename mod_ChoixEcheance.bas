@@ -72,12 +72,14 @@ Private g_ChoixNomFeuillePrec As String
 '   libelleCourant : libellé de l'échéance déjà rapprochée à la main avec cette opération ("" sinon)
 '   messageInfo : texte affiché sous le formulaire
 '   libelleChoisi : en sortie, libellé choisi (résultat CE_RAPPROCHER)
+'   modeImmediat : (ajout 31/10/2026) rapprochement immédiat depuis l'écran de recherche : "Défaire" sans objet
 ' Renvoie CE_RAPPROCHER, CE_DEFAIRE ou CE_ANNULE.
 Public Function OuvrirChoixEcheance(ByVal opDate As String, ByVal opTiers As String, ByVal opMontant As String, _
                                     ByVal opCategorie As String, ByVal opCheque As String, _
                                     ByRef libelles() As String, ByRef details() As String, ByVal nbEch As Long, _
                                     ByVal libelleCourant As String, ByVal messageInfo As String, _
-                                    ByRef libelleChoisi As String) As Long
+                                    ByRef libelleChoisi As String, _
+                                    Optional ByVal modeImmediat As Boolean = False) As Long
 
     Dim ws As Worksheet
 
@@ -96,7 +98,13 @@ Public Function OuvrirChoixEcheance(ByVal opDate As String, ByVal opTiers As Str
     g_ChoixNomFeuillePrec = ActiveSheet.Name
     g_ChoixAction = CE_ANNULE
     g_ChoixLibelle = ""
-    g_ChoixCourant = libelleCourant
+    ' Mode immediat (depuis l'ecran de recherche) : le libelle courant est seulement PRESELECTIONNE ; il n'y a
+    ' aucun rapprochement a defaire (l'echeance est retiree des la validation).
+    If modeImmediat Then
+        g_ChoixCourant = ""
+    Else
+        g_ChoixCourant = libelleCourant
+    End If
 
     RemplirFormulaire ws, opDate, opTiers, opMontant, opCategorie, opCheque, libelles, details, nbEch, libelleCourant, messageInfo
 

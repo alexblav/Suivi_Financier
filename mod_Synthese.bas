@@ -53,6 +53,10 @@ Private Const SYN_COL_ID_OPERATION As Long = 9    ' colonne I (masquee) : ID_Tra
 Private Const NOM_BOUTON_ACTUALISER As String = "btnActualiserSynthese"
 Private Const NOM_BOUTON_AFFECTER As String = "btnAffecterFacture"
 Private Const NOM_BOUTON_AFFICHER_TOUT As String = "btnAfficherToutFactures"
+Private Const NOM_BOUTON_CHERCHER_OP As String = "btnChercherOperationEcheance"
+' Prefixe des ID_Echeance ecrits dans la colonne masquee (colonne I) du bloc "Echeances en retard" :
+' il les distingue des ID_Transaction du bloc "Factures non liees", qui partagent cette colonne.
+Private Const ECH_PREFIXE As String = "ECH:"
 
 
 ' =====================================================================================
@@ -216,6 +220,9 @@ Private Function BlocEcheancesEnRetard(ByVal ws As Worksheet, ByVal ligneDebut A
     Dim jourPrevu As Double, limite As Double
     Dim texte As String
     Dim libTitre As String, msgVide As String
+    Dim vId As Variant
+    Dim ids() As String
+    Dim nbAff As Long, k As Long
 
     libTitre = mod_Display.FR("{E2}ch{e2}ances en retard")
     msgVide = mod_Display.FR("Aucune {e2}ch{e2}ance en retard.")
@@ -231,8 +238,9 @@ Private Function BlocEcheancesEnRetard(ByVal ws As Worksheet, ByVal ligneDebut A
         vTiers = ValeursColonne(lo, "Tiers", nbL)
         vCat = ValeursColonne(lo, "Categorie", nbL)
         vMont = ValeursColonne(lo, "Montant", nbL)
+        vId = ValeursColonne(lo, "ID_Echeance", nbL)
         ReDim cles(1 To nbL)
-        ReDim vals(1 To nbL, 1 To SYN_NB_COL)
+        ReDim vals(1 To nbL, 1 To SYN_NB_COL + 1)      ' derniere colonne : ID_Echeance (non affiche dans D:H)
 
         For i = 1 To nbL
             If IsNumeric(Cellule(vDate, i)) And Not IsEmpty(Cellule(vDate, i)) Then
@@ -255,18 +263,88 @@ Private Function BlocEcheancesEnRetard(ByVal ws As Worksheet, ByVal ligneDebut A
                     vals(nb, 3) = mod_DataStructure.CellText(Cellule(vCat, i))
                     vals(nb, 4) = mod_DataStructure.ToDouble(Cellule(vMont, i))
                     vals(nb, 5) = CLng(CDbl(Date) - limite) & " j"
+                    vals(nb, SYN_NB_COL + 1) = mod_DataStructure.CellText(Cellule(vId, i))
                 End If
             End If
         Next i
     End If
 
-    If nb > 0 Then Extraire cles, vals, nb, False, res
+    If nb > 0 Then
+        Extraire cles, vals, nb, False, res
+        nbAff = UBound(res, 1)
+        ReDim ids(1 To nbAff)
+        For k = 1 To nbAff
+            ids(k) = res(k, SYN_NB_COL + 1)
+        Next k
+        ReDim Preserve res(1 To nbAff, 1 To SYN_NB_COL)
+    End If
 
     BlocEcheancesEnRetard = EcrireBloc(ws, ligneDebut, libTitre, _
         Array(mod_Display.FR("Date pr{e2}vue"), mod_Display.FR("{E2}ch{e2}ance"), mod_Display.FR("Cat{e2}gorie"), "Montant", "Retard"), _
         res, nb, msgVide)
 
+    ' ID_Echeance de chaque ligne affichee (colonne masquee) : c'est elle qui designe l'echeance a rapprocher.
+    If nb > 0 Then
+        With ws.Range(ws.Cells(ligneDebut + 2, SYN_COL_ID_OPERATION), ws.Cells(ligneDebut + 1 + nbAff, SYN_COL_ID_OPERATION))
+            .NumberFormat = "@"
+            For k = 1 To nbAff
+                .Cells(k, 1).Value = ECH_PREFIXE & ids(k)
+            Next k
+        End With
+    End If
+
+    PoserBoutonChercherOperation ws, ligneDebut
+
 End Function
+
+Private Sub PoserBoutonChercherOperation(ByVal ws As Worksheet, ByVal ligneTitre As Long)
+
+    Dim btn As Button
+    Dim cel As Range
+
+    On Error Resume Next
+    ws.Shapes(NOM_BOUTON_CHERCHER_OP).Delete
+    On Error GoTo 0
+
+    Set cel = ws.Cells(ligneTitre, SYN_COL_RAPPELS + SYN_NB_COL - 1)
+    Set btn = ws.Buttons.Add(cel.Left + cel.Width - 150, cel.Top + 1, 148, cel.Height - 2)
+    btn.Caption = mod_Display.FR("Chercher l'op{e2}ration")
+    btn.OnAction = "ChercherOperationEcheance"
+    btn.Name = NOM_BOUTON_CHERCHER_OP
+
+End Sub
+
+' =====================================================================================
+' RAPPROCHEMENT D'UNE ECHEANCE EN RETARD AVEC UNE OPERATION DEJA IMPORTEE (bouton du bloc 1)
+' =====================================================================================
+' 1. L'operateur clique une ligne du bloc "Echeances en retard" puis sur le bouton.
+' 2. frm_RechercheOperations s'ouvre sur le prefiltre "PourEcheance" : operations DU MOIS de la date prevue
+'    de l'echeance et DE MEME SIGNE que son montant (voir mod_RechercheOperations).
+' 3. L'operateur selectionne l'operation et clique sur "Affecter a une echeance" : l'echeance de depart est
+'    deja choisie (mod_Echeancier.AffecterOperationAEcheance). Au retour, Synthese est actualisee.
+Public Sub ChercherOperationEcheance()
+
+    Dim ws As Worksheet
+    Dim ligne As Long
+    Dim cle As String
+
+    Set ws = mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+    If ws Is Nothing Then Exit Sub
+    If Not ActiveSheet Is ws Then ws.Activate
+
+    If TypeName(Selection) = "Range" Then
+        ligne = Selection.Row
+        If Selection.Rows.Count > 1 Then ligne = 0
+        If ligne > 0 Then cle = mod_DataStructure.CellText(ws.Cells(ligne, SYN_COL_ID_OPERATION).Value2)
+    End If
+    If Left$(cle, Len(ECH_PREFIXE)) <> ECH_PREFIXE Then
+        MsgBox mod_Display.FR("S{e2}lectionnez d'abord UNE ligne du tableau {E2}ch{e2}ances en retard, puis cliquez sur le bouton."), vbInformation
+        Exit Sub
+    End If
+
+    mod_RechercheOperations.RechercherOperations "PourEcheance", Mid$(cle, Len(ECH_PREFIXE) + 1)
+
+End Sub
 
 
 ' =====================================================================================
@@ -412,6 +490,7 @@ Public Sub AffecterFactureOperation()
     ligne = Selection.Row
     If Selection.Rows.Count > 1 Then ligne = 0
     If ligne > 0 Then idOperation = mod_DataStructure.CellText(ws.Cells(ligne, SYN_COL_ID_OPERATION).Value2)
+    If Left$(idOperation, Len(ECH_PREFIXE)) = ECH_PREFIXE Then idOperation = ""      ' ligne du bloc Echeances en retard
     If idOperation = "" Then
         MsgBox mod_Display.FR("S{e2}lectionnez d'abord UNE ligne d'op{e2}ration du tableau Factures non li{e2}es, puis cliquez sur le bouton."), vbInformation
         Exit Sub

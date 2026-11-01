@@ -60,6 +60,12 @@ Private g_ROParamActif As Variant
 ' (mod_Synthese.ChargerLiensFactures), charges une fois par recherche.
 Private liensFacturesRO As Object
 
+' Ajout 31/10/2026 (prefiltre "PourEcheance") : fenetre de dates (numeros de serie, bornes comprises) et signe du
+' montant (-1 depense, 1 entree) de l'echeance en retard dont on cherche l'operation (mod_Echeancier.FenetreRechercheEcheance).
+Private g_ROEchDebut As Double
+Private g_ROEchFin As Double
+Private g_ROEchSigne As Long
+
 ' Sous-catégorie "santé" : depuis le 07/10/2026 (préfiltre "SuiviSante"), ce module
 ' la teste directement, toujours via la constante centralisée
 ' mod_VarGlobales.SOUS_CATEGORIE_SANTE (jamais un texte recopié en dur ici).
@@ -349,6 +355,12 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
         Case "FacturesNonLiees"
             ' Ajout 29/10/2026 : memes operations que le bloc "Factures non liees" de Synthese, sans limite de lignes.
             Set liensFacturesRO = mod_Synthese.ChargerLiensFactures()
+        Case "PourEcheance"
+            ' Ajout 31/10/2026 : param = ID_Echeance. Operations du MOIS de la date prevue, de meme signe que l'echeance.
+            If Not mod_Echeancier.FenetreRechercheEcheance(CStr(param), g_ROEchDebut, g_ROEchFin, g_ROEchSigne) Then
+                MsgBox mod_Display.FR("Cette {e2}ch{e2}ance n'existe plus dans l'{e2}ch{e2}ancier."), vbInformation
+                Exit Sub
+            End If
     End Select
 
     ' Les lignes de TblVentilations n'ont pas de mois/année budgétaire ni de
@@ -913,6 +925,11 @@ Private Function DecrireFiltreActifRO(ByVal prefiltre As String, ByVal param As 
             texte = FR("Factures non li{e2}es -- d{e2}penses Eau et {E2}lectricit{e2} - gaz - chauffage qu'aucune facture ne cite encore (parts ventil{e2}es exclues, tous mois confondus) -- ") & _
                     nbTotal & FR(" ligne(s). S{e2}lectionnez une ligne puis [Affecter une facture].")
 
+        Case "PourEcheance"
+            texte = FR("Op{e2}rations du mois de l'{e2}ch{e2}ance en retard ") & mod_Echeancier.DescriptionEcheance(CStr(param)) & _
+                    FR(", de m{ea}me signe (parts ventil{e2}es exclues) -- ") & nbTotal & _
+                    FR(" ligne(s). S{e2}lectionnez l'op{e2}ration puis [Affecter {a2} une {e2}ch{e2}ance]. Pour chercher ailleurs, utilisez [Recherche globale].")
+
         Case "SuiviSante"
             ' Ajout 07/10/2026, revu le 08/10/2026 (phrase enrichie, puis périmètre
             ' élargi à la catégorie "Santé, prévoyance"). Exemple de résultat :
@@ -947,6 +964,7 @@ Private Function LigneOpRetenuePourPrefiltre(ByVal i As Long, ByVal prefiltre As
                                               ByVal showTypeDetail As String, ByRef listeDernierImport As Object) As Boolean
 
     Dim Montant As Double
+    Dim jourOp As Double
     Dim factureEligible As Boolean
 
     Select Case prefiltre
@@ -995,6 +1013,17 @@ Private Function LigneOpRetenuePourPrefiltre(ByVal i As Long, ByVal prefiltre As
                 End If
                 If factureEligible Then
                     LigneOpRetenuePourPrefiltre = Not liensFacturesRO.Exists(mod_DataStructure.CellText(tblData(i, colID)))
+                End If
+            End If
+        Case "PourEcheance"
+            ' Ajout 31/10/2026 : operation du mois de l'echeance en retard, de meme signe que son montant.
+            jourOp = Int(JourPourTriRO(tblData(i, colDate)))
+            If jourOp >= g_ROEchDebut And jourOp <= g_ROEchFin Then
+                Montant = mod_DataStructure.ToDouble(tblData(i, colMontant))
+                If g_ROEchSigne < 0 Then
+                    LigneOpRetenuePourPrefiltre = (Montant < 0)
+                Else
+                    LigneOpRetenuePourPrefiltre = (Montant > 0)
                 End If
             End If
         Case "SuiviSante"
@@ -1583,7 +1612,7 @@ Public Sub SortirRechercheOperations()
     End If
     ' Ajout 29/10/2026 : ouvert depuis le bloc "Factures non liees" -> retour sur Synthese
     ' (son affichage la recalcule : les operations affectees n'y figurent plus).
-    If g_ROPrefiltreActif = "FacturesNonLiees" Then
+    If g_ROPrefiltreActif = "FacturesNonLiees" Or g_ROPrefiltreActif = "PourEcheance" Then
         mod_Aide.MasquerFormulaire ws
         mod_InstallCommun.ActiverFeuille mod_VarGlobales.NOM_FEUILLE_SYNTHESE
         Exit Sub
@@ -1675,6 +1704,45 @@ Public Sub AffecterFactureRO()
 End Sub
 
 
+' =====================================================================================
+' BOUTON "Affecter à une échéance" (ajout du 31/10/2026) : rapproche l'opération SÉLECTIONNÉE d'une échéance de
+' l'échéancier, sans attendre un import (échéance en retard, détection automatique en échec...).
+'   - ouvert depuis le bloc "Échéances en retard" de Synthese (préfiltre "PourEcheance") : l'échéance de départ
+'     est déjà choisie dans la liste ; on revient ensuite sur Synthese, actualisée ;
+'   - dans les autres cas : la liste de toutes les échéances est proposée, de la plus proche à la plus éloignée.
+' L'opération (qui vient de la banque) n'est jamais modifiée. L'échéance est retirée de l'échéancier tout de suite ;
+' si elle vient d'une règle de récurrence, une question propose d'aligner la règle sur l'opération.
+' Voir mod_Echeancier.AffecterOperationAEcheance.
+' =====================================================================================
+Public Sub AffecterEcheanceRO()
+
+    Dim idTransaction As String, tiersSel As String, categorieSel As String, sousCategorieSel As String
+    Dim sourceSel As String, chequeSel As String
+    Dim jourSel As Double, montantSel As Double
+    Dim idDepart As String
+    Dim ws As Worksheet
+
+    LireSelectionRO idTransaction, tiersSel, categorieSel, sousCategorieSel, jourSel, montantSel, sourceSel, chequeSel
+    If idTransaction = "" Then Exit Sub
+
+    If sourceSel = "V" Then
+        MsgBox mod_Display.FR("Cette ligne est une part de ventilation : s{e2}lectionnez l'op{e2}ration elle-m{ea}me (cat{e2}gorie Ventil{e2}e)."), vbInformation
+        Exit Sub
+    End If
+
+    If g_ROPrefiltreActif = "PourEcheance" Then idDepart = CStr(g_ROParamActif)
+
+    If mod_Echeancier.AffecterOperationAEcheance(idTransaction, jourSel, tiersSel, montantSel, categorieSel, sousCategorieSel, chequeSel, idDepart) Then
+        If g_ROPrefiltreActif = "PourEcheance" Then
+            Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RECHERCHE)
+            mod_Aide.MasquerFormulaire ws
+            mod_InstallCommun.ActiverFeuille mod_VarGlobales.NOM_FEUILLE_SYNTHESE
+        End If
+    End If
+
+End Sub
+
+
 ' Relit la ligne SÉLECTIONNÉE dans les résultats de recherche et renvoie son
 ' ID_Transaction, Tiers, Categorie et SousCategorie tels qu'affichés à l'écran.
 ' Reprend le mécanisme de RevoirVentilationRO (ActiveCell.Row -> ligne relative ->
@@ -1684,11 +1752,12 @@ End Sub
 Private Sub LireSelectionRO(ByRef idTransaction As String, ByRef tiersSel As String, _
                              ByRef categorieSel As String, ByRef sousCategorieSel As String, _
                              Optional ByRef jourSel As Double, Optional ByRef montantSel As Double, _
-                             Optional ByRef sourceSel As String)
+                             Optional ByRef sourceSel As String, Optional ByRef chequeSel As String)
 
     Dim ws As Worksheet
     Dim tblRecherche As ListObject
     Dim ligneSelection As Long, ligneRelative As Long
+    Dim colChequeSel As Long
 
     idTransaction = ""
 
@@ -1719,6 +1788,10 @@ Private Sub LireSelectionRO(ByRef idTransaction As String, ByRef tiersSel As Str
     End If
     montantSel = mod_DataStructure.ToDouble(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_MONTANT).Value2)
     sourceSel = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, mod_InstallRechercheOperations.RO_COL_SOURCE).value))
+    ' Ajout 31/10/2026 : numero de cheque (colonne absente tant que l'ecran n'a pas ete reconstruit).
+    chequeSel = ""
+    colChequeSel = IndexColRO(tblRecherche, "Num_Cheque")
+    If colChequeSel <> 0 Then chequeSel = Trim(CStr(tblRecherche.DataBodyRange.Cells(ligneRelative, colChequeSel).value))
 
     If idTransaction = "" Then
         MsgBox mod_Display.FR("Impossible de retrouver l'ID_Transaction de cette ligne."), vbExclamation

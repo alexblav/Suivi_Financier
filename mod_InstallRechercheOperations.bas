@@ -289,6 +289,61 @@ Private Sub RO_ConstruireBoutons(ByVal ws As Worksheet)
     ' Ajout 29/10/2026 : relie l'operation selectionnee a une facture (formulaire frm_AffectationFacture).
     mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Affecter une facture"), _
         "AffecterFactureRO", "btnAffecterFactureRO", 115
+    ' Ajout 31/10/2026 : rapproche l'operation selectionnee d'une echeance de l'echeancier.
+    mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Affecter {a2} une {e2}ch{e2}ance"), _
+        "AffecterEcheanceRO", "btnAffecterEcheanceRO", 135
+
+End Sub
+
+' =====================================================================================
+' Ajout 31/10/2026 : bouton "Affecter à une échéance" ajouté à la feuille EXISTANTE, sans la reconstruire
+' (la mise en page retouchée à la main est conservée), et aide mise à jour. Sans danger si le bouton
+' existe déjà (il est remplacé). Macro à lancer : InstallerAffectationEcheance.
+' =====================================================================================
+Public Sub InstallerAffectationEcheance()
+
+    Dim ws As Worksheet
+    Dim wsPrecedente As Worksheet
+    Dim etatAvant As XlSheetVisibility
+    Dim gauche As Double
+    Dim ref As Shape
+
+    Set ws = mod_InstallCommun.TrouverFeuille(NOM_FEUILLE_RECHERCHE)
+    If ws Is Nothing Then
+        MsgBox mod_Display.FR("La feuille '") & NOM_FEUILLE_RECHERCHE & mod_Display.FR("' n'existe pas encore : lancez d'abord CreerFeuilleRechercheOperations."), vbExclamation
+        Exit Sub
+    End If
+
+    Set wsPrecedente = ActiveSheet
+    etatAvant = ws.Visible
+    ws.Visible = xlSheetVisible
+    ws.Activate
+
+    On Error Resume Next
+    ws.Shapes("btnAffecterEcheanceRO").Delete
+    Set ref = ws.Shapes("btnAffecterFactureRO")
+    If ref Is Nothing Then Set ref = ws.Shapes("btnAjouterPonctuelleRO")
+    On Error GoTo 0
+    If ref Is Nothing Then
+        gauche = ws.Cells(1, 1).Left + 700
+    Else
+        gauche = ref.Left + ref.Width + mod_InstallCommun.FRM_BTN_ECART
+    End If
+    mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Affecter {a2} une {e2}ch{e2}ance"), _
+        "AffecterEcheanceRO", "btnAffecterEcheanceRO", 135
+
+    ' L'aide de l'ecran mentionne le nouveau bouton.
+    mod_InstallCommun.EcrireInstructions ws, RO_LIGNE_INSTRUCTIONS, 1, 1, 2, 7, RO_TexteInstructions()
+
+    ' La feuille retrouve son etat d'avant (tres masquee) : on revient d'abord sur la feuille precedente.
+    If wsPrecedente.Name <> ws.Name Then wsPrecedente.Activate
+    ws.Visible = etatAvant
+
+    ' Le bloc "Echeances en retard" de Synthese porte maintenant le bouton "Chercher l'operation".
+    mod_Synthese.ActualiserSynthese
+
+    MsgBox mod_Display.FR("Le bouton 'Affecter {a2} une {e2}ch{e2}ance' est en place sur l'{e2}cran de recherche, et 'Chercher l'op{e2}ration' sur Synthese."), _
+           vbInformation, mod_Display.FR("Installation termin{e2}e")
 
 End Sub
 

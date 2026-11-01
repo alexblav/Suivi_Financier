@@ -354,7 +354,8 @@ Private Sub Def_ChoixEcheance(ByRef titre As String, ByRef intro As String, ByRe
     intro = "Ce formulaire permet de d{e2}signer {a2} la main l'{e2}ch{e2}ance qui correspond {a2} l'op{e2}ration affich{e2}e dans [f:frm_ControleCategories], " & _
             "quand la d{e2}tection automatique ne l'a pas propos{e2}e (par exemple {e2}cart de montant ou de date trop grand). " & _
             "L'op{e2}ration vient de la banque : elle n'est jamais modifi{e2}e. " & _
-            "Comme pour un rapprochement automatique, l'{e2}ch{e2}ance n'est retir{e2}e de l'{e2}ch{e2}ancier qu'{a2} l'enregistrement de l'import."
+            "Pendant un import, l'{e2}ch{e2}ance n'est retir{e2}e de l'{e2}ch{e2}ancier qu'{a2} l'enregistrement de l'import ; "  & _
+            "depuis l'{e2}cran de recherche ([b:Affecter {a2} une {e2}ch{e2}ance]), le rapprochement est imm{e2}diat."
 
     L champs, "Op{e2}ration import{e2}e", "Lecture seule : date, tiers, montant, cat{e2}gorie et ch{e1}que de l'op{e2}ration."
     L champs, "{E2}ch{e2}ance", "Liste d{e2}roulante des {e2}ch{e2}ances, de la plus proche {a2} la plus {e2}loign{e2}e de l'op{e2}ration, avec les {e2}carts de date et de montant. Les {e2}ch{e2}ances d{e2}j{a2} rapproch{e2}es avec une autre op{e2}ration de l'import ne sont pas propos{e2}es."
@@ -582,6 +583,7 @@ Private Sub Def_RechercheOperations(ByRef titre As String, ByRef intro As String
     L boutons, "Aide", "Ouvre cette aide, sans fermer l'{e2}cran."
     L boutons, "Rendre r{e2}currente", "Ouvre [f:frm_Echeance] pr{e2}rempli avec l'op{e2}ration s{e2}lectionn{e2}e (tiers, cat{e2}gorie, montant, p{e2}riodicit{e2} mensuelle, prochaine date). Vous pouvez tout modifier avant de valider ; l'op{e2}ration elle-m{ea}me n'est pas modifi{e2}e."
     L boutons, "Affecter une facture", "Relie l'op{e2}ration s{e2}lectionn{e2}e {a2} la facture qui l'a r{e2}gl{e2}e : ouvre [f:frm_AffectationFacture] (type de consommation, puis facture). Une part de ventilation ou une op{e2}ration d{e2}j{a2} li{e2}e est refus{e2}e. Ouvert par [b:Afficher tout] de la feuille [f:Synthese], l'{e2}cran ne montre que les factures non li{e2}es, sans limite de lignes."
+    L boutons, "Affecter {a2} une {e2}ch{e2}ance", "Rapproche l'op{e2}ration s{e2}lectionn{e2}e d'une {e2}ch{e2}ance de l'{e2}ch{e2}ancier, sans attendre un import : ouvre [f:frm_ChoixEcheance]. Depuis le bouton [b:Chercher l'op{e2}ration] du bloc {E2}ch{e2}ances en retard de [f:Synthese], l'{e2}cran ne montre que les op{e2}rations du mois de l'{e2}ch{e2}ance, de m{ea}me signe, et l'{e2}ch{e2}ance est d{e2}j{a2} choisie. L'op{e2}ration n'est jamais modifi{e2}e ; l'{e2}ch{e2}ance est retir{e2}e de l'{e2}ch{e2}ancier tout de suite. Une part de ventilation est refus{e2}e."
 
 End Sub
 

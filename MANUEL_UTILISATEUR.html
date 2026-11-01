@@ -161,7 +161,7 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <h2 id="le-travail-du-mois-pas-à-pas">Le travail du mois, pas à pas</h2>
 <p>À chaque récupération de relevé, dans cet ordre :</p>
 <ol>
-<li><strong>Exporter</strong> les opérations depuis Linxo (fichier <strong>OFX</strong> ; le CSV est facultatif) et l'enregistrer.</li>
+<li><strong>Exporter</strong> les opérations depuis Linxo (fichiers <strong>OFX</strong> et <strong>CSV</strong>, tous deux obligatoires) et l'enregistrer.</li>
 <li>Sur Synthese, cliquer sur <strong>Importer</strong> et suivre les écrans (section 1).</li>
 <li><strong>Contrôler le rangement</strong> des opérations qui le demandent (section 2).</li>
 <li>Confirmer les <strong>rapprochements avec l'échéancier</strong> si le classeur en propose (section 8).</li>
@@ -183,7 +183,7 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <ol>
 <li>Cliquez sur <strong>Importer</strong> (feuille Synthese, ou bouton de l'Accueil).</li>
 <li>Choisissez le fichier <strong>OFX</strong>. Si vous annulez, rien n'est modifié.</li>
-<li>Le classeur demande si vous souhaitez joindre aussi le fichier <strong>CSV</strong>. Réponse par défaut : <strong>Non</strong>. Le CSV ne sert que de secours pour retrouver la catégorie des opérations que le classeur n'a pas su ranger tout seul.</li>
+<li>Le classeur vous demande ensuite le fichier <strong>CSV</strong>. Il est <strong>obligatoire</strong> : il contient le nom du compte (colonne <em>Nom du compte</em>) et sert de secours pour retrouver la catégorie des opérations que le classeur n'a pas su ranger tout seul. Si vous annulez l'une des deux sélections, l'import est impossible et un message vous l'indique.</li>
 <li>Le classeur lit les opérations et <strong>ignore celles déjà enregistrées</strong>. Vous pouvez donc réimporter un relevé qui chevauche le précédent sans crainte de doublons.</li>
 <li>Si certaines opérations ont plusieurs catégories possibles (cas du CSV), un écran vous demande de choisir pour chacune dans une liste, puis <strong>Terminer et appliquer</strong>.</li>
 <li>Vient ensuite le <strong>contrôle des catégories</strong> (section 2).</li>
@@ -507,6 +507,7 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 </ul>
 <p>Si vous annulez tout l'import, aucune échéance n'est supprimée.</p>
 <p><strong>Rapprochement à la main.</strong> Si le classeur n'a pas reconnu une échéance (écart de montant ou de date trop grand, tiers différent…), affichez l'opération dans le contrôle des catégories et cliquez sur <strong>Échéancier…</strong>. Choisissez l'échéance dans la liste (classée de la plus proche à la plus éloignée, avec les écarts de date et de montant) ; le détail indique pourquoi elle n'a pas été reconnue. <strong>Rapprocher</strong> lie l'opération à l'échéance, <strong>Défaire</strong> annule ce lien. L'opération, qui vient de la banque, n'est jamais modifiée. Si l'échéance vient d'une règle de récurrence et que l'opération en diffère (montant, tiers, catégorie, sous-catégorie), le classeur demande s'il faut mettre à jour la règle et ses échéances à venir avec les valeurs de l'opération. Comme pour un rapprochement automatique, rien n'est supprimé ni modifié avant l'enregistrement de l'import.</p>
+<p><strong>Affecter une opération à une échéance en retard.</strong> Sur <strong>Synthese</strong>, dans le tableau <strong>Échéances en retard</strong>, sélectionnez une ligne puis cliquez sur <strong>Chercher l'opération</strong>. L'écran de recherche s'ouvre sur les opérations <strong>du mois de l'échéance</strong> et <strong>de même signe</strong> (dépense pour une dépense). Sélectionnez la bonne opération, puis cliquez sur <strong>Affecter à une échéance</strong> : l'échéance est déjà choisie, vous la confirmez (ou en prenez une autre dans la liste). Ici, le rapprochement est <strong>immédiat</strong> : l'échéance est retirée de l'échéancier tout de suite, et si elle vient d'une règle de récurrence, le classeur propose de mettre la règle à jour avec les valeurs de l'opération. L'opération n'est jamais modifiée. Pour chercher une opération d'un autre mois, utilisez <strong>Recherche globale</strong>, sélectionnez l'opération et cliquez sur <strong>Affecter à une échéance</strong> : la liste de toutes les échéances est proposée.</p>
 <p>Une échéance est candidate quand le montant est de même signe et dans la tolérance, la date est dans la fenêtre attendue (de 5 jours avant à 10 jours après pour une précision Jour), le Tiers contient celui de l'échéance et la catégorie correspond (si ces éléments sont renseignés).</p>
 <h3 id="les-deux-listes">Les deux listes</h3>
 <p>Bouton <strong>Voir l'échéancier</strong> (Synthese) :</p>
@@ -901,7 +902,7 @@ Utilisez <strong>Annuler</strong>, rien n'est enregistré tant que vous n'avez p
 <tbody>
 <tr>
 <td><strong>OFX / CSV</strong></td>
-<td>Les deux formats d'export de la banque (Linxo). L'OFX suffit ; le CSV est un secours facultatif</td>
+<td>Les deux formats d'export de la banque (Linxo). Les deux sont nécessaires à l'import : le CSV porte le nom du compte</td>
 </tr>
 <tr>
 <td><strong>Tiers</strong></td>
