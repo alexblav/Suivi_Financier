@@ -35,6 +35,13 @@ Option Explicit
 '     d'information explicatif plutot que de ne rien faire silencieusement.
 Private Sub Workbook_SheetBeforeDoubleClick(ByVal Sh As Object, ByVal Target As Range, Cancel As Boolean)
 
+    ' AJOUT 01/11/2026 : double-clic sur le nombre d'operations liees de la liste des factures
+    ' -> frm_RechercheOperations sur ces operations (mod_Factures.TraiterDoubleClicListe).
+    If Sh.Name = mod_VarGlobales.NOM_FEUILLE_FACTURES Then
+        mod_Factures.TraiterDoubleClicListe Target, Cancel
+        Exit Sub
+    End If
+
     ' On ne s'interesse qu'a l'ecran central de recherche.
     If Sh.Name <> mod_VarGlobales.NOM_FEUILLE_RECHERCHE Then Exit Sub
 

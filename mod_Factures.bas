@@ -936,6 +936,157 @@ Public Function LierFacture(ByVal idFacture As Long, ByVal idTransaction As Stri
 
 End Function
 
+' --- Opérations liées : consultation et déliaison (ajout 01/11/2026) ---
+' ID_Transaction des opérations liées à la facture, en clés d'un Dictionary (vide si aucune).
+Public Function OperationsDeFacture(ByVal idFacture As Long) As Object
+
+    Dim dic As Object
+    Dim lo As ListObject
+    Dim element As Variant
+    Dim cle As String
+
+    Set dic = CreateObject("Scripting.Dictionary")
+    Set lo = TableFactures()
+    If Not lo Is Nothing Then
+        For Each element In Split(LienDeFacture(lo, idFacture), FAC_SEP_LIENS)
+            cle = Trim$(CStr(element))
+            If cle <> "" Then
+                If Not dic.Exists(cle) Then dic.Add cle, True
+            End If
+        Next element
+    End If
+    Set OperationsDeFacture = dic
+
+End Function
+
+' Numéro de la facture à laquelle l'opération est liée (0 si elle n'est liée à aucune).
+Public Function FactureDeOperation(ByVal idTransaction As String) As Long
+
+    Dim lo As ListObject
+    Dim i As Long, idxLien As Long
+    Dim v As Variant
+
+    Set lo = TableFactures()
+    If lo Is Nothing Then Exit Function
+    If mod_Consommations.TableVide(lo) Then Exit Function
+    idxLien = mod_Consommations.ColIdx(lo, FAC_COL_LIEN)
+    If idxLien = 0 Then Exit Function
+    For i = 1 To lo.ListRows.Count
+        v = lo.ListColumns("ID_Facture").DataBodyRange.Cells(i, 1).Value2
+        If IsNumeric(v) And Not IsEmpty(v) Then
+            If InStr(1, FAC_SEP_LIENS & mod_DataStructure.CellText(lo.DataBodyRange.Cells(i, idxLien).Value2) & FAC_SEP_LIENS, _
+                     FAC_SEP_LIENS & Trim$(idTransaction) & FAC_SEP_LIENS, vbBinaryCompare) > 0 Then
+                FactureDeOperation = CLng(v)
+                Exit Function
+            End If
+        End If
+    Next i
+
+End Function
+
+' Rappel d'une facture en une phrase (type, opérateur, numéro, date) pour les messages et l'écran de recherche.
+Public Function DescriptionFacture(ByVal idFacture As Long) As String
+
+    Dim lo As ListObject
+    Dim i As Long, jour As Double
+    Dim v As Variant
+    Dim texte As String, valeur As String
+
+    Set lo = TableFactures()
+    If lo Is Nothing Then Exit Function
+    If mod_Consommations.TableVide(lo) Then Exit Function
+    For i = 1 To lo.ListRows.Count
+        v = lo.ListColumns("ID_Facture").DataBodyRange.Cells(i, 1).Value2
+        If IsNumeric(v) And Not IsEmpty(v) Then
+            If CLng(v) = idFacture Then
+                With lo.ListRows(i).Range
+                    texte = mod_DataStructure.CellText(.Cells(1, mod_Consommations.ColIdx(lo, "TypeConso")).Value2)
+                    valeur = mod_DataStructure.CellText(.Cells(1, mod_Consommations.ColIdx(lo, "Operateur")).Value2)
+                    If valeur <> "" Then texte = texte & " - " & valeur
+                    valeur = mod_DataStructure.CellText(.Cells(1, mod_Consommations.ColIdx(lo, "NumeroFacture")).Value2)
+                    If valeur <> "" Then texte = texte & " - n" & ChrW(176) & " " & valeur
+                    jour = mod_Consommations.VersJour(.Cells(1, mod_Consommations.ColIdx(lo, "DateFacture")).Value2)
+                    If jour > 0 Then texte = texte & " - " & Format(CDate(jour), "dd/mm/yyyy")
+                End With
+                DescriptionFacture = texte
+                Exit Function
+            End If
+        End If
+    Next i
+
+End Function
+
+' RETIRE l'opération de celles liées à la facture (erreur d'affectation). rouvrir = Vrai : la facture, si elle était
+' clôturée, est rouverte. Faux si la facture ou le lien est introuvable. La confirmation est demandée par l'appelant.
+Public Function DelierFacture(ByVal idFacture As Long, ByVal idTransaction As String, Optional ByVal rouvrir As Boolean = False) As Boolean
+
+    Dim lo As ListObject
+    Dim i As Long, idxLien As Long
+    Dim v As Variant
+    Dim element As Variant
+    Dim reste As String, cle As String, existant As String
+
+    Set lo = TableFactures()
+    If lo Is Nothing Then Exit Function
+    If mod_Consommations.TableVide(lo) Then Exit Function
+    idxLien = ColonneLien(lo)
+    For i = 1 To lo.ListRows.Count
+        v = lo.ListColumns("ID_Facture").DataBodyRange.Cells(i, 1).Value2
+        If IsNumeric(v) And Not IsEmpty(v) Then
+            If CLng(v) = idFacture Then
+                existant = mod_DataStructure.CellText(lo.DataBodyRange.Cells(i, idxLien).Value2)
+                For Each element In Split(existant, FAC_SEP_LIENS)
+                    cle = Trim$(CStr(element))
+                    If cle <> "" And StrComp(cle, Trim$(idTransaction), vbBinaryCompare) <> 0 Then
+                        If reste <> "" Then reste = reste & FAC_SEP_LIENS
+                        reste = reste & cle
+                    End If
+                Next element
+                If NbLiens(reste) = NbLiens(existant) Then Exit Function        ' l'opération n'était pas liée à cette facture
+                With lo.DataBodyRange.Cells(i, idxLien)
+                    .NumberFormat = "@"
+                    If reste = "" Then .ClearContents Else .Value = reste
+                End With
+                lo.DataBodyRange.Cells(i, ColonneNbOperations(lo)).Value = NbLiens(reste)
+                If rouvrir Then CloturerFacture idFacture, False
+                DelierFacture = True
+                Exit Function
+            End If
+        End If
+    Next i
+
+End Function
+
+' Double-clic dans la liste frm_Factures (appelé par ThisWorkbook.Workbook_SheetBeforeDoubleClick) : sur la colonne
+' NbOperations, ouvre frm_RechercheOperations sur les opérations liées à la facture de la ligne.
+Public Sub TraiterDoubleClicListe(ByVal Target As Range, ByRef Cancel As Boolean)
+
+    Dim lo As ListObject
+    Dim idxNb As Long, n As Long
+    Dim v As Variant
+    Dim idFacture As Long
+
+    Set lo = TableAffFactures()
+    If lo Is Nothing Then Exit Sub
+    If lo.DataBodyRange Is Nothing Then Exit Sub
+    If Intersect(Target, lo.DataBodyRange) Is Nothing Then Exit Sub
+    idxNb = mod_Consommations.ColIdx(lo, FAC_COL_NBOP)
+    If idxNb = 0 Then Exit Sub
+    If Target.Cells(1, 1).Column <> lo.ListColumns(idxNb).Range.Column Then Exit Sub
+
+    Cancel = True
+    n = Target.Cells(1, 1).Row - lo.DataBodyRange.Row + 1
+    v = lo.ListColumns("ID_Facture").DataBodyRange.Cells(n, 1).Value2
+    If Not (IsNumeric(v) And Not IsEmpty(v)) Then Exit Sub
+    idFacture = CLng(v)
+    If OperationsDeFacture(idFacture).Count = 0 Then
+        MsgBox mod_Display.FR("Aucune op{e2}ration n'est li{e2}e {a2} cette facture."), vbInformation, mod_Display.FR("Op{e2}rations li{e2}es")
+        Exit Sub
+    End If
+    mod_RechercheOperations.RechercherOperations "OperationsFacture", idFacture
+
+End Sub
+
 ' --- Clôture des factures (ajout 01/11/2026) ---
 ' Colonne « Cloturee » de TblFactures, créée au premier besoin comme ColonneLien : aucune réinstallation nécessaire.
 Public Function ColonneCloture(ByVal lo As ListObject) As Long
@@ -1186,6 +1337,7 @@ Public Sub RafraichirListeFactures()
 
     mod_Consommations.MettreEnFormeListeFactures dst
     MasquerColonnesListe dst
+    ReplacerBoutonsListe dst.Parent
     RestaurerFiltres dst, filtres
     Application.ScreenUpdating = True
 
@@ -1204,6 +1356,37 @@ Private Sub AssurerColonneNbOpListe(ByVal dst As ListObject)
     col.Name = FAC_COL_NBOP
     col.Range.ColumnWidth = 12
     mod_InstallCommun.PoserEnteteTableau dst.HeaderRowRange
+
+End Sub
+
+' Les boutons de la ligne d'en-tête sont posés sur les colonnes de la liste avec l'option « déplacer et dimensionner avec les
+' cellules » : masquer une colonne les écrasait ou les faisait disparaître. Ils sont donc remis à leur largeur, côte à côte
+' depuis la première colonne, et rendus indépendants des cellules (Placement = flottant).
+Private Sub ReplacerBoutonsListe(ByVal ws As Worksheet)
+
+    Dim noms As Variant, largeurs As Variant
+    Dim k As Long
+    Dim gauche As Double
+    Dim btn As Shape
+
+    noms = Array("btnAjouterFacture", "btnConsulterFacture", "btnModifierFacture", "btnCopierFacture", _
+                 "btnSupprimerFacture", "btnVoirContratsF", "btnRetourFactures", "btnAide")
+    largeurs = Array(118, 118, 118, 112, 118, 80, mod_InstallCommun.FRM_BTN_L, mod_InstallCommun.FRM_BTN_AIDE_L)
+
+    gauche = ws.Cells(1, 2).Left
+    For k = LBound(noms) To UBound(noms)
+        Set btn = Nothing
+        On Error Resume Next
+        Set btn = ws.Shapes(CStr(noms(k)))
+        On Error GoTo 0
+        If Not btn Is Nothing Then
+            btn.Placement = xlFreeFloating
+            btn.Visible = msoTrue
+            btn.Left = gauche
+            btn.Width = CDbl(largeurs(k))
+            gauche = gauche + CDbl(largeurs(k)) + mod_InstallCommun.FRM_BTN_ECART
+        End If
+    Next k
 
 End Sub
 

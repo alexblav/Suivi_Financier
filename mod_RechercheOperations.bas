@@ -60,6 +60,10 @@ Private g_ROParamActif As Variant
 ' (mod_Synthese.ChargerLiensFactures), charges une fois par recherche.
 Private liensFacturesRO As Object
 
+' Ajout 01/11/2026 (prefiltre "OperationsFacture", double-clic sur le nombre d'operations liees de frm_Factures) :
+' ID_Transaction des operations liees a la facture dont le numero est passe en parametre.
+Private liensOpFactureRO As Object
+
 ' Ajout 31/10/2026 (prefiltre "PourEcheance") : fenetre de dates (numeros de serie, bornes comprises) et signe du
 ' montant (-1 depense, 1 entree) de l'echeance en retard dont on cherche l'operation (mod_Echeancier.FenetreRechercheEcheance).
 Private g_ROEchDebut As Double
@@ -355,6 +359,9 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
         Case "FacturesNonLiees"
             ' Ajout 29/10/2026 : memes operations que le bloc "Factures non liees" de Synthese, sans limite de lignes.
             Set liensFacturesRO = mod_Synthese.ChargerLiensFactures()
+        Case "OperationsFacture"
+            ' Ajout 01/11/2026 : param = ID_Facture. Seules les operations citees par la facture.
+            Set liensOpFactureRO = mod_Factures.OperationsDeFacture(mod_DataStructure.ToLong(param))
         Case "PourEcheance"
             ' Ajout 31/10/2026 : param = ID_Echeance. Operations du MOIS de la date prevue, de meme signe que l'echeance.
             If Not mod_Echeancier.FenetreRechercheEcheance(CStr(param), g_ROEchDebut, g_ROEchFin, g_ROEchSigne) Then
@@ -925,6 +932,10 @@ Private Function DecrireFiltreActifRO(ByVal prefiltre As String, ByVal param As 
             texte = FR("Factures non li{e2}es -- d{e2}penses Eau et {E2}lectricit{e2} - gaz - chauffage qu'aucune facture ne cite encore (parts ventil{e2}es exclues, tous mois confondus) -- ") & _
                     nbTotal & FR(" ligne(s). S{e2}lectionnez une ligne puis [Affecter une facture].")
 
+        Case "OperationsFacture"
+            texte = FR("Op{e2}rations li{e2}es {a2} la facture ") & mod_Factures.DescriptionFacture(mod_DataStructure.ToLong(param)) & " -- " & _
+                    nbTotal & FR(" ligne(s). Pour corriger une erreur d'affectation, s{e2}lectionnez l'op{e2}ration puis [D{e2}lier de la facture].")
+
         Case "PourEcheance"
             texte = FR("Op{e2}rations du mois de l'{e2}ch{e2}ance en retard ") & mod_Echeancier.DescriptionEcheance(CStr(param)) & _
                     FR(", de m{ea}me signe (parts ventil{e2}es exclues) -- ") & nbTotal & _
@@ -1015,6 +1026,9 @@ Private Function LigneOpRetenuePourPrefiltre(ByVal i As Long, ByVal prefiltre As
                     LigneOpRetenuePourPrefiltre = Not liensFacturesRO.Exists(mod_DataStructure.CellText(tblData(i, colID)))
                 End If
             End If
+        Case "OperationsFacture"
+            ' Ajout 01/11/2026 : operation citee par la facture (parts ventilees exclues).
+            LigneOpRetenuePourPrefiltre = liensOpFactureRO.Exists(mod_DataStructure.CellText(tblData(i, colID)))
         Case "PourEcheance"
             ' Ajout 31/10/2026 : operation du mois de l'echeance en retard, de meme signe que son montant.
             jourOp = Int(JourPourTriRO(tblData(i, colDate)))
@@ -1617,6 +1631,14 @@ Public Sub SortirRechercheOperations()
         mod_InstallCommun.ActiverFeuille mod_VarGlobales.NOM_FEUILLE_SYNTHESE
         Exit Sub
     End If
+    ' Ajout 01/11/2026 : ouvert depuis la liste des factures -> retour sur cette liste, actualisee
+    ' (le nombre d'operations liees a pu changer apres une deliaison).
+    If g_ROPrefiltreActif = "OperationsFacture" Then
+        mod_Aide.MasquerFormulaire ws
+        mod_InstallCommun.ActiverFeuille mod_VarGlobales.NOM_FEUILLE_FACTURES
+        mod_Factures.RafraichirListeFactures
+        Exit Sub
+    End If
     On Error Resume Next
     If g_ROPrefiltreActif = "DetailTotal" Then
         ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RESULTAT).Activate
@@ -1738,6 +1760,70 @@ Public Sub AffecterEcheanceRO()
             mod_Aide.MasquerFormulaire ws
             mod_InstallCommun.ActiverFeuille mod_VarGlobales.NOM_FEUILLE_SYNTHESE
         End If
+    End If
+
+End Sub
+
+
+' =====================================================================================
+' BOUTON "Délier de la facture" (ajout du 01/11/2026) : corrige une erreur d'affectation. L'opération SÉLECTIONNÉE est
+' retirée de la facture à laquelle elle est liée (retrouvée d'après l'opération, quel que soit le préfiltre) ; si la facture
+' était clôturée, une question propose de la rouvrir. Voir mod_Factures.DelierFacture. Les écrans « Opérations d'une
+' facture » et « Factures non liées » sont rechargés (l'opération y apparaît ou en disparaît).
+' =====================================================================================
+Public Sub DelierFactureRO()
+
+    Dim idTransaction As String, tiersSel As String, categorieSel As String, sousCategorieSel As String
+    Dim idFacture As Long
+    Dim cloturee As Boolean
+    Dim rouvrir As Boolean
+    Dim reponse As VbMsgBoxResult
+    Dim lo As ListObject
+    Dim i As Long, v As Variant
+
+    LireSelectionRO idTransaction, tiersSel, categorieSel, sousCategorieSel
+    If idTransaction = "" Then Exit Sub
+
+    idFacture = mod_Factures.FactureDeOperation(idTransaction)
+    If idFacture = 0 Then
+        MsgBox mod_Display.FR("Cette op{e2}ration n'est li{e2}e {a2} aucune facture."), vbInformation, mod_Display.FR("D{e2}lier de la facture")
+        Exit Sub
+    End If
+
+    If MsgBox(mod_Display.FR("D{e2}lier l'op{e2}ration '") & tiersSel & mod_Display.FR("' de la facture :") & vbCrLf & _
+              mod_Factures.DescriptionFacture(idFacture) & vbCrLf & vbCrLf & _
+              mod_Display.FR("La facture ne la citera plus ; l'op{e2}ration pourra {ea}tre affect{e2}e {a2} une autre facture."), _
+              vbYesNo + vbQuestion + vbDefaultButton2, mod_Display.FR("D{e2}lier de la facture")) = vbNo Then Exit Sub
+
+    ' Facture clôturée : elle ne serait plus proposée à l'affectation, on propose de la rouvrir.
+    Set lo = mod_Factures.TableFactures()
+    If Not lo Is Nothing Then
+        For i = 1 To lo.ListRows.Count
+            v = lo.ListColumns("ID_Facture").DataBodyRange.Cells(i, 1).Value2
+            If IsNumeric(v) And Not IsEmpty(v) Then
+                If CLng(v) = idFacture Then
+                    If mod_Consommations.ColIdx(lo, mod_Factures.FAC_COL_CLOTURE) > 0 Then
+                        cloturee = mod_Factures.EstCloture(lo.DataBodyRange.Cells(i, mod_Consommations.ColIdx(lo, mod_Factures.FAC_COL_CLOTURE)).Value2)
+                    End If
+                    Exit For
+                End If
+            End If
+        Next i
+    End If
+    If cloturee Then
+        reponse = MsgBox(mod_Display.FR("Cette facture est cl{o2}tur{e2}e. La rouvrir pour qu'elle soit de nouveau propos{e2}e {a2} l'affectation ?"), _
+                         vbYesNoCancel + vbQuestion, mod_Display.FR("D{e2}lier de la facture"))
+        If reponse = vbCancel Then Exit Sub
+        rouvrir = (reponse = vbYes)
+    End If
+
+    If mod_Factures.DelierFacture(idFacture, idTransaction, rouvrir) Then
+        MsgBox mod_Display.FR("Op{e2}ration d{e2}li{e2}e de la facture."), vbInformation, mod_Display.FR("D{e2}lier de la facture")
+        If g_ROPrefiltreActif = "OperationsFacture" Or g_ROPrefiltreActif = "FacturesNonLiees" Then
+            RechercherOperations g_ROPrefiltreActif, g_ROParamActif, True
+        End If
+    Else
+        MsgBox mod_Display.FR("D{e2}liaison impossible : rien n'a {e2}t{e2} modifi{e2}."), vbExclamation, mod_Display.FR("D{e2}lier de la facture")
     End If
 
 End Sub

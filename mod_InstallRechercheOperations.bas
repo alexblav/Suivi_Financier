@@ -219,6 +219,9 @@ Private Function RO_TexteInstructions() As String
     t = t & "(pour revenir au mois d'origine, indiquez 0)."
     t = t & Chr(10) & "- [b:Rendre r{e2}currente] : ouvre le formulaire d'{e2}ch{e2}ance pr{e2}rempli avec l'op{e2}ration s{e2}lectionn{e2}e (tiers, cat{e2}gorie, montant, "
     t = t & "p{e2}riodicit{e2} mensuelle, prochaine date {a2} venir). Vous pouvez tout modifier avant de valider ; l'op{e2}ration elle-m{ea}me n'est pas modifi{e2}e."
+    t = t & Chr(10) & "- [b:D{e2}lier de la facture] : corrige une erreur d'affectation. L'op{e2}ration s{e2}lectionn{e2}e est retir{e2}e de la facture {a2} laquelle elle est li{e2}e "
+    t = t & "(confirmation demand{e2}e ; si la facture est cl{o2}tur{e2}e, une question propose de la rouvrir). L'{e2}cran s'ouvre sur les op{e2}rations d'une facture par un double-clic "
+    t = t & "sur le nombre d'op{e2}rations li{e2}es de [f:frm_Factures]."
 
     RO_TexteInstructions = t
 
@@ -292,6 +295,55 @@ Private Sub RO_ConstruireBoutons(ByVal ws As Worksheet)
     ' Ajout 31/10/2026 : rapproche l'operation selectionnee d'une echeance de l'echeancier.
     mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Affecter {a2} une {e2}ch{e2}ance"), _
         "AffecterEcheanceRO", "btnAffecterEcheanceRO", 135
+    ' Ajout 01/11/2026 : retire l'operation selectionnee de la facture a laquelle elle est liee (erreur d'affectation).
+    mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("D{e2}lier de la facture"), _
+        "DelierFactureRO", "btnDelierFactureRO", 120
+
+End Sub
+
+' =====================================================================================
+' Ajout 01/11/2026 : bouton "Délier de la facture" ajouté à la feuille EXISTANTE, sans la reconstruire (même principe
+' que ci-dessous). Macro à lancer : InstallerDelierFacture.
+' =====================================================================================
+Public Sub InstallerDelierFacture()
+
+    Dim ws As Worksheet
+    Dim wsPrecedente As Worksheet
+    Dim etatAvant As XlSheetVisibility
+    Dim gauche As Double
+    Dim ref As Shape
+
+    Set ws = mod_InstallCommun.TrouverFeuille(NOM_FEUILLE_RECHERCHE)
+    If ws Is Nothing Then
+        MsgBox mod_Display.FR("La feuille '") & NOM_FEUILLE_RECHERCHE & mod_Display.FR("' n'existe pas encore : lancez d'abord CreerFeuilleRechercheOperations."), vbExclamation
+        Exit Sub
+    End If
+
+    Set wsPrecedente = ActiveSheet
+    etatAvant = ws.Visible
+    ws.Visible = xlSheetVisible
+    ws.Activate
+
+    On Error Resume Next
+    ws.Shapes("btnDelierFactureRO").Delete
+    Set ref = ws.Shapes("btnAffecterEcheanceRO")
+    If ref Is Nothing Then Set ref = ws.Shapes("btnAffecterFactureRO")
+    On Error GoTo 0
+    If ref Is Nothing Then
+        gauche = ws.Cells(1, 1).Left + 700
+    Else
+        gauche = ref.Left + ref.Width + mod_InstallCommun.FRM_BTN_ECART
+    End If
+    mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("D{e2}lier de la facture"), _
+        "DelierFactureRO", "btnDelierFactureRO", 120
+
+    mod_InstallCommun.EcrireInstructions ws, RO_LIGNE_INSTRUCTIONS, 1, 1, 2, 7, RO_TexteInstructions()
+
+    If wsPrecedente.Name <> ws.Name Then wsPrecedente.Activate
+    ws.Visible = etatAvant
+
+    MsgBox mod_Display.FR("Le bouton 'D{e2}lier de la facture' est en place sur l'{e2}cran de recherche."), _
+           vbInformation, mod_Display.FR("Installation termin{e2}e")
 
 End Sub
 
