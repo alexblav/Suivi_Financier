@@ -168,6 +168,7 @@ Private Sub Def_Factures(ByRef titre As String, ByRef intro As String, ByRef cha
     L champs, "TotalTTCCalcule", "Calcul{e2} : somme des montants TTC des lignes (indicatif)."
     L champs, "TotalFactureTTC", "Montant TTC r{e2}ellement indiqu{e2} sur la facture."
     L champs, "Ecart", "TotalFactureTTC - TotalTTCCalcule ; vide si le total de la facture n'a pas {e2}t{e2} saisi."
+    L champs, "NbOperations", "Nombre d'op{e2}rations bancaires li{e2}es {a2} la facture (m{e2}moris{e2} avec la facture, mis {a2} jour {a2} chaque affectation). Affich{e2} aussi dans le formulaire de la facture, sous Facture cl{o2}tur{e2}e. Les colonnes ID_Facture, DebutPeriode, FinPeriode, TotalHT, TotalTVA, TotalTTCCalcule et Ecart sont masqu{e2}es dans la liste."
     L champs, "Cloturee", "Oui quand la facture est cl{o2}tur{e2}e (toutes ses op{e2}rations bancaires sont li{e2}es) : elle n'est plus propos{e2}e par l'affectation d'une facture {a2} une op{e2}ration. Se change dans le formulaire de la facture, avec confirmation."
     L champs, "Commentaire", "Texte libre (facultatif)."
 

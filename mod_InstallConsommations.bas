@@ -93,7 +93,7 @@ Private Function PreparerToutesLesDonnees() As Boolean
         Split("ID_Contrat|TypeConso|Operateur|Unite|DateDebut|DateFin|AbonnementMensuel|Reference", "|"), _
         mod_VarGlobales.NOM_FEUILLE_CONTRATS) Then Exit Function
     If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_FACTURES, mod_VarGlobales.NOM_TABLE_FACTURES, _
-        Split("ID_Facture|TypeConso|Operateur|NumeroFacture|DateFacture|DebutPeriode|FinPeriode|TotalFactureTTC|Commentaire|ID_Transactions|Cloturee", "|"), "") Then Exit Function
+        Split("ID_Facture|TypeConso|Operateur|NumeroFacture|DateFacture|DebutPeriode|FinPeriode|TotalFactureTTC|Commentaire|ID_Transactions|Cloturee|NbOperations", "|"), "") Then Exit Function
     ' Toutes les lignes (abonnement, consommation, taxes, blocs ajoutés) : un seul tableau.
     If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_LIGNES, mod_VarGlobales.NOM_TABLE_LIGNES, _
         Split("ID_Facture|OrdreBloc|Bloc|Indicateur|Libelle|DateDebut|DateFin|Quantite|Unite|PrixUnitaireHT|TauxTVA|MontantHT|MontantTTC", "|"), "") Then Exit Function
@@ -551,9 +551,9 @@ Private Function ConstruireListeFactures(ByVal wsPrecedente As Worksheet) As Boo
     Dim t As String
 
     entetes = Array("ID_Facture", "TypeConso", "Operateur", "NumeroFacture", "DateFacture", "DebutPeriode", "FinPeriode", _
-                    "TotalHT", "TotalTVA", "TotalTTCCalcule", "TotalFactureTTC", "Ecart", "Cloturee", "Commentaire")
-    largeurs = Array(11, 18, 22, 16, 12, 12, 12, 12, 12, 16, 16, 10, 10, 28)
-    formats = Array("0", "@", "@", "@", "dd/mm/yyyy", "dd/mm/yyyy", "dd/mm/yyyy", "#,##0.00", "#,##0.00", "#,##0.00", "#,##0.00", "#,##0.00", "@", "@")
+                    "TotalHT", "TotalTVA", "TotalTTCCalcule", "TotalFactureTTC", "Ecart", "NbOperations", "Cloturee", "Commentaire")
+    largeurs = Array(11, 18, 22, 16, 12, 12, 12, 12, 12, 16, 16, 10, 12, 10, 28)
+    formats = Array("0", "@", "@", "@", "dd/mm/yyyy", "dd/mm/yyyy", "dd/mm/yyyy", "#,##0.00", "#,##0.00", "#,##0.00", "#,##0.00", "#,##0.00", "0", "@", "@")
 
     boutons = Array( _
         mod_Display.FR("Ajouter une facture"), "SaisirFacture", "btnAjouterFacture", 118, _
@@ -569,6 +569,7 @@ Private Function ConstruireListeFactures(ByVal wsPrecedente As Worksheet) As Boo
     t = t & Chr(10) & "Les factures sont class{e2}es par date de facture, les plus r{e2}centes en haut. Les fl{e1}ches de l'en-t{ea}te permettent de filtrer chaque colonne ; le filtre est conserv{e2} quand la liste est actualis{e2}e (apr{e1}s une saisie ou une suppression)."
     t = t & Chr(10) & "La liste est en lecture seule : on ajoute ou on corrige une facture avec le formulaire. [c:TotalTTCCalcule] est la somme des lignes saisies "
     t = t & "(indicatif) ; [c:TotalFactureTTC] est le montant r{e2}ellement factur{e2} ; [c:Ecart] est leur diff{e2}rence."
+    t = t & Chr(10) & "Les colonnes [c:ID_Facture], [c:DebutPeriode], [c:FinPeriode], [c:TotalHT], [c:TotalTVA], [c:TotalTTCCalcule] et [c:Ecart] sont masqu{e2}es (elles restent visibles dans le formulaire de la facture). [c:NbOperations] est le nombre d'op{e2}rations bancaires li{e2}es {a2} la facture."
     t = t & Chr(10) & "[c:Cloturee] vaut Oui quand la facture est cl{o2}tur{e2}e : toutes les op{e2}rations bancaires qui l'ont r{e2}gl{e2}e sont li{e2}es, elle n'est plus propos{e2}e par l'affectation d'une facture {a2} une op{e2}ration. Elle se change dans le formulaire ([b:Modifier la s{e2}lection]), avec confirmation."
     t = t & Chr(10) & "Boutons :"
     t = t & Chr(10) & "- [b:Ajouter une facture] : ouvre le formulaire de saisie."

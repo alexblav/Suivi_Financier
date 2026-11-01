@@ -247,7 +247,7 @@ End Function
 ' Format d'affichage d'une colonne des tableaux de consommations (par son NOM).
 Public Function FormatColonneConso(ByVal nom As String) As String
     Select Case nom
-        Case "ID_Contrat", "ID_Facture", "OrdreBloc": FormatColonneConso = "0"
+        Case "ID_Contrat", "ID_Facture", "OrdreBloc", "NbOperations": FormatColonneConso = "0"
         Case "DateDebut", "DateFin", "DateFacture", "DebutPeriode", "FinPeriode": FormatColonneConso = "dd/mm/yyyy"
         Case "Quantite": FormatColonneConso = "#,##0.00"
         Case "PrixUnitaireHT": FormatColonneConso = "#,##0.00000"

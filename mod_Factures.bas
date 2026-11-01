@@ -61,6 +61,11 @@ Public Const FAC_SEP_LIENS As String = ";"
 Public Const FAC_COL_CLOTURE As String = "Cloturee"
 Public Const FAC_VAL_CLOTURE As String = "Oui"
 
+' Colonne de TblFactures qui mémorise le NOMBRE d'opérations liées (ajout 01/11/2026) : évite de recompter les ID_Transactions
+' à chaque affichage de la liste. Tenue à jour par LierFacture et EnregistrerFacture ; créée au premier besoin (voir ColonneNbOperations).
+Public Const FAC_COL_NBOP As String = "NbOperations"
+Public Const FF_ADR_NBOP As String = "I7"             ' fusion I7:J7 (étiquette en F7:H7) : champ en lecture seule
+
 ' --- Blocs de lignes : colonnes ---
 Public Const FF_COL_LIB As Long = 2
 Public Const FF_COL_DEB As Long = 3
@@ -762,6 +767,7 @@ Private Function EnregistrerFacture(ByRef f As TypeFacture) As Boolean
 
     ColonneLien lo
     ColonneCloture lo
+    ColonneNbOperations lo
     If f.ID = 0 Then
         f.ID = mod_Consommations.ProchainID(lo, "ID_Facture")
         lienOperation = g_LienAEnregistrer
@@ -775,6 +781,7 @@ Private Function EnregistrerFacture(ByRef f As TypeFacture) As Boolean
     With lr.Range
         .Cells(1, mod_Consommations.ColIdx(lo, "ID_Facture")).Value = f.ID
         If lienOperation <> "" Then .Cells(1, mod_Consommations.ColIdx(lo, FAC_COL_LIEN)).Value = lienOperation
+        .Cells(1, mod_Consommations.ColIdx(lo, FAC_COL_NBOP)).Value = NbLiens(lienOperation)
         .Cells(1, mod_Consommations.ColIdx(lo, "TypeConso")).Value = f.Typ
         .Cells(1, mod_Consommations.ColIdx(lo, "Operateur")).Value = f.Operateur
         .Cells(1, mod_Consommations.ColIdx(lo, "NumeroFacture")).Value = f.Numero
@@ -846,6 +853,55 @@ Private Function LienDeFacture(ByVal lo As ListObject, ByVal id As Long) As Stri
 
 End Function
 
+' Nombre d'opérations dans une liste d'ID_Transaction séparés par FAC_SEP_LIENS.
+Public Function NbLiens(ByVal liens As String) As Long
+
+    Dim element As Variant
+
+    For Each element In Split(liens, FAC_SEP_LIENS)
+        If Trim$(CStr(element)) <> "" Then NbLiens = NbLiens + 1
+    Next element
+
+End Function
+
+' Colonne « NbOperations » de TblFactures, créée au premier besoin comme ColonneLien. À la création, elle est renseignée
+' pour toutes les factures déjà liées (comptage de leurs ID_Transactions).
+Public Function ColonneNbOperations(ByVal lo As ListObject) As Long
+
+    Dim col As ListColumn
+    Dim i As Long, idxLien As Long
+
+    ColonneNbOperations = mod_Consommations.ColIdx(lo, FAC_COL_NBOP)
+    If ColonneNbOperations > 0 Then Exit Function
+    Set col = lo.ListColumns.Add
+    col.Name = FAC_COL_NBOP
+    col.DataBodyRange.NumberFormat = "0"
+    ColonneNbOperations = col.Index
+
+    idxLien = mod_Consommations.ColIdx(lo, FAC_COL_LIEN)
+    If idxLien = 0 Or mod_Consommations.TableVide(lo) Then Exit Function
+    For i = 1 To lo.ListRows.Count
+        lo.DataBodyRange.Cells(i, ColonneNbOperations).Value = NbLiens(mod_DataStructure.CellText(lo.DataBodyRange.Cells(i, idxLien).Value2))
+    Next i
+
+End Function
+
+' Nombre d'opérations liées à la facture affichée dans le formulaire : relu dans TblFactures (facture existante) ;
+' une facture neuve saisie depuis une opération (g_LienAEnregistrer) en compte une.
+Private Function NbOperationsFacture(ByVal id As Long) As Long
+
+    Dim lo As ListObject
+
+    If id = 0 Then
+        NbOperationsFacture = NbLiens(g_LienAEnregistrer)
+        Exit Function
+    End If
+    Set lo = TableFactures()
+    If lo Is Nothing Then Exit Function
+    NbOperationsFacture = NbLiens(LienDeFacture(lo, id))
+
+End Function
+
 ' AJOUTE l'opération à celles déjà liées à la facture (sans doublon). Faux si la facture est introuvable.
 Public Function LierFacture(ByVal idFacture As Long, ByVal idTransaction As String) As Boolean
 
@@ -870,6 +926,7 @@ Public Function LierFacture(ByVal idFacture As Long, ByVal idTransaction As Stri
                     ElseIf InStr(1, FAC_SEP_LIENS & existant & FAC_SEP_LIENS, FAC_SEP_LIENS & idTransaction & FAC_SEP_LIENS, vbBinaryCompare) = 0 Then
                         .Value = existant & FAC_SEP_LIENS & idTransaction
                     End If
+                    lo.DataBodyRange.Cells(i, ColonneNbOperations(lo)).Value = NbLiens(mod_DataStructure.CellText(.Value2))
                 End With
                 LierFacture = True
                 Exit Function
@@ -934,6 +991,10 @@ Public Sub PoserChampCloture(ByVal ws As Worksheet)
     mod_InstallCommun.PoserEtiquette ws.Range("F6:H6"), mod_Display.FR("Facture cl{o2}tur{e2}e")
     mod_InstallCommun.PoserChampSaisie ws.Range(FF_ADR_CLOTURE & ":J6"), "@"
     ws.Range(FF_ADR_CLOTURE).HorizontalAlignment = xlCenter
+    ' Sous le champ : nombre d'opérations liées (lecture seule, renseigné à l'ouverture du formulaire).
+    mod_InstallCommun.PoserEtiquette ws.Range("F7:H7"), mod_Display.FR("Op{e2}rations li{e2}es")
+    mod_InstallCommun.PoserChampLecture ws.Range(FF_ADR_NBOP & ":J7"), "0"
+    ws.Range(FF_ADR_NBOP).HorizontalAlignment = xlCenter
     On Error Resume Next
     With ws.Range(FF_ADR_CLOTURE).Validation
         .Delete
@@ -1074,6 +1135,10 @@ Public Sub RafraichirListeFactures()
 
     Application.ScreenUpdating = False
 
+    ' Colonne du nombre d'opérations : créée au besoin dans les données et dans la liste (aucune réinstallation nécessaire).
+    ColonneNbOperations src
+    AssurerColonneNbOpListe dst
+
     ' Les filtres de colonne (flèches d'Excel) sont mémorisés puis levés pendant la reconstruction du tableau,
     ' et réappliqués à la fin : l'opérateur retrouve sa vue filtrée après chaque rafraîchissement.
     If Not dst.ShowAutoFilter Then dst.ShowAutoFilter = True
@@ -1120,8 +1185,41 @@ Public Sub RafraichirListeFactures()
     End If
 
     mod_Consommations.MettreEnFormeListeFactures dst
+    MasquerColonnesListe dst
     RestaurerFiltres dst, filtres
     Application.ScreenUpdating = True
+
+End Sub
+
+' Ajoute la colonne NbOperations à la liste affichée si elle n'y est pas (écran installé avant son ajout),
+' juste avant « Cloturee ».
+Private Sub AssurerColonneNbOpListe(ByVal dst As ListObject)
+
+    Dim col As ListColumn
+    Dim pos As Long
+
+    If mod_Consommations.ColIdx(dst, FAC_COL_NBOP) > 0 Then Exit Sub
+    pos = mod_Consommations.ColIdx(dst, FAC_COL_CLOTURE)
+    If pos > 0 Then Set col = dst.ListColumns.Add(pos) Else Set col = dst.ListColumns.Add
+    col.Name = FAC_COL_NBOP
+    col.Range.ColumnWidth = 12
+    mod_InstallCommun.PoserEnteteTableau dst.HeaderRowRange
+
+End Sub
+
+' Colonnes de la liste qui ne sont pas affichées : elles restent dans le tableau (l'identifiant sert à retrouver la
+' facture sélectionnée) mais leur colonne est masquée. Le détail reste visible dans le formulaire de la facture.
+Private Sub MasquerColonnesListe(ByVal dst As ListObject)
+
+    Dim nom As Variant
+
+    For Each nom In Array("ID_Facture", "DebutPeriode", "FinPeriode", "TotalHT", "TotalTVA", "TotalTTCCalcule", "Ecart")
+        If mod_Consommations.ColIdx(dst, CStr(nom)) > 0 Then
+            On Error Resume Next
+            dst.ListColumns(CStr(nom)).Range.EntireColumn.Hidden = True
+            On Error GoTo 0
+        End If
+    Next nom
 
 End Sub
 
@@ -1303,6 +1401,7 @@ Private Sub RemplirFormulaire(ByVal ws As Worksheet, ByRef f As TypeFacture)
     PoserChampCloture ws
     g_ClotureOrigine = f.Cloturee
     If f.Cloturee Then ws.Range(FF_ADR_CLOTURE).Value = "Oui" Else ws.Range(FF_ADR_CLOTURE).Value = "Non"
+    ws.Range(FF_ADR_NBOP).Value = NbOperationsFacture(f.ID)
     ws.Range(FF_ADR_MESSAGE).Value = ""
     PoserListeType ws
     MettreAJourListeOperateurs ws, f.Typ
