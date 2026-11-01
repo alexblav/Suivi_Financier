@@ -1,8 +1,8 @@
 # Suivi Financier – Guide de fonctionnement
 
-Oct 11, 2026 · @Alexandre
+Nov 1, 2026 · @Alexandre
 
-Ce guide explique ce que fait le classeur Excel de suivi des comptes : on importe les relevés de la banque, on range chaque opération dans une catégorie, on suit les remboursements de santé, on déclare les opérations à venir (échéancier), on analyse ses dépenses et on suit ses consommations d'eau, d'électricité et de gaz, puis on consulte et corrige depuis un écran de recherche. Il décrit le code de la branche Refonte\_recherche du dépôt Suivi\_Financier, dans son état du 11/10/2026 (dernier commit f394b3e, « Synchronisation, sauvegarde et chiffrement »), complété par les évolutions de l'échéancier du 11/10/2026 (contrôle du solde, numéro de chèque).
+Ce guide explique ce que fait le classeur Excel de suivi des comptes : on importe les relevés de la banque, on range chaque opération dans une catégorie, on suit les remboursements de santé, on déclare les opérations à venir (échéancier), on analyse ses dépenses et leur évolution, on suit ses consommations d'eau, d'électricité et de gaz (et les factures qui les ont réglées), puis on consulte et corrige depuis un écran de recherche. Il décrit le code de la branche Refonte\_recherche du dépôt Suivi\_Financier, dans son état du 01/11/2026 (dernier commit e0a6012, « Voir la liste des opérations liées à une facture »). Les sections 14 à 17 et l'annexe « Modèle de données » ont été ajoutées le 01/11/2026 après une relecture complète du code : elles couvrent la scission Menu / Synthese, l'évolution des dépenses, l'aide contextuelle, le rattachement des factures aux opérations et la gestion des comptes, qui n'étaient pas décrits jusque-là.
 
 Ce document existe en deux formats, **toujours identiques** : `README.md` (lu sur GitHub, schémas Mermaid) et `README.html` (un seul fichier autonome, qui s'ouvre dans n'importe quel navigateur, sans connexion internet). Voir la section « Régénérer le guide HTML » en fin de document.
 
@@ -18,7 +18,7 @@ Ce document existe en deux formats, **toujours identiques** : `README.md` (lu su
 - [4. Le mois de budget et les décalages](#4-le-mois-de-budget-et-les-décalages)
 - [5. Le suivi santé](#5-le-suivi-santé)
 - [6. L'écran de recherche des opérations](#6-lécran-de-recherche-des-opérations)
-- [7. La feuille Synthese et les écrans de résultat](#7-la-feuille-synthese-et-les-écrans-de-résultat)
+- [7. Les feuilles Menu et Synthese, et les écrans de résultat](#7-les-feuilles-menu-et-synthese-et-les-écrans-de-résultat)
 - [8. L'échéancier et le prévisionnel de trésorerie](#8-léchéancier-et-le-prévisionnel-de-trésorerie)
     - [Les principes](#les-principes-validés-le-09102026)
     - [Installer l'échéancier](#installer-léchéancier)
@@ -32,6 +32,11 @@ Ce document existe en deux formats, **toujours identiques** : `README.md` (lu su
 - [11. Installation, maintenance et outils développeur](#11-installation-maintenance-et-outils-développeur)
 - [12. Déploiement et sauvegardes](#12-déploiement-et-sauvegardes-synchronisation-avec-le-fichier-central)
 - [13. Le pointage des opérations](#13-le-pointage-des-opérations)
+- [14. L'évolution des dépenses dans le temps](#14-lévolution-des-dépenses-dans-le-temps)
+- [15. L'aide contextuelle des écrans](#15-laide-contextuelle-des-écrans)
+- [16. Relier une facture à ses opérations bancaires](#16-relier-une-facture-à-ses-opérations-bancaires)
+- [17. Les comptes bancaires](#17-les-comptes-bancaires)
+- [Annexe : modèle de données](#annexe--modèle-de-données)
 - [Glossaire](#glossaire)
 - [Points relevés à la lecture du code](#points-relevés-à-la-lecture-du-code)
 
@@ -69,10 +74,19 @@ Un point de vocabulaire utile dès le départ : un **tableau Excel** (ou *ListOb
 | Feuille | Tableau / contenu | Rôle pour l'utilisateur | Visible ? |
 | --- | --- | --- | --- |
 | Accueil | Bouton d'import | Lancer l'import des relevés | Oui |
-| Synthese | Critères (année, mois, seuil…), bloc « Prévisionnel de trésorerie », boutons | Point de départ de toutes les consultations | Oui |
+| Menu | Critères (année, mois, seuil…), tous les boutons | Point de départ de toutes les consultations (ancienne feuille « Synthese » avant le 28/10/2026) | Oui |
+| Synthese | Bloc « Prévisionnel de trésorerie » (A:B) et trois rappels (D:H) | Tableau de bord : ce qui demande une action ; feuille d'ouverture du classeur (section 7) | Oui |
 | Import\_data | **TblOperations** | La base : toutes les opérations importées | Oui |
 | Ventilations | **TblVentilations** | Les parts des opérations ventilées | Oui |
-| Param | **TblCategories** (K:N), **TblDecalagesBudget** (S:V), listes Spécialités, Praticiens, Bénéficiaires, Mois, Années | Réglages modifiables sans toucher au code | Masquée en temps normal |
+| Param | **TblCategories** (K:N), **TblDecalagesBudget** (S:V), **TblComptes** (Y:Z), listes Spécialités, Praticiens, Bénéficiaires, Mois, Années | Réglages modifiables sans toucher au code | Masquée en temps normal |
+| Conso\_Factures, Conso\_Lignes, Conso\_Indicateurs, Conso\_Contrats | **TblFactures**, **TblLignes**, **TblIndicateurs**, **TblContrats** | Données du suivi des consommations (section 10) | Masquées |
+| frm\_ChoixEcheance | Formulaire | Désigner à la main l'échéance correspondant à une opération pendant le contrôle de l'import | Pendant le contrôle |
+| frm\_AffectationFacture | Formulaire | Relier une opération bancaire à la facture qui l'a réglée (section 16) | À la demande |
+| frm\_Remediation\_OFX | Tableau d'écarts | Comparer un OFX récent aux opérations enregistrées (section 1) | À la demande |
+| frm\_Evolution | Tableau + graphique | Évolution des dépenses dans le temps (section 14) | À la demande |
+| frm\_Detail\_Positif, frm\_Detail\_Negatif | Zones de détail | Détail des entrées / dépenses du bilan mensuel | À la demande |
+| frm\_*xxx*\_aide | Feuille d'aide | Aide d'un formulaire (section 15) | Très masquées |
+| frm\_Passphrase | Formulaire | Saisie masquée de la passphrase du fichier central (section 12) | Seulement à l'ouverture |
 | frm\_ResolutionCategories | Formulaire | Choisir une catégorie quand le CSV (repli facultatif) en propose plusieurs | Seulement pendant l'import |
 | frm\_ControleCategories | Formulaire | Contrôler catégorie, sous-catégorie, Tiers et Notes | Pendant l'import ou à la demande |
 | frm\_NouvelleCategorie | Formulaire | Créer une catégorie ou sous-catégorie | Ouvert depuis le contrôle ou l'échéancier |
@@ -93,7 +107,7 @@ Un point de vocabulaire utile dès le départ : un **tableau Excel** (ou *ListOb
 | frm\_Contrat | Formulaire | Saisir un contrat ou changer d'opérateur | À la demande |
 | TechDernierImport | Liste d'identifiants | Mémorise le dernier import | Très masquée (technique) |
 
-**Pourquoi des « formulaires » en feuilles et pas de vraies fenêtres ?** Les fenêtres VBA classiques (*UserForm*) s'affichaient mal sur un poste à plusieurs écrans (problème d'échelle d'affichage, « DPI »). Chaque formulaire est donc une feuille cachée qui s'affiche le temps de la saisie. Tant qu'elle est ouverte, Excel vous empêche d'aller sur un autre onglet : c'est voulu, cela imite une fenêtre « modale ». On en sort uniquement par ses boutons (Terminer, Valider, Annuler, Sortir…). **Règle commune : tout formulaire qui s'affiche masque la feuille Synthese**, pour ne pas inciter à quitter le formulaire en revenant dessus ; elle est réaffichée à la fermeture du dernier formulaire (code : `MasquerSynthese`, `AfficherSynthese` et `ActiverFeuille` de `mod_InstallCommun`). Si une erreur laissait Synthese masquée, la macro `mod_InstallCommun.AfficherSynthese` (Ctrl+G) la réaffiche.
+**Pourquoi des « formulaires » en feuilles et pas de vraies fenêtres ?** Les fenêtres VBA classiques (*UserForm*) s'affichaient mal sur un poste à plusieurs écrans (problème d'échelle d'affichage, « DPI »). Chaque formulaire est donc une feuille cachée qui s'affiche le temps de la saisie. Tant qu'elle est ouverte, Excel vous empêche d'aller sur un autre onglet : c'est voulu, cela imite une fenêtre « modale ». On en sort uniquement par ses boutons (Terminer, Valider, Annuler, Sortir…). **Règle commune : tout formulaire qui s'affiche masque les deux feuilles centrales, Menu et Synthese** (elles passent en « très masquées »), pour ne pas inciter à quitter le formulaire en revenant dessus ; elles sont réaffichées à la fermeture du dernier formulaire, Menu étant alors activée (code : `MasquerSynthese`, `AfficherSynthese` et `ActiverFeuille` de `mod_InstallCommun` ; le nom `Synthese` de ces procédures date d'avant la scission). Si une erreur laissait ces feuilles masquées, la macro `mod_InstallCommun.AfficherSynthese` (Ctrl+G) les réaffiche.
 
 **Charte commune des écrans.** Tous les écrans partagent la même présentation (définie une seule fois dans `mod_InstallCommun`) : une ligne de boutons en haut, un bloc « Instructions » juste dessous, puis le corps. Les couleurs sont toujours les mêmes : étiquette de champ en bleu foncé, **cellule grise = non modifiable**, **cellule jaune pâle = modifiable**. Dans le bloc Instructions, les noms de boutons sont en rouge gras, les noms de champs en vert gras. Quadrillage et en-têtes de lignes sont masqués.
 
@@ -101,7 +115,7 @@ Un point de vocabulaire utile dès le départ : un **tableau Excel** (ou *ListOb
 
 L'import ajoute à TblOperations les seules opérations **nouvelles**, avec leur catégorie, et ne réécrit jamais une opération déjà présente. On le lance avec le bouton de la feuille Accueil (macro `ImporterOperationsOFX`, module `mod_ImportOFX`).
 
-**D'où vient la catégorie ?** Le fichier **OFX** de la banque contient les opérations avec un identifiant unique (le *FITID*) et un champ `MEMO` de la forme « Catégorie - Notes » (la catégorie seule si Notes est vide). L'import reconnaît le préfixe parmi les catégories source du tableau de correspondance (colonne `CategorieSource` de TblCategories), le range comme catégorie source et ne garde que les vraies notes dans la colonne **Notes**. Un MEMO dont le préfixe n'est pas reconnu est laissé **tel quel dans Notes** (analyse manuelle) et l'opération est à ranger à la main. Le fichier **CSV** (même export) est **facultatif** : il ne sert que de secours pour ces MEMO non reconnus.
+**D'où vient la catégorie ?** Le fichier **OFX** de la banque contient les opérations avec un identifiant unique (le *FITID*) et un champ `MEMO` de la forme « Catégorie - Notes » (la catégorie seule si Notes est vide). L'import reconnaît le préfixe parmi les catégories source du tableau de correspondance (colonne `CategorieSource` de TblCategories), le range comme catégorie source et ne garde que les vraies notes dans la colonne **Notes**. Un MEMO dont le préfixe n'est pas reconnu est laissé **tel quel dans Notes** (analyse manuelle) et l'opération est à ranger à la main. Le fichier **CSV** (même export) ne sert plus à reprendre la catégorie que de **secours** pour ces MEMO non reconnus, mais il reste **demandé à chaque import depuis le 31/10/2026** : c'est lui qui porte le nom du compte (voir section 17). Les intitulés « CSV facultatif » du sommaire et des schémas désignent ce seul rôle de repli pour la catégorie.
 
 ```mermaid
 flowchart TB
@@ -148,7 +162,7 @@ Ce qui se passe, dans l'ordre :
 
 **Suppression des fichiers sources (sécurité).** Une fois les données écrites dans Import\_data (étape 8), le fichier OFX et le fichier CSV sont **écrasés avec des zéros puis supprimés** (sans passer par la corbeille), pour ne pas laisser de données bancaires en clair sur le disque. Cela vaut aussi quand aucune nouvelle ligne n'a été ajoutée (tout était déjà présent). **Rien n'est supprimé** si l'import s'arrête avant l'écriture (fichier illisible, CSV de structure invalide, « Annuler l'import ») : vous pouvez recommencer avec les mêmes fichiers. Si un fichier ne peut pas être supprimé (verrouillé, en lecture seule sur un partage), le bilan l'indique avec son chemin : supprimez-le vous-même. Sur un SSD l'écrasement n'est pas une garantie absolue ; le chiffrement du disque (BitLocker) reste la meilleure protection.
 
-**Remédiation depuis un OFX (contrôle périodique).** Le bouton « Remédiation OFX » de Synthese ouvre le formulaire `frm_Remediation_OFX` (aide : `frm_Remediation_OFX_aide`). Il compare un OFX récent aux opérations déjà enregistrées, par identifiant bancaire (FITID), et **affiche les écarts avant toute correction** :
+**Remédiation depuis un OFX (contrôle périodique).** Le bouton « Remédiation OFX » du Menu ouvre le formulaire `frm_Remediation_OFX` (aide : `frm_Remediation_OFX_aide`). Il compare un OFX récent aux opérations déjà enregistrées, par identifiant bancaire (FITID), et **affiche les écarts avant toute correction** :
 - **Analyser un OFX** remplit le tableau (aucune donnée modifiée). Les champs d'identité (dates, type, montant, numéro de chèque) viennent de la banque : l'OFX fait foi, ils sont pré-cochés « Oui ». Tiers, Notes et Catégorie ne sont pré-cochés que pour une ligne manifestement mélangée (Tiers différent de l'OFX **et** Notes reprenant le texte bancaire d'une autre opération) ; ailleurs c'est « Non », car l'opérateur a pu les corriger volontairement.
 - **Appliquer** écrit les lignes dont *Corriger* vaut « Oui » (retrouvées par ID_Transaction, jamais par numéro de ligne ; ignorées si la valeur a changé depuis l'analyse). Le budget est recalculé pour les lignes corrigées, sauf décalage manuel. L'OFX peut ensuite être effacé (écrasé puis supprimé).
 - **Annuler les corrections** restaure les valeurs d'avant des lignes « Appliqué ».
@@ -352,7 +366,7 @@ On les lance après l'import (questions finales) ou à tout moment avec le bouto
 
 ### Consulter et corriger : l'écran « Suivi santé »
 
-Le bouton de suivi santé de Synthese (macro `Synthese_Care`, module `Mod_SyntheseCare`) ouvre l'écran de recherche (section 6) avec le préfiltre **SuiviSante**. Il remplace l'ancien écran frm\_Resultat, qui ne trouvait plus aucune ligne depuis le passage aux deux niveaux de catégorie.
+Le bouton de suivi santé du Menu (macro `Synthese_Care`, module `Mod_SyntheseCare`) ouvre l'écran de recherche (section 6) avec le préfiltre **SuiviSante**. Il remplace l'ancien écran frm\_Resultat, qui ne trouvait plus aucune ligne depuis le passage aux deux niveaux de catégorie.
 
 Ce qui s'affiche :
 
@@ -385,19 +399,22 @@ Une part ventilée ne se corrige pas par double-clic sur Categorie : on passe pa
 
 **frm\_RechercheOperations** est l'écran central : il affiche les opérations de TblOperations **et** les parts de TblVentilations dans un seul tableau, filtrable avec les flèches natives d'Excel, et permet de corriger sans ouvrir Import\_data.
 
-### Comment l'ouvrir : sept entrées, sept « préfiltres »
+### Comment l'ouvrir : dix entrées, dix « préfiltres »
 
 | Bouton (feuille) | Préfiltre | Ce qui s'affiche |
 | --- | --- | --- |
-| Recherche globale (Synthese ou l'écran lui-même) | aucun | Toutes les opérations et toutes les parts |
-| Dernier import (Synthese, ou question en fin d'import) | DernierImport | Les opérations ajoutées par le dernier import |
-| Opérations du mois (Synthese) | OperationsDuMois | Le mois de budget choisi sur Synthese, au-dessus du seuil de montant |
-| Suivi santé (Synthese, macro Synthese\_Care) | SuiviSante | Les lignes « Frais, remb santé » et toutes celles de catégorie « Santé, prévoyance », parts ventilées comprises, avec leurs colonnes santé (détail en section 5) |
-| Erreurs santé (Synthese) | ErreursSante | Les lignes dont Date\_consult vaut la sentinelle 02/01/1900 |
+| Recherche générale (Menu ou l'écran lui-même) | aucun | Toutes les opérations et toutes les parts |
+| Dernier import (Menu, ou question en fin d'import) | DernierImport | Les opérations ajoutées par le dernier import |
+| Opérations du mois (Menu) | OperationsDuMois | Le mois de budget choisi sur Menu, au-dessus du seuil de montant |
+| Suivi santé (Menu, macro Synthese\_Care) | SuiviSante | Les lignes « Frais, remb santé » et toutes celles de catégorie « Santé, prévoyance », parts ventilées comprises, avec leurs colonnes santé (détail en section 5) |
+| Erreurs santé (Menu) | ErreursSante | Les lignes dont Date\_consult vaut la sentinelle 02/01/1900 |
 | Voir le détail des entrées / dépenses (bilan mensuel) | DetailTotal | Les entrées (ou les dépenses) du mois du bilan |
 | Voir les opérations (analyse budgétaire) | Analyse | Les opérations et parts qui forment le chiffre sélectionné dans l'analyse (section 9) |
+| « Afficher tout » du rappel Factures non liées (Synthese) | FacturesNonLiees | Toutes les dépenses Eau / Électricité, gaz, chauffage qu'aucune facture ne cite encore (section 16) ; le bouton « Affecter une facture » de l'écran les relie une à une |
+| Double-clic sur le nombre d'opérations liées d'une facture (frm\_Factures) | OperationsFacture | Les opérations déjà reliées à cette facture (section 16) |
+| « Chercher l'opération » du rappel Échéances en retard (Synthese) | PourEcheance | Les opérations du mois de la date prévue de l'échéance et de même signe que son montant ; le bouton « Affecter à une échéance » rapproche immédiatement la ligne choisie (section 8) |
 
-Une ligne de texte au-dessus du tableau rappelle le filtre actif et le nombre de lignes. Les montants suivent la règle de couleur commune du classeur : vert pour une entrée d'argent, noir pour une dépense, gras pour une ligne « en alerte » (rouge si c'est une dépense). Sont en alerte les plus grosses dépenses en « Opérations du mois » (leur nombre se règle sur Synthese) et les lignes KO en « Suivi santé ». Si vous aviez posé un filtre de colonne, il est remis à l'identique après chaque rechargement.
+Une ligne de texte au-dessus du tableau rappelle le filtre actif et le nombre de lignes. Les montants suivent la règle de couleur commune du classeur : vert pour une entrée d'argent, noir pour une dépense, gras pour une ligne « en alerte » (rouge si c'est une dépense). Sont en alerte les plus grosses dépenses en « Opérations du mois » (leur nombre se règle sur Menu) et les lignes KO en « Suivi santé ». Si vous aviez posé un filtre de colonne, il est remis à l'identique après chaque rechargement.
 
 ### Les colonnes
 
@@ -414,21 +431,34 @@ Les colonnes techniques (identifiant, source O/V, numéro de ligne de ventilatio
 
 ### Les actions
 
-La barre de boutons de l'écran contient : Recherche globale, Ajouter un décalage, Décaler cette opération, Rendre récurrente, Ajouter à l'échéancier et Sortir.
+La barre de boutons de l'écran contient : Recherche globale, Ajouter un décalage, Décaler cette opération, Rendre récurrente, Ajouter à l'échéancier, Affecter à une échéance (préfiltre PourEcheance), Affecter une facture, Délier de la facture (retire l'opération de sa facture, avec proposition de rouvrir une facture clôturée) et Sortir ; le détail de chaque bouton est dans l'aide de l'écran (section 15). L'ouverture se fait aussi par les préfiltres ci-dessus, et un double-clic est intercepté dans trois colonnes (Categorie, SousCategorie, Ventile).
 
 - **Corriger une Note** : modifiez la cellule Notes ; dès que vous la quittez, elle est écrite dans la bonne table puis la vérification et le calcul santé sont relancés. Une note dont la clé santé est déjà valide est verrouillée (l’ancienne valeur est remise).
 - **Double-clic sur Categorie ou SousCategorie** : ouvre le formulaire de contrôle des catégories pour cette seule opération, prérempli avec ses valeurs actuelles. À la validation, l'enregistrement est immédiat, les statuts santé sont recalculés sans message et l'écran se recharge avec le même préfiltre. Sur une opération ventilée, un message vous renvoie vers la colonne Ventile.
 - **Double-clic sur Ventile** : démarre ou revoit une ventilation (section 3).
 - **Ajouter un décalage** / **Décaler cette opération** : voir section 4.
 - **Rendre récurrente** : ouvre le formulaire d'échéance prérempli avec la ligne sélectionnée (voir section 8). Disponible dans tous les préfiltres, donc aussi juste après un import.
-- **Ajouter à l'échéancier** : saisie d'une opération **ponctuelle** que l'on sait à venir mais absente de la base (un chèque émis, par exemple). Aucune ligne à sélectionner : le formulaire d'échéance s'ouvre **vide** (comme « Saisir une échéance » de Synthese) et crée une seule échéance, sans règle (voir section 8).
+- **Ajouter à l'échéancier** : saisie d'une opération **ponctuelle** que l'on sait à venir mais absente de la base (un chèque émis, par exemple). Aucune ligne à sélectionner : le formulaire d'échéance s'ouvre **vide** (comme « Saisir une échéance » du Menu) et crée une seule échéance, sans règle (voir section 8).
 - **Sortir** : referme l'écran et revient sur Synthese. Quand l'écran a été ouvert depuis l'analyse budgétaire, « Sortir » revient sur l'analyse, qui est recalculée.
 
 Modifier directement une cellule Date, Tiers ou Montant de cet écran ne change **rien** dans les données : c'est un affichage, reconstruit à chaque recherche.
 
-## 7. La feuille Synthese et les écrans de résultat
+## 7. Les feuilles Menu et Synthese, et les écrans de résultat
 
-La feuille **Synthese** est le tableau de bord : vous y choisissez une période et des réglages, puis un bouton. Elle contient aussi le bloc « Prévisionnel de trésorerie » (section 8) et les boutons « Analyse budgétaire » (section 9) et « Consommations » (section 10).
+Depuis le 28/10/2026 (`mod_Synthese`), le classeur a **deux feuilles centrales** :
+
+- **Menu** (constante `NOM_FEUILLE_MENU`) est l'ancienne feuille « Synthese » : c'est là que vous choisissez une période et des réglages, puis un bouton. Elle porte tous les boutons : Importer, Définir fichier Central, Synchroniser, Remédiation OFX, les recherches (Opérations du mois, Dernier import, Recherche générale, Suivi santé, Erreur import santé, Traitement des données de santé), Bilan mensuel, Saisir une échéance, Voir l'échéancier, Saisir / contrôler le solde, Analyse budgétaire, Évolution des dépenses et Consommations. **C'est cette feuille que les sections 1 à 6 et 9 à 13 désignent quand elles parlent des boutons et des critères.**
+- **Synthese** (constante `NOM_FEUILLE_SYNTHESE`) est la **nouvelle** feuille d'ouverture : un état de la base « en un coup d'œil ». À gauche (colonnes A:B), le bloc « Prévisionnel de trésorerie » (section 8), déplacé depuis Menu avec ses cellules nommées `soldeRefMontant`, `soldeRefDate` et `soldeEcart` (les formules suivent). À droite (colonnes D:H), trois **rappels**, un bloc par sujet, limités à 15 lignes chacun :
+
+| Rappel | Contenu | Boutons de l'en-tête |
+| --- | --- | --- |
+| Échéances en retard | Les échéances de TblEcheances dont la date prévue est dépassée (précision « Mois » : une fois le mois écoulé), comme le compteur « Éch. en retard » du bloc prévisionnel | **Chercher l'opération** : ouvre l'écran de recherche (préfiltre PourEcheance) pour rapprocher tout de suite l'opération déjà importée (section 8) |
+| Factures non liées | Les dépenses de catégorie ou sous-catégorie « Eau » ou « Électricité, gaz, chauffage » (accents et casse ignorés) dont l'ID\_Transaction n'est cité par aucune facture (colonne `ID_Transactions` de TblFactures) | **Affecter une facture** (formulaire frm\_AffectationFacture) et **Afficher tout** (préfiltre FacturesNonLiees) ; voir section 16 |
+| Santé : opérations à traiter ou en attente | Les opérations de santé de statut KO dont le dépassement d'honoraires n'est pas validé : « En attente de remboursement (reste x) » si le solde santé est positif, sinon « À traiter ». Les parts de ventilation ne sont pas reprises | Aucun |
+
+La colonne I (masquée) de Synthese mémorise l'identifiant de chaque ligne affichée (`ID_Transaction`, ou `ECH:` suivi de l'ID\_Echeance pour une échéance en retard) : c'est elle qui désigne la ligne sur laquelle agit un bouton. Les rappels sont **recalculés à chaque affichage** de la feuille (événement `Workbook_SheetActivate` de `ThisWorkbook`) et par le bouton **Actualiser** ; la date de dernière actualisation est écrite en A2. Le classeur **s'ouvre toujours sur Synthese** (`PositionnerSurSynthese`, appelée par `Workbook_Open`).
+
+**Installation.** Importer `mod_Synthese.bas`, `mod_VarGlobales.bas`, `mod_InstallEcheancier.bas`, `mod_InstallCommun.bas` et `ThisWorkbook.bas`, puis lancer `CreerFeuilleSynthese` (Ctrl+G). La macro renomme l'ancienne Synthese en Menu (après confirmation), crée la nouvelle feuille, y déplace le bloc de trésorerie, pose la mise en page et le bouton Actualiser. Elle peut être relancée sans danger. Les modules appellent désormais `NOM_FEUILLE_MENU` pour les boutons et les critères ; les noms de procédures contenant « Synthese » (`MasquerSynthese`, `AfficherSynthese`, `mod_SyntheseBudgetBilanMensuel`…) datent d'avant la scission et n'ont pas été renommés.
 
 | Cellule nommée | Sens | Utilisée par |
 | --- | --- | --- |
@@ -443,7 +473,7 @@ La feuille **Synthese** est le tableau de bord : vous y choisissez une période 
 
 **Suivi santé** (`Synthese_Care`) : ouvre l'écran de recherche avec le préfiltre « Suivi santé », décrit en section 5. L'ancienne synthèse affichée dans frm\_Resultat a été abandonnée le 07/10/2026.
 
-Tous ces écrans masquent Synthese pendant leur affichage ; le bouton **Sortir** la réaffiche.
+Tous ces écrans masquent Menu et Synthese pendant leur affichage ; le bouton **Sortir** les réaffiche. Les cellules nommées du tableau ci-dessus (critères) sont sur Menu ; `soldeRefMontant`, `soldeRefDate` et `soldeEcart` sont sur Synthese.
 
 ## 8. L'échéancier et le prévisionnel de trésorerie
 
@@ -487,7 +517,7 @@ flowchart TB
 
 ### Installer l'échéancier
 
-Une seule macro, `InstallerEcheancier`, à lancer une fois depuis la fenêtre Exécution d'Excel (détails en section 11). Elle crée les trois feuilles masquées (frm\_Echeancier, frm\_Recurrences, frm\_Echeance), le bloc « Prévisionnel de trésorerie » sur Synthese (avec ses deux boutons) et le bouton « Rendre récurrente » de l'écran de recherche. **Une étape manuelle est indispensable** : coller dans le module de la feuille frm\_Echeance le contenu de `CodeBehind_frm_Echeance.txt` (deux petits événements). **La réinstallation est possible et conserve les données** : les deux listes sont reconstruites (instructions, boutons, colonnes à jour) puis les lignes existantes sont remises en place **colonne par colonne, d'après le nom de l'en-tête** ; une colonne nouvelle reste simplement vide. Pour ne compléter que le bloc de la feuille Synthese (ligne d'écart, bouton « Saisir / contrôler le solde »), sans toucher aux listes, lancer `MettreAJourBlocSynthese` : le bloc est retrouvé par le nom `soldeRefMontant`, même s'il a été déplacé, et rien d'existant n'est réécrit, sauf les formules cassées (`#REF!`) : reconstruire la liste des échéances supprime puis recrée le tableau TblEcheances, ce qui casse les formules de Synthese qui le citent ; `InstallerEcheancier` et `MettreAJourBlocSynthese` les réécrivent alors automatiquement.
+Une seule macro, `InstallerEcheancier`, à lancer une fois depuis la fenêtre Exécution d'Excel (détails en section 11). Elle crée les trois feuilles masquées (frm\_Echeancier, frm\_Recurrences, frm\_Echeance), le bloc « Prévisionnel de trésorerie » sur Synthese (ses boutons sont sur Menu) et le bouton « Rendre récurrente » de l'écran de recherche. **Une étape manuelle est indispensable** : coller dans le module de la feuille frm\_Echeance le contenu de `CodeBehind_frm_Echeance.txt` (deux petits événements). **La réinstallation est possible et conserve les données** : les deux listes sont reconstruites (instructions, boutons, colonnes à jour) puis les lignes existantes sont remises en place **colonne par colonne, d'après le nom de l'en-tête** ; une colonne nouvelle reste simplement vide. Pour ne compléter que le bloc de la feuille Synthese (ligne d'écart, bouton « Saisir / contrôler le solde »), sans toucher aux listes, lancer `MettreAJourBlocSynthese` : le bloc est retrouvé par le nom `soldeRefMontant`, même s'il a été déplacé, et rien d'existant n'est réécrit, sauf les formules cassées (`#REF!`) : reconstruire la liste des échéances supprime puis recrée le tableau TblEcheances, ce qui casse les formules de Synthese qui le citent ; `InstallerEcheancier` et `MettreAJourBlocSynthese` les réécrivent alors automatiquement.
 
 ### Déclarer une échéance : le formulaire frm\_Echeance
 
@@ -658,7 +688,7 @@ Le bilan mensuel (section 7) lit seulement TblOperations et compte une opératio
 
 ## 10. Le suivi des consommations
 
-L'écran **frm\_Consommations** répond à une question : *combien consomme-t-on d'eau, d'électricité et de gaz, à quel prix, et comment cela évolue-t-il mois après mois ?* Il est écrit dans `mod_Consommations` (contrats et graphique), `mod_Factures` (saisie des factures) et `mod_InstallConsommations` (construction des feuilles). **État au 19/10/2026 : modèle « facture » écrit, non encore testé dans Excel** (voir `TODO_SuiviConsommations.md`). Le suivi est **optionnel** et **indépendant des opérations bancaires**.
+L'écran **frm\_Consommations** répond à une question : *combien consomme-t-on d'eau, d'électricité et de gaz, à quel prix, et comment cela évolue-t-il mois après mois ?* Il est écrit dans `mod_Consommations` (contrats et graphique), `mod_Factures` (saisie des factures) et `mod_InstallConsommations` (construction des feuilles). **État au 01/11/2026 : modèle « facture » écrit (refonte terminée le 28/10/2026) et enrichi du rattachement des factures aux opérations bancaires (section 16) ; son test complet dans Excel reste à confirmer** (voir `TODO_SuiviConsommations.md`). Le suivi est **optionnel** et **indépendant des opérations bancaires**.
 
 ```mermaid
 flowchart TB
@@ -682,11 +712,11 @@ flowchart TB
 - **Quatre types de consommation** : Adduction eau, Recyclage eau, Fourniture élec, Fourniture gaz. Unité par défaut : m³ pour l'eau, kWh pour l'électricité et le gaz.
 - **Un contrat = un type chez un opérateur, entre deux dates.** Il sert à proposer l'opérateur et l'unité à la saisie d'une facture ; l'opérateur est ensuite mémorisé sur la facture elle-même.
 - **Les données sont sur des feuilles masquées** (comme TblVentilations) : `Conso_Factures`, `Conso_Lignes`, `Conso_Indicateurs`, `Conso_Contrats`. L'installateur ne les reconstruit jamais : réinstaller ne fait plus perdre de données. Les écrans frm\_Contrats et frm\_Factures n'en montrent qu'une copie.
-- **Pas de rapprochement bancaire** dans cette version : les factures sont saisies à la main.
+- **Les factures sont saisies à la main**, puis **reliées aux opérations bancaires** qui les ont réglées (section 16) : colonnes `ID_Transactions`, `Cloturee` et `NbOperations` de TblFactures. Il n'y a pas de rapprochement automatique.
 
 ### Installer le suivi
 
-Une seule macro, `InstallerConsommations`, à lancer une fois (détails en section 11). Elle crée les feuilles de données masquées, les cinq écrans masqués (frm\_Consommations, frm\_Factures, frm\_Facture, frm\_Contrats, frm\_Contrat) et le bouton **« Consommations »** de Synthese. **Une étape manuelle est indispensable** : coller dans le module de la feuille frm\_Facture le contenu de `CodeBehind_frm_Facture.txt`, et dans celui de frm\_Contrat le contenu de `CodeBehind_frm_Contrat.txt`. Les anciens écrans « relevé » (frm\_Releve, frm\_Releves, Conso\_Releves) sont supprimés à l'installation (confirmation si Conso\_Releves contient des données : le nouveau modèle ne les reprend pas).
+Une seule macro, `InstallerConsommations`, à lancer une fois (détails en section 11). Elle crée les feuilles de données masquées, les cinq écrans masqués (frm\_Consommations, frm\_Factures, frm\_Facture, frm\_Contrats, frm\_Contrat) et le bouton **« Consommations »** du Menu. **Une étape manuelle est indispensable** : coller dans le module de la feuille frm\_Facture le contenu de `CodeBehind_frm_Facture.txt`, et dans celui de frm\_Contrat le contenu de `CodeBehind_frm_Contrat.txt`. Les anciens écrans « relevé » (frm\_Releve, frm\_Releves, Conso\_Releves) sont supprimés à l'installation (confirmation si Conso\_Releves contient des données : le nouveau modèle ne les reprend pas).
 
 ### Déclarer un contrat
 
@@ -733,7 +763,7 @@ Bouton **« Consommations »** de la feuille Synthese. Il affiche un tableau men
 
 ### Ce qui n'est pas encore fait
 
-Voir `TODO_SuiviConsommations.md` : comparaison avec l'année précédente (N-1), économie réalisée par le recyclage de l'eau, total annuel et variation, rapprochement avec les opérations bancaires, reprise automatique des factures PDF, et la génération des fichiers `…_structure.txt` des nouvelles feuilles.
+Voir `TODO_SuiviConsommations.md` : comparaison avec l'année précédente (N-1), économie réalisée par le recyclage de l'eau, total annuel et variation, rapprochement **automatique** avec les opérations bancaires (le lien manuel existe, section 16), reprise automatique des factures PDF, et la génération des fichiers `…_structure.txt` des nouvelles feuilles.
 
 ## 11. Installation, maintenance et outils développeur
 
@@ -746,8 +776,28 @@ Le classeur contient du code VBA (Alt+F11), versionné dans ce dépôt sous form
 - **`mod_Install…`** : un module de construction par écran (voir tableau ci-dessous). Ils ne servent qu'à *créer* les feuilles ; l'usage courant n'en a pas besoin.
 - **`mod_Display.FR()`** : tous les textes affichés passent par cette fonction, qui remplace des balises (`{e2}` pour é, `{a2}` pour à, `{e1}` pour è, `{ea}` pour ê, `{o2}` pour ô, `{i2}` pour î…) par les vrais accents. Cela évite tout problème d'encodage lors de l'import des fichiers dans l'éditeur VBA. Les commentaires, eux, sont en UTF-8.
 - **`mod_DataStructure`** : conversions « sécurisées » des cellules (`CellText`, `ToDouble`, `ToLong`) : une valeur inattendue ou une erreur Excel donne une valeur neutre au lieu d'un plantage.
-- **`mod_Criteres`, `mod_DonneesTable`, `mod_Rapports`, `mod_Actions`** : lecture des critères de Synthese, accès brut à TblOperations, surlignage des grosses dépenses, boutons génériques (dont Sortir).
+- **`mod_Criteres`, `mod_DonneesTable`, `mod_Rapports`, `mod_Actions`** : lecture des critères du Menu, accès brut à TblOperations, surlignage des grosses dépenses, boutons génériques (dont Sortir).
 - **`ThisWorkbook`** : événements du classeur. À l'ouverture, `Workbook_Open` complète les occurrences de l'échéancier ; un double-clic est intercepté **uniquement** sur l'écran de recherche, colonnes Ventile, Categorie et SousCategorie (partout ailleurs Excel garde son comportement normal).
+
+### Carte des modules
+
+Chaque écran suit le schéma **`mod_Install…`** (construction, lancée une fois) + **`mod_…`** (logique à l'exécution) ; les événements de feuille sont dans les `CodeBehind_*.txt`.
+
+| Domaine | Modules | Section |
+| --- | --- | --- |
+| Fondations | `mod_VarGlobales` (noms, constantes), `mod_InstallCommun` (boîte à outils des écrans), `mod_Display` (textes et accents), `mod_DataStructure` (lectures sûres), `mod_Aide` et `mod_InstallAide` (aide), `mod_Actions`, `mod_Criteres`, `mod_DonneesTable`, `mod_Rapports`, `ThisWorkbook` (événements) | 11, 15 |
+| Import | `mod_ImportOFX`, `mod_DernierImport`, `mod_Comptes`, `mod_RemediationOFX` + `mod_InstallRemediationOFX` | 1, 17 |
+| Catégories | `mod_Categories`, `mod_ControleCategories` + `mod_InstallControleCategories`, `mod_NouvelleCategorie` + `mod_InstallNouvelleCategorie`, `mod_ResolutionCategories` + `mod_InstallResolutionSheet` | 2 |
+| Budget | `mod_DecalagesBudget` | 4 |
+| Ventilation | `mod_Ventilation` + `mod_InstallVentilation` | 3 |
+| Santé | `mod_SuiviSante`, `mod_SuiviSanteFormulaire` + `mod_InstallSuiviSanteSheet`, `mod_FormulairesNotes` + `mod_InstallFormulairesNotes`, `Mod_SyntheseCare` | 5 |
+| Recherche et pointage | `mod_RechercheOperations` + `mod_InstallRechercheOperations`, `mod_Pointage` | 6, 13 |
+| Menu et Synthese | `mod_Synthese` (rappels), `mod_SyntheseBudgetBilanMensuel` (bilan mensuel) | 7 |
+| Échéancier | `mod_Echeancier` + `mod_InstallEcheancier`, `mod_ChoixEcheance` + `mod_InstallChoixEcheance` | 8 |
+| Analyse | `mod_AnalyseDonnees` (socle commun), `mod_Analyse` + `mod_InstallAnalyse`, `mod_Evolution` + `mod_InstallEvolution` | 9, 14 |
+| Consommations | `mod_Consommations`, `mod_Factures`, `mod_InstallConsommations`, `mod_AffectationFacture` + `mod_InstallAffectationFacture` | 10, 16 |
+| Synchronisation | `mod_Synchro`, `mod_InstallPassphrase` | 12 |
+| Outils développeur | `mod_ExportStructure`, `ImportUTF8` | 11 |
 
 ### Les macros d'installation
 
@@ -769,6 +819,12 @@ Le classeur contient du code VBA (Alt+F11), versionné dans ce dépôt sous form
 | Bloc prévisionnel de Synthese (seul) | `MettreAJourBlocSynthese` | Ajoute au bloc ce qui manque (ligne d'écart, bouton de contrôle du solde) ; **n'écrase rien d'existant** : libellés, valeurs, formules, formats, noms et boutons déjà présents (même déplacés à la main) restent tels quels |
 | Pointage des opérations | `AjouterColonnePointage`, puis reconstruire les 6 écrans concernés (section 13) | Ajoute la colonne Pointe à TblOperations ; aucun code à coller (événement dans `ThisWorkbook`) |
 | Analyse budgétaire | `InstallerAnalyse` | Aucun code à coller |
+| Évolution des dépenses | `InstallerEvolution` | Section 14 ; aucun code à coller ; crée le bouton sur Menu |
+| Menu et Synthese | `CreerFeuilleSynthese` | Section 7 ; renomme l'ancienne Synthese en Menu, crée la nouvelle ; coller `Workbook_SheetActivate` de `ThisWorkbook.bas` |
+| Comptes bancaires | `InstallerGestionComptes` | Section 17 ; crée TblComptes et la colonne CleCompte |
+| Remédiation OFX | `InstallerRemediationOFX` | Section 1 ; crée `frm_Remediation_OFX` et son aide |
+| Catégories (tableau de correspondance) | `PreparerPhase1Categories` | Colonne SousCategorie et TblCategories (Param K:N) ; section 2 |
+| Décalages de budget (tableau) | `InitialiserTableDecalagesBudget` | TblDecalagesBudget (Param S:V) ; section 4 |
 | Suivi des consommations | `InstallerConsommations` (crée aussi les feuilles de données `Conso_*`, dont `Conso_Lignes`, et migre les anciennes lignes) ; `NettoyerAnciensReleves` supprime seulement les anciennes feuilles du modèle « relevé » ; `SupprimerAnciensTableauxLignes` supprime les feuilles `…_ancien` archivées par la migration | Importer `mod_Factures.bas` (nouveau) avec `mod_Consommations`, `mod_InstallConsommations`, `mod_InstallAide`, `mod_VarGlobales` et `mod_Synchro` ; coller `CodeBehind_frm_Facture.txt` dans frm\_Facture et `CodeBehind_frm_Contrat.txt` dans frm\_Contrat (ne pas les confondre avec les listes frm\_Factures et frm\_Contrats) |
 
 Pour **modifier à la main** l'aspect d'un écran masqué : `AfficherFeuille…PourEdition` le rend visible, `MasquerFeuille…ApresEdition` le remasque (par exemple `AfficherFeuilleAnalysePourEdition`, `AfficherFormulaireEcheancePourEdition`, `AfficherFeuilleConsommationsPourEdition`). **Attention :** relancer la macro de création d'un écran le reconstruit (par exemple, pour l'analyse, les paramètres et la liste des catégories exclues reviennent aux valeurs par défaut). Exception : les deux listes de l'échéancier conservent leurs lignes (remises en place par le nom des colonnes).
@@ -779,6 +835,8 @@ Pour **modifier à la main** l'aspect d'un écran masqué : `AfficherFeuille…P
 
 - **`mod_ExportStructure`** (macros `ExporterUneFeuille`, `ExporterToutesLesFeuilles`, `ExporterStructureFeuille`) : « photographie » la structure réelle d'une feuille (largeurs, hauteurs, cellules fusionnées, tableaux, listes déroulantes, mises en forme conditionnelles, boutons, noms définis, réglages de fenêtre) dans un fichier texte `…_structure.txt`. Utile parce que les écrans sont construits par code puis souvent retouchés à la main : le fichier permet de remettre le code en accord avec la réalité. Il **ne modifie rien** et n'exporte **jamais le contenu** des tableaux (le dépôt est public : aucune opération bancaire ne doit s'y retrouver).
 - **`ImportUTF8`** (macro `ImportUTF8ConvertAndReplace`) : choisit un fichier `.bas` en UTF-8, le convertit en ANSI (fins de ligne normalisées), l'enregistre dans le dossier Téléchargements (`module_converti.bas`) et remplace le contenu du module VBA du même nom. Pratique pour mettre à jour un module depuis le dépôt.
+- **`MODELE_DONNEES_MERISE.md`** : modèle de données (règles de gestion, dictionnaire, MCD / MLD / MPD) et étude d'optimisation (voir l'annexe « Modèle de données »). Il n'est pas converti en HTML (le moteur de `build_docs.py` ne dessine que les organigrammes). **À mettre à jour à chaque ajout de colonne ou de tableau.**
+- **Fichiers `…_structure.txt`** : photographies de la structure des feuilles. Elles datent du **11/10/2026** (sauf Synthese, du 28/10/2026, qui décrit l'écran devenu « Menu ») : ni Menu, ni la nouvelle Synthese, ni frm\_Evolution, frm\_Factures, frm\_Facture, frm\_AffectationFacture, frm\_ChoixEcheance, frm\_Remediation\_OFX ne sont exportés, et `Import_data_structure.txt` ignore la colonne `CleCompte`. Relancer `ExporterToutesLesFeuilles` pour les mettre à jour.
 - **`TODO_SuiviBudgetaire.md`** : benchmark, décisions de conception et liste des tâches du module d'analyse (phases 0 à 5).
 - **`TODO_SuiviConsommations.md`** : décisions de conception et liste des tâches du suivi des consommations.
 
@@ -822,7 +880,7 @@ Après chaque récupération ou envoi, les empreintes sont recalculées : si les
 - les feuilles **Param** (hors tableaux : listes Spécialités, Praticiens...) et **TechDernierImport** ;
 - les cellules nommées **soldeRefMontant** et **soldeRefDate**.
 
-Ne sont **pas** synchronisés : les écrans de résultat (recherche, analyse, consommations), qui se recalculent, et les choix d'affichage de chaque opérateur (critères de Synthese, réglages des écrans). Pour ajouter un élément au périmètre, l'ajouter dans les fonctions `ListeTables`, `ListeFeuilles` ou `ListeNoms` de `mod_Synchro`.
+Ne sont **pas** synchronisés : les écrans de résultat (recherche, analyse, consommations), qui se recalculent, et les choix d'affichage de chaque opérateur (critères du Menu, réglages des écrans). Pour ajouter un élément au périmètre, l'ajouter dans les fonctions `ListeTables`, `ListeFeuilles` ou `ListeNoms` de `mod_Synchro`.
 
 ### Protection du classeur par passphrase
 
@@ -881,10 +939,125 @@ Les écrans de résolution des cas ambigus (frm\_ResolutionCategories) et de sai
 
 Un écran **pas encore reconstruit** continue de fonctionner comme avant : il n'affiche simplement pas le pointage. Si l'écran de recherche est reconstruit avant `AjouterColonnePointage`, sa colonne Pointe reste vide et un message invite à installer la colonne dès qu'on y touche.
 
+## 14. L'évolution des dépenses dans le temps
+
+L'écran **frm\_Evolution** répond à la question : *comment une catégorie (ou un ensemble de catégories) évolue-t-elle mois après mois, trimestre après trimestre ?* Il est écrit dans `mod_Evolution` (logique) et `mod_InstallEvolution` (construction) ; il est **autonome** (ouvert par son propre bouton « Évolution des dépenses » du Menu, `AfficherEvolution`) et ne partage avec l'analyse budgétaire (section 9) que le **chargement des données** de `mod_AnalyseDonnees` : ce module charge TblOperations et TblVentilations en mémoire (`ChargerLignes`) en remplaçant une opération « Ventilé » par ses parts, qui prennent le mois de budget et le signe de l'opération d'origine. Les décalages de budget sont donc respectés.
+
+| Paramètre | Valeurs | Effet |
+| --- | --- | --- |
+| Période | Mois en cours, Mois dernier, 3 / 6 / 12 / 24 / 36 derniers mois, Tous | Le mois en cours est toujours compris |
+| Pas de temps | Automatique, Mois, Trimestre, Année | Automatique = mois si 36 colonnes au plus, sinon trimestre, sinon année |
+| Graphique | Barres empilées, Courbes, Barres groupées | |
+| Détail par | Automatique, Catégorie, Sous-catégorie | Automatique = sous-catégorie dès qu'une seule catégorie, ou au moins une sous-catégorie, est choisie |
+| Catégories | 0 à 6 (vide = toutes) | Se cumule (ET) avec les sous-catégories |
+| Sous-catégories | 0 à 6 couples « Catégorie > Sous-catégorie » (vide = toutes) | |
+| Catégories exclues | 4 emplacements | Ne s'appliquent que si rien n'est sélectionné : un choix explicite l'emporte |
+
+**Règles de calcul** : identiques à l'analyse budgétaire (mois de budget, net des remboursements). Seules les séries dont le total est une dépense sont gardées ; les **8 plus grosses** sont affichées, le reste est regroupé dans « Autres » ; au plus **48 colonnes** de temps (au-delà, les 48 plus récentes, avec un message). Les macros de l'écran sont `ActualiserEvolution`, `ReinitialiserSelectionsEvolution` (remet les sélections à vide) et `SortirEvolution` ; le bouton **Aide** ouvre la feuille d'aide (section 15).
+
+**Installation.** Importer `mod_VarGlobales`, `mod_InstallCommun`, `mod_AnalyseDonnees`, `mod_Analyse`, `mod_InstallAnalyse`, `mod_Evolution`, `mod_InstallEvolution`, puis lancer `InstallerEvolution` (et `InstallerAnalyse` : l'ancien tableau d'évolution disparaît de frm\_Analyse). Aucun code n'est à coller. La réinstallation reconstruit la feuille (les paramètres reviennent aux valeurs par défaut) ; pour retoucher l'aspect à la main : `AfficherFeuilleEvolutionPourEdition` / `MasquerFeuilleEvolutionApresEdition`.
+
+## 15. L'aide contextuelle des écrans
+
+Depuis le 14/10/2026, le bloc « Instructions » n'est plus affiché sur le formulaire de travail, pour libérer de la place. Son texte est écrit dans une feuille d'aide **frm\_*Nom*\_aide** (très masquée), affichée par le bouton **Aide** du formulaire et refermée par le bouton **Sortir** de l'aide.
+
+- **`mod_InstallAide`** contient le texte : une fonction `Def_xxx` par formulaire (titre, introduction, liste des champs, liste des boutons, chaque ligne au format `Nom|Description`), aiguillées par `ChargerAide` (21 formulaires). Les balises `[b:Bouton]`, `[c:Champ]`, `[f:Feuille]` et `ATTENTION` mettent le texte en forme ; les accents passent par les marqueurs de `mod_Display.FR`. **Pour modifier une aide : changer le texte dans ce module, puis relancer la macro de construction du formulaire concerné.**
+- **`mod_Aide`** gère la bascule à l'exécution : `AfficherAide` (ouvre l'aide **sans** masquer le formulaire), `SortirAide` (revient au formulaire), `FermerAide` et `MasquerFormulaire` (la sortie d'un formulaire ferme aussi son aide et, s'il n'y a plus de formulaire ouvert, réaffiche Menu et Synthese **avant** de masquer le formulaire, car Excel refuse de masquer la dernière feuille visible).
+- **`mod_InstallCommun.EcrireInstructions`** garde sa signature d'origine pour ne pas toucher aux modules d'installation : la ligne réservée aux instructions est conservée mais **masquée (hauteur 0)**, de sorte que les numéros de ligne du corps des formulaires ne changent pas.
+- Pendant que l'aide est affichée, le réflexe « ramener l'opérateur sur le formulaire » (`Worksheet_Deactivate`) est suspendu : il consulte `AideOuverte()`.
+
+Les cadres « Instructions » décrits dans les sections 1 à 13 correspondent donc désormais au contenu de ces feuilles d'aide.
+
+## 16. Relier une facture à ses opérations bancaires
+
+Depuis le 29/10/2026 (`mod_AffectationFacture`, `mod_InstallAffectationFacture`), le suivi des consommations (section 10) n'est plus indépendant des opérations : on relie chaque **facture** aux **opérations** de la banque qui l'ont réglée.
+
+```mermaid
+flowchart TB
+    OPS[("TblOperations<br/>Eau, Électricité-gaz-chauffage")]
+    RAPPEL["Synthese<br/>rappel Factures non liées"]
+    FORM["frm_AffectationFacture<br/>filtre 1 : type<br/>filtre 2 : facture ouverte"]
+    LIEN[("TblFactures<br/>colonne ID_Transactions")]
+    CLOT{"Toutes les opérations<br/>de la facture sont liées ?"}
+    OUVERTE["Facture laissée ouverte"]
+    CLOSE["Cloturee = Oui<br/>facture plus proposée"]
+    OPS -->|"dépense sans facture"| RAPPEL
+    RAPPEL -->|"Affecter une facture"| FORM
+    FORM -->|"Valider"| LIEN
+    LIEN --> CLOT
+    CLOT -->|"Non"| OUVERTE
+    CLOT -->|"Oui"| CLOSE
+```
+
+**Les règles.**
+
+- Sont à relier les **dépenses** (montant négatif) de catégorie ou sous-catégorie « Eau » ou « Électricité, gaz, chauffage » (accents et casse ignorés, `EstCategorieFacturee`) dont l'ID\_Transaction n'est cité par aucune facture. Elles apparaissent dans le rappel **Factures non liées** de Synthese (15 lignes au plus) ; « Afficher tout » les ouvre toutes dans l'écran de recherche (préfiltre FacturesNonLiees).
+- Le lien est stocké dans la colonne **`ID_Transactions`** de TblFactures : les identifiants des opérations, séparés par « ; » (`FAC_SEP_LIENS`). **Une facture peut être réglée par plusieurs opérations** (échéances), mais **une opération ne peut être liée qu'à une seule facture** : une opération déjà liée, ou une part de ventilation, est refusée.
+- `frm_AffectationFacture` reprend l'opération en en-tête (date, Tiers, catégorie, montant). **Filtre 1** : type de consommation (types présents dans TblFactures). **Filtre 2** : date de la facture, parmi les factures **non clôturées** du type choisi, la plus récente en premier (date, opérateur, numéro, total TTC).
+- **Valider** écrit le lien (`mod_Factures.LierFacture`, qui *ajoute* l'ID aux liens existants et tient à jour la colonne **`NbOperations`**), après une question Oui / Non / Annuler : « toutes les opérations de la facture sont-elles maintenant liées ? ». **Oui** clôture la facture (`Cloturee` = `Oui`, `CloturerFacture`), **Non** la laisse ouverte, **Annuler** n'écrit rien. **Nouvelle facture** ferme le formulaire et ouvre la saisie d'une facture déjà liée à l'opération (`SaisirFacturePourOperation`) ; si l'opérateur l'abandonne, le formulaire réapparaît.
+- La clôture se corrige dans `frm_Facture` (champ « Facture clôturée », confirmation à la validation). La colonne `Cloturee` est créée automatiquement.
+- **Corriger une erreur** : le bouton **Délier de la facture** de l'écran de recherche retire l'opération **sélectionnée** de sa facture (retrouvée d'après l'opération, quel que soit le préfiltre ; `mod_Factures.DelierFacture`). Si la facture était clôturée, une question propose de la rouvrir ; les écrans « Opérations d'une facture » et « Factures non liées » sont rechargés.
+- **Consulter** : dans la liste frm\_Factures, un **double-clic sur le nombre d'opérations liées** (colonne `NbOperations`) ouvre l'écran de recherche sur ces opérations (préfiltre OperationsFacture ; `mod_Factures.TraiterDoubleClicListe`, aiguillé par `Workbook_SheetBeforeDoubleClick`). Sans opération liée, un message l'indique.
+
+**Installation.** Importer `mod_AffectationFacture`, `mod_InstallAffectationFacture`, `mod_Factures`, `mod_Synthese`, `mod_RechercheOperations`, `mod_InstallRechercheOperations`, `mod_InstallAide` et `ThisWorkbook`, puis lancer `CreerFeuilleAffectationFacture` (formulaire) et `CreerFeuilleRechercheOperations` (boutons « Affecter une facture » et « Délier de la facture »). Aucun code à coller.
+
+## 17. Les comptes bancaires
+
+Depuis le 31/10/2026 (`mod_Comptes`), le classeur se prépare au **multi-comptes** :
+
+- le **nom du compte** n'existe que dans le CSV de la banque (colonne `Nom du compte`, un seul compte par fichier : un fichier mêlant plusieurs comptes est refusé, « exportez un seul compte à la fois ») ;
+- à l'import, ce nom est cherché dans **TblComptes** (feuille Param, colonnes Y:Z : `CleCompte`, `NomCompte`) : trouvé, sa clé est réutilisée (`ObtenirOuCreerCleCompte`) ; absent, une ligne est créée avec la clé suivante (maximum + 1) ;
+- la clé est écrite dans la colonne **`CleCompte`** de TblOperations pour toutes les lignes ajoutées par l'import ;
+- les opérations **antérieures** n'ont pas de clé : l'opérateur la saisit directement dans Import\_data (elles appartiennent toutes au même compte).
+
+**Installation** (une seule fois, sans effet si les éléments existent) : importer `mod_Comptes`, `mod_ImportOFX`, `mod_VarGlobales`, puis lancer `InstallerGestionComptes`.
+
+**Limites actuelles** (voir aussi les points relevés) : TblComptes n'est pas dans le périmètre de la synchronisation ; les échéances, les récurrences et le solde de référence ne sont pas encore rattachés à un compte ; aucun écran ne filtre encore par compte.
+
+## Annexe : modèle de données
+
+Le fichier **`MODELE_DONNEES_MERISE.md`** décrit la base selon la méthode Merise (règles de gestion, dictionnaire de données, MCD, MLD, MPD) et étudie des optimisations. Vue d'ensemble des tableaux et de leurs liens (trait plein = clé ; pointillé = lien par égalité de texte ou de valeur, sans clé) :
+
+```mermaid
+flowchart TB
+    CPT[("TblComptes<br/>CleCompte, NomCompte")]
+    OPE[("TblOperations<br/>ID_Transaction")]
+    VEN[("TblVentilations<br/>parts d'une opération")]
+    CAT[("TblCategories<br/>source vers catégorie")]
+    DEC[("TblDecalagesBudget<br/>règles de décalage")]
+    REC[("TblRecurrences<br/>règles")]
+    ECH[("TblEcheances<br/>occurrences à venir")]
+    CON[("TblContrats")]
+    FAC[("TblFactures<br/>ID_Transactions = liste")]
+    LIG[("TblLignes<br/>par bloc et indicateur")]
+    IND[("TblIndicateurs")]
+    CPT -->|"CleCompte"| OPE
+    OPE -->|"ID_Transaction"| VEN
+    CAT -.-|"texte"| OPE
+    DEC -.-|"texte, jokers"| OPE
+    REC -->|"ID_Recurrence"| ECH
+    ECH -.-|"rapprochement, non conservé"| OPE
+    CON -.-|"type + opérateur"| FAC
+    FAC -->|"ID_Facture"| LIG
+    IND -.-|"texte"| LIG
+    FAC -.-|"liste d'ID_Transaction"| OPE
+```
+
+Les points principaux de l'étude, détaillés dans le fichier : (1) le lien facture-opération est une **liste dans une cellule** alors que la relation est 1-N, (2) les catégories sont des **textes recopiés** dans cinq tableaux, (3) les huit colonnes de suivi santé sont **dupliquées** entre opérations et parts, (4) quatre tableaux n'ont **pas d'identifiant**, (5) TblComptes **n'est pas synchronisé**.
+
 ## Glossaire
 
 | Terme | Définition |
 | --- | --- |
+| Menu | Feuille centrale (ancienne « Synthese ») : critères et boutons de tout le classeur. |
+| Synthese | Feuille d'ouverture : bloc Prévisionnel de trésorerie et trois rappels (échéances en retard, factures non liées, santé). |
+| Rappel | Bloc de Synthese qui liste ce qui attend une action (15 lignes au plus), recalculé à chaque affichage. |
+| Feuille d'aide (`frm_xxx_aide`) | Feuille très masquée contenant le mode d'emploi d'un formulaire, affichée par son bouton Aide. |
+| Facture non liée | Dépense Eau ou Électricité, gaz, chauffage qu'aucune facture de TblFactures ne cite dans `ID_Transactions`. |
+| Facture clôturée | Facture dont toutes les opérations bancaires sont liées (`Cloturee` = Oui) ; elle n'est plus proposée à l'affectation. |
+| Bloc / indicateur (facture) | Un bloc est un groupe de lignes de facture (Abonnement, Consommation, Taxes, ou ajouté) ; l'indicateur est ce qu'il alimente dans les totaux et le graphique. |
+| CleCompte | Clé du compte bancaire (TblComptes), écrite sur chaque opération importée. |
+| Évolution (des dépenses) | Écran frm_Evolution : dépenses nettes par période et par pas de temps (section 14). |
 | Pointage / opération pointée | Marque « Oui » (colonne Pointe de TblOperations) indiquant qu'une opération a déjà été analysée ; vide = à analyser. |
 | OFX | Format de fichier bancaire standard ; donne les opérations et leur identifiant, pas la catégorie. |
 | FITID / ID\_Transaction | Identifiant unique d'une opération donné par la banque ; sert d'anti-doublon et relie une opération à ses parts ventilées. |
@@ -941,3 +1114,8 @@ Ces constats sont apparus en rédigeant le guide. **Aucun n'a été corrigé** :
 11. **Numéro de chèque : contrôle de la liste = signal visuel, pas un blocage.** Dans frm\_Echeancier, la colonne NumCheque est colorée (rouge / orange) mais une valeur incorrecte reste acceptée ; seul le formulaire frm\_Echeance refuse. De plus, une échéance avec numéro est rapprochée par ce seul numéro : une erreur de frappe sur le numéro empêche le rapprochement (l'échéance reste alors à venir).
 12. **Contrôle du solde : contournable à la main.** Les cellules « Solde de réf. » et « Date du solde » ne sont pas protégées ; une saisie directe ne déclenche pas le calcul d'écart. Le contrôle repose sur l'usage du bouton « Saisir / contrôler le solde ».
 13. **Rapprochement manuel avec l'échéancier non testé (30/10/2026).** Le bouton « Échéancier… » de `frm_ControleCategories` (`mod_ChoixEcheance`, `mod_Echeancier.RapprocherManuellement`) est écrit mais n'a jamais tourné dans Excel. **À tester :** (a) choix d'une échéance ponctuelle non reconnue automatiquement, puis enregistrement de l'import : l'échéance disparaît, l'opération est inchangée ; (b) **cas d'une échéance issue d'une règle de récurrence dont l'opération diffère** : la question de mise à jour doit apparaître, et, si Oui, la règle et ses échéances à venir doivent prendre les valeurs de l'opération *après* l'enregistrement (aucune opération récurrente n'était disponible pour ce test) ; (c) « Défaire » ; (d) annulation de l'import : l'échéancier reste intact ; (e) changement de catégorie après un rapprochement manuel : le lien est conservé. **Affectation depuis Synthese (31/10/2026), non testée non plus :** (f) Chercher l'opération → seules les opérations du mois de l'échéance et de même signe apparaissent ; (g) Affecter à une échéance → retour sur Synthese, l'échéance a disparu, l'opération est inchangée ; (h) échéance d'une règle : question de mise à jour, appliquée immédiatement ; (i) depuis Recherche globale : la liste de toutes les échéances est proposée. **Limite connue :** une opération enregistrée le mois suivant la date prévue n'est pas dans le filtre « mois de l'échéance » (utiliser Recherche globale).
+14. **TblComptes n'est pas synchronisée (relevé le 01/11/2026).** `mod_Synchro.ListeTables` ne cite pas `NOM_TABLE_COMPTES`, alors que `CleCompte` est écrit dans TblOperations (synchronisée). Deux postes qui créent chacun un compte inconnu obtiennent la même clé 1 pour deux noms différents. Correctif d'une ligne ; non fait. Voir `MODELE_DONNEES_MERISE.md`, point 7.4.
+15. **Modèle de données : points d'optimisation.** La liste `ID_Transactions` de TblFactures (relation 1-N stockée du mauvais côté), les catégories recopiées en texte dans cinq tableaux, les huit colonnes santé dupliquées, quatre tableaux sans identifiant et l'absence de contrôle d'intégrité sont étudiés dans `MODELE_DONNEES_MERISE.md` (partie 7), avec un plan de migration. Rien n'est modifié.
+16. **Textes et commentaires restés d'avant la scission Menu / Synthese.** La zone de texte de la feuille Accueil dit que les analyses se lancent « depuis la page Synthese » (c'est Menu) et parle d'un bouton « rafraîchir » (le bouton s'appelle « Importer »). Les en-têtes de `mod_Consommations`, `mod_Evolution`, `mod_InstallEvolution`, `mod_Analyse`, `mod_InstallAnalyse` et `mod_Echeancier` situent encore leurs boutons « sur la feuille Synthese ». `mod_VarGlobales` déclare toujours les noms des anciens tableaux de lignes (`NOM_TABLE_ABOS`, `NOM_TABLE_CONSOS`, `NOM_TABLE_TAXES`, `NOM_TABLE_BLOCS`), conservés pour la seule migration de `mod_InstallConsommations`, et les constantes `NOM_FEUILLE_DATA_*` correspondantes.
+17. **Constantes dupliquées : liste complétée.** `VEN_FEUILLE` / `VEN_TABLE` sont aussi recopiées dans `mod_AnalyseDonnees` (ajouté pour le socle commun d'analyse). `NormaliserTexte` existe en deux exemplaires : publique dans `mod_Categories`, privée dans `mod_Synthese` (comportements à vérifier avant toute factorisation).
+18. **Rattachement facture-opération : aucun test consigné (29/10 au 01/11/2026).** L'affectation, la clôture, le bouton « Délier de la facture » et le double-clic sur le nombre d'opérations liées n'ont pas de case dans `TODO_SuiviConsommations.md`. **À tester :** (a) affecter une opération à une facture, répondre Non puis Oui à la question de clôture ; (b) lier une seconde opération à la même facture ; (c) tenter de lier une opération déjà liée (refus attendu) ; (d) délier une opération d'une facture clôturée et accepter de la rouvrir ; (e) double-clic sur `NbOperations` pour une facture sans opération liée ; (f) comportement avec une facture dont un ID est introuvable dans TblOperations ; (g) deux postes qui lient la même facture avant synchronisation (la liste est une seule cellule : conflit sur toute la facture).

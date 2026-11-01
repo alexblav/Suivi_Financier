@@ -1,6 +1,6 @@
 # Suivi Financier – Manuel utilisateur
 
-Oct 18, 2026 · @Alexandre
+Nov 1, 2026 · @Alexandre
 
 Ce manuel s'adresse à la personne qui **utilise** le classeur au quotidien : importer ses relevés, ranger ses opérations, suivre ses remboursements de santé, anticiper les opérations à venir et analyser ses dépenses. Il explique **quoi faire et dans quel ordre**, sans entrer dans le fonctionnement interne. Pour l'installation, la maintenance ou le détail technique, voir le guide du développeur (`README.md` / `README.html`).
 
@@ -23,6 +23,9 @@ Ce document existe en deux formats identiques : `MANUEL_UTILISATEUR.md` et `MANU
 - [11. Pointer les opérations déjà analysées](#11-pointer-les-opérations-déjà-analysées)
 - [12. Sauvegarde et travail à plusieurs](#12-sauvegarde-et-travail-à-plusieurs)
 - [13. Corriger un import douteux (remédiation)](#13-corriger-un-import-douteux-remédiation)
+- [14. Les rappels de la feuille Synthese](#14-les-rappels-de-la-feuille-synthese)
+- [15. Suivre l'évolution de ses dépenses](#15-suivre-lévolution-de-ses-dépenses)
+- [16. Relier une facture à ses paiements](#16-relier-une-facture-à-ses-paiements)
 - [Questions fréquentes](#questions-fréquentes)
 - [Petit lexique](#petit-lexique)
 
@@ -45,12 +48,13 @@ flowchart LR
     CONSULTER --> ANALYSER
 ```
 
-### Les deux écrans de départ
+### Les trois écrans de départ
 
 - **Accueil** : un rappel de la marche à suivre pour récupérer vos données.
-- **Synthese** : votre **tableau de bord**. Tout part d'ici : en haut à gauche les boutons Importer, Définir fichier Central et Synchroniser ; au centre les recherches et le bilan ; à droite la santé, l'analyse et les consommations ; en dessous, la gestion prévisionnelle.
+- **Synthese** : la feuille sur laquelle le classeur **s'ouvre**. Elle vous dit ce qui demande votre attention : le **solde prévisionnel** (à gauche) et trois rappels (à droite) : les échéances en retard, les factures non liées à une opération et les opérations de santé à traiter (section 14). Le bouton **Actualiser** les met à jour ; ils se mettent aussi à jour chaque fois que vous revenez sur la feuille.
+- **Menu** : votre **panneau de commandes**. Tout part d'ici : en haut les boutons Importer, Définir fichier Central, Synchroniser et Remédiation OFX ; au centre les recherches et le bilan ; à droite la santé, l'analyse, l'évolution des dépenses et les consommations ; en dessous, la gestion prévisionnelle. (Avant le 28/10/2026, cette feuille s'appelait Synthese : les anciens documents l'appellent encore ainsi.)
 
-Sur la feuille Synthese, vous réglez aussi :
+Sur la feuille Menu, vous réglez aussi :
 
 | Réglage | À quoi il sert |
 | --- | --- |
@@ -64,9 +68,9 @@ Sur la feuille Synthese, vous réglez aussi :
 Les écrans de saisie (contrôle des catégories, ventilation, échéance…) s'ouvrent comme des **feuilles** et non comme des fenêtres classiques. Conséquences à connaître :
 
 - tant qu'un écran est ouvert, **vous ne pouvez pas changer d'onglet** : c'est voulu. On en sort par ses boutons (Terminer, Valider, Annuler, Sortir…) ;
-- la feuille Synthese disparaît pendant ce temps et revient d'elle-même à la fermeture ;
+- les feuilles Menu et Synthese disparaissent pendant ce temps et revient d'elle-même à la fermeture ;
 - **cellule grise = non modifiable**, **cellule jaune pâle = à remplir ou modifiable** ;
-- dans les cadres « Instructions » des écrans, les noms de boutons sont en rouge et les noms de champs en vert.
+- chaque écran a un bouton **Aide** : il ouvre le mode d'emploi de l'écran (champs, boutons) **sans** le fermer ; le bouton **Sortir** de l'aide vous ramène à l'écran. Dans ces aides, les noms de boutons sont en rouge et les noms de champs en vert.
 
 > **Astuce :** n'essayez pas de « fermer » un écran avec la croix d'Excel ou en cliquant sur un autre onglet. Utilisez toujours le bouton prévu (Sortir, Terminer, Annuler…).
 
@@ -75,13 +79,14 @@ Les écrans de saisie (contrôle des catégories, ventilation, échéance…) s'
 À chaque récupération de relevé, dans cet ordre :
 
 1. **Exporter** les opérations depuis Linxo (fichiers **OFX** et **CSV**, tous deux obligatoires) et l'enregistrer.
-2. Sur Synthese, cliquer sur **Importer** et suivre les écrans (section 1).
+2. Sur Menu, cliquer sur **Importer** et suivre les écrans (section 1).
 3. **Contrôler le rangement** des opérations qui le demandent (section 2).
 4. Confirmer les **rapprochements avec l'échéancier** si le classeur en propose (section 8).
 5. Répondre aux **questions santé** de fin d'import (section 5).
 6. Parcourir les opérations importées : **pointer** celles que vous avez analysées (section 11).
 7. Contrôler le **solde** avec celui de votre banque (section 8).
 8. Consulter le **bilan du mois** et, de temps en temps, l'**analyse** (sections 7 et 9).
+9. Revenir sur **Synthese** : traiter les rappels (échéances en retard, factures à relier, santé), section 14.
 
 ## 1. Importer ses relevés
 
@@ -97,7 +102,7 @@ Une fois importées, les modifications faites dans Linxo **ne sont plus reprises
 
 ### Lancer l'import
 
-1. Cliquez sur **Importer** (feuille Synthese, ou bouton de l'Accueil).
+1. Cliquez sur **Importer** (feuille Menu, ou bouton de l'Accueil).
 2. Choisissez le fichier **OFX**. Si vous annulez, rien n'est modifié.
 3. Le classeur vous demande ensuite le fichier **CSV**. Il est **obligatoire** : il contient le nom du compte (colonne *Nom du compte*) et sert de secours pour retrouver la catégorie des opérations que le classeur n'a pas su ranger tout seul. Si vous annulez l'une des deux sélections, l'import est impossible et un message vous l'indique.
 4. Le classeur lit les opérations et **ignore celles déjà enregistrées**. Vous pouvez donc réimporter un relevé qui chevauche le précédent sans crainte de doublons.
@@ -225,7 +230,7 @@ Le classeur regroupe ainsi la dépense (-30 €) et ses remboursements (+20 € 
 
 ### Les trois étapes
 
-Elles se lancent après l'import (questions finales) ou à tout moment avec le bouton **Traitement des données de santé** de Synthese.
+Elles se lancent après l'import (questions finales) ou à tout moment avec le bouton **Traitement des données de santé** du Menu.
 
 **Étape 1 – Réparer les clés manquantes ou illisibles.** Chaque opération dont la clé n'est pas exploitable s'affiche avec des listes en cascade pour retrouver la bonne clé parmi celles connues (Date → Spécialité → Bénéficiaire → Montant). Trois choix :
 
@@ -247,7 +252,7 @@ Elles se lancent après l'import (questions finales) ou à tout moment avec le b
 
 ### Consulter la situation : le bouton « Suivi Santé »
 
-Le bouton **Suivi Santé** de Synthese ouvre l'écran de recherche avec toutes les lignes de santé. Une ligne au-dessus du tableau résume la situation, par exemple : « 7 lignes dont 1 part ventilée : 3 OK, 2 KO – écart cumulé des dépenses KO : 45,00 € ».
+Le bouton **Suivi Santé** du Menu ouvre l'écran de recherche avec toutes les lignes de santé. Une ligne au-dessus du tableau résume la situation, par exemple : « 7 lignes dont 1 part ventilée : 3 OK, 2 KO – écart cumulé des dépenses KO : 45,00 € ».
 
 - Les montants des lignes KO sont en **gras** (rouge pour une dépense, vert pour un remboursement).
 - Les lignes « Santé, prévoyance » d'une autre sous-catégorie n'ont pas de statut : elles servent à repérer une dépense de santé mal rangée.
@@ -260,11 +265,11 @@ L'**écran de recherche** est l'outil central : il affiche en un seul tableau to
 
 ### Les façons de l'ouvrir
 
-| Bouton (Synthese) | Ce que vous voyez |
+| Bouton (Menu) | Ce que vous voyez |
 | --- | --- |
 | **Recherche Générale** | Toutes les opérations |
 | **Dernier Import** | Les opérations ajoutées par le dernier import |
-| **Opérations du mois sélectionné** | Le mois choisi sur Synthese, au-dessus du montant minimum |
+| **Opérations du mois sélectionné** | Le mois choisi sur Menu, au-dessus du montant minimum |
 | **Suivi Santé** | Les lignes de santé avec leur statut (section 5) |
 | **Erreur Import Santé** | Les opérations dont la clé santé est illisible |
 | *Voir le détail* (depuis le bilan) | Les entrées ou les dépenses du mois |
@@ -289,13 +294,13 @@ Au-dessus du tableau, une ligne rappelle le filtre actif et le nombre de lignes.
 | Marquer une opération comme analysée | Choisir **Oui** dans la colonne **Pointe** (section 11) |
 | Déclarer une opération récurrente | Sélectionner la ligne puis **Rendre récurrente** (section 8) |
 | Noter une opération à venir | **Ajouter à l'échéancier** (section 8) |
-| Revenir | **Sortir** (retour sur Synthese, ou sur l'analyse si vous en veniez) |
+| Revenir | **Sortir** (retour sur Menu, ou sur l'analyse si vous en veniez) |
 
 > **Astuce :** après un import, répondre « Oui » à *Afficher les opérations importées ?* ouvre directement cet écran sur les nouveautés. C'est le bon moment pour pointer, corriger et déclarer les opérations récurrentes.
 
 ## 7. Le bilan du mois
 
-Sur Synthese, choisissez l'**année** et le **mois**, puis cliquez sur **Bilan mensuel**. L'écran affiche le **total des entrées**, le **total des dépenses** et la **différence**. Les boutons *Voir le détail des entrées* et *Voir le détail des dépenses* ouvrent l'écran de recherche sur les opérations concernées.
+Sur Menu, choisissez l'**année** et le **mois**, puis cliquez sur **Bilan mensuel**. L'écran affiche le **total des entrées**, le **total des dépenses** et la **différence**. Les boutons *Voir le détail des entrées* et *Voir le détail des dépenses* ouvrent l'écran de recherche sur les opérations concernées.
 
 Une opération ventilée est comptée ici une seule fois, pour son montant total.
 
@@ -314,7 +319,7 @@ L'échéancier garde la liste de ce qui **va** arriver sur votre compte (loyer, 
 
 ### Déclarer une échéance
 
-Bouton **Saisir une échéance** (Synthese), ou **Ajouter une échéance** dans les listes. Les champs :
+Bouton **Saisir une échéance** (Menu), ou **Ajouter une échéance** dans les listes. Les champs :
 
 | Champ | À renseigner |
 | --- | --- |
@@ -357,7 +362,7 @@ Une échéance est candidate quand le montant est de même signe et dans la tol�
 
 ### Les deux listes
 
-Bouton **Voir l'échéancier** (Synthese) :
+Bouton **Voir l'échéancier** (Menu) :
 
 - **La liste des échéances à venir** : vous pouvez corriger les cellules directement, filtrer avec les flèches d'en-tête, ajouter ou supprimer. Supprimer une échéance issue d'une règle pose la question :
     - **Oui** : supprimer seulement cette échéance (la règle continue) ;
@@ -387,7 +392,7 @@ Le bloc **Prévisionnel de trésorerie** se calcule seul après chaque import ou
 
 ## 9. Analyser ses dépenses
 
-Le bouton **Analyse budgétaire** de Synthese ouvre l'écran d'analyse. Il répond à : *où va mon argent ? comment cela évolue-t-il ? quelles opérations composent ce chiffre ?*
+Le bouton **Analyse budgétaire** du Menu ouvre l'écran d'analyse. Il répond à : *où va mon argent ? comment cela évolue-t-il ? quelles opérations composent ce chiffre ?*
 
 > Cette fonction est récente : si un chiffre vous semble étrange, comparez-le avec le bilan mensuel et signalez-le.
 
@@ -409,6 +414,8 @@ Après chaque changement de réglage, cliquez sur **Actualiser**.
 - **La répartition** : un tableau (catégorie, dépenses en €, % du total, nombre d'opérations) trié de la plus grosse à la plus petite, avec un graphique. Seules les **dépenses** apparaissent, affichées en positif.
 - **L'évolution** : les plus grosses catégories mois par mois sur 12 mois, avec un graphique.
 
+Pour suivre une catégorie précise sur une période libre, utilisez plutôt l'écran dédié **Évolution des dépenses** (section 15).
+
 ### Les boutons
 
 | Bouton | Effet |
@@ -417,7 +424,7 @@ Après chaque changement de réglage, cliquez sur **Actualiser**.
 | **Détailler la sélection** | Cliquez d'abord sur une ligne du tableau : l'analyse passe à ses sous-catégories (impossible sur « Autres » ou « (sans catégorie) ») |
 | **Toutes les catégories** | Revient à la vue générale |
 | **Voir les opérations** | Ouvre l'écran de recherche sur les opérations de la ligne sélectionnée (ou de tout ce qui est affiché si rien n'est sélectionné) |
-| **Sortir** | Revient à Synthese |
+| **Sortir** | Revient à Menu |
 
 Depuis l'écran de recherche ouvert par l'analyse, vous pouvez recatégoriser, ventiler ou décaler : en cliquant sur **Sortir**, vous revenez à l'analyse, qui **se recalcule**.
 
@@ -427,9 +434,9 @@ Le bilan compte une opération ventilée une seule fois ; l'analyse la remplace 
 
 ## 10. Suivre ses consommations (eau, électricité, gaz)
 
-Cette partie est **indépendante des opérations bancaires** : vous saisissez vos factures à la main, et le classeur montre combien vous consommez, à quel prix, et comment cela évolue. Elle est facultative et récente.
+Vous saisissez vos factures à la main, et le classeur montre combien vous consommez, à quel prix, et comment cela évolue. Vous pouvez ensuite **relier chaque facture aux paiements** qui l'ont réglée sur votre compte (section 16). Cette partie est facultative.
 
-Bouton **Consommations** de Synthese.
+Bouton **Consommations** du Menu.
 
 ### Étape 1 – Déclarer un contrat
 
@@ -540,7 +547,7 @@ Pour éviter les blocages de sécurité de Windows sur les fichiers placés sur 
 - **À l'ouverture** : si le fichier central est plus récent, vos données sont mises à jour et un résumé s'affiche (lignes nouvelles, modifiées, retirées).
 - **À la fermeture** : si vous avez modifié des données, le fichier central est remplacé par votre version, puis votre classeur est enregistré. Avant tout remplacement, une sauvegarde est faite (les 10 dernières sont conservées dans le dossier *Sauvegardes_Synchro*, à côté du central).
 
-### Les boutons de Synthese
+### Les boutons de Menu
 
 - **Synchroniser** : lance la synchronisation tout de suite, sans attendre la fermeture.
 - **Définir fichier Central** : choisit l'emplacement du fichier central (existant ou à créer). À la toute première fermeture, il vous est aussi demandé. Ce choix vaut pour tout le poste.
@@ -555,7 +562,7 @@ Si votre classeur est protégé par un mot de passe d'ouverture, il faut utilise
 
 ## 13. Corriger un import douteux (remédiation)
 
-Si vous constatez qu'une ligne contient les informations d'une autre opération (Tiers et Notes qui ne correspondent pas), le bouton **Remédiation OFX** (Synthese) permet de comparer un fichier OFX récent aux opérations enregistrées, **avant toute correction**.
+Si vous constatez qu'une ligne contient les informations d'une autre opération (Tiers et Notes qui ne correspondent pas), le bouton **Remédiation OFX** (Menu) permet de comparer un fichier OFX récent aux opérations enregistrées, **avant toute correction**.
 
 1. Cliquez sur **Analyser un OFX** et choisissez le fichier : un tableau liste les écarts. **Rien n'est modifié à ce stade.**
 2. Contrôlez chaque ligne. La colonne **Corriger** est préremplie : « Oui » pour les données qui viennent de la banque (dates, type, montant, chèque), « Non » pour Tiers, Notes et Catégorie (vous avez pu les corriger volontairement), sauf si la ligne est manifestement mélangée. Modifiez les choix si besoin.
@@ -564,13 +571,66 @@ Si vous constatez qu'une ligne contient les informations d'une autre opération 
 
 Les opérations de l'OFX absentes du classeur sont seulement signalées : relancez l'import avec le même fichier pour les ajouter. Comme à l'import, l'OFX peut ensuite être effacé.
 
+## 14. Les rappels de la feuille Synthese
+
+Synthese est la feuille sur laquelle le classeur s'ouvre. À droite du solde prévisionnel, trois tableaux listent ce qui attend une action (15 lignes au plus chacun). Ils se **mettent à jour chaque fois que vous revenez sur la feuille**, et avec le bouton **Actualiser**. La date de la dernière mise à jour est écrite en haut à gauche.
+
+| Rappel | Ce qu'il liste | Que faire |
+| --- | --- | --- |
+| **Échéances en retard** | Les échéances dont la date est passée (pour une date « au mois près » : une fois le mois écoulé) | Sélectionnez une ligne, cliquez sur **Chercher l'opération** pour rapprocher l'opération déjà importée (section 8), ou supprimez l'échéance dans l'échéancier |
+| **Factures non liées** | Vos dépenses « Eau » et « Électricité, gaz, chauffage » qu'aucune facture saisie ne cite encore | Sélectionnez une ligne et cliquez sur **Affecter une facture** (section 16). **Afficher tout** ouvre la liste complète dans l'écran de recherche |
+| **Santé : opérations à traiter ou en attente** | Les opérations de santé encore « KO ». *En attente de remboursement (reste x)* : la dépense n'est pas encore entièrement remboursée ; *À traiter* : il y a une anomalie à comprendre | Utilisez **Suivi Santé** ou **Traitement des données de santé** du Menu (section 5) |
+
+> **À savoir :** ces tableaux sont un **aide-mémoire** ; sélectionner une ligne puis cliquer sur un bouton est la seule action possible depuis Synthese. Pour toute autre commande, retournez sur la feuille **Menu**.
+
+## 15. Suivre l'évolution de ses dépenses
+
+Le bouton **Évolution des dépenses** (Menu) ouvre un écran qui montre, dans un tableau et un graphique, comment vos dépenses évoluent dans le temps. Il répond à : *mes dépenses d'alimentation ont-elles augmenté depuis un an ?*
+
+| Réglage | Choix |
+| --- | --- |
+| **Période** | Mois en cours, mois dernier, 3 / 6 / 12 / 24 / 36 derniers mois, ou tout l'historique |
+| **Pas de temps** | Mois, trimestre, année, ou Automatique (le classeur choisit selon la durée) |
+| **Graphique** | Barres empilées, courbes ou barres groupées |
+| **Catégories** et **Sous-catégories** | Jusqu'à 6 de chaque. Vide = toutes. Les deux listes se **cumulent** |
+| **Détail par** | Catégorie ou sous-catégorie ; Automatique passe aux sous-catégories dès que vous choisissez une seule catégorie |
+| **Catégories exclues** | Jamais comptées, **sauf** si vous avez choisi vous-même des catégories |
+
+Les montants sont des **dépenses nettes des remboursements**, rangées par **mois de budget** (comme l'analyse). Seules les 8 plus grosses lignes sont détaillées ; le reste est regroupé dans « Autres ». L'écran affiche au plus 48 colonnes (les plus récentes si la période est plus longue). Cliquez sur **Actualiser** après chaque changement ; **Réinitialiser les sélections** vide les listes de catégories ; **Aide** détaille chaque champ.
+
+## 16. Relier une facture à ses paiements
+
+Quand vous avez saisi une facture de consommation (section 10), vous pouvez dire **quelle(s) opération(s) bancaire(s) l'ont payée**. Le classeur sait alors quelles dépenses d'eau ou d'énergie n'ont pas encore de facture, et quelles factures sont soldées.
+
+**Relier une opération à une facture**
+
+1. Sur **Synthese**, dans le tableau **Factures non liées**, sélectionnez la dépense, puis cliquez sur **Affecter une facture**. (Depuis l'écran de recherche, le même bouton existe pour n'importe quelle opération.)
+2. Le formulaire rappelle l'opération (date, tiers, catégorie, montant). Choisissez d'abord le **type de consommation**, puis la **facture** : seules les factures **non clôturées** de ce type sont proposées, la plus récente en premier, avec leur opérateur, numéro et total TTC.
+3. Cliquez sur **Valider**. Le classeur demande : *toutes les opérations de la facture sont-elles maintenant liées ?* **Oui** clôture la facture (elle n'est plus proposée), **Non** la laisse ouverte (utile quand vous la payez en plusieurs fois), **Annuler** n'enregistre rien.
+4. Si la facture n'est pas encore saisie, **Nouvelle facture** ouvre la saisie d'une facture déjà liée à l'opération.
+
+Une facture peut être payée par **plusieurs** opérations ; une opération, elle, ne règle qu'**une seule** facture (une opération déjà liée est refusée).
+
+**Voir les opérations d'une facture.** Dans la liste **Voir les factures**, la colonne *NbOperations* donne le nombre d'opérations liées ; un **double-clic** sur ce nombre ouvre l'écran de recherche sur ces opérations.
+
+**Corriger.**
+
+- *Mauvaise affectation* : dans l'écran de recherche, sélectionnez l'opération puis cliquez sur **Délier de la facture**. Si la facture était clôturée, le classeur propose de la rouvrir.
+- *Clôture oubliée ou prématurée* : ouvrez la facture (**Voir les factures**, **Modifier la sélection**) et changez le champ **Facture clôturée** ; une confirmation est demandée.
+
 ## Questions fréquentes
 
 **Je ne peux pas changer d'onglet.**
 Un écran de saisie est resté ouvert. Terminez-le avec son bouton (Terminer, Valider, Annuler ou Sortir).
 
-**La feuille Synthese a disparu.**
-Elle est masquée pendant l'usage d'un écran. Sortez de l'écran avec son bouton. Si une erreur l'a laissée masquée, signalez-le à votre administrateur, qui peut la réafficher.
+**La feuille Menu (ou Synthese) a disparu.**
+Elles sont masquées pendant l'usage d'un écran. Sortez de l'écran avec son bouton. Si une erreur l'a laissée masquée, signalez-le à votre administrateur, qui peut la réafficher.
+
+**Une dépense d'eau ou d'électricité reste dans « Factures non liées ».**
+Saisissez la facture correspondante (section 10) puis affectez-la (section 16). Seules les dépenses de catégorie ou sous-catégorie « Eau » ou « Électricité, gaz, chauffage » sont concernées.
+
+**Un écran n'a pas de mode d'emploi visible.**
+Cliquez sur son bouton **Aide** : l'aide s'ouvre sans fermer l'écran, et **Sortir** (dans l'aide) vous y ramène.
 
 **J'ai importé deux fois le même relevé.**
 Aucun risque : les opérations déjà présentes sont reconnues et ignorées.
@@ -608,6 +668,10 @@ Utilisez **Annuler**, rien n'est enregistré tant que vous n'avez pas validé. P
 | **Dépassement d'honoraires** | Reste à charge accepté : le cas n'est plus reproposé |
 | **Pointer** | Marquer « Oui » une opération déjà analysée |
 | **Échéance** | Une opération à venir |
+| **Menu / Synthese** | Menu : le panneau de commandes (boutons et réglages). Synthese : la feuille d'ouverture, avec le solde prévisionnel et les rappels |
+| **Rappel** | Tableau de Synthese qui liste ce qui attend une action |
+| **Facture non liée** | Dépense d'eau ou d'énergie qu'aucune facture saisie ne cite |
+| **Facture clôturée** | Facture dont tous les paiements sont reliés ; elle n'est plus proposée à l'affectation |
 | **Règle de récurrence** | Modèle qui crée seul les échéances d'une opération qui se répète |
 | **Rapprochement** | Association d'une opération importée à une échéance prévue |
 | **Solde de référence** | Le solde réel de votre compte à une date, saisi par vous |

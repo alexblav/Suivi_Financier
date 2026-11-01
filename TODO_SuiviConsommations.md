@@ -93,3 +93,20 @@ Deux précisions de l'opérateur, validées le 11/10/2026 :
 - [ ] Générer les `…_structure.txt` des 5 feuilles avec `mod_ExportStructure`
 - [x] Documenter dans le README (section 10) et régénérer `README.html` (`python build_docs.py`)
 - [ ] Factoriser les petits outils de lecture de tableau recopiés de `mod_Echeancier` (`ObtenirTable`, `TableVide`, `NouvelleLigne`, `LireColonne`, `ProchainID`)
+
+## 5. Rattachement des factures aux opérations bancaires (29/10 au 01/11/2026)
+
+Fonction ajoutée après la refonte (README section 16) : `mod_AffectationFacture`, rappel « Factures non liées » de Synthese (`mod_Synthese`), boutons « Affecter une facture » et « Délier de la facture » de l'écran de recherche, colonnes `ID_Transactions`, `Cloturee` et `NbOperations` de `TblFactures`, double-clic sur `NbOperations` (préfiltre `OperationsFacture`).
+
+### Tests à faire (rien n'est consigné)
+- [ ] Affecter une opération à une facture : réponse Non puis Oui à la question de clôture
+- [ ] Lier une seconde opération à la même facture (échéances) ; `NbOperations` passe à 2
+- [ ] Lier une opération déjà liée : refus attendu ; lier une part de ventilation : refus attendu
+- [ ] Délier une opération d'une facture clôturée, accepter de la rouvrir
+- [ ] Double-clic sur `NbOperations` d'une facture sans opération liée : message attendu
+- [ ] Facture dont un ID de `ID_Transactions` n'existe plus dans `TblOperations`
+- [ ] Deux postes qui lient la même facture avant synchronisation (la liste est une seule cellule : conflit)
+
+### À étudier
+- [ ] Remplacer la liste `ID_Transactions` par une colonne `ID_Facture` dans `TblOperations` (relation 1-N ; voir `MODELE_DONNEES_MERISE.md`, point 7.1)
+- [ ] Proposer automatiquement la facture probable (montant TTC proche du montant de l'opération, date proche)
