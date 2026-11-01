@@ -46,7 +46,10 @@ Private Const LIGNE_BOUTONS As Long = 2
 Private Const LIGNE_INSTRUCTIONS As Long = 4
 Private Const LIGNE_CORPS As Long = 6
 Private Const LIGNE_ENTETE_LISTE As Long = 6
-Private Const SYN_LIGNE_BOUTON As Long = 25
+Private Const BTN_CONSO_GAUCHE As Double = 505.9
+Private Const BTN_CONSO_HAUT As Double = 301.9
+Private Const BTN_CONSO_LARGEUR As Double = 151.9
+Private Const BTN_CONSO_HAUTEUR As Double = 17.2
 
 
 ' =====================================================================================
@@ -90,7 +93,7 @@ Private Function PreparerToutesLesDonnees() As Boolean
         Split("ID_Contrat|TypeConso|Operateur|Unite|DateDebut|DateFin|AbonnementMensuel|Reference", "|"), _
         mod_VarGlobales.NOM_FEUILLE_CONTRATS) Then Exit Function
     If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_FACTURES, mod_VarGlobales.NOM_TABLE_FACTURES, _
-        Split("ID_Facture|TypeConso|Operateur|NumeroFacture|DateFacture|DebutPeriode|FinPeriode|TotalFactureTTC|Commentaire|ID_Transactions", "|"), "") Then Exit Function
+        Split("ID_Facture|TypeConso|Operateur|NumeroFacture|DateFacture|DebutPeriode|FinPeriode|TotalFactureTTC|Commentaire|ID_Transactions|Cloturee", "|"), "") Then Exit Function
     ' Toutes les lignes (abonnement, consommation, taxes, blocs ajoutés) : un seul tableau.
     If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_LIGNES, mod_VarGlobales.NOM_TABLE_LIGNES, _
         Split("ID_Facture|OrdreBloc|Bloc|Indicateur|Libelle|DateDebut|DateFin|Quantite|Unite|PrixUnitaireHT|TauxTVA|MontantHT|MontantTTC", "|"), "") Then Exit Function
@@ -548,9 +551,9 @@ Private Function ConstruireListeFactures(ByVal wsPrecedente As Worksheet) As Boo
     Dim t As String
 
     entetes = Array("ID_Facture", "TypeConso", "Operateur", "NumeroFacture", "DateFacture", "DebutPeriode", "FinPeriode", _
-                    "TotalHT", "TotalTVA", "TotalTTCCalcule", "TotalFactureTTC", "Ecart", "Commentaire")
-    largeurs = Array(11, 18, 22, 16, 12, 12, 12, 12, 12, 16, 16, 10, 28)
-    formats = Array("0", "@", "@", "@", "dd/mm/yyyy", "dd/mm/yyyy", "dd/mm/yyyy", "#,##0.00", "#,##0.00", "#,##0.00", "#,##0.00", "#,##0.00", "@")
+                    "TotalHT", "TotalTVA", "TotalTTCCalcule", "TotalFactureTTC", "Ecart", "Cloturee", "Commentaire")
+    largeurs = Array(11, 18, 22, 16, 12, 12, 12, 12, 12, 16, 16, 10, 10, 28)
+    formats = Array("0", "@", "@", "@", "dd/mm/yyyy", "dd/mm/yyyy", "dd/mm/yyyy", "#,##0.00", "#,##0.00", "#,##0.00", "#,##0.00", "#,##0.00", "@", "@")
 
     boutons = Array( _
         mod_Display.FR("Ajouter une facture"), "SaisirFacture", "btnAjouterFacture", 118, _
@@ -566,6 +569,7 @@ Private Function ConstruireListeFactures(ByVal wsPrecedente As Worksheet) As Boo
     t = t & Chr(10) & "Les factures sont class{e2}es par date de facture, les plus r{e2}centes en haut. Les fl{e1}ches de l'en-t{ea}te permettent de filtrer chaque colonne ; le filtre est conserv{e2} quand la liste est actualis{e2}e (apr{e1}s une saisie ou une suppression)."
     t = t & Chr(10) & "La liste est en lecture seule : on ajoute ou on corrige une facture avec le formulaire. [c:TotalTTCCalcule] est la somme des lignes saisies "
     t = t & "(indicatif) ; [c:TotalFactureTTC] est le montant r{e2}ellement factur{e2} ; [c:Ecart] est leur diff{e2}rence."
+    t = t & Chr(10) & "[c:Cloturee] vaut Oui quand la facture est cl{o2}tur{e2}e : toutes les op{e2}rations bancaires qui l'ont r{e2}gl{e2}e sont li{e2}es, elle n'est plus propos{e2}e par l'affectation d'une facture {a2} une op{e2}ration. Elle se change dans le formulaire ([b:Modifier la s{e2}lection]), avec confirmation."
     t = t & Chr(10) & "Boutons :"
     t = t & Chr(10) & "- [b:Ajouter une facture] : ouvre le formulaire de saisie."
     t = t & Chr(10) & "- [b:Consulter la s{e2}lection] : ouvre la facture s{e2}lectionn{e2}e dans le formulaire, sans pouvoir l'enregistrer : un seul bouton Sortir, qui abandonne en silence toute modification."
@@ -698,6 +702,7 @@ Private Function ConstruireFormulaireFacture(ByVal wsPrecedente As Worksheet) As
 
     mod_InstallCommun.PoserEtiquette ws.Range("B8"), mod_Display.FR("Num{e2}ro de facture (facultatif)")
     mod_InstallCommun.PoserChampSaisie ws.Range("C8:D8"), "@"
+    mod_Factures.PoserChampCloture ws
 
     mod_InstallCommun.PoserEtiquette ws.Range("B9"), "Date de la facture (facultative)"
     mod_InstallCommun.PoserChampDate ws.Range(mod_Factures.FF_ADR_DATE)
@@ -782,6 +787,7 @@ Private Function TexteInstructionsFacture() As String
     t = t & "[c:Prix HT] : prix unitaire hors taxes (jusqu'{a2} 6 d{e2}cimales). [c:TVA] : taux de la ligne (5,5 % ou 20 %, par exemple)."
     t = t & Chr(10) & "[c:Montant HT] = quantit{e2} x prix, arrondi au centime ; [c:Montant TTC] = HT x (1 + TVA), arrondi au centime. Ils se calculent en direct. "
     t = t & "Les lignes vides sont ignor{e2}es. Le r{e2}capitulatif du bas est indicatif : un {e2}cart avec la facture n'emp{ea}che jamais l'enregistrement."
+    t = t & Chr(10) & "[c:Facture cl{o2}tur{e2}e] (en haut {a2} droite) : Oui quand toutes les op{e2}rations bancaires qui ont r{e2}gl{e2} la facture sont li{e2}es. Une facture cl{o2}tur{e2}e n'est plus propos{e2}e quand on affecte une facture {a2} une op{e2}ration ; en changeant ce champ, une confirmation est demand{e2}e {a2} la validation."
     t = t & Chr(10) & "Si un champ est incorrect, un message appara{i2}t sous le formulaire et rien n'est enregistr{e2}. "
     t = t & "Si une p{e2}riode de consommation ou d'abonnement en chevauche une autre du m{ea}me type, une confirmation est demand{e2}e."
     t = t & Chr(10) & "[b:Ajouter un bloc] : cr{e2}e, sous les blocs existants, un bloc de m{ea}me forme (m{ea}mes colonnes) dont vous donnez le nom (exemple : Redevance, Avoir), puis l'indicateur qu'il alimente, choisi dans une liste ou cr{e2}{e2} {a2} la vol{e2}e (il sera propos{e2} ensuite dans les listes). Le titre de chaque bloc rappelle son indicateur entre parenth{e1}ses. Il se remplit comme les autres blocs. Ses lignes sont enregistr{e2}es avec le nom du bloc et comptent dans les totaux de la facture. Pour remettre un bloc du mod{e1}le supprim{e2}, tapez son nom (Abonnement, Consommation ou Taxes et contributions)."
@@ -1101,7 +1107,9 @@ Private Sub ConstruireBoutonSynthese()
     ws.Shapes("btnConsommations").Delete
     On Error GoTo 0
 
-    Set btn = ws.Buttons.Add(ws.Cells(SYN_LIGNE_BOUTON, 1).Left + 12, ws.Cells(SYN_LIGNE_BOUTON, 1).Top, 152, 28)
+    ' Position et taille relevees dans Synthese_structure.txt (export du 28/10/2026) : le bouton est dans le cadre
+    ' "Analyse Energetique" (H21:K23), aligne sur les boutons du cadre "Analyse Budgetaire".
+    Set btn = ws.Buttons.Add(BTN_CONSO_GAUCHE, BTN_CONSO_HAUT, BTN_CONSO_LARGEUR, BTN_CONSO_HAUTEUR)
     btn.Caption = "Consommations"
     btn.OnAction = "AfficherConsommations"
     btn.Name = "btnConsommations"

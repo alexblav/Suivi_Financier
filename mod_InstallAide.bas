@@ -168,6 +168,7 @@ Private Sub Def_Factures(ByRef titre As String, ByRef intro As String, ByRef cha
     L champs, "TotalTTCCalcule", "Calcul{e2} : somme des montants TTC des lignes (indicatif)."
     L champs, "TotalFactureTTC", "Montant TTC r{e2}ellement indiqu{e2} sur la facture."
     L champs, "Ecart", "TotalFactureTTC - TotalTTCCalcule ; vide si le total de la facture n'a pas {e2}t{e2} saisi."
+    L champs, "Cloturee", "Oui quand la facture est cl{o2}tur{e2}e (toutes ses op{e2}rations bancaires sont li{e2}es) : elle n'est plus propos{e2}e par l'affectation d'une facture {a2} une op{e2}ration. Se change dans le formulaire de la facture, avec confirmation."
     L champs, "Commentaire", "Texte libre (facultatif)."
 
     L boutons, "Ajouter une facture", "Ouvre [f:frm_Facture] pour saisir une facture."
@@ -220,6 +221,7 @@ Private Sub Def_Facture(ByRef titre As String, ByRef intro As String, ByRef cham
     L champs, "D{e2}but / fin de la p{e2}riode (facultatifs)", "P{e2}riode globale couverte par la facture."
     L champs, "Total TTC de la facture (facultatif)", "Montant TTC imprim{e2} ; compar{e2} au total calcul{e2} d'apr{e1}s les lignes."
     L champs, "Commentaire (facultatif)", "Texte libre."
+    L champs, "Facture cl{o2}tur{e2}e", "Liste Oui / Non, en haut {a2} droite. Oui : toutes les op{e2}rations bancaires qui ont r{e2}gl{e2} la facture sont li{e2}es ; elle n'est plus propos{e2}e quand on affecte une facture {a2} une op{e2}ration. Quand le champ change, une confirmation est demand{e2}e {a2} la validation (Non ram{e1}ne au formulaire)."
     L champs, "Boutons + et -", "En haut {a2} droite de chaque bloc : + ajoute une ligne au bloc (les blocs suivants sont d{e2}cal{e2}s vers le bas), - retire la derni{e1}re ligne si elle est vide. Chaque bloc commence avec 3 lignes."
     L champs, "Abonnement : ligne", "Libell{e2}, d{e2}but, fin (incluse), quantit{e2} (nombre de jours ou de mois), unit{e2} (propos{e2}e : jours), prix HT par unit{e2} (n{e2}gatif pour un remboursement) et TVA. Les montants se calculent."
     L champs, "Unit{e2} (ligne de consommation)", "Obligatoirement m3 ou kWh pour un bloc d'indicateur Consommation (la liste de la cellule se limite {a2} ces deux valeurs ; m3 est converti automatiquement en m cube)."
@@ -518,14 +520,15 @@ Private Sub Def_AffectationFacture(ByRef titre As String, ByRef intro As String,
     intro = "Cet {e2}cran relie l'op{e2}ration bancaire affich{e2}e en haut {a2} la facture qui l'a r{e2}gl{e2}e (Eau, {E2}lectricit{e2} - gaz - chauffage). " & _
             "Choisissez le type de consommation, puis la facture dans la liste, la plus r{e2}cente en premier, et cliquez sur [b:Valider]. " & _
             "Une m{ea}me facture peut {ea}tre li{e2}e {a2} plusieurs op{e2}rations (r{e2}glement en plusieurs {e2}ch{e2}ances) : les factures d{e2}j{a2} li{e2}es restent donc propos{e2}es. " & _
-            "Une fois li{e2}e, l'op{e2}ration quitte le tableau Factures non li{e2}es de la feuille [f:Synthese]."
+            "Une fois li{e2}e, l'op{e2}ration quitte le tableau Factures non li{e2}es de la feuille [f:Synthese]. " & _
+            "Les factures cl{o2}tur{e2}es ne sont plus propos{e2}es : au moment de valider, le programme demande si toutes les op{e2}rations de la facture sont maintenant li{e2}es, et la cl{o2}ture si vous r{e2}pondez Oui."
 
     L champs, "Date op{e2}ration, Tiers, Cat{e2}gorie, Montant", "Lecture seule : rappel de l'op{e2}ration {a2} affecter."
     L champs, "Type de consommation", "Liste : premier crit{e1}re, les types des factures enregistr{e2}es."
     L champs, "Date de la facture", "Liste des factures du type choisi, la plus r{e2}cente en premier : date, op{e2}rateur, num{e2}ro et total TTC."
     L champs, "Facture retenue", "Lecture seule : rappel de la facture choisie et du nombre d'op{e2}rations qui lui sont d{e2}j{a2} li{e2}es."
 
-    L boutons, "Valider", "{E2}crit le lien entre l'op{e2}ration et la facture retenue, puis revient sur [f:Synthese]."
+    L boutons, "Valider", "Demande si toutes les op{e2}rations de la facture sont li{e2}es : Oui lie l'op{e2}ration et cl{o2}ture la facture, Non lie seulement l'op{e2}ration (la facture reste propos{e2}e), Annuler n'{e2}crit rien. Puis revient sur [f:Synthese]."
     L boutons, "Nouvelle facture", "Aucune facture de la liste ne convient : ouvre la saisie d'une nouvelle facture, d{e2}j{a2} li{e2}e {a2} l'op{e2}ration. Si vous l'abandonnez, ce formulaire r{e2}appara{i2}t."
     L boutons, "Annuler", "Ferme le formulaire sans rien modifier et revient sur [f:Synthese]."
     L boutons, "Aide", "Ouvre cette aide, sans fermer le formulaire."

@@ -48,11 +48,18 @@ Public Const FF_ADR_DEBUT As String = "C10"
 Public Const FF_ADR_FIN As String = "C11"
 Public Const FF_ADR_TOTAL As String = "C12"
 Public Const FF_ADR_COMMENT As String = "C13"         ' fusion C13:J13
+Public Const FF_ADR_CLOTURE As String = "I6"          ' fusion I6:J6 (étiquette en F6:H6) : Oui = facture close, Non = ouverte
 
 ' Colonne de TblFactures qui relie la facture à ses opérations bancaires (voir ColonneLien) : les ID_Transaction des
 ' opérations qui l'ont réglée, séparés par FAC_SEP_LIENS (une facture peut être réglée en plusieurs échéances).
 Public Const FAC_COL_LIEN As String = "ID_Transactions"
 Public Const FAC_SEP_LIENS As String = ";"
+
+' Colonne de TblFactures qui marque la facture comme CLÔTURÉE (ajout 01/11/2026) : l'opérateur a déclaré que toutes les
+' opérations bancaires qui l'ont réglée sont liées. Valeur "Oui" ; vide = facture ouverte. Une facture close n'est plus
+' proposée par frm_AffectationFacture. La colonne est créée au premier besoin (voir ColonneCloture).
+Public Const FAC_COL_CLOTURE As String = "Cloturee"
+Public Const FAC_VAL_CLOTURE As String = "Oui"
 
 ' --- Blocs de lignes : colonnes ---
 Public Const FF_COL_LIB As Long = 2
@@ -108,6 +115,7 @@ Public Type TypeFacture
     TotalSaisi As Double
     TotalRenseigne As Boolean
     Commentaire As String
+    Cloturee As Boolean         ' Vrai = facture close (toutes ses opérations bancaires sont liées)
 End Type
 
 ' Une ligne de facture (abonnement, consommation ou taxe).
@@ -147,6 +155,7 @@ Private g_N(1 To FF_MAX_BLOCS) As Long        ' nombre de lignes affichées dans
 Private g_Nat(1 To FF_MAX_BLOCS) As Long      ' code de l'indicateur de chaque bloc : 1 abonnement, 2 consommation, 3 taxes, 4 autre
 Private g_Indic(1 To FF_MAX_BLOCS) As String  ' nom de l'indicateur de chaque bloc (affiché entre parenthèses dans son titre)
 Private g_FacConsultation As Boolean          ' formulaire ouvert en consultation : rien n'est enregistré
+Private g_ClotureOrigine As Boolean           ' état « clôturée » de la facture à l'ouverture du formulaire (une confirmation est demandée s'il change)
 Private g_LienAEnregistrer As String          ' ID_Transaction à écrire sur la facture neuve en cours de saisie (depuis la feuille Synthese)
 Private g_Pend As Object                   ' changements d'indicateur d'un bloc à répercuter sur d'autres factures à l'enregistrement
 Private g_NomBloc(1 To FF_MAX_BLOCS) As String ' nom des blocs libres
@@ -561,6 +570,7 @@ Public Sub CopierFactureSelection()
     f.TotalSaisi = 0
     f.TotalRenseigne = False
     f.Commentaire = ""
+    f.Cloturee = False
     For k = 1 To g_FacNb
         g_FacLignes(k).IDFacture = 0
         g_FacLignes(k).Debut = 0
@@ -651,7 +661,7 @@ Private Function ChargerFacture(ByVal id As Long, ByRef f As TypeFacture) As Boo
     Dim lo As ListObject
     Dim i As Long, n As Long, nat As Long
     Dim v As Variant
-    Dim ord As Long, idxOrd As Long
+    Dim ord As Long, idxOrd As Long, idxClo As Long
 
     Set lo = TableFactures()
     If lo Is Nothing Then Exit Function
@@ -676,6 +686,8 @@ Private Function ChargerFacture(ByVal id As Long, ByRef f As TypeFacture) As Boo
                         f.TotalRenseigne = True
                     End If
                     f.Commentaire = mod_DataStructure.CellText(.Cells(1, mod_Consommations.ColIdx(lo, "Commentaire")).Value2)
+                    idxClo = mod_Consommations.ColIdx(lo, FAC_COL_CLOTURE)
+                    If idxClo > 0 Then f.Cloturee = EstCloture(.Cells(1, idxClo).Value2)
                 End With
                 ChargerFacture = True
                 Exit For
@@ -749,6 +761,7 @@ Private Function EnregistrerFacture(ByRef f As TypeFacture) As Boolean
     End If
 
     ColonneLien lo
+    ColonneCloture lo
     If f.ID = 0 Then
         f.ID = mod_Consommations.ProchainID(lo, "ID_Facture")
         lienOperation = g_LienAEnregistrer
@@ -770,6 +783,7 @@ Private Function EnregistrerFacture(ByRef f As TypeFacture) As Boolean
         If f.Fin > 0 Then .Cells(1, mod_Consommations.ColIdx(lo, "FinPeriode")).Value = CDate(f.Fin)
         If f.TotalRenseigne Then .Cells(1, mod_Consommations.ColIdx(lo, "TotalFactureTTC")).Value = f.TotalSaisi
         .Cells(1, mod_Consommations.ColIdx(lo, "Commentaire")).Value = f.Commentaire
+        If f.Cloturee Then .Cells(1, mod_Consommations.ColIdx(lo, FAC_COL_CLOTURE)).Value = FAC_VAL_CLOTURE
     End With
 
     Set lo = TableLignes()
@@ -864,6 +878,75 @@ Public Function LierFacture(ByVal idFacture As Long, ByVal idTransaction As Stri
     Next i
 
 End Function
+
+' --- Clôture des factures (ajout 01/11/2026) ---
+' Colonne « Cloturee » de TblFactures, créée au premier besoin comme ColonneLien : aucune réinstallation nécessaire.
+Public Function ColonneCloture(ByVal lo As ListObject) As Long
+
+    Dim col As ListColumn
+
+    ColonneCloture = mod_Consommations.ColIdx(lo, FAC_COL_CLOTURE)
+    If ColonneCloture > 0 Then Exit Function
+    Set col = lo.ListColumns.Add
+    col.Name = FAC_COL_CLOTURE
+    col.DataBodyRange.NumberFormat = "@"
+    ColonneCloture = col.Index
+
+End Function
+
+' Vrai si la valeur d'une cellule de la colonne Cloturee désigne une facture close.
+Public Function EstCloture(ByVal v As Variant) As Boolean
+    EstCloture = (StrComp(mod_DataStructure.CellText(v), FAC_VAL_CLOTURE, vbTextCompare) = 0)
+End Function
+
+' Clôture (cloturer = Vrai) ou rouvre une facture. Faux si la facture est introuvable. La confirmation
+' est demandée par l'appelant.
+Public Function CloturerFacture(ByVal idFacture As Long, ByVal cloturer As Boolean) As Boolean
+
+    Dim lo As ListObject
+    Dim i As Long, idxClo As Long
+    Dim v As Variant
+
+    Set lo = TableFactures()
+    If lo Is Nothing Then Exit Function
+    If mod_Consommations.TableVide(lo) Then Exit Function
+    idxClo = ColonneCloture(lo)
+    For i = 1 To lo.ListRows.Count
+        v = lo.ListColumns("ID_Facture").DataBodyRange.Cells(i, 1).Value2
+        If IsNumeric(v) And Not IsEmpty(v) Then
+            If CLng(v) = idFacture Then
+                With lo.DataBodyRange.Cells(i, idxClo)
+                    .NumberFormat = "@"
+                    If cloturer Then .Value = FAC_VAL_CLOTURE Else .ClearContents
+                End With
+                CloturerFacture = True
+                Exit Function
+            End If
+        End If
+    Next i
+
+End Function
+
+' Champ « Facture clôturée » de l'en-tête de frm_Facture (étiquette F6:H6, liste Oui / Non en I6:J6). Appelée à
+' l'installation et à chaque ouverture du formulaire : un écran déjà installé reçoit le champ sans être reconstruit.
+Public Sub PoserChampCloture(ByVal ws As Worksheet)
+
+    mod_InstallCommun.PoserEtiquette ws.Range("F6:H6"), mod_Display.FR("Facture cl{o2}tur{e2}e")
+    mod_InstallCommun.PoserChampSaisie ws.Range(FF_ADR_CLOTURE & ":J6"), "@"
+    ws.Range(FF_ADR_CLOTURE).HorizontalAlignment = xlCenter
+    On Error Resume Next
+    With ws.Range(FF_ADR_CLOTURE).Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:="Oui,Non"
+        .IgnoreBlank = True
+        .InCellDropdown = True
+        .ShowInput = True
+        .InputTitle = mod_Display.FR("Facture cl{o2}tur{e2}e")
+        .InputMessage = mod_Display.FR("Oui : toutes les op{e2}rations de cette facture sont li{e2}es, elle n'est plus propos{e2}e {a2} l'affectation. Une confirmation est demand{e2}e {a2} la validation.")
+    End With
+    On Error GoTo 0
+
+End Sub
 
 ' Ouvre le formulaire de saisie d'une facture neuve, liée d'office à l'opération idTransaction.
 ' Renvoie l'ID de la facture enregistrée, 0 si l'opérateur a abandonné.
@@ -1217,6 +1300,9 @@ Private Sub RemplirFormulaire(ByVal ws As Worksheet, ByRef f As TypeFacture)
     EcrireDate ws.Range(FF_ADR_FIN), f.Fin
     If f.TotalRenseigne Then ws.Range(FF_ADR_TOTAL).Value = f.TotalSaisi Else ws.Range(FF_ADR_TOTAL).ClearContents
     ws.Range(FF_ADR_COMMENT).Value = f.Commentaire
+    PoserChampCloture ws
+    g_ClotureOrigine = f.Cloturee
+    If f.Cloturee Then ws.Range(FF_ADR_CLOTURE).Value = "Oui" Else ws.Range(FF_ADR_CLOTURE).Value = "Non"
     ws.Range(FF_ADR_MESSAGE).Value = ""
     PoserListeType ws
     MettreAJourListeOperateurs ws, f.Typ
@@ -2323,6 +2409,15 @@ Public Sub FacValider()
         f.TotalRenseigne = True
     End If
     f.Commentaire = mod_DataStructure.CellText(ws.Range(FF_ADR_COMMENT).Value)
+    Select Case LCase$(mod_DataStructure.CellText(ws.Range(FF_ADR_CLOTURE).Value))
+        Case "oui"
+            f.Cloturee = True
+        Case "non", ""
+            f.Cloturee = False
+        Case Else
+            AfficherMessage ws, "Facture cl{o2}tur{e2}e : choisissez Oui ou Non."
+            Exit Sub
+    End Select
 
     If Not LireLignes(ws, f) Then Exit Sub
 
@@ -2335,6 +2430,18 @@ Public Sub FacValider()
     If msg <> "" Then
         If MsgBox(mod_Display.FR(msg) & vbCrLf & vbCrLf & mod_Display.FR("Enregistrer quand m{ea}me ?"), _
                   vbYesNo + vbExclamation + vbDefaultButton2, mod_Display.FR("Chevauchement de p{e2}riodes")) = vbNo Then Exit Sub
+    End If
+
+    ' Changement de l'état « clôturée » : confirmation, Non ramène au formulaire (rien n'est enregistré).
+    If f.Cloturee <> g_ClotureOrigine Then
+        If f.Cloturee Then
+            msg = "Cl{o2}turer cette facture ? Toutes ses op{e2}rations bancaires sont consid{e2}r{e2}es comme li{e2}es : elle ne sera plus propos{e2}e quand on affecte une facture {a2} une op{e2}ration."
+        Else
+            msg = "Rouvrir cette facture ? Elle sera de nouveau propos{e2}e quand on affecte une facture {a2} une op{e2}ration."
+        End If
+        If MsgBox(mod_Display.FR(msg) & vbCrLf & vbCrLf & mod_Display.FR("Oui : enregistrer la facture avec ce changement.") & vbCrLf & _
+                  mod_Display.FR("Non : revenir au formulaire."), vbYesNo + vbQuestion + vbDefaultButton2, _
+                  mod_Display.FR("Facture cl{o2}tur{e2}e")) = vbNo Then Exit Sub
     End If
 
     g_FacRes = f

@@ -12,10 +12,13 @@ Option Explicit
 '   DEROULEMENT
 '     1. Le formulaire reprend l'operation en entete (date, tiers, categorie, montant).
 '     2. Filtre 1 : Type de consommation (types presents dans TblFactures).
-'     3. Filtre 2 : Date de la facture - les factures du type choisi, la plus recente en premier,
+'     3. Filtre 2 : Date de la facture - les factures NON CLOTUREES du type choisi, la plus recente en premier,
 '        chaque ligne indiquant date, operateur, numero et total TTC.
 '     4. Valider ecrit le lien (mod_Factures.LierFacture : l'ID_Transaction de l'operation est AJOUTE a
-'        ceux deja lies a la facture, car une facture peut etre reglee en plusieurs echeances).
+'        ceux deja lies a la facture, car une facture peut etre reglee en plusieurs echeances). Avant d'ecrire,
+'        une confirmation Oui / Non / Annuler demande si toutes les operations de la facture sont maintenant liees :
+'        Oui cloture la facture (mod_Factures.CloturerFacture : elle n'est plus proposee), Non la laisse ouverte,
+'        Annuler n'ecrit rien. La cloture se corrige depuis la facture (frm_Facture), avec confirmation.
 '        Annuler ferme sans rien ecrire. Nouvelle facture ferme le formulaire et ouvre la saisie
 '        d'une facture deja liee a l'operation (mod_Factures.SaisirFacturePourOperation) ; si l'operateur
 '        l'abandonne, le formulaire reapparait.
@@ -58,6 +61,7 @@ Public Function AffecterFacture(ByVal idOperation As String, ByVal jourOp As Dou
 
     Dim suite As String
     Dim idFacture As Long
+    Dim reponse As VbMsgBoxResult
 
     m_FeuilleRetour = feuilleRetour
     If m_FeuilleRetour = "" Then m_FeuilleRetour = mod_VarGlobales.NOM_FEUILLE_SYNTHESE
@@ -75,9 +79,28 @@ Public Function AffecterFacture(ByVal idOperation As String, ByVal jourOp As Dou
         suite = AfficherFormulaire(jourOp, tiers, categorie, montantOp, idFacture)
         Select Case suite
             Case "Valider"
+                ' Cloture : l'operateur dit si toutes les operations de la facture sont desormais liees. Annuler n'ecrit rien.
+                reponse = MsgBox(mod_Display.FR("Facture retenue : ") & DetailDeFacture(idFacture) & vbCrLf & vbCrLf & _
+                                 mod_Display.FR("Toutes les op{e2}rations qui ont r{e2}gl{e2} cette facture sont-elles li{e2}es, avec celle-ci ?") & vbCrLf & vbCrLf & _
+                                 mod_Display.FR("Oui : lier l'op{e2}ration et cl{o2}turer la facture (elle ne sera plus propos{e2}e).") & vbCrLf & _
+                                 mod_Display.FR("Non : lier l'op{e2}ration, la facture reste propos{e2}e pour les prochaines op{e2}rations.") & vbCrLf & _
+                                 mod_Display.FR("Annuler : ne rien enregistrer."), _
+                                 vbYesNoCancel + vbQuestion + vbDefaultButton2, mod_Display.FR("Cl{o2}turer la facture ?"))
+                If reponse = vbCancel Then
+                    MsgBox mod_Display.FR("Rien n'a {e2}t{e2} modifi{e2}."), vbInformation, mod_Display.FR("Affecter une facture")
+                    Exit Do
+                End If
                 If mod_Factures.LierFacture(idFacture, idOperation) Then
-                    MsgBox mod_Display.FR("Facture affect{e2}e. L'op{e2}ration quitte la liste des factures non li{e2}es."), vbInformation, mod_Display.FR("Affecter une facture")
                     AffecterFacture = True
+                    If reponse = vbYes Then
+                        If mod_Factures.CloturerFacture(idFacture, True) Then
+                            MsgBox mod_Display.FR("Facture affect{e2}e et cl{o2}tur{e2}e. L'op{e2}ration quitte la liste des factures non li{e2}es."), vbInformation, mod_Display.FR("Affecter une facture")
+                        Else
+                            MsgBox mod_Display.FR("Facture affect{e2}e, mais sa cl{o2}ture a {e2}chou{e2} : elle reste ouverte."), vbExclamation, mod_Display.FR("Affecter une facture")
+                        End If
+                    Else
+                        MsgBox mod_Display.FR("Facture affect{e2}e. L'op{e2}ration quitte la liste des factures non li{e2}es."), vbInformation, mod_Display.FR("Affecter une facture")
+                    End If
                 Else
                     MsgBox mod_Display.FR("Facture introuvable : rien n'a {e2}t{e2} modifi{e2}."), vbExclamation
                 End If
@@ -250,7 +273,7 @@ Private Sub ChargerFactures()
     Dim lo As ListObject
     Dim v As Variant
     Dim i As Long, j As Long, n As Long, nbL As Long
-    Dim cId As Long, cTyp As Long, cOper As Long, cNum As Long, idxDateFac As Long, cTot As Long, cLien As Long
+    Dim cId As Long, cTyp As Long, cOper As Long, cNum As Long, idxDateFac As Long, cTot As Long, cLien As Long, idxClo As Long
     Dim jour() As Double
     Dim texte As String, oper As String, num As String, liens As String, typ As String, lib As String, suffixe As String
     Dim nbLiens As Long
@@ -272,6 +295,7 @@ Private Sub ChargerFactures()
     idxDateFac = mod_Consommations.ColIdx(lo, "DateFacture")
     cTot = mod_Consommations.ColIdx(lo, "TotalFactureTTC")
     cLien = mod_Consommations.ColIdx(lo, mod_Factures.FAC_COL_LIEN)
+    idxClo = mod_Consommations.ColIdx(lo, mod_Factures.FAC_COL_CLOTURE)       ' 0 tant qu'aucune facture n'a ete cloturee
 
     ReDim m_IdFac(1 To nbL)
     ReDim m_TypeFac(1 To nbL)
@@ -282,6 +306,10 @@ Private Sub ChargerFactures()
 
     For i = 1 To nbL
         If IsNumeric(v(i, cId)) And Not IsEmpty(v(i, cId)) Then
+            ' Facture cloturee : toutes ses operations sont liees, elle n'est plus proposee.
+            If idxClo > 0 Then
+                If mod_Factures.EstCloture(v(i, idxClo)) Then GoTo Suivante
+            End If
             n = n + 1
             m_IdFac(n) = CLng(v(i, cId))
             typ = mod_DataStructure.CellText(v(i, cTyp))
@@ -318,6 +346,7 @@ Private Sub ChargerFactures()
             If nbLiens > 1 Then suffixe = mod_Display.FR("d{e2}j{a2} li{e2}e {a2} ") & nbLiens & mod_Display.FR(" op{e2}rations")
             m_DetailFac(n) = typ & " - " & lib & " - " & suffixe
         End If
+Suivante:
     Next i
     m_NbFac = n
     If n = 0 Then Exit Sub
@@ -336,6 +365,20 @@ Private Sub ChargerFactures()
     Next i
 
 End Sub
+
+' Texte de "Facture retenue" pour la facture idFacture (liste chargee a l'ouverture du formulaire), "" si inconnue.
+Private Function DetailDeFacture(ByVal idFacture As Long) As String
+
+    Dim k As Long
+
+    For k = 1 To m_NbFac
+        If m_IdFac(k) = idFacture Then
+            DetailDeFacture = m_DetailFac(k)
+            Exit Function
+        End If
+    Next k
+
+End Function
 
 ' Filtre 1 : types distincts (sans tenir compte de la casse), par ordre alphabetique.
 Private Sub EcrireListeTypes(ByVal ws As Worksheet)
