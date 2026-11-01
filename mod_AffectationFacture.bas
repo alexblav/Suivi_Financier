@@ -86,6 +86,7 @@ Public Function AffecterFacture(ByVal idOperation As String, ByVal jourOp As Dou
                                  mod_Display.FR("Non : lier l'op{e2}ration, la facture reste propos{e2}e pour les prochaines op{e2}rations.") & vbCrLf & _
                                  mod_Display.FR("Annuler : ne rien enregistrer."), _
                                  vbYesNoCancel + vbQuestion + vbDefaultButton2, mod_Display.FR("Cl{o2}turer la facture ?"))
+                If reponse = vbYes Then reponse = ControlerCloture(idFacture, idOperation)
                 If reponse = vbCancel Then
                     MsgBox mod_Display.FR("Rien n'a {e2}t{e2} modifi{e2}."), vbInformation, mod_Display.FR("Affecter une facture")
                     Exit Do
@@ -115,6 +116,32 @@ Public Function AffecterFacture(ByVal idOperation As String, ByVal jourOp As Dou
                 Exit Do
         End Select
     Loop
+
+End Function
+
+
+' Controle avant cloture : la somme des operations liees (avec celle qu'on va lier) doit egaler le total TTC SAISI de la
+' facture (pas le total calcule d'apres les lignes). Renvoie vbYes (cloturer), vbNo (lier sans cloturer) ou vbCancel
+' (ne rien enregistrer). Sans total saisi, aucun controle n'est possible : on renvoie vbYes.
+Private Function ControlerCloture(ByVal idFacture As Long, ByVal idOperation As String) As VbMsgBoxResult
+
+    Dim totalFacture As Double, payeTotal As Double, ecart As Double
+
+    ControlerCloture = vbYes
+    If Not mod_Factures.TotalSaisiFacture(idFacture, totalFacture) Then Exit Function
+
+    payeTotal = mod_Factures.SommeOperationsFacture(idFacture, idOperation)
+    ecart = mod_Factures.Arrondi(totalFacture - payeTotal)
+    If Abs(ecart) < 0.005 Then Exit Function
+
+    ControlerCloture = MsgBox(mod_Display.FR("ATTENTION : les op{e2}rations li{e2}es ne couvrent pas exactement le total de la facture.") & vbCrLf & vbCrLf & _
+                              mod_Display.FR("Total TTC de la facture : ") & Format(totalFacture, "#,##0.00") & " " & ChrW(8364) & vbCrLf & _
+                              mod_Display.FR("Op{e2}rations li{e2}es (avec celle-ci) : ") & Format(payeTotal, "#,##0.00") & " " & ChrW(8364) & vbCrLf & _
+                              mod_Factures.TexteEcartCloture(ecart) & vbCrLf & vbCrLf & _
+                              mod_Display.FR("Oui : lier l'op{e2}ration et cl{o2}turer quand m{ea}me.") & vbCrLf & _
+                              mod_Display.FR("Non : lier l'op{e2}ration sans cl{o2}turer la facture.") & vbCrLf & _
+                              mod_Display.FR("Annuler : ne rien enregistrer."), _
+                              vbYesNoCancel + vbExclamation + vbDefaultButton3, mod_Display.FR("{E2}cart avec le total de la facture"))
 
 End Function
 

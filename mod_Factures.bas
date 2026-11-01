@@ -1107,6 +1107,74 @@ Public Function EstCloture(ByVal v As Variant) As Boolean
     EstCloture = (StrComp(mod_DataStructure.CellText(v), FAC_VAL_CLOTURE, vbTextCompare) = 0)
 End Function
 
+' Total TTC SAISI de la facture (celui imprimé par le fournisseur, pas le total calculé d'après les lignes).
+' Faux si la facture est introuvable ou si son total n'a pas été renseigné.
+Public Function TotalSaisiFacture(ByVal idFacture As Long, ByRef total As Double) As Boolean
+
+    Dim lo As ListObject
+    Dim i As Long
+    Dim v As Variant
+
+    Set lo = TableFactures()
+    If lo Is Nothing Then Exit Function
+    If mod_Consommations.TableVide(lo) Then Exit Function
+    For i = 1 To lo.ListRows.Count
+        v = lo.ListColumns("ID_Facture").DataBodyRange.Cells(i, 1).Value2
+        If IsNumeric(v) And Not IsEmpty(v) Then
+            If CLng(v) = idFacture Then
+                v = lo.ListColumns("TotalFactureTTC").DataBodyRange.Cells(i, 1).Value2
+                If mod_Consommations.SaisieNonVide(v) Then
+                    total = mod_DataStructure.ToDouble(v)
+                    TotalSaisiFacture = True
+                End If
+                Exit Function
+            End If
+        End If
+    Next i
+
+End Function
+
+' Somme PAYÉE pour la facture : montants des opérations liées (une dépense est négative dans TblOperations, la somme
+' est donc renvoyée avec le signe inversé). idEnPlus : opération sur le point d'être liée, comptée avec les autres
+' ("" si aucune).
+Public Function SommeOperationsFacture(ByVal idFacture As Long, ByVal idEnPlus As String) As Double
+
+    Dim liens As Object
+    Dim lo As ListObject
+    Dim colId As Range, colMontant As Range
+    Dim i As Long, nbL As Long, trouvees As Long
+    Dim somme As Double
+
+    Set liens = OperationsDeFacture(idFacture)
+    If Trim$(idEnPlus) <> "" Then liens(Trim$(idEnPlus)) = True
+    If liens.Count = 0 Then Exit Function
+
+    Set lo = mod_DonneesTable.GetOperationsValue(mod_VarGlobales.NOM_FEUILLE_DONNEES, "TblOperations")
+    If lo Is Nothing Then Exit Function
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    nbL = lo.DataBodyRange.Rows.Count
+    Set colId = lo.ListColumns("ID_Transaction").DataBodyRange
+    Set colMontant = lo.ListColumns("Montant").DataBodyRange
+    For i = 1 To nbL
+        If liens.Exists(mod_DataStructure.CellText(colId.Cells(i, 1).Value2)) Then
+            somme = somme - mod_DataStructure.ToDouble(colMontant.Cells(i, 1).Value2)
+            trouvees = trouvees + 1
+            If trouvees >= liens.Count Then Exit For
+        End If
+    Next i
+    SommeOperationsFacture = Arrondi(somme)
+
+End Function
+
+' Phrase d'alerte sur l'écart entre le total de la facture et les opérations liées (ecart = total - payé).
+Public Function TexteEcartCloture(ByVal ecart As Double) As String
+    If ecart > 0 Then
+        TexteEcartCloture = "Delta manquant : " & Format(ecart, "#,##0.00") & " " & ChrW(8364) & "."
+    Else
+        TexteEcartCloture = mod_Display.FR("Exc{e2}dent : ") & Format(-ecart, "#,##0.00") & " " & ChrW(8364) & mod_Display.FR(" (op{e2}rations sup{e2}rieures au total).")
+    End If
+End Function
+
 ' Clôture (cloturer = Vrai) ou rouvre une facture. Faux si la facture est introuvable. La confirmation
 ' est demandée par l'appelant.
 Public Function CloturerFacture(ByVal idFacture As Long, ByVal cloturer As Boolean) As Boolean
@@ -1581,6 +1649,7 @@ Private Sub RemplirFormulaire(ByVal ws As Worksheet, ByRef f As TypeFacture)
     EcrireDate ws.Range(FF_ADR_FIN), f.Fin
     If f.TotalRenseigne Then ws.Range(FF_ADR_TOTAL).Value = f.TotalSaisi Else ws.Range(FF_ADR_TOTAL).ClearContents
     ws.Range(FF_ADR_COMMENT).Value = f.Commentaire
+    ws.Range("B12").Value = mod_Display.FR("Total TTC de la facture")      ' obligatoire : l'étiquette suit sans réinstallation
     PoserChampCloture ws
     g_ClotureOrigine = f.Cloturee
     If f.Cloturee Then ws.Range(FF_ADR_CLOTURE).Value = "Oui" Else ws.Range(FF_ADR_CLOTURE).Value = "Non"
@@ -2650,6 +2719,7 @@ Public Sub FacValider()
     Dim dTmp As Date
     Dim dDeb As Double, dFin As Double
     Dim msg As String
+    Dim ecart As Double
 
     If Not g_FacEnCours Or g_FacConsultation Then Exit Sub
     On Error GoTo Erreur
@@ -2683,13 +2753,16 @@ Public Sub FacValider()
     End If
 
     vTot = ws.Range(FF_ADR_TOTAL).Value
-    If mod_Consommations.SaisieNonVide(vTot) Then
-        If Not mod_DataStructure.TryLireMontant(vTot, f.TotalSaisi) Then
-            AfficherMessage ws, "Le total de la facture n'est pas valide. " & mod_DataStructure.MessageMontantAttendu()
-            Exit Sub
-        End If
-        f.TotalRenseigne = True
+    ' Total TTC OBLIGATOIRE (depuis le 01/11/2026) : il sert au contrôle de la clôture (somme des opérations liées).
+    If Not mod_Consommations.SaisieNonVide(vTot) Then
+        AfficherMessage ws, "Renseignez le total TTC de la facture (montant imprim{e2} par le fournisseur) : il sert {a2} contr{o2}ler la cl{o2}ture."
+        Exit Sub
     End If
+    If Not mod_DataStructure.TryLireMontant(vTot, f.TotalSaisi) Then
+        AfficherMessage ws, "Le total de la facture n'est pas valide. " & mod_DataStructure.MessageMontantAttendu()
+        Exit Sub
+    End If
+    f.TotalRenseigne = True
     f.Commentaire = mod_DataStructure.CellText(ws.Range(FF_ADR_COMMENT).Value)
     Select Case LCase$(mod_DataStructure.CellText(ws.Range(FF_ADR_CLOTURE).Value))
         Case "oui"
@@ -2718,6 +2791,14 @@ Public Sub FacValider()
     If f.Cloturee <> g_ClotureOrigine Then
         If f.Cloturee Then
             msg = "Cl{o2}turer cette facture ? Toutes ses op{e2}rations bancaires sont consid{e2}r{e2}es comme li{e2}es : elle ne sera plus propos{e2}e quand on affecte une facture {a2} une op{e2}ration."
+            ' Contrôle : la somme des opérations liées doit égaler le total SAISI de la facture (pas le total calculé).
+            If f.ID > 0 And f.TotalRenseigne Then
+                ecart = Arrondi(f.TotalSaisi - SommeOperationsFacture(f.ID, ""))
+                If Abs(ecart) >= 0.005 Then
+                    msg = msg & vbCrLf & vbCrLf & "ATTENTION : les op{e2}rations li{e2}es ne correspondent pas au total de la facture (" & _
+                          Format(f.TotalSaisi, "#,##0.00") & " " & ChrW(8364) & "). " & TexteEcartCloture(ecart)
+                End If
+            End If
         Else
             msg = "Rouvrir cette facture ? Elle sera de nouveau propos{e2}e quand on affecte une facture {a2} une op{e2}ration."
         End If

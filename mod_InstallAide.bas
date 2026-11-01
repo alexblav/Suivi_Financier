@@ -220,7 +220,7 @@ Private Sub Def_Facture(ByRef titre As String, ByRef intro As String, ByRef cham
     L champs, "Num{e2}ro de facture (facultatif)", "Num{e2}ro imprim{e2} sur la facture."
     L champs, "Date de la facture (facultative)", "Date JJ/MM/AAAA."
     L champs, "D{e2}but / fin de la p{e2}riode (facultatifs)", "P{e2}riode globale couverte par la facture."
-    L champs, "Total TTC de la facture (facultatif)", "Montant TTC imprim{e2} ; compar{e2} au total calcul{e2} d'apr{e1}s les lignes."
+    L champs, "Total TTC de la facture", "Obligatoire. Montant TTC imprim{e2} ; compar{e2} au total calcul{e2} d'apr{e1}s les lignes et utilis{e2} pour contr{o2}ler la cl{o2}ture de la facture."
     L champs, "Commentaire (facultatif)", "Texte libre."
     L champs, "Facture cl{o2}tur{e2}e", "Liste Oui / Non, en haut {a2} droite. Oui : toutes les op{e2}rations bancaires qui ont r{e2}gl{e2} la facture sont li{e2}es ; elle n'est plus propos{e2}e quand on affecte une facture {a2} une op{e2}ration. Quand le champ change, une confirmation est demand{e2}e {a2} la validation (Non ram{e1}ne au formulaire)."
     L champs, "Boutons + et -", "En haut {a2} droite de chaque bloc : + ajoute une ligne au bloc (les blocs suivants sont d{e2}cal{e2}s vers le bas), - retire la derni{e1}re ligne si elle est vide. Chaque bloc commence avec 3 lignes."
@@ -529,7 +529,7 @@ Private Sub Def_AffectationFacture(ByRef titre As String, ByRef intro As String,
     L champs, "Date de la facture", "Liste des factures du type choisi, la plus r{e2}cente en premier : date, op{e2}rateur, num{e2}ro et total TTC."
     L champs, "Facture retenue", "Lecture seule : rappel de la facture choisie et du nombre d'op{e2}rations qui lui sont d{e2}j{a2} li{e2}es."
 
-    L boutons, "Valider", "Demande si toutes les op{e2}rations de la facture sont li{e2}es : Oui lie l'op{e2}ration et cl{o2}ture la facture, Non lie seulement l'op{e2}ration (la facture reste propos{e2}e), Annuler n'{e2}crit rien. Puis revient sur [f:Synthese]."
+    L boutons, "Valider", "Demande si toutes les op{e2}rations de la facture sont li{e2}es : Oui lie l'op{e2}ration et cl{o2}ture la facture (si la somme des op{e2}rations li{e2}es diff{e1}re du total TTC saisi de la facture, le delta est affich{e2} et vous pouvez annuler), Non lie seulement l'op{e2}ration (la facture reste propos{e2}e), Annuler n'{e2}crit rien. Puis revient sur [f:Synthese]."
     L boutons, "Nouvelle facture", "Aucune facture de la liste ne convient : ouvre la saisie d'une nouvelle facture, d{e2}j{a2} li{e2}e {a2} l'op{e2}ration. Si vous l'abandonnez, ce formulaire r{e2}appara{i2}t."
     L boutons, "Annuler", "Ferme le formulaire sans rien modifier et revient sur [f:Synthese]."
     L boutons, "Aide", "Ouvre cette aide, sans fermer le formulaire."

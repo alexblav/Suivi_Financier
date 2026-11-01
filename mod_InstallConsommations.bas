@@ -714,7 +714,7 @@ Private Function ConstruireFormulaireFacture(ByVal wsPrecedente As Worksheet) As
     mod_InstallCommun.PoserEtiquette ws.Range("B11"), "Fin de la p" & ChrW(233) & "riode (facultative)"
     mod_InstallCommun.PoserChampDate ws.Range(mod_Factures.FF_ADR_FIN)
 
-    mod_InstallCommun.PoserEtiquette ws.Range("B12"), mod_Display.FR("Total TTC de la facture (facultatif)")
+    mod_InstallCommun.PoserEtiquette ws.Range("B12"), mod_Display.FR("Total TTC de la facture")
     mod_InstallCommun.PoserChampMontant ws.Range(mod_Factures.FF_ADR_TOTAL), "#,##0.00", mod_InstallCommun.MONTANT_POSITIF_OU_NUL
 
     mod_InstallCommun.PoserEtiquette ws.Range("B13"), "Commentaire (facultatif)"
@@ -781,7 +781,7 @@ Private Function TexteInstructionsFacture() As String
     t = "Ce formulaire enregistre une facture telle qu'elle est imprim{e2}e par le fournisseur : un en-t{ea}te, puis des lignes d'ABONNEMENT, de CONSOMMATION et de TAXES. "
     t = t & "Chaque ligne a ses propres dates, qui ne co{i2}ncident pas forc{e2}ment avec celles des autres lignes (le prix change en cours de facture)."
     t = t & Chr(10) & "[c:Type de consommation] et [c:Op{e2}rateur] : l'op{e2}rateur du contrat en vigueur est propos{e2} quand vous choisissez le type. "
-    t = t & "Les dates et le total de la facture sont facultatifs mais utiles : le total saisi est compar{e2} au total calcul{e2} d'apr{e1}s les lignes."
+    t = t & "Les dates sont facultatives. Le [c:Total TTC de la facture] est OBLIGATOIRE : il est compar{e2} au total calcul{e2} d'apr{e1}s les lignes et sert {a2} contr{o2}ler la cl{o2}ture (somme des op{e2}rations li{e2}es)."
     t = t & Chr(10) & "[c:Boutons + et -] (en haut {a2} droite de chaque bloc) : + ajoute une ligne au bloc et d{e2}cale les blocs suivants vers le bas ; - retire la derni{e1}re ligne si elle est vide. Chaque bloc commence avec 3 lignes. Le taux de [c:TVA] est pr{e2}rempli (celui de la derni{e1}re facture du m{ea}me type, sinon un taux usuel) et reste modifiable ; [c:Unit{e2}] se choisit dans une liste, et une unit{e2} nouvelle peut {ea}tre saisie apr{e1}s confirmation."
     t = t & Chr(10) & "[c:Lignes] : une ligne par p{e2}riode de prix. [c:D{e2}but] et [c:Fin] : dates libres, fin incluse. "
     t = t & "[c:Quantit{e2}] et [c:Unit{e2}] se saisissent dans les trois blocs : jours ou mois pour l'abonnement, kWh ou m3 pour la consommation, kWh ou euros (base d'une taxe) pour les taxes. L'unit{e2} se choisit dans une liste. "
