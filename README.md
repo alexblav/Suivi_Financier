@@ -420,7 +420,7 @@ Une ligne de texte au-dessus du tableau rappelle le filtre actif et le nombre de
 
 | Colonne | Signification | Modifiable ? |
 | --- | --- | --- |
-| Pointe | « Oui » = opération déjà analysée, vide = à analyser (section 13) ; première colonne, toujours visible | Oui, par la liste déroulante : enregistré tout de suite |
+| Pointe | « Oui » = opération déjà analysée, vide = à analyser (section 13) ; première colonne du tableau (précédée d'une colonne A très fine qui dégage sa liste déroulante), toujours visible | Oui, par la liste déroulante : enregistré tout de suite |
 | Date, Tiers, Montant | Données de l'opération | Non |
 | Categorie, SousCategorie | Rangement | Par double-clic sur Categorie ou SousCategorie |
 | Notes | Libellé ou clé santé | Oui, sauf une clé santé déjà valide (cellule grisée) |

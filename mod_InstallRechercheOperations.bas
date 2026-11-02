@@ -16,7 +16,14 @@ Option Explicit
 '      voir mod_RechercheOperations.TraiterChangementNotesRO. Toutes les lettres de colonnes
 '      ci-dessous ont donc reculé d'un cran : il faut relancer CreerFeuilleRechercheOperations.)
 '     (30/10/2026, bis : Pointe passe en TÊTE de tableau, et Budget n'est plus jamais affiché.)
-'     A - Pointe        : POINTAGE (ajout 11/10/2026) : "Oui" = opération déjà analysée,
+'     (02/11/2026 : une COLONNE A TRÈS FINE (largeur 2, comme sur les autres formulaires) est
+'      ajoutée avant le tableau, qui commence donc en colonne B. Raison : Pointe, en tête de
+'      tableau, était collée au bord gauche de la fenêtre et la flèche de sa liste déroulante
+'      était mal dégagée. Les lettres de colonnes de la feuille ont donc avancé d'un cran
+'      (Pointe = B ... Num_Cheque = R); les positions DANS LE TABLEAU (RO_COL_*) ne changent
+'      pas. Il faut relancer CreerFeuilleRechercheOperations.)
+'     Les lettres ci-dessous sont celles du TABLEAU (A = 1re colonne du tableau, soit B sur la feuille).
+'     A - Pointe       : POINTAGE (ajout 11/10/2026) : "Oui" = opération déjà analysée,
 '                         vide = à analyser. Liste déroulante Oui / vide, TOUJOURS visible,
 '                         filtrable avec les flèches d'Excel. Une modification s'enregistre
 '                         tout de suite dans TblOperations (retirer un "Oui" demande
@@ -84,8 +91,8 @@ Option Explicit
 '   6 Instructions / 7 fine ligne / 8 en-têtes du tableau / 9 et suivantes : données
 Public Const RO_LIGNE_BOUTONS As Long = 2
 Public Const RO_LIGNE_FILTRE As Long = 4
-Public Const RO_ADR_COMPTEUR As String = "A4"     ' "Opération: 192/195" (fusion A4:C4)
-Public Const RO_ADR_FILTRE As String = "D4"       ' phrase du filtre actif (fusion D4:H4)
+Public Const RO_ADR_COMPTEUR As String = "B4"     ' "Opération: 192/195" (fusion B4:D4)
+Public Const RO_ADR_FILTRE As String = "E4"       ' phrase du filtre actif (fusion E4:H4)
 Private Const RO_LIGNE_INSTRUCTIONS As Long = 6
 Public Const RO_LIGNE_ENTETES As Long = 8
 
@@ -114,6 +121,8 @@ Public Const RO_COL_SPECONSULT As Long = 16
 ' CHEQUE (ajout 12/10/2026) : 17e colonne du tableau, toujours visible (N° de chèque de l'opération)
 Public Const RO_COL_CHEQUE As Long = 17
 Public Const RO_NB_COLONNES As Long = 17
+' Colonne de la FEUILLE où commence le tableau (B = 2) : la colonne A est une colonne fine (02/11/2026)
+Public Const RO_COL_DEBUT_TABLEAU As Long = 2
 
 
 ' =====================================================================================
@@ -131,10 +140,10 @@ Sub CreerFeuilleRechercheOperations()
 
     Application.ScreenUpdating = False
 
-    ' Largeurs relevées sur la feuille réelle (A = 11 pour loger l'étiquette "Instructions" :
-    ' c'est la colonne Pointe). Colonnes I à K : techniques; L : Budget (toujours masquée);
-    ' M à P : affichées selon le préfiltre (masquées plus bas); Q : Num_Cheque.
-    mod_InstallCommun.MettreEnForme ws, Array(11, 9.07, 28.27, 8.93, 16.8, 24.67, 86.8, 7.87, _
+    ' Largeurs relevées sur la feuille réelle. A = colonne fine (2) qui dégage la liste déroulante
+    ' de Pointe (B). Colonnes J à L : techniques; M : Budget (toujours masquée);
+    ' N à Q : affichées selon le préfiltre (masquées plus bas); R : Num_Cheque.
+    mod_InstallCommun.MettreEnForme ws, Array(2, 11, 9.07, 28.27, 8.93, 16.8, 24.67, 86.8, 7.87, _
                                               12, 10, 10, 12, 14, 12, 14, 16, 28), RO_LIGNE_ENTETES
 
     RO_ConstruireEntete ws
@@ -142,14 +151,14 @@ Sub CreerFeuilleRechercheOperations()
     RO_ConstruireBoutons ws     ' en dernier : les boutons se placent d'après les hauteurs de lignes
 
     ' Colonnes techniques masquées (PHASE 5 : Ventile reste VISIBLE, c'est le tag
-    ' informatif demandé par l'opérateur -- seules I/J/K, qui ne servent qu'au code,
+    ' informatif demandé par l'opérateur -- seules J/K/L, qui ne servent qu'au code,
     ' sont masquées).
-    ws.Range("I:K").EntireColumn.Hidden = True
+    ws.Range("J:L").EntireColumn.Hidden = True
 
     ' PHASE 6 : les 5 colonnes issues des anciens écrans "Synthese_*" sont masquées par
     ' défaut à l'installation ; mod_RechercheOperations les affiche/masque ensuite
     ' dynamiquement à chaque appel, selon le préfiltre demandé (DefinirColonnesVisibles).
-    ws.Range("L:P").EntireColumn.Hidden = True
+    ws.Range("M:Q").EntireColumn.Hidden = True
 
     mod_InstallCommun.TerminerFeuille ws, wsPrecedente
     Application.ScreenUpdating = True
@@ -173,13 +182,13 @@ Private Sub RO_ConstruireEntete(ByVal ws As Worksheet)
 
     mod_InstallCommun.PoserHauteursEntete ws, 1, True
 
-    ' Compteur "Opération: x/y" (A4:C4), rempli par mod_RechercheOperations.RechercherOperations
-    mod_InstallCommun.PoserCompteur ws, RO_LIGNE_FILTRE, 1, 3
+    ' Compteur "Opération: x/y" (B4:D4), rempli par mod_RechercheOperations.RechercherOperations
+    mod_InstallCommun.PoserCompteur ws, RO_LIGNE_FILTRE, 2, 4
 
-    ' Phrase du filtre actif (D4:G4), recalculée à chaque recherche (voir
+    ' Phrase du filtre actif (E4:H4), recalculée à chaque recherche (voir
     ' mod_RechercheOperations.DecrireFiltreActifRO) : elle rappelle à l'opérateur sur quel
     ' sous-ensemble d'opérations il travaille. Vide avant la toute première recherche.
-    With ws.Range("D" & RO_LIGNE_FILTRE & ":G" & RO_LIGNE_FILTRE)
+    With ws.Range("E" & RO_LIGNE_FILTRE & ":H" & RO_LIGNE_FILTRE)
         .Merge
         .Value = ""
         .Font.Size = 9
@@ -190,8 +199,8 @@ Private Sub RO_ConstruireEntete(ByVal ws As Worksheet)
         .VerticalAlignment = xlCenter
     End With
 
-    ' Étiquette en colonne A, texte sur B:G (les colonnes I à P sont masquées).
-    mod_InstallCommun.EcrireInstructions ws, RO_LIGNE_INSTRUCTIONS, 1, 1, 2, 7, RO_TexteInstructions()
+    ' Étiquette en colonne B, texte sur C:H (la colonne A est fine, les colonnes J à Q sont masquées).
+    mod_InstallCommun.EcrireInstructions ws, RO_LIGNE_INSTRUCTIONS, 2, 2, 3, 8, RO_TexteInstructions()
 
 End Sub
 
@@ -245,10 +254,11 @@ Private Function RO_ConstruireEnteteTableau(ByVal ws As Worksheet) As ListObject
                  "Date_consult", "Spe_consult", "Num_Cheque")
 
     For i = 0 To UBound(noms)
-        ws.Cells(RO_LIGNE_ENTETES, i + 1).Value = noms(i)
+        ws.Cells(RO_LIGNE_ENTETES, i + RO_COL_DEBUT_TABLEAU).Value = noms(i)
     Next i
 
-    Set tbl = ws.ListObjects.Add(xlSrcRange, ws.Range(ws.Cells(RO_LIGNE_ENTETES, 1), ws.Cells(RO_LIGNE_ENTETES + 1, RO_NB_COLONNES)), , xlYes)
+    Set tbl = ws.ListObjects.Add(xlSrcRange, ws.Range(ws.Cells(RO_LIGNE_ENTETES, RO_COL_DEBUT_TABLEAU), _
+                                 ws.Cells(RO_LIGNE_ENTETES + 1, RO_COL_DEBUT_TABLEAU + RO_NB_COLONNES - 1)), , xlYes)
     tbl.Name = NOM_TABLE_RECHERCHE
     tbl.TableStyle = ""           ' pas de style Excel : les couleurs suivent la charte commune
 
@@ -273,7 +283,7 @@ Private Sub RO_ConstruireBoutons(ByVal ws As Worksheet)
 
     Dim gauche As Double
 
-    gauche = ws.Cells(1, 1).Left
+    gauche = ws.Cells(1, 2).Left
 
     mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("Recherche globale"), _
         "RechercherOperations", "btnRechercherOperations", 108
@@ -337,7 +347,7 @@ Public Sub InstallerDelierFacture()
     mod_InstallCommun.AjouterBoutonEntete ws, RO_LIGNE_BOUTONS, gauche, mod_Display.FR("D{e2}lier de la facture"), _
         "DelierFactureRO", "btnDelierFactureRO", 120
 
-    mod_InstallCommun.EcrireInstructions ws, RO_LIGNE_INSTRUCTIONS, 1, 1, 2, 7, RO_TexteInstructions()
+    mod_InstallCommun.EcrireInstructions ws, RO_LIGNE_INSTRUCTIONS, 2, 2, 3, 8, RO_TexteInstructions()
 
     If wsPrecedente.Name <> ws.Name Then wsPrecedente.Activate
     ws.Visible = etatAvant
@@ -385,7 +395,7 @@ Public Sub InstallerAffectationEcheance()
         "AffecterEcheanceRO", "btnAffecterEcheanceRO", 135
 
     ' L'aide de l'ecran mentionne le nouveau bouton.
-    mod_InstallCommun.EcrireInstructions ws, RO_LIGNE_INSTRUCTIONS, 1, 1, 2, 7, RO_TexteInstructions()
+    mod_InstallCommun.EcrireInstructions ws, RO_LIGNE_INSTRUCTIONS, 2, 2, 3, 8, RO_TexteInstructions()
 
     ' La feuille retrouve son etat d'avant (tres masquee) : on revient d'abord sur la feuille precedente.
     If wsPrecedente.Name <> ws.Name Then wsPrecedente.Activate
@@ -411,28 +421,29 @@ Public Sub DefinirColonnesVisibles(ByVal ws As Worksheet, ByVal prefiltre As Str
 
     ' On repart d'un état neutre : les 5 colonnes "Synthese_*" masquées.
     ' Budget (L) : masquée en permanence depuis le 30/10/2026, quel que soit le préfiltre.
-    ws.Columns("L").Hidden = True   ' Budget
-    ws.Columns("M").Hidden = True   ' StatutSante
-    ws.Columns("N").Hidden = True   ' SoldeSante
-    ws.Columns("O").Hidden = True   ' Date_consult
-    ws.Columns("P").Hidden = True   ' Spe_consult
+    ' (lettres de la FEUILLE, décalées d'un cran par la colonne A fine : voir RO_COL_DEBUT_TABLEAU)
+    ws.Columns("M").Hidden = True   ' Budget
+    ws.Columns("N").Hidden = True   ' StatutSante
+    ws.Columns("O").Hidden = True   ' SoldeSante
+    ws.Columns("P").Hidden = True   ' Date_consult
+    ws.Columns("Q").Hidden = True   ' Spe_consult
 
     Select Case prefiltre
         Case "DernierImport"
-            ws.Columns("M").Hidden = False
             ws.Columns("N").Hidden = False
-        Case "ErreursSante"
             ws.Columns("O").Hidden = False
+        Case "ErreursSante"
             ws.Columns("P").Hidden = False
+            ws.Columns("Q").Hidden = False
         Case "SuiviSante"
             ' Ajout 07/10/2026 (refonte de Synthese_Care) : on affiche les 4
             ' colonnes de suivi santé. L'ancien écran affichait Date_consult,
             ' Spe_consult et un statut ; on y ajoute SoldeSante, déjà calculé par
             ' mod_SuiviSante.CalculerSuiviSante.
-            ws.Columns("M").Hidden = False   ' StatutSante
-            ws.Columns("N").Hidden = False   ' SoldeSante
-            ws.Columns("O").Hidden = False   ' Date_consult
-            ws.Columns("P").Hidden = False   ' Spe_consult
+            ws.Columns("N").Hidden = False   ' StatutSante
+            ws.Columns("O").Hidden = False   ' SoldeSante
+            ws.Columns("P").Hidden = False   ' Date_consult
+            ws.Columns("Q").Hidden = False   ' Spe_consult
         ' Case "" (recherche libre) : aucune des 5 colonnes n'a de sens générique,
         ' on les laisse toutes masquées (état neutre défini plus haut).
     End Select
