@@ -1015,9 +1015,10 @@ Private Function LigneOpRetenuePourPrefiltre(ByVal i As Long, ByVal prefiltre As
                     mod_DataStructure.ToLong(tblData(i, colMoisBud)), tblData(i, colDate))
             End If
         Case "FacturesNonLiees"
-            ' Ajout 29/10/2026 : meme regle que mod_Synthese.BlocFacturesNonLiees (depense Eau ou
+            ' Ajout 29/10/2026 : meme regle que mod_Synthese.BlocFacturesNonLiees (operation Eau ou
             ' Electricite, gaz, chauffage, en categorie OU en sous-categorie, jamais citee par une facture).
-            If mod_DataStructure.ToDouble(tblData(i, colMontant)) < 0 Then
+            ' Depuis le 02/11/2026 : depenses ET remboursements (montant non nul).
+            If mod_DataStructure.ToDouble(tblData(i, colMontant)) <> 0 Then
                 factureEligible = mod_Synthese.EstCategorieFacturee(mod_DataStructure.CellText(tblData(i, colCategorie)))
                 If Not factureEligible And colSousCategorie <> 0 Then
                     factureEligible = mod_Synthese.EstCategorieFacturee(mod_DataStructure.CellText(tblData(i, colSousCategorie)))
@@ -1706,6 +1707,15 @@ Public Sub AffecterFactureRO()
 
     If sourceSel = "V" Then
         MsgBox mod_Display.FR("Cette ligne est une part de ventilation : s{e2}lectionnez l'op{e2}ration elle-m{ea}me (cat{e2}gorie Ventil{e2}e)."), vbInformation
+        Exit Sub
+    End If
+
+    ' Verrou (ajout 02/11/2026) : meme regle que le tableau "Factures non liees" de Synthese - seules les operations
+    ' de categorie Eau ou Electricite, gaz, chauffage (categorie ou sous-categorie) peuvent etre reliees a une facture.
+    If Not (mod_Synthese.EstCategorieFacturee(categorieSel) Or mod_Synthese.EstCategorieFacturee(sousCategorieSel)) Then
+        MsgBox mod_Display.FR("Seules les op{e2}rations de cat{e2}gorie Eau ou {E2}lectricit{e2}, gaz, chauffage peuvent {ea}tre li{e2}es {a2} une facture de consommation.") & vbCrLf & vbCrLf & _
+               mod_Display.FR("Cette op{e2}ration est class{e2}e : ") & categorieSel & IIf(sousCategorieSel <> "" And sousCategorieSel <> categorieSel, " / " & sousCategorieSel, "") & "." & vbCrLf & _
+               mod_Display.FR("Corrigez d'abord sa cat{e2}gorie si elle est erron{e2}e."), vbInformation, mod_Display.FR("Affecter une facture")
         Exit Sub
     End If
 

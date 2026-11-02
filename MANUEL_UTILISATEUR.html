@@ -692,7 +692,7 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <p><strong>Changer d'opérateur :</strong> créez simplement le nouveau contrat avec sa date de début. Le classeur propose de clôturer l'ancien <strong>la veille</strong>. Vos factures passées gardent leur ancien opérateur.</p>
 <h3 id="étape-2--saisir-une-facture">Étape 2 – Saisir une facture</h3>
 <p>Bouton <strong>Saisir une facture</strong>. La saisie reproduit la facture du fournisseur : un en-tête, puis trois blocs de lignes. <strong>Chaque ligne a ses propres dates</strong> : l'abonnement, le prix du kWh ou les taxes peuvent changer à des dates différentes au cours d'une même facture.</p>
-<p><strong>En-tête.</strong> Choisissez le type : l'opérateur du contrat en vigueur est proposé, et la liste déroulante de l'opérateur montre les fournisseurs dont le contrat n'est pas terminé pour ce type. Aucune autre saisie n'est acceptée : pour un nouveau fournisseur, saisissez d'abord un nouveau contrat (bouton Contrats). Le numéro, la date, la période et le <strong>total TTC de la facture</strong> sont facultatifs, mais le total permet de contrôler votre saisie.</p>
+<p><strong>En-tête.</strong> Choisissez le type : l'opérateur du contrat en vigueur est proposé, et la liste déroulante de l'opérateur montre les fournisseurs dont le contrat n'est pas terminé pour ce type. Aucune autre saisie n'est acceptée : pour un nouveau fournisseur, saisissez d'abord un nouveau contrat (bouton Contrats). Le numéro, la date et la période sont facultatifs. Le <strong>total TTC de la facture</strong> (le montant imprimé par le fournisseur) est <strong>obligatoire</strong> : il est comparé au total calculé d'après vos lignes et sert à contrôler la clôture de la facture (section 16).</p>
 <p><strong>Les trois blocs</strong> (une ligne par période de prix ; les lignes vides sont ignorées). Chaque bloc commence avec 3 lignes : le bouton <strong>+</strong> à droite de son titre ajoute une ligne et fait descendre les blocs suivants ; le bouton <strong>−</strong> retire la dernière ligne si elle est vide :</p>
 <div class="tableau"><table>
 <thead>
@@ -896,7 +896,7 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 </tr>
 <tr>
 <td><strong>Factures non liées</strong></td>
-<td>Vos dépenses « Eau » et « Électricité, gaz, chauffage » qu'aucune facture saisie ne cite encore</td>
+<td>Vos opérations « Eau » et « Électricité, gaz, chauffage » (dépenses, mais aussi remboursements) qu'aucune facture saisie ne cite encore</td>
 <td>Sélectionnez une ligne et cliquez sur <strong>Affecter une facture</strong> (section 16). <strong>Afficher tout</strong> ouvre la liste complète dans l'écran de recherche</td>
 </tr>
 <tr>
@@ -947,12 +947,13 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 </table></div>
 <p>Les montants sont des <strong>dépenses nettes des remboursements</strong>, rangées par <strong>mois de budget</strong> (comme l'analyse). Seules les 8 plus grosses lignes sont détaillées ; le reste est regroupé dans « Autres ». L'écran affiche au plus 48 colonnes (les plus récentes si la période est plus longue). Cliquez sur <strong>Actualiser</strong> après chaque changement ; <strong>Réinitialiser les sélections</strong> vide les listes de catégories ; <strong>Aide</strong> détaille chaque champ.</p>
 <h2 id="16-relier-une-facture-à-ses-paiements">16. Relier une facture à ses paiements</h2>
-<p>Quand vous avez saisi une facture de consommation (section 10), vous pouvez dire <strong>quelle(s) opération(s) bancaire(s) l'ont payée</strong>. Le classeur sait alors quelles dépenses d'eau ou d'énergie n'ont pas encore de facture, et quelles factures sont soldées.</p>
+<p>Quand vous avez saisi une facture de consommation (section 10), vous pouvez dire <strong>quelle(s) opération(s) bancaire(s) l'ont payée</strong>. Le classeur sait alors quelles opérations d'eau ou d'énergie n'ont pas encore de facture, et quelles factures sont soldées.</p>
 <p><strong>Relier une opération à une facture</strong></p>
 <ol>
-<li>Sur <strong>Synthese</strong>, dans le tableau <strong>Factures non liées</strong>, sélectionnez la dépense, puis cliquez sur <strong>Affecter une facture</strong>. (Depuis l'écran de recherche, le même bouton existe pour n'importe quelle opération.)</li>
+<li>Sur <strong>Synthese</strong>, dans le tableau <strong>Factures non liées</strong>, sélectionnez l'opération (une dépense, ou un remboursement reçu en fin d'année), puis cliquez sur <strong>Affecter une facture</strong>. (Depuis l'écran de recherche, le même bouton existe, mais il refuse toute opération qui n'est pas classée « Eau » ou « Électricité, gaz, chauffage ».)</li>
 <li>Le formulaire rappelle l'opération (date, tiers, catégorie, montant). Choisissez d'abord le <strong>type de consommation</strong>, puis la <strong>facture</strong> : seules les factures <strong>non clôturées</strong> de ce type sont proposées, la plus récente en premier, avec leur opérateur, numéro et total TTC.</li>
-<li>Cliquez sur <strong>Valider</strong>. Le classeur demande : <em>toutes les opérations de la facture sont-elles maintenant liées ?</em> <strong>Oui</strong> clôture la facture (elle n'est plus proposée), <strong>Non</strong> la laisse ouverte (utile quand vous la payez en plusieurs fois), <strong>Annuler</strong> n'enregistre rien.</li>
+<li>Cliquez sur <strong>Valider</strong>. Le classeur demande : <em>toutes les opérations de la facture sont-elles maintenant liées ?</em> <strong>Oui</strong> clôture la facture (elle n'est plus proposée), <strong>Non</strong> la laisse ouverte (utile quand vous la payez en plusieurs fois), <strong>Annuler</strong> n'enregistre rien.
+   - Avant de clôturer, le classeur compare le <strong>total TTC saisi</strong> de la facture (pas le total calculé) à la <strong>somme des opérations liées</strong>, celle que vous liez maintenant comprise ; les remboursements sont déduits. S'il y a un écart, une alerte affiche le <strong>delta manquant</strong> (ou l'excédent) : <strong>Oui</strong> clôture quand même, <strong>Non</strong> lie l'opération sans clôturer, <strong>Annuler</strong> n'enregistre rien. Le même contrôle apparaît quand vous passez le champ <strong>Facture clôturée</strong> à <em>Oui</em> dans le formulaire de la facture.</li>
 <li>Si la facture n'est pas encore saisie, <strong>Nouvelle facture</strong> ouvre la saisie d'une facture déjà liée à l'opération.</li>
 </ol>
 <p>Une facture peut être payée par <strong>plusieurs</strong> opérations ; une opération, elle, ne règle qu'<strong>une seule</strong> facture (une opération déjà liée est refusée).</p>
@@ -968,7 +969,7 @@ Un écran de saisie est resté ouvert. Terminez-le avec son bouton (Terminer, Va
 <p><strong>La feuille Menu (ou Synthese) a disparu.</strong>
 Elles sont masquées pendant l'usage d'un écran. Sortez de l'écran avec son bouton. Si une erreur l'a laissée masquée, signalez-le à votre administrateur, qui peut la réafficher.</p>
 <p><strong>Une dépense d'eau ou d'électricité reste dans « Factures non liées ».</strong>
-Saisissez la facture correspondante (section 10) puis affectez-la (section 16). Seules les dépenses de catégorie ou sous-catégorie « Eau » ou « Électricité, gaz, chauffage » sont concernées.</p>
+Saisissez la facture correspondante (section 10) puis affectez-la (section 16). Seules les opérations (dépenses ou remboursements) de catégorie ou sous-catégorie « Eau » ou « Électricité, gaz, chauffage » sont concernées.</p>
 <p><strong>Un écran n'a pas de mode d'emploi visible.</strong>
 Cliquez sur son bouton <strong>Aide</strong> : l'aide s'ouvre sans fermer l'écran, et <strong>Sortir</strong> (dans l'aide) vous y ramène.</p>
 <p><strong>J'ai importé deux fois le même relevé.</strong>
@@ -1048,7 +1049,7 @@ Utilisez <strong>Annuler</strong>, rien n'est enregistré tant que vous n'avez p
 </tr>
 <tr>
 <td><strong>Facture non liée</strong></td>
-<td>Dépense d'eau ou d'énergie qu'aucune facture saisie ne cite</td>
+<td>Opération d'eau ou d'énergie (dépense ou remboursement) qu'aucune facture saisie ne cite</td>
 </tr>
 <tr>
 <td><strong>Facture clôturée</strong></td>

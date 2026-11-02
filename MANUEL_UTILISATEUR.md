@@ -458,7 +458,7 @@ Un contrat = un type de consommation chez un opérateur. Bouton **Contrats**, pu
 
 Bouton **Saisir une facture**. La saisie reproduit la facture du fournisseur : un en-tête, puis trois blocs de lignes. **Chaque ligne a ses propres dates** : l'abonnement, le prix du kWh ou les taxes peuvent changer à des dates différentes au cours d'une même facture.
 
-**En-tête.** Choisissez le type : l'opérateur du contrat en vigueur est proposé, et la liste déroulante de l'opérateur montre les fournisseurs dont le contrat n'est pas terminé pour ce type. Aucune autre saisie n'est acceptée : pour un nouveau fournisseur, saisissez d'abord un nouveau contrat (bouton Contrats). Le numéro, la date, la période et le **total TTC de la facture** sont facultatifs, mais le total permet de contrôler votre saisie.
+**En-tête.** Choisissez le type : l'opérateur du contrat en vigueur est proposé, et la liste déroulante de l'opérateur montre les fournisseurs dont le contrat n'est pas terminé pour ce type. Aucune autre saisie n'est acceptée : pour un nouveau fournisseur, saisissez d'abord un nouveau contrat (bouton Contrats). Le numéro, la date et la période sont facultatifs. Le **total TTC de la facture** (le montant imprimé par le fournisseur) est **obligatoire** : il est comparé au total calculé d'après vos lignes et sert à contrôler la clôture de la facture (section 16).
 
 **Les trois blocs** (une ligne par période de prix ; les lignes vides sont ignorées). Chaque bloc commence avec 3 lignes : le bouton **+** à droite de son titre ajoute une ligne et fait descendre les blocs suivants ; le bouton **−** retire la dernière ligne si elle est vide :
 
@@ -578,7 +578,7 @@ Synthese est la feuille sur laquelle le classeur s'ouvre. À droite du solde pr�
 | Rappel | Ce qu'il liste | Que faire |
 | --- | --- | --- |
 | **Échéances en retard** | Les échéances dont la date est passée (pour une date « au mois près » : une fois le mois écoulé) | Sélectionnez une ligne, cliquez sur **Chercher l'opération** pour rapprocher l'opération déjà importée (section 8), ou supprimez l'échéance dans l'échéancier |
-| **Factures non liées** | Vos dépenses « Eau » et « Électricité, gaz, chauffage » qu'aucune facture saisie ne cite encore | Sélectionnez une ligne et cliquez sur **Affecter une facture** (section 16). **Afficher tout** ouvre la liste complète dans l'écran de recherche |
+| **Factures non liées** | Vos opérations « Eau » et « Électricité, gaz, chauffage » (dépenses, mais aussi remboursements) qu'aucune facture saisie ne cite encore | Sélectionnez une ligne et cliquez sur **Affecter une facture** (section 16). **Afficher tout** ouvre la liste complète dans l'écran de recherche |
 | **Santé : opérations à traiter ou en attente** | Les opérations de santé encore « KO ». *En attente de remboursement (reste x)* : la dépense n'est pas encore entièrement remboursée ; *À traiter* : il y a une anomalie à comprendre | Utilisez **Suivi Santé** ou **Traitement des données de santé** du Menu (section 5) |
 
 > **À savoir :** ces tableaux sont un **aide-mémoire** ; sélectionner une ligne puis cliquer sur un bouton est la seule action possible depuis Synthese. Pour toute autre commande, retournez sur la feuille **Menu**.
@@ -600,13 +600,14 @@ Les montants sont des **dépenses nettes des remboursements**, rangées par **mo
 
 ## 16. Relier une facture à ses paiements
 
-Quand vous avez saisi une facture de consommation (section 10), vous pouvez dire **quelle(s) opération(s) bancaire(s) l'ont payée**. Le classeur sait alors quelles dépenses d'eau ou d'énergie n'ont pas encore de facture, et quelles factures sont soldées.
+Quand vous avez saisi une facture de consommation (section 10), vous pouvez dire **quelle(s) opération(s) bancaire(s) l'ont payée**. Le classeur sait alors quelles opérations d'eau ou d'énergie n'ont pas encore de facture, et quelles factures sont soldées.
 
 **Relier une opération à une facture**
 
-1. Sur **Synthese**, dans le tableau **Factures non liées**, sélectionnez la dépense, puis cliquez sur **Affecter une facture**. (Depuis l'écran de recherche, le même bouton existe pour n'importe quelle opération.)
+1. Sur **Synthese**, dans le tableau **Factures non liées**, sélectionnez l'opération (une dépense, ou un remboursement reçu en fin d'année), puis cliquez sur **Affecter une facture**. (Depuis l'écran de recherche, le même bouton existe, mais il refuse toute opération qui n'est pas classée « Eau » ou « Électricité, gaz, chauffage ».)
 2. Le formulaire rappelle l'opération (date, tiers, catégorie, montant). Choisissez d'abord le **type de consommation**, puis la **facture** : seules les factures **non clôturées** de ce type sont proposées, la plus récente en premier, avec leur opérateur, numéro et total TTC.
 3. Cliquez sur **Valider**. Le classeur demande : *toutes les opérations de la facture sont-elles maintenant liées ?* **Oui** clôture la facture (elle n'est plus proposée), **Non** la laisse ouverte (utile quand vous la payez en plusieurs fois), **Annuler** n'enregistre rien.
+   - Avant de clôturer, le classeur compare le **total TTC saisi** de la facture (pas le total calculé) à la **somme des opérations liées**, celle que vous liez maintenant comprise ; les remboursements sont déduits. S'il y a un écart, une alerte affiche le **delta manquant** (ou l'excédent) : **Oui** clôture quand même, **Non** lie l'opération sans clôturer, **Annuler** n'enregistre rien. Le même contrôle apparaît quand vous passez le champ **Facture clôturée** à *Oui* dans le formulaire de la facture.
 4. Si la facture n'est pas encore saisie, **Nouvelle facture** ouvre la saisie d'une facture déjà liée à l'opération.
 
 Une facture peut être payée par **plusieurs** opérations ; une opération, elle, ne règle qu'**une seule** facture (une opération déjà liée est refusée).
@@ -627,7 +628,7 @@ Un écran de saisie est resté ouvert. Terminez-le avec son bouton (Terminer, Va
 Elles sont masquées pendant l'usage d'un écran. Sortez de l'écran avec son bouton. Si une erreur l'a laissée masquée, signalez-le à votre administrateur, qui peut la réafficher.
 
 **Une dépense d'eau ou d'électricité reste dans « Factures non liées ».**
-Saisissez la facture correspondante (section 10) puis affectez-la (section 16). Seules les dépenses de catégorie ou sous-catégorie « Eau » ou « Électricité, gaz, chauffage » sont concernées.
+Saisissez la facture correspondante (section 10) puis affectez-la (section 16). Seules les opérations (dépenses ou remboursements) de catégorie ou sous-catégorie « Eau » ou « Électricité, gaz, chauffage » sont concernées.
 
 **Un écran n'a pas de mode d'emploi visible.**
 Cliquez sur son bouton **Aide** : l'aide s'ouvre sans fermer l'écran, et **Sortir** (dans l'aide) vous y ramène.
@@ -670,7 +671,7 @@ Utilisez **Annuler**, rien n'est enregistré tant que vous n'avez pas validé. P
 | **Échéance** | Une opération à venir |
 | **Menu / Synthese** | Menu : le panneau de commandes (boutons et réglages). Synthese : la feuille d'ouverture, avec le solde prévisionnel et les rappels |
 | **Rappel** | Tableau de Synthese qui liste ce qui attend une action |
-| **Facture non liée** | Dépense d'eau ou d'énergie qu'aucune facture saisie ne cite |
+| **Facture non liée** | Opération d'eau ou d'énergie (dépense ou remboursement) qu'aucune facture saisie ne cite |
 | **Facture clôturée** | Facture dont tous les paiements sont reliés ; elle n'est plus proposée à l'affectation |
 | **Règle de récurrence** | Modèle qui crée seul les échéances d'une opération qui se répète |
 | **Rapprochement** | Association d'une opération importée à une échéance prévue |

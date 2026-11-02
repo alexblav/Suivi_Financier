@@ -28,7 +28,8 @@ Option Explicit
 ' REGLES DES RAPPELS (a valider par l'operateur)
 '   - Echeance en retard : meme regle que "Ech. en retard" du bloc de tresorerie (date prevue
 '     depassee ; pour une precision "Mois", une fois le mois ecoule).
-'   - Facture non liee : operation de DEPENSE (montant negatif) de categorie ou sous-categorie
+'   - Facture non liee : operation de categorie ou sous-categorie (depense OU remboursement : montant non nul,
+'     un remboursement de fin d'annee doit pouvoir etre relie lui aussi)
 '     "Eau" ou "Electricite, gaz, chauffage" (accents et casse ignores) dont l'ID_Transaction
 '     n'est cite dans la colonne ID_Transactions de TblFactures (mod_Factures.FAC_COL_LIEN ; une
 '     facture peut etre liee a plusieurs operations, separees par ";").
@@ -382,7 +383,7 @@ Private Function BlocFacturesNonLiees(ByVal ws As Worksheet, ByVal ligneDebut As
         ReDim vals(1 To nbL, 1 To SYN_NB_COL + 1)      ' derniere colonne : ID_Transaction (non affiche dans D:H)
 
         For i = 1 To nbL
-            If mod_DataStructure.ToDouble(Cellule(vMont, i)) < 0 Then
+            If mod_DataStructure.ToDouble(Cellule(vMont, i)) <> 0 Then
                 catTexte = mod_DataStructure.CellText(Cellule(vCat, i))
                 sousTexte = mod_DataStructure.CellText(Cellule(vSous, i))
                 If EstCategorieFacturee(catTexte) Or EstCategorieFacturee(sousTexte) Then

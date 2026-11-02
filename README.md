@@ -410,7 +410,7 @@ Une part ventilée ne se corrige pas par double-clic sur Categorie : on passe pa
 | Erreurs santé (Menu) | ErreursSante | Les lignes dont Date\_consult vaut la sentinelle 02/01/1900 |
 | Voir le détail des entrées / dépenses (bilan mensuel) | DetailTotal | Les entrées (ou les dépenses) du mois du bilan |
 | Voir les opérations (analyse budgétaire) | Analyse | Les opérations et parts qui forment le chiffre sélectionné dans l'analyse (section 9) |
-| « Afficher tout » du rappel Factures non liées (Synthese) | FacturesNonLiees | Toutes les dépenses Eau / Électricité, gaz, chauffage qu'aucune facture ne cite encore (section 16) ; le bouton « Affecter une facture » de l'écran les relie une à une |
+| « Afficher tout » du rappel Factures non liées (Synthese) | FacturesNonLiees | Toutes les opérations (dépenses et remboursements) Eau / Électricité, gaz, chauffage qu'aucune facture ne cite encore (section 16) ; le bouton « Affecter une facture » de l'écran les relie une à une |
 | Double-clic sur le nombre d'opérations liées d'une facture (frm\_Factures) | OperationsFacture | Les opérations déjà reliées à cette facture (section 16) |
 | « Chercher l'opération » du rappel Échéances en retard (Synthese) | PourEcheance | Les opérations du mois de la date prévue de l'échéance et de même signe que son montant ; le bouton « Affecter à une échéance » rapproche immédiatement la ligne choisie (section 8) |
 
@@ -453,7 +453,7 @@ Depuis le 28/10/2026 (`mod_Synthese`), le classeur a **deux feuilles centrales**
 | Rappel | Contenu | Boutons de l'en-tête |
 | --- | --- | --- |
 | Échéances en retard | Les échéances de TblEcheances dont la date prévue est dépassée (précision « Mois » : une fois le mois écoulé), comme le compteur « Éch. en retard » du bloc prévisionnel | **Chercher l'opération** : ouvre l'écran de recherche (préfiltre PourEcheance) pour rapprocher tout de suite l'opération déjà importée (section 8) |
-| Factures non liées | Les dépenses de catégorie ou sous-catégorie « Eau » ou « Électricité, gaz, chauffage » (accents et casse ignorés) dont l'ID\_Transaction n'est cité par aucune facture (colonne `ID_Transactions` de TblFactures) | **Affecter une facture** (formulaire frm\_AffectationFacture) et **Afficher tout** (préfiltre FacturesNonLiees) ; voir section 16 |
+| Factures non liées | Les opérations (dépenses et remboursements) de catégorie ou sous-catégorie « Eau » ou « Électricité, gaz, chauffage » (accents et casse ignorés) dont l'ID\_Transaction n'est cité par aucune facture (colonne `ID_Transactions` de TblFactures) | **Affecter une facture** (formulaire frm\_AffectationFacture) et **Afficher tout** (préfiltre FacturesNonLiees) ; voir section 16 |
 | Santé : opérations à traiter ou en attente | Les opérations de santé de statut KO dont le dépassement d'honoraires n'est pas validé : « En attente de remboursement (reste x) » si le solde santé est positif, sinon « À traiter ». Les parts de ventilation ne sont pas reprises | Aucun |
 
 La colonne I (masquée) de Synthese mémorise l'identifiant de chaque ligne affichée (`ID_Transaction`, ou `ECH:` suivi de l'ID\_Echeance pour une échéance en retard) : c'est elle qui désigne la ligne sur laquelle agit un bouton. Les rappels sont **recalculés à chaque affichage** de la feuille (événement `Workbook_SheetActivate` de `ThisWorkbook`) et par le bouton **Actualiser** ; la date de dernière actualisation est écrite en A2. Le classeur **s'ouvre toujours sur Synthese** (`PositionnerSurSynthese`, appelée par `Workbook_Open`).
@@ -708,7 +708,7 @@ flowchart TB
 ### Les principes (révisés le 19/10/2026)
 
 - **Une facture reproduit la facture papier** : un en-tête (type, opérateur, numéro, date, période, total TTC facturé) et **trois blocs de lignes** (abonnement, consommation, taxes et contributions) et d'autres que l'on peut ajouter. **Chaque ligne a ses propres dates**, son nombre de jours (abonnement) ou sa quantité, son prix unitaire HT, son taux de TVA et ses montants HT et TTC. Les périodes d'une famille ne coïncident pas avec celles des autres : le prix de l'abonnement, celui du kWh et les taxes évoluent chacun à leur rythme.
-- **Le total de la facture est indicatif** : somme des lignes saisies, comparée au total TTC réellement facturé. L'écart est affiché mais n'empêche jamais l'enregistrement.
+- **Le total TTC de la facture est obligatoire** (montant imprimé par le fournisseur) : il est comparé à la somme des lignes saisies, et l'écart est affiché sans jamais empêcher l'enregistrement ; surtout, il sert au contrôle de la clôture (section 16).
 - **Quatre types de consommation** : Adduction eau, Recyclage eau, Fourniture élec, Fourniture gaz. Unité par défaut : m³ pour l'eau, kWh pour l'électricité et le gaz.
 - **Un contrat = un type chez un opérateur, entre deux dates.** Il sert à proposer l'opérateur et l'unité à la saisie d'une facture ; l'opérateur est ensuite mémorisé sur la facture elle-même.
 - **Les données sont sur des feuilles masquées** (comme TblVentilations) : `Conso_Factures`, `Conso_Lignes`, `Conso_Indicateurs`, `Conso_Contrats`. L'installateur ne les reconstruit jamais : réinstaller ne fait plus perdre de données. Les écrans frm\_Contrats et frm\_Factures n'en montrent qu'une copie.
@@ -724,7 +724,7 @@ Bouton **Contrats** de l'écran, puis **Ajouter un contrat** (formulaire frm\_Co
 
 ### Saisir une facture
 
-Bouton **Saisir une facture** (formulaire frm\_Facture). L'en-tête demande le type, l'opérateur (proposé d'après le contrat en vigueur ; la liste déroulante n'affiche que les fournisseurs dont le contrat n'est pas terminé pour ce type, aucune saisie hors liste : un nouveau fournisseur passe d'abord par un contrat), et facultativement le numéro, la date, la période et le total TTC de la facture. Dessous, trois blocs :
+Bouton **Saisir une facture** (formulaire frm\_Facture). L'en-tête demande le type, l'opérateur (proposé d'après le contrat en vigueur ; la liste déroulante n'affiche que les fournisseurs dont le contrat n'est pas terminé pour ce type, aucune saisie hors liste : un nouveau fournisseur passe d'abord par un contrat), le **total TTC de la facture (obligatoire)** et facultativement le numéro, la date et la période. Dessous, trois blocs :
 
 | Bloc | Colonnes saisies | Colonnes calculées |
 | --- | --- | --- |
@@ -810,7 +810,7 @@ Chaque écran suit le schéma **`mod_Install…`** (construction, lancée une fo
 | Ventilation | `PreparerPhase4Ventilation`, `CreerFeuilleVentilation` | Prépare aussi TblVentilations et les colonnes d'annulation ; `CodeBehind_frm_Ventilation.txt` |
 | Résolution des catégories | `CreerFeuilleResolutionCategories` | `CodeBehind_frm_ResolutionCategories.txt` (le fichier `frmResolutionCategories.frm` est l'ancienne version, en fenêtre VBA classique) |
 | Rapprochement et génération de clé santé | `CreerFeuilleRapprochementNotes`, `CreerFeuilleGenerationCle` | Formulaires du suivi santé |
-| Affectation d'une facture à une opération | `CreerFeuilleAffectationFacture` | Ouvert par le bouton « Affecter une facture » de la feuille Synthèse ; le lien est stocké dans la colonne `ID_Transactions` de `TblFactures` (plusieurs opérations possibles par facture). À la validation, une confirmation Oui / Non / Annuler demande si toutes les opérations de la facture sont liées : Oui la clôture (colonne `Cloturee` = `Oui`, la facture n'est plus proposée). La clôture se change aussi dans `frm_Facture` (champ « Facture clôturée », confirmation à la validation). La colonne `Cloturee` est créée automatiquement ; `InstallerConsommations` ajoute la colonne à la liste `frm_Factures` |
+| Affectation d'une facture à une opération | `CreerFeuilleAffectationFacture` | Ouvert par le bouton « Affecter une facture » de la feuille Synthèse ; le lien est stocké dans la colonne `ID_Transactions` de `TblFactures` (plusieurs opérations possibles par facture). À la validation, une confirmation Oui / Non / Annuler demande si toutes les opérations de la facture sont liées : Oui la clôture (colonne `Cloturee` = `Oui`, la facture n'est plus proposée), après contrôle de la somme des opérations liées contre le total TTC saisi (alerte avec le delta). L'écran de recherche n'accepte que les opérations Eau / Électricité, gaz, chauffage. La clôture se change aussi dans `frm_Facture` (champ « Facture clôturée », confirmation à la validation). La colonne `Cloturee` est créée automatiquement ; `InstallerConsommations` ajoute la colonne à la liste `frm_Factures` |
 | Suivi santé (cas non soldés) | `CreerFeuilleSuiviSante` | |
 | Écran de recherche | `CreerFeuilleRechercheOperations` | Construit l'en-tête et les colonnes ; les lignes sont remplies à chaque ouverture |
 | Décalages de budget | `AjouterColonneDecalageManuel` | Ajoute la colonne technique DecalageManuel à TblOperations |
@@ -981,7 +981,7 @@ flowchart TB
     CLOT{"Toutes les opérations<br/>de la facture sont liées ?"}
     OUVERTE["Facture laissée ouverte"]
     CLOSE["Cloturee = Oui<br/>facture plus proposée"]
-    OPS -->|"dépense sans facture"| RAPPEL
+    OPS -->|"opération sans facture"| RAPPEL
     RAPPEL -->|"Affecter une facture"| FORM
     FORM -->|"Valider"| LIEN
     LIEN --> CLOT
@@ -991,11 +991,13 @@ flowchart TB
 
 **Les règles.**
 
-- Sont à relier les **dépenses** (montant négatif) de catégorie ou sous-catégorie « Eau » ou « Électricité, gaz, chauffage » (accents et casse ignorés, `EstCategorieFacturee`) dont l'ID\_Transaction n'est cité par aucune facture. Elles apparaissent dans le rappel **Factures non liées** de Synthese (15 lignes au plus) ; « Afficher tout » les ouvre toutes dans l'écran de recherche (préfiltre FacturesNonLiees).
+- Sont à relier les opérations (**dépenses** et **remboursements** de fin d'année : montant non nul) de catégorie ou sous-catégorie « Eau » ou « Électricité, gaz, chauffage » (accents et casse ignorés, `EstCategorieFacturee`) dont l'ID\_Transaction n'est cité par aucune facture. Elles apparaissent dans le rappel **Factures non liées** de Synthese (15 lignes au plus) ; « Afficher tout » les ouvre toutes dans l'écran de recherche (préfiltre FacturesNonLiees).
 - Le lien est stocké dans la colonne **`ID_Transactions`** de TblFactures : les identifiants des opérations, séparés par « ; » (`FAC_SEP_LIENS`). **Une facture peut être réglée par plusieurs opérations** (échéances), mais **une opération ne peut être liée qu'à une seule facture** : une opération déjà liée, ou une part de ventilation, est refusée.
 - `frm_AffectationFacture` reprend l'opération en en-tête (date, Tiers, catégorie, montant). **Filtre 1** : type de consommation (types présents dans TblFactures). **Filtre 2** : date de la facture, parmi les factures **non clôturées** du type choisi, la plus récente en premier (date, opérateur, numéro, total TTC).
 - **Valider** écrit le lien (`mod_Factures.LierFacture`, qui *ajoute* l'ID aux liens existants et tient à jour la colonne **`NbOperations`**), après une question Oui / Non / Annuler : « toutes les opérations de la facture sont-elles maintenant liées ? ». **Oui** clôture la facture (`Cloturee` = `Oui`, `CloturerFacture`), **Non** la laisse ouverte, **Annuler** n'écrit rien. **Nouvelle facture** ferme le formulaire et ouvre la saisie d'une facture déjà liée à l'opération (`SaisirFacturePourOperation`) ; si l'opérateur l'abandonne, le formulaire réapparaît.
 - La clôture se corrige dans `frm_Facture` (champ « Facture clôturée », confirmation à la validation). La colonne `Cloturee` est créée automatiquement.
+- **Contrôle à la clôture** : quand l'opérateur répond Oui (ou passe le champ « Facture clôturée » à Oui dans `frm_Facture`), la somme des opérations liées (`mod_Factures.SommeOperationsFacture` : une dépense compte positivement, un remboursement se déduit ; l'opération en cours d'affectation est comprise) est comparée au **total TTC saisi** de la facture (`TotalSaisiFacture`, obligatoire à la saisie), jamais au total calculé d'après les lignes. En cas d'écart (tolérance 0,005 €), une alerte affiche le **delta manquant** ou l'excédent (`TexteEcartCloture`). Dans `frm_AffectationFacture` (`ControlerCloture`) : **Oui** clôture quand même, **Non** lie sans clôturer, **Annuler** n'écrit rien ; dans `frm_Facture`, la confirmation de clôture reprend l'alerte. Une facture ancienne sans total saisi n'est pas contrôlée.
+- **Verrou de catégorie** : `AffecterFactureRO` (écran de recherche) refuse toute opération dont ni la catégorie ni la sous-catégorie n'est Eau ou Électricité, gaz, chauffage (`mod_Synthese.EstCategorieFacturee`), comme le rappel de Synthese ne propose que celles-là. Le signe du montant n'est pas contrôlé : les remboursements sont admis.
 - **Corriger une erreur** : le bouton **Délier de la facture** de l'écran de recherche retire l'opération **sélectionnée** de sa facture (retrouvée d'après l'opération, quel que soit le préfiltre ; `mod_Factures.DelierFacture`). Si la facture était clôturée, une question propose de la rouvrir ; les écrans « Opérations d'une facture » et « Factures non liées » sont rechargés.
 - **Consulter** : dans la liste frm\_Factures, un **double-clic sur le nombre d'opérations liées** (colonne `NbOperations`) ouvre l'écran de recherche sur ces opérations (préfiltre OperationsFacture ; `mod_Factures.TraiterDoubleClicListe`, aiguillé par `Workbook_SheetBeforeDoubleClick`). Sans opération liée, un message l'indique.
 

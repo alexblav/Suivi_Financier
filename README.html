@@ -805,7 +805,7 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 <tr>
 <td>« Afficher tout » du rappel Factures non liées (Synthese)</td>
 <td>FacturesNonLiees</td>
-<td>Toutes les dépenses Eau / Électricité, gaz, chauffage qu'aucune facture ne cite encore (section 16) ; le bouton « Affecter une facture » de l'écran les relie une à une</td>
+<td>Toutes les opérations (dépenses et remboursements) Eau / Électricité, gaz, chauffage qu'aucune facture ne cite encore (section 16) ; le bouton « Affecter une facture » de l'écran les relie une à une</td>
 </tr>
 <tr>
 <td>Double-clic sur le nombre d'opérations liées d'une facture (frm_Factures)</td>
@@ -897,7 +897,7 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 </tr>
 <tr>
 <td>Factures non liées</td>
-<td>Les dépenses de catégorie ou sous-catégorie « Eau » ou « Électricité, gaz, chauffage » (accents et casse ignorés) dont l'ID_Transaction n'est cité par aucune facture (colonne <code>ID_Transactions</code> de TblFactures)</td>
+<td>Les opérations (dépenses et remboursements) de catégorie ou sous-catégorie « Eau » ou « Électricité, gaz, chauffage » (accents et casse ignorés) dont l'ID_Transaction n'est cité par aucune facture (colonne <code>ID_Transactions</code> de TblFactures)</td>
 <td><strong>Affecter une facture</strong> (formulaire frm_AffectationFacture) et <strong>Afficher tout</strong> (préfiltre FacturesNonLiees) ; voir section 16</td>
 </tr>
 <tr>
@@ -1335,7 +1335,7 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 <h3 id="les-principes-révisés-le-19102026">Les principes (révisés le 19/10/2026)</h3>
 <ul>
 <li><strong>Une facture reproduit la facture papier</strong> : un en-tête (type, opérateur, numéro, date, période, total TTC facturé) et <strong>trois blocs de lignes</strong> (abonnement, consommation, taxes et contributions) et d'autres que l'on peut ajouter. <strong>Chaque ligne a ses propres dates</strong>, son nombre de jours (abonnement) ou sa quantité, son prix unitaire HT, son taux de TVA et ses montants HT et TTC. Les périodes d'une famille ne coïncident pas avec celles des autres : le prix de l'abonnement, celui du kWh et les taxes évoluent chacun à leur rythme.</li>
-<li><strong>Le total de la facture est indicatif</strong> : somme des lignes saisies, comparée au total TTC réellement facturé. L'écart est affiché mais n'empêche jamais l'enregistrement.</li>
+<li><strong>Le total TTC de la facture est obligatoire</strong> (montant imprimé par le fournisseur) : il est comparé à la somme des lignes saisies, et l'écart est affiché sans jamais empêcher l'enregistrement ; surtout, il sert au contrôle de la clôture (section 16).</li>
 <li><strong>Quatre types de consommation</strong> : Adduction eau, Recyclage eau, Fourniture élec, Fourniture gaz. Unité par défaut : m³ pour l'eau, kWh pour l'électricité et le gaz.</li>
 <li><strong>Un contrat = un type chez un opérateur, entre deux dates.</strong> Il sert à proposer l'opérateur et l'unité à la saisie d'une facture ; l'opérateur est ensuite mémorisé sur la facture elle-même.</li>
 <li><strong>Les données sont sur des feuilles masquées</strong> (comme TblVentilations) : <code>Conso_Factures</code>, <code>Conso_Lignes</code>, <code>Conso_Indicateurs</code>, <code>Conso_Contrats</code>. L'installateur ne les reconstruit jamais : réinstaller ne fait plus perdre de données. Les écrans frm_Contrats et frm_Factures n'en montrent qu'une copie.</li>
@@ -1346,7 +1346,7 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 <h3 id="déclarer-un-contrat">Déclarer un contrat</h3>
 <p>Bouton <strong>Contrats</strong> de l'écran, puis <strong>Ajouter un contrat</strong> (formulaire frm_Contrat) : type, opérateur, unité, début, fin (facultative : vide = en cours), abonnement mensuel indicatif, référence. <strong>Changement d'opérateur</strong> : créer le nouveau contrat ; le contrat en cours du même type est clôturé la veille après confirmation. Les factures déjà saisies gardent leur opérateur.</p>
 <h3 id="saisir-une-facture">Saisir une facture</h3>
-<p>Bouton <strong>Saisir une facture</strong> (formulaire frm_Facture). L'en-tête demande le type, l'opérateur (proposé d'après le contrat en vigueur ; la liste déroulante n'affiche que les fournisseurs dont le contrat n'est pas terminé pour ce type, aucune saisie hors liste : un nouveau fournisseur passe d'abord par un contrat), et facultativement le numéro, la date, la période et le total TTC de la facture. Dessous, trois blocs :</p>
+<p>Bouton <strong>Saisir une facture</strong> (formulaire frm_Facture). L'en-tête demande le type, l'opérateur (proposé d'après le contrat en vigueur ; la liste déroulante n'affiche que les fournisseurs dont le contrat n'est pas terminé pour ce type, aucune saisie hors liste : un nouveau fournisseur passe d'abord par un contrat), le <strong>total TTC de la facture (obligatoire)</strong> et facultativement le numéro, la date et la période. Dessous, trois blocs :</p>
 <div class="tableau"><table>
 <thead>
 <tr>
@@ -1570,7 +1570,7 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 <tr>
 <td>Affectation d'une facture à une opération</td>
 <td><code>CreerFeuilleAffectationFacture</code></td>
-<td>Ouvert par le bouton « Affecter une facture » de la feuille Synthèse ; le lien est stocké dans la colonne <code>ID_Transactions</code> de <code>TblFactures</code> (plusieurs opérations possibles par facture). À la validation, une confirmation Oui / Non / Annuler demande si toutes les opérations de la facture sont liées : Oui la clôture (colonne <code>Cloturee</code> = <code>Oui</code>, la facture n'est plus proposée). La clôture se change aussi dans <code>frm_Facture</code> (champ « Facture clôturée », confirmation à la validation). La colonne <code>Cloturee</code> est créée automatiquement ; <code>InstallerConsommations</code> ajoute la colonne à la liste <code>frm_Factures</code></td>
+<td>Ouvert par le bouton « Affecter une facture » de la feuille Synthèse ; le lien est stocké dans la colonne <code>ID_Transactions</code> de <code>TblFactures</code> (plusieurs opérations possibles par facture). À la validation, une confirmation Oui / Non / Annuler demande si toutes les opérations de la facture sont liées : Oui la clôture (colonne <code>Cloturee</code> = <code>Oui</code>, la facture n'est plus proposée), après contrôle de la somme des opérations liées contre le total TTC saisi (alerte avec le delta). L'écran de recherche n'accepte que les opérations Eau / Électricité, gaz, chauffage. La clôture se change aussi dans <code>frm_Facture</code> (champ « Facture clôturée », confirmation à la validation). La colonne <code>Cloturee</code> est créée automatiquement ; <code>InstallerConsommations</code> ajoute la colonne à la liste <code>frm_Factures</code></td>
 </tr>
 <tr>
 <td>Suivi santé (cas non soldés)</td>
@@ -1881,7 +1881,7 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 <rect class="noeud" x="256" y="707" width="185" height="54" rx="8"/>
 <text class="txt t1" x="349" y="730.0" text-anchor="middle">Cloturee = Oui</text>
 <text class="txt" x="349" y="747.0" text-anchor="middle">facture plus proposée</text>
-<rect class="fond-etiquette" x="159" y="134" width="144" height="18" rx="4"/><text class="etiquette" x="231" y="146" text-anchor="middle">dépense sans facture</text>
+<rect class="fond-etiquette" x="152" y="134" width="157" height="18" rx="4"/><text class="etiquette" x="231" y="146" text-anchor="middle">opération sans facture</text>
 <rect class="fond-etiquette" x="159" y="258" width="144" height="18" rx="4"/><text class="etiquette" x="231" y="270" text-anchor="middle">Affecter une facture</text>
 <rect class="fond-etiquette" x="202" y="398" width="58" height="18" rx="4"/><text class="etiquette" x="231" y="412" text-anchor="middle">Valider</text>
 <rect class="fond-etiquette" x="160" y="666" width="32" height="18" rx="4"/><text class="etiquette" x="175" y="679" text-anchor="middle">Non</text>
@@ -1889,11 +1889,13 @@ Installation : importer <code>mod_RemediationOFX.bas</code>, <code>mod_InstallRe
 </svg></figure>
 <p><strong>Les règles.</strong></p>
 <ul>
-<li>Sont à relier les <strong>dépenses</strong> (montant négatif) de catégorie ou sous-catégorie « Eau » ou « Électricité, gaz, chauffage » (accents et casse ignorés, <code>EstCategorieFacturee</code>) dont l'ID_Transaction n'est cité par aucune facture. Elles apparaissent dans le rappel <strong>Factures non liées</strong> de Synthese (15 lignes au plus) ; « Afficher tout » les ouvre toutes dans l'écran de recherche (préfiltre FacturesNonLiees).</li>
+<li>Sont à relier les opérations (<strong>dépenses</strong> et <strong>remboursements</strong> de fin d'année : montant non nul) de catégorie ou sous-catégorie « Eau » ou « Électricité, gaz, chauffage » (accents et casse ignorés, <code>EstCategorieFacturee</code>) dont l'ID_Transaction n'est cité par aucune facture. Elles apparaissent dans le rappel <strong>Factures non liées</strong> de Synthese (15 lignes au plus) ; « Afficher tout » les ouvre toutes dans l'écran de recherche (préfiltre FacturesNonLiees).</li>
 <li>Le lien est stocké dans la colonne <strong><code>ID_Transactions</code></strong> de TblFactures : les identifiants des opérations, séparés par « ; » (<code>FAC_SEP_LIENS</code>). <strong>Une facture peut être réglée par plusieurs opérations</strong> (échéances), mais <strong>une opération ne peut être liée qu'à une seule facture</strong> : une opération déjà liée, ou une part de ventilation, est refusée.</li>
 <li><code>frm_AffectationFacture</code> reprend l'opération en en-tête (date, Tiers, catégorie, montant). <strong>Filtre 1</strong> : type de consommation (types présents dans TblFactures). <strong>Filtre 2</strong> : date de la facture, parmi les factures <strong>non clôturées</strong> du type choisi, la plus récente en premier (date, opérateur, numéro, total TTC).</li>
 <li><strong>Valider</strong> écrit le lien (<code>mod_Factures.LierFacture</code>, qui <em>ajoute</em> l'ID aux liens existants et tient à jour la colonne <strong><code>NbOperations</code></strong>), après une question Oui / Non / Annuler : « toutes les opérations de la facture sont-elles maintenant liées ? ». <strong>Oui</strong> clôture la facture (<code>Cloturee</code> = <code>Oui</code>, <code>CloturerFacture</code>), <strong>Non</strong> la laisse ouverte, <strong>Annuler</strong> n'écrit rien. <strong>Nouvelle facture</strong> ferme le formulaire et ouvre la saisie d'une facture déjà liée à l'opération (<code>SaisirFacturePourOperation</code>) ; si l'opérateur l'abandonne, le formulaire réapparaît.</li>
 <li>La clôture se corrige dans <code>frm_Facture</code> (champ « Facture clôturée », confirmation à la validation). La colonne <code>Cloturee</code> est créée automatiquement.</li>
+<li><strong>Contrôle à la clôture</strong> : quand l'opérateur répond Oui (ou passe le champ « Facture clôturée » à Oui dans <code>frm_Facture</code>), la somme des opérations liées (<code>mod_Factures.SommeOperationsFacture</code> : une dépense compte positivement, un remboursement se déduit ; l'opération en cours d'affectation est comprise) est comparée au <strong>total TTC saisi</strong> de la facture (<code>TotalSaisiFacture</code>, obligatoire à la saisie), jamais au total calculé d'après les lignes. En cas d'écart (tolérance 0,005 €), une alerte affiche le <strong>delta manquant</strong> ou l'excédent (<code>TexteEcartCloture</code>). Dans <code>frm_AffectationFacture</code> (<code>ControlerCloture</code>) : <strong>Oui</strong> clôture quand même, <strong>Non</strong> lie sans clôturer, <strong>Annuler</strong> n'écrit rien ; dans <code>frm_Facture</code>, la confirmation de clôture reprend l'alerte. Une facture ancienne sans total saisi n'est pas contrôlée.</li>
+<li><strong>Verrou de catégorie</strong> : <code>AffecterFactureRO</code> (écran de recherche) refuse toute opération dont ni la catégorie ni la sous-catégorie n'est Eau ou Électricité, gaz, chauffage (<code>mod_Synthese.EstCategorieFacturee</code>), comme le rappel de Synthese ne propose que celles-là. Le signe du montant n'est pas contrôlé : les remboursements sont admis.</li>
 <li><strong>Corriger une erreur</strong> : le bouton <strong>Délier de la facture</strong> de l'écran de recherche retire l'opération <strong>sélectionnée</strong> de sa facture (retrouvée d'après l'opération, quel que soit le préfiltre ; <code>mod_Factures.DelierFacture</code>). Si la facture était clôturée, une question propose de la rouvrir ; les écrans « Opérations d'une facture » et « Factures non liées » sont rechargés.</li>
 <li><strong>Consulter</strong> : dans la liste frm_Factures, un <strong>double-clic sur le nombre d'opérations liées</strong> (colonne <code>NbOperations</code>) ouvre l'écran de recherche sur ces opérations (préfiltre OperationsFacture ; <code>mod_Factures.TraiterDoubleClicListe</code>, aiguillé par <code>Workbook_SheetBeforeDoubleClick</code>). Sans opération liée, un message l'indique.</li>
 </ul>
