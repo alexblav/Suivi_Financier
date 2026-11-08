@@ -215,7 +215,7 @@ Private Function NomNature(ByVal nat As Long) As String
 End Function
 
 ' Code de l'indicateur d'après son nom : 1 à 3 pour Abonnement, Consommation et Taxes, 4 (NAT_AUTRE) pour tout autre
-' indicateur, qu'il soit « Autre » ou créé par l'opérateur. Le graphique ne connaît pour l'instant que les trois premiers.
+' indicateur, qu'il soit « Autre » ou créé par l'opérateur. Le graphique de frm_Consommations propose aussi les indicateurs créés (quand ils ont des lignes pour le type choisi).
 Private Function FamilleDepuisTexte(ByVal txt As String) As Long
     Select Case LCase$(Trim$(txt))
         Case "abonnement": FamilleDepuisTexte = NAT_ABO

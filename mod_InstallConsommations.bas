@@ -944,11 +944,12 @@ Private Function ConstruireEcranConso(ByVal wsPrecedente As Worksheet) As Boolea
     ' --- Tableau mensuel ---
     ent = mod_Consommations.CO_LIGNE_ENTETE
     ws.Cells(ent, 2).Value = "Mois"
-    ws.Cells(ent, 3).Value = "Consommation"
+    ' Les colonnes C à G suivent l'indicateur choisi (mod_Consommations les renomme à chaque actualisation).
+    ws.Cells(ent, 3).Value = "Quantit" & ChrW(233)
     ws.Cells(ent, 4).Value = "Prix unitaire HT"
-    ws.Cells(ent, 5).Value = "Montant consommation (" & ChrW(8364) & ")"
-    ws.Cells(ent, 6).Value = "Abonnement (" & ChrW(8364) & ")"
-    ws.Cells(ent, 7).Value = "Taxes (" & ChrW(8364) & ")"
+    ws.Cells(ent, 5).Value = "HT indicateur (" & ChrW(8364) & ")"
+    ws.Cells(ent, 6).Value = "TTC indicateur (" & ChrW(8364) & ")"
+    ws.Cells(ent, 7).Value = "Autres indicateurs (" & ChrW(8364) & ")"
     ws.Cells(ent, 8).Value = "Montant total (" & ChrW(8364) & ")"
     ws.Cells(ent, 9).Value = mod_Display.FR("Op{e2}rateur(s)")
     mod_InstallCommun.PoserEnteteTableau ws.Range(ws.Cells(ent, 2), ws.Cells(ent, 1 + mod_Consommations.CO_NB_COL_TABLE))
@@ -971,7 +972,7 @@ Private Function ConstruireEcranConso(ByVal wsPrecedente As Worksheet) As Boolea
     co.Chart.ChartTitle.Text = "Consommations"
 
     ' Colonnes techniques (données du graphique, listes déroulantes) : masquées.
-    ws.Range(ws.Columns(mod_Consommations.CO_COL_H_LIB), ws.Columns(mod_Consommations.CO_COL_LISTE_DATES + mod_Consommations.CO_NB_COL_DATES - 1)).EntireColumn.Hidden = True
+    ws.Range(ws.Columns(mod_Consommations.CO_COL_H_LIB), ws.Columns(mod_Consommations.CO_COL_LISTE_INDIC_TYPE + mod_Consommations.CO_NB_COL_DATES - 1)).EntireColumn.Hidden = True
 
     ' --- Boutons (en dernier : ils se placent d'après les hauteurs de lignes) ---
     ConstruireBoutonsConso ws
@@ -1010,8 +1011,10 @@ Private Function TexteInstructionsConso() As String
     t = t & "[b:Actualiser] recalcule le tableau et le graphique apr{e1}s un changement de param{e1}tre."
     t = t & Chr(10) & "Les champs apparaissent au fil de la saisie. [c:Type] : un type de consommation, ou (tous) pour comparer les montants. "
     t = t & "[c:Indicateur] : Consommation (la quantit{e2} consomm{e2}e, en m3 ou kWh), Prix unitaire HT "
-    t = t & "(moyenne pond{e2}r{e2}e par les quantit{e2}s, abonnement et taxes exclus), Montant consommation, Abonnement, Taxes (montants TTC en euros) ou Montant total (leur somme). "
-    t = t & "Pour (tous), seuls les montants sont comparables."
+    t = t & "(moyenne pond{e2}r{e2}e par les quantit{e2}s, abonnement et taxes exclus), Montant consommation, Abonnement, Taxes (montants TTC en euros), les indicateurs que vous avez cr{e2}{e2}s, ou Montant total (leur somme). "
+    t = t & "La liste ne propose que les indicateurs qui ont des lignes de facture pour le type choisi. Pour (tous), seuls les montants sont comparables. "
+    t = t & "Un indicateur cr{e2}{e2} dont les lignes ont une quantit{e2} en m3 ou kWh propose trois choix : sa quantit{e2} (son nom), [c:Prix HT <nom>] et [c:Montant <nom>]; sinon son montant TTC."
+    t = t & Chr(10) & "Les colonnes du tableau suivent l'indicateur choisi : sa quantit{e2} et son prix HT, son montant HT et TTC, puis les autres indicateurs (le reste du total) et le montant total des lignes du type."
     t = t & Chr(10) & "[c:D{e2}but] : un mois couvert par les factures du type choisi ; [c:Fin] : un mois du type {a1} partir du d{e2}but (vide : jusqu'au dernier mois). "
     t = t & "Seuls les mois qui ont des donn{e2}es sont affich{e2}s : le tableau montre la facture la plus r{e2}cente en premier, le graphique reste dans l'ordre chronologique."
     t = t & Chr(10) & "[c:R{e2}partition des lignes] : 'Au prorata des jours' r{e2}partit chaque ligne de facture sur les mois qu'elle couvre (chaque ligne a ses propres dates) ; "

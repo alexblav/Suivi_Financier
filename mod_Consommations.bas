@@ -22,6 +22,9 @@ Option Explicit
 '     de sa date de fin.
 '   - Consommation = lignes de consommation (TTC) ; Abonnement = lignes d'abonnement (TTC) ;
 '     Taxes = lignes de taxes (TTC) ; Montant total = leur somme.
+'   - Un indicateur créé par l'opérateur = lignes TTC de cet indicateur ; il compte dans le Montant total.
+'   - La liste Indicateur ne propose que les indicateurs ayant des lignes pour le type choisi
+'     (blocs de colonnes CO_COL_LISTE_INDIC_TYPE, nom ListeIndicConso reposé à chaque actualisation).
 '   - Prix unitaire d'un mois = montant HT de consommation / quantité (moyenne pondérée),
 '     abonnement et taxes exclus.
 '
@@ -66,7 +69,11 @@ Public Const CO_COL_LISTE_FORME As Long = 43
 Public Const CO_COL_LISTE_REPART As Long = 44
 Public Const CO_COL_LISTE_DATES As Long = 46    ' AT à AX : mois disponibles en base, une colonne par choix de type (listes Début et Fin)
 Public Const CO_NB_COL_DATES As Long = 5        ' (tous) + les 4 types
+Public Const CO_COL_LISTE_DATES_DESC As Long = 51   ' AY à BC : les mêmes mois, du plus récent au plus ancien (liste Fin)
 Public Const CO_NB_LISTE_DATES As Long = 200    ' mois au plus dans chaque colonne
+Public Const CO_COL_LISTE_INDIC_TYPE As Long = 56   ' BD à BH : indicateurs réellement alimentés, une colonne par choix de type (liste Indicateur)
+Public Const CO_NB_LISTE_INDIC As Long = 50    ' indicateurs au plus dans chaque colonne
+Public Const CO_NB_EXTRA As Long = 12           ' indicateurs créés par l'opérateur suivis au plus dans le calcul (les suivants sont regroupés dans le dernier)
 
 ' --- Formulaire frm_Contrat ---
 Public Const CF_ADR_TYPE As String = "C6"
@@ -100,6 +107,30 @@ Private g_CtrNomFeuillePrec As String
 ' --- Premier et dernier mois (année * 12 + mois - 1) couverts par les factures, par choix de type ((tous), puis chaque type) ; -1 = aucun ---
 Private g_MinType() As Long
 Private g_MaxType() As Long
+
+' --- Indicateurs créés par l'opérateur (hors Abonnement, Consommation, Taxes) présents dans le calcul en cours ---
+Private g_ExNb As Long
+Private g_ExNoms(1 To CO_NB_EXTRA) As String
+Private g_ExDic As Object
+Private g_ExQty(1 To CO_NB_EXTRA) As Boolean    ' l'indicateur créé a une vraie quantité (m3, kWh)
+Private g_ExDer As Object       ' libellés "Prix HT X" et "Montant X" -> "rang|genre"
+
+' --- Montants répartis : (mois, série, groupe, champ). Groupe 1 Consommation, 2 Abonnement, 3 Taxes, 3 + rang = indicateur créé ---
+Private g_A() As Double
+Private g_Has() As Boolean      ' (mois, série, groupe) : au moins une ligne du groupe tombe dans ce mois
+Private Const GRP_CONSO As Long = 1
+Private Const GRP_ABO As Long = 2
+Private Const GRP_TAXE As Long = 3
+Private Const CO_NB_GRP As Long = 3 + CO_NB_EXTRA
+Private Const F_QTE As Long = 1
+Private Const F_HT As Long = 2
+Private Const F_TTC As Long = 3
+
+' --- Genre de valeur d'un indicateur ---
+Private Const K_QTE As Long = 1         ' la quantité (m3, kWh)
+Private Const K_PRIX As Long = 2        ' le prix unitaire HT
+Private Const K_MONTANT As Long = 3     ' le montant TTC du groupe
+Private Const K_TOTAL As Long = 4       ' le montant TTC de toutes les lignes
 
 ' --- Contrats chargés en mémoire (voir ChargerContrats) ---
 ' Les dates sont des nombres entiers (numéro de série Excel) ; 0 = absente.
@@ -625,19 +656,21 @@ Private Sub RafraichirConso()
     Dim idxDeb As Long, nbM As Long
     Dim nbRows As Long, r As Long, g As Long, nbGraph As Long
     Dim hasM() As Boolean
-    Dim tous As Boolean, prorata As Boolean
+    Dim tous As Boolean, prorata As Boolean, mixte As Boolean
     Dim note As String
     Dim serNoms() As String, nS As Long
-    Dim aQ() As Double, aHT() As Double, aCo() As Double, aAb() As Double, aTx() As Double, aHas() As Boolean
+    Dim aHas() As Boolean
     Dim tabT() As Variant, tabH() As Variant
-    Dim p As Long, s As Long, ent As Long, idx As Long
-    Dim q As Double, ht As Double, co As Double, ab As Double, tx As Double, has As Boolean
-    Dim totQ As Double, totHT As Double, totCo As Double, totAb As Double, totTx As Double
+    Dim p As Long, s As Long, ent As Long, idx As Long, k As Long
+    Dim q As Double, ht As Double, ttc As Double, tot As Double, totS As Double
+    Dim totQ As Double, totHT As Double, totTTC As Double, totAll As Double
     Dim oper As String
     Dim nbLignesPrises As Long
-    Dim unite As String, texte As String
+    Dim unite As String, texte As String, nomRef As String
     Dim lignes() As TypeLigne, nbL As Long
     Dim etape As Long
+    Dim gref As Long, kind As Long, kindBarres As Long
+    Dim has As Boolean
 
     Set ws = FeuilleConso()
     If ws Is Nothing Or Not ConsoInstallee() Then
@@ -646,7 +679,7 @@ Private Sub RafraichirConso()
     End If
 
     ChargerContrats
-    nbL = mod_Factures.ChargerLignes(lignes)
+    nbL = mod_Factures.ChargerLignes(lignes, 0, True)      ' avec les indicateurs créés par l'opérateur
     MettreAJourListesConso ws, lignes, nbL
     AppliquerVisibilite ws
     etape = EtapeSaisie(ws)
@@ -659,24 +692,42 @@ Private Sub RafraichirConso()
     tous = (StrComp(typ, LibTous(), vbTextCompare) = 0)
     prorata = (StrComp(repart, LibRepartProrata(), vbTextCompare) = 0)
 
+    ChargerExtras lignes, nbL, typ, tous
+
+    ' Indicateur choisi -> groupe de lignes de référence (colonnes quantité, prix et montants du tableau) et genre de valeur.
+    If Not ResoudreIndic(indic, gref, kind) Then
+        indic = LibIndMontant()         ' indicateur sans ligne pour ce type : le montant total est affiché
+        ResoudreIndic indic, gref, kind
+        note = " L'indicateur choisi n'a aucune ligne pour ce type : le montant total est affich{e2}."
+    End If
+
     ' Combinaisons sans sens : pour "tous les types", pas de quantité ni de prix (unités
     ' différentes) et pas de courbe du prix.
-    indicSerie = indic
+    mixte = (StrComp(forme, LibFormeMixte(), vbTextCompare) = 0)
     If tous Then
-        If StrComp(indic, LibIndQuantite(), vbTextCompare) = 0 Or StrComp(indic, LibIndPrix(), vbTextCompare) = 0 Then
+        If kind = K_QTE Or kind = K_PRIX Then
             indic = LibIndMontant()
-            indicSerie = indic
-            note = " Pour tous les types, seuls les montants sont comparables : le montant total est affich{e2}."
+            ResoudreIndic indic, gref, kind
+            note = note & " Pour tous les types, seuls les montants sont comparables : le montant total est affich{e2}."
         End If
-        If StrComp(forme, LibFormeMixte(), vbTextCompare) = 0 Then
+        If mixte Then
+            mixte = False
             forme = LibFormeBarres()
             note = note & " La courbe du prix n'existe que pour un type choisi."
         End If
-    ElseIf StrComp(forme, LibFormeMixte(), vbTextCompare) = 0 And StrComp(indic, LibIndPrix(), vbTextCompare) = 0 Then
-        indicSerie = LibIndQuantite()      ' le prix est déjà la courbe : les barres montrent la quantité
     End If
 
-    CalculerMois lignes, nbL, typ, tous, prorata, idxDeb, nbM, serNoms, nS, aQ, aHT, aCo, aAb, aTx, aHas, nbLignesPrises
+    ' Avec la courbe du prix, un prix choisi comme indicateur est déjà la courbe : les barres montrent la quantité.
+    indicSerie = indic
+    kindBarres = kind
+    If mixte And kind = K_PRIX Then
+        kindBarres = K_QTE
+        indicSerie = NomGroupe(gref)
+    End If
+
+    CalculerMois lignes, nbL, typ, tous, prorata, idxDeb, nbM, serNoms, nS, aHas, nbLignesPrises
+    nomRef = NomGroupe(gref)
+    If Len(nomRef) > 28 Then nomRef = Left$(nomRef, 27) & "."
 
     ' ---------------- Tableau mensuel (visible) et données du graphique (masquées) ----------------
     ent = CO_LIGNE_ENTETE
@@ -689,7 +740,7 @@ Private Sub RafraichirConso()
     nbRows = 0
     For p = 1 To nbM
         For s = 1 To nS
-            If aHas(p, s) Then hasM(p) = True
+            If SerieAvecDonnees(p, s, kind, gref, aHas) Then hasM(p) = True
         Next s
         If hasM(p) Then nbRows = nbRows + 1
     Next p
@@ -700,6 +751,8 @@ Private Sub RafraichirConso()
 
     ' Les mois sont parcourus du plus ancien au plus récent : le graphique est dans cet ordre
     ' (ligne g) ; le tableau est dans l'ordre inverse, la facture la plus récente en premier.
+    ' Colonnes du tableau : 2 quantité et 3 prix HT du groupe de référence, 4 HT et 5 TTC du groupe,
+    ' 6 autres indicateurs (total moins le groupe), 7 montant total, 8 opérateurs.
     g = 0
     For p = 1 To nbM
         If Not hasM(p) Then GoTo MoisSuivant
@@ -708,18 +761,23 @@ Private Sub RafraichirConso()
         idx = idxDeb + p - 1
         tabT(r, 1) = DateSerial(idx \ 12, (idx Mod 12) + 1, 1)
         tabH(g, 1) = tabT(r, 1)
-        q = 0: ht = 0: co = 0: ab = 0: tx = 0: oper = ""
+        q = 0: ht = 0: ttc = 0: tot = 0: oper = ""
         For s = 1 To nS
-            q = q + aQ(p, s)
-            ht = ht + aHT(p, s)
-            co = co + aCo(p, s)
-            ab = ab + aAb(p, s)
-            tx = tx + aTx(p, s)
-            If aHas(p, s) And Not tous Then
+            totS = 0
+            For k = 1 To CO_NB_GRP
+                totS = totS + g_A(p, s, k, F_TTC)
+            Next k
+            q = q + g_A(p, s, gref, F_QTE)
+            ht = ht + g_A(p, s, gref, F_HT)
+            ttc = ttc + g_A(p, s, gref, F_TTC)
+            tot = tot + totS
+            has = SerieAvecDonnees(p, s, kind, gref, aHas)
+            If has And Not tous Then
                 If oper <> "" Then oper = oper & " / "
                 oper = oper & serNoms(s)
             End If
-            tabH(g, 2 + s) = ValeurIndic(indicSerie, aQ(p, s), aHT(p, s), aCo(p, s), aAb(p, s), aTx(p, s), aHas(p, s))
+            tabH(g, 2 + s) = ValeurIndic(kindBarres, g_A(p, s, gref, F_QTE), g_A(p, s, gref, F_HT), _
+                                         g_A(p, s, gref, F_TTC), totS, has)
         Next s
         If Not tous Then
             tabT(r, 2) = q
@@ -728,16 +786,15 @@ Private Sub RafraichirConso()
                 tabH(g, 2) = ht / q
             End If
         End If
-        tabT(r, 4) = co
-        tabT(r, 5) = ab
-        tabT(r, 6) = tx
-        tabT(r, 7) = co + ab + tx
+        tabT(r, 4) = ht
+        tabT(r, 5) = ttc
+        tabT(r, 6) = tot - ttc
+        tabT(r, 7) = tot
         tabT(r, 8) = oper
         totQ = totQ + q
         totHT = totHT + ht
-        totCo = totCo + co
-        totAb = totAb + ab
-        totTx = totTx + tx
+        totTTC = totTTC + ttc
+        totAll = totAll + tot
 MoisSuivant:
     Next p
 
@@ -747,10 +804,10 @@ MoisSuivant:
         tabT(nbRows + 1, 2) = totQ
         If totQ > 0 Then tabT(nbRows + 1, 3) = totHT / totQ
     End If
-    tabT(nbRows + 1, 4) = totCo
-    tabT(nbRows + 1, 5) = totAb
-    tabT(nbRows + 1, 6) = totTx
-    tabT(nbRows + 1, 7) = totCo + totAb + totTx
+    tabT(nbRows + 1, 4) = totHT
+    tabT(nbRows + 1, 5) = totTTC
+    tabT(nbRows + 1, 6) = totAll - totTTC
+    tabT(nbRows + 1, 7) = totAll
 
     ' Colonne des mois au format "mmm yyyy" partout (le mot "Total" s'y affiche tel quel).
     ws.Range(ws.Cells(ent + 1, 2), ws.Cells(ent + CO_NB_LIGNES_MAX + 1, 2)).NumberFormat = "mmm yyyy"
@@ -768,21 +825,19 @@ MoisSuivant:
         ws.Range(ws.Cells(ent + 1, CO_COL_H_LIB), ws.Cells(ent + nbGraph, CO_COL_H_LIB)).NumberFormat = "mmm yyyy"
     End If
 
-    ' Libellé de la colonne Consommation (quantité) / Prix avec l'unité (ou rien pour "tous").
+    ' En-têtes : ils nomment le groupe de référence (l'indicateur choisi) et son unité (rien pour "tous").
     If tous Then
-        ws.Cells(ent, 3).Value = "Consommation"
-        ws.Cells(ent, 4).Value = "Prix unitaire HT"
         unite = ""
+        ws.Cells(ent, 3).Value = "Quantit" & ChrW(233)
+        ws.Cells(ent, 4).Value = "Prix unitaire HT"
     Else
-        unite = UniteDuType(typ, lignes, nbL)
-        ws.Cells(ent, 3).Value = "Consommation (" & unite & ")"
-        ws.Cells(ent, 4).Value = "Prix HT (" & SymboleEuro() & "/" & unite & ")"
+        unite = UniteGroupe(typ, lignes, nbL, gref)
+        ws.Cells(ent, 3).Value = nomRef & IIf(unite <> "", " (" & unite & ")", "")
+        ws.Cells(ent, 4).Value = "Prix HT (" & SymboleEuro() & IIf(unite <> "", "/" & unite, "") & ")"
     End If
-
-    ' Les autres en-têtes sont reposés aussi : un écran construit avant un changement de libellé les met ainsi à jour.
-    ws.Cells(ent, 5).Value = "Montant consommation (" & SymboleEuro() & ")"
-    ws.Cells(ent, 6).Value = "Abonnement (" & SymboleEuro() & ")"
-    ws.Cells(ent, 7).Value = "Taxes (" & SymboleEuro() & ")"
+    ws.Cells(ent, 5).Value = "HT " & nomRef & " (" & SymboleEuro() & ")"
+    ws.Cells(ent, 6).Value = "TTC " & nomRef & " (" & SymboleEuro() & ")"
+    ws.Cells(ent, 7).Value = "Autres indicateurs (" & SymboleEuro() & ")"
     ws.Cells(ent, 8).Value = "Montant total (" & SymboleEuro() & ")"
 
     ' Résumé.
@@ -796,7 +851,7 @@ MoisSuivant:
     AjusterLargeursTableau ws, nbRows
 
     If nbGraph = 0 Then nS = 0      ' aucun mois à tracer : le graphique indique qu'il n'y a pas de facture
-    ConstruireGraphiqueConso ws, nbGraph, nS, serNoms, indic, indicSerie, forme, typ, tous, unite
+    ConstruireGraphiqueConso ws, nbGraph, nS, serNoms, indic, indicSerie, kindBarres, forme, typ, tous, unite
 
 End Sub
 
@@ -935,6 +990,8 @@ Public Sub ConsoTraiterChangement(ByVal ws As Worksheet, ByVal Target As Range)
     If Not Intersect(Target, ws.Range(CO_ADR_TYPE).MergeArea) Is Nothing Then
         ws.Range(CO_ADR_DEBUT).MergeArea.ClearContents
         ws.Range(CO_ADR_FIN).MergeArea.ClearContents
+        ' L'indicateur déjà choisi est conservé s'il existe aussi pour le nouveau type, sinon il est vidé.
+        If Not IndicProposePourType(ws) Then ws.Range(CO_ADR_INDIC).MergeArea.ClearContents
     ElseIf Not Intersect(Target, ws.Range(CO_ADR_DEBUT).MergeArea) Is Nothing Then
         ws.Range(CO_ADR_FIN).MergeArea.ClearContents
     End If
@@ -956,6 +1013,22 @@ Sortie:
     Application.EnableEvents = True
 
 End Sub
+
+' Vrai si l'indicateur de la cellule figure dans la liste des indicateurs du type choisi (dernière actualisation).
+Private Function IndicProposePourType(ByVal ws As Worksheet) As Boolean
+    Dim ind As String, typ As String
+    Dim c As Long
+    ind = mod_DataStructure.CellText(ws.Range(CO_ADR_INDIC).Value2)
+    If ind = "" Then
+        IndicProposePourType = True
+        Exit Function
+    End If
+    typ = mod_DataStructure.CellText(ws.Range(CO_ADR_TYPE).Value2)
+    c = IndexTypeListe(typ)
+    If c < 0 Then Exit Function
+    IndicProposePourType = (Application.WorksheetFunction.CountIf(ws.Range(ws.Cells(2, CO_COL_LISTE_INDIC_TYPE + c), _
+        ws.Cells(CO_NB_LISTE_INDIC + 1, CO_COL_LISTE_INDIC_TYPE + c)), ind) > 0)
+End Function
 
 ' Saisie incomplète : le tableau, le graphique et le résumé sont vidés et un message dit quoi choisir.
 Private Sub EffacerResultats(ByVal ws As Worksheet, ByVal etape As Long)
@@ -995,31 +1068,26 @@ Private Sub EcrireMois(ByVal c As Range, ByVal idx As Long)
     c.Value = DateSerial(idx \ 12, (idx Mod 12) + 1, 1)
 End Sub
 
-' Répartit les lignes de factures sur les mois de la période. Pour chaque (mois, série) :
-'   aQ = quantité consommée, aHT = montant HT de consommation, aCo = consommation TTC,
-'   aAb = abonnement TTC, aTx = taxes TTC.
+' Répartit les lignes de factures sur les mois de la période. Pour chaque (mois, série, groupe) le tableau g_A
+' garde la quantité, le montant HT et le montant TTC. Un groupe = une famille de base (1 Consommation, 2 Abonnement,
+' 3 Taxes) ou un indicateur créé par l'opérateur (groupe 3 + son rang, voir ChargerExtras).
 ' Série = opérateur (un seul type choisi) ou type (tous les types).
 Private Sub CalculerMois(ByRef t() As TypeLigne, ByVal nb As Long, ByVal typ As String, ByVal tous As Boolean, _
                          ByVal prorata As Boolean, ByVal idxDeb As Long, ByVal nbM As Long, _
                          ByRef serNoms() As String, ByRef nS As Long, _
-                         ByRef aQ() As Double, ByRef aHT() As Double, ByRef aCo() As Double, _
-                         ByRef aAb() As Double, ByRef aTx() As Double, _
                          ByRef aHas() As Boolean, ByRef nbPris As Long)
 
     Dim dic As Object
-    Dim j As Long, i As Long, s As Long, p As Long
+    Dim j As Long, i As Long, s As Long, p As Long, grp As Long
     Dim cle As String
     Dim iDeb As Long, iFin As Long, y As Long, m As Long
     Dim dMois As Double, fMois As Double, a As Double, b As Double
     Dim frac As Double, totalJours As Double
 
     ReDim serNoms(1 To CO_NB_SERIES)
-    ReDim aQ(1 To nbM, 1 To CO_NB_SERIES)
-    ReDim aHT(1 To nbM, 1 To CO_NB_SERIES)
-    ReDim aCo(1 To nbM, 1 To CO_NB_SERIES)
-    ReDim aAb(1 To nbM, 1 To CO_NB_SERIES)
-    ReDim aTx(1 To nbM, 1 To CO_NB_SERIES)
+    ReDim g_A(1 To nbM, 1 To CO_NB_SERIES, 1 To CO_NB_GRP, 1 To 3)
     ReDim aHas(1 To nbM, 1 To CO_NB_SERIES)
+    ReDim g_Has(1 To nbM, 1 To CO_NB_SERIES, 1 To CO_NB_GRP)
     nS = 0
     nbPris = 0
 
@@ -1050,6 +1118,8 @@ Private Sub CalculerMois(ByRef t() As TypeLigne, ByVal nb As Long, ByVal typ As 
                 dic.Add cle, s
             End If
 
+            grp = GroupeDeLigne(t(j))
+
             iDeb = Year(CDate(t(j).Debut)) * 12 + Month(CDate(t(j).Debut)) - 1
             iFin = Year(CDate(t(j).Fin)) * 12 + Month(CDate(t(j).Fin)) - 1
 
@@ -1067,7 +1137,7 @@ Private Sub CalculerMois(ByRef t() As TypeLigne, ByVal nb As Long, ByVal typ As 
                         b = t(j).Fin
                         If fMois < b Then b = fMois
                         frac = (b - a + 1) / totalJours
-                        Ajouter t(j), frac, p, s, aQ, aHT, aCo, aAb, aTx
+                        Ajouter t(j), frac, p, s, grp
                         aHas(p, s) = True
                     End If
                 Next i
@@ -1075,7 +1145,7 @@ Private Sub CalculerMois(ByRef t() As TypeLigne, ByVal nb As Long, ByVal typ As 
             Else
                 p = iFin - idxDeb + 1
                 If p >= 1 And p <= nbM Then
-                    Ajouter t(j), 1, p, s, aQ, aHT, aCo, aAb, aTx
+                    Ajouter t(j), 1, p, s, grp
                     aHas(p, s) = True
                     nbPris = nbPris + 1
                 End If
@@ -1085,40 +1155,176 @@ Private Sub CalculerMois(ByRef t() As TypeLigne, ByVal nb As Long, ByVal typ As 
 
 End Sub
 
-' Ajoute la fraction "frac" d'une ligne de facture au mois p, série s, dans la bonne catégorie.
-Private Sub Ajouter(ByRef l As TypeLigne, ByVal frac As Double, ByVal p As Long, ByVal s As Long, _
-                    ByRef aQ() As Double, ByRef aHT() As Double, ByRef aCo() As Double, _
-                    ByRef aAb() As Double, ByRef aTx() As Double)
+' Vrai si la série a des données à montrer ce mois-là : au moins une ligne du groupe de référence (indicateur choisi), ou
+' une ligne quelconque pour le montant total. Un mois qui n'a que d'autres indicateurs n'est pas affiché (sinon des 0).
+Private Function SerieAvecDonnees(ByVal p As Long, ByVal s As Long, ByVal kind As Long, ByVal gref As Long, _
+                                  ByRef aHas() As Boolean) As Boolean
+    If kind = K_TOTAL Then
+        SerieAvecDonnees = aHas(p, s)
+    Else
+        SerieAvecDonnees = g_Has(p, s, gref)
+    End If
+End Function
+
+' Groupe d'une ligne : 1 Consommation, 2 Abonnement, 3 Taxes, 3 + rang pour un indicateur créé.
+Private Function GroupeDeLigne(ByRef l As TypeLigne) As Long
+    Dim k As Long
     Select Case l.Nat
-        Case mod_Factures.NAT_CONSO
-            aQ(p, s) = aQ(p, s) + l.Qte * frac
-            aHT(p, s) = aHT(p, s) + l.HT * frac
-            aCo(p, s) = aCo(p, s) + l.TTC * frac
-        Case mod_Factures.NAT_ABO
-            aAb(p, s) = aAb(p, s) + l.TTC * frac
+        Case mod_Factures.NAT_CONSO: GroupeDeLigne = GRP_CONSO
+        Case mod_Factures.NAT_ABO: GroupeDeLigne = GRP_ABO
+        Case mod_Factures.NAT_TAXE: GroupeDeLigne = GRP_TAXE
         Case Else
-            aTx(p, s) = aTx(p, s) + l.TTC * frac
+            k = IndexExtra(l.Indic)
+            If k = 0 Then k = g_ExNb        ' au-delà de CO_NB_EXTRA indicateurs : regroupés dans le dernier
+            If k = 0 Then k = 1             ' ne devrait pas arriver (ChargerExtras a vu toutes les lignes)
+            GroupeDeLigne = GRP_TAXE + k
     End Select
+End Function
+
+' Ajoute la fraction "frac" d'une ligne de facture au mois p, série s, groupe grp (quantité, HT, TTC).
+Private Sub Ajouter(ByRef l As TypeLigne, ByVal frac As Double, ByVal p As Long, ByVal s As Long, ByVal grp As Long)
+    g_A(p, s, grp, F_QTE) = g_A(p, s, grp, F_QTE) + l.Qte * frac
+    g_A(p, s, grp, F_HT) = g_A(p, s, grp, F_HT) + l.HT * frac
+    g_A(p, s, grp, F_TTC) = g_A(p, s, grp, F_TTC) + l.TTC * frac
+    g_Has(p, s, grp) = True
 End Sub
 
-Private Function ValeurIndic(ByVal indic As String, ByVal q As Double, ByVal ht As Double, ByVal co As Double, _
-                             ByVal ab As Double, ByVal tx As Double, ByVal has As Boolean) As Variant
+' Vrai si l'unité est une vraie quantité consommée (m3, kWh...) : l'indicateur a alors une quantité et un prix unitaire.
+Private Function UniteQuantifiable(ByVal u As String) As Boolean
+    u = LCase$(Trim$(u))
+    Select Case u
+        Case "m3", "m" & ChrW(179), "kwh", "mwh", "l", "litre", "litres"
+            UniteQuantifiable = True
+    End Select
+End Function
+
+' Indicateurs créés par l'opérateur (ligne d'indicateur autre qu'Abonnement, Consommation, Taxes) qui ont des lignes
+' pour le type choisi (tous les types si tous) : ils reçoivent un rang 1..CO_NB_EXTRA ; au-delà, ils sont regroupés dans
+' le dernier. g_ExQty dit si l'indicateur a une vraie quantité (m3, kWh) : il propose alors trois choix dans la liste
+' (X = la quantité, "Prix HT X", "Montant X") ; g_ExDer relie ces deux derniers libellés à (rang, genre).
+Private Sub ChargerExtras(ByRef t() As TypeLigne, ByVal nb As Long, ByVal typ As String, ByVal tous As Boolean)
+    Dim j As Long, k As Long
+    g_ExNb = 0
+    Set g_ExDic = CreateObject("Scripting.Dictionary")
+    g_ExDic.CompareMode = 1
+    Set g_ExDer = CreateObject("Scripting.Dictionary")
+    g_ExDer.CompareMode = 1
+    For k = 1 To CO_NB_EXTRA
+        g_ExQty(k) = False
+    Next k
+    For j = 1 To nb
+        If t(j).Nat = mod_Factures.NAT_AUTRE And (tous Or StrComp(t(j).Typ, typ, vbTextCompare) = 0) Then
+            If Not g_ExDic.Exists(t(j).Indic) Then
+                If g_ExNb < CO_NB_EXTRA Then
+                    g_ExNb = g_ExNb + 1
+                    g_ExNoms(g_ExNb) = t(j).Indic
+                    g_ExDic.Add t(j).Indic, g_ExNb
+                End If
+            End If
+            k = IndexExtra(t(j).Indic)
+            If k = 0 Then k = g_ExNb
+            If k > 0 Then
+                If UniteQuantifiable(t(j).Unite) Then g_ExQty(k) = True
+            End If
+        End If
+    Next j
+    For k = 1 To g_ExNb
+        If g_ExQty(k) Then
+            g_ExDer(LibPrixDe(g_ExNoms(k))) = k & "|" & K_PRIX
+            g_ExDer(LibMontantDe(g_ExNoms(k))) = k & "|" & K_MONTANT
+        End If
+    Next k
+End Sub
+
+Public Function LibPrixDe(ByVal indic As String) As String
+    LibPrixDe = "Prix HT " & indic
+End Function
+
+Public Function LibMontantDe(ByVal indic As String) As String
+    LibMontantDe = "Montant " & indic
+End Function
+
+' Rang d'un indicateur créé dans le calcul en cours ; 0 s'il n'en fait pas partie.
+Private Function IndexExtra(ByVal indic As String) As Long
+    If g_ExDic Is Nothing Then Exit Function
+    If g_ExDic.Exists(indic) Then IndexExtra = g_ExDic(indic)
+End Function
+
+' Traduit le libellé de la liste Indicateur : groupe de lignes de référence (grp) et genre de valeur (kind).
+' Renvoie Faux si le libellé ne correspond à rien pour le type choisi.
+Private Function ResoudreIndic(ByVal indic As String, ByRef grp As Long, ByRef kind As Long) As Boolean
+
+    Dim k As Long
+    Dim v As Variant
+
+    ResoudreIndic = True
+    If StrComp(indic, LibIndQuantite(), vbTextCompare) = 0 Then
+        grp = GRP_CONSO: kind = K_QTE
+    ElseIf StrComp(indic, LibIndPrix(), vbTextCompare) = 0 Then
+        grp = GRP_CONSO: kind = K_PRIX
+    ElseIf StrComp(indic, LibIndConso(), vbTextCompare) = 0 Then
+        grp = GRP_CONSO: kind = K_MONTANT
+    ElseIf StrComp(indic, LibIndAbo(), vbTextCompare) = 0 Then
+        grp = GRP_ABO: kind = K_MONTANT
+    ElseIf StrComp(indic, LibIndTaxes(), vbTextCompare) = 0 Then
+        grp = GRP_TAXE: kind = K_MONTANT
+    ElseIf StrComp(indic, LibIndMontant(), vbTextCompare) = 0 Then
+        grp = GRP_CONSO: kind = K_TOTAL          ' la consommation reste la référence des colonnes quantité et prix
+    Else
+        k = IndexExtra(indic)
+        If k > 0 Then
+            grp = GRP_TAXE + k
+            kind = IIf(g_ExQty(k), K_QTE, K_MONTANT)
+        ElseIf g_ExDer.Exists(indic) Then
+            v = Split(CStr(g_ExDer(indic)), "|")
+            grp = GRP_TAXE + CLng(v(0))
+            kind = CLng(v(1))
+        Else
+            ResoudreIndic = False
+        End If
+    End If
+
+End Function
+
+' Nom du groupe de référence, pour les en-têtes du tableau.
+Private Function NomGroupe(ByVal grp As Long) As String
+    Select Case grp
+        Case GRP_CONSO: NomGroupe = LibIndQuantite()
+        Case GRP_ABO: NomGroupe = LibIndAbo()
+        Case GRP_TAXE: NomGroupe = LibIndTaxes()
+        Case Else: NomGroupe = g_ExNoms(grp - GRP_TAXE)
+    End Select
+End Function
+
+' Unité de la dernière ligne (par date de fin) du groupe pour le type donné ; pour la consommation, à défaut,
+' celle du contrat ou du type.
+Private Function UniteGroupe(ByVal typ As String, ByRef t() As TypeLigne, ByVal nb As Long, ByVal grp As Long) As String
+    Dim i As Long
+    Dim meilleur As Double
+    For i = 1 To nb
+        If StrComp(t(i).Typ, typ, vbTextCompare) = 0 And t(i).Unite <> "" Then
+            If GroupeDeLigne(t(i)) = grp And t(i).Fin >= meilleur Then
+                meilleur = t(i).Fin
+                UniteGroupe = t(i).Unite
+            End If
+        End If
+    Next i
+    If UniteGroupe = "" And grp = GRP_CONSO Then UniteGroupe = UniteDuType(typ, t, nb)
+End Function
+
+' Valeur d'un point du graphique pour une série.
+Private Function ValeurIndic(ByVal kind As Long, ByVal q As Double, ByVal ht As Double, ByVal ttc As Double, _
+                             ByVal total As Double, ByVal has As Boolean) As Variant
 
     If Not has Then Exit Function       ' Empty : le graphique laisse un trou
 
-    If StrComp(indic, LibIndQuantite(), vbTextCompare) = 0 Then
-        ValeurIndic = q
-    ElseIf StrComp(indic, LibIndPrix(), vbTextCompare) = 0 Then
-        If q > 0 Then ValeurIndic = ht / q
-    ElseIf StrComp(indic, LibIndConso(), vbTextCompare) = 0 Then
-        ValeurIndic = co
-    ElseIf StrComp(indic, LibIndAbo(), vbTextCompare) = 0 Then
-        ValeurIndic = ab
-    ElseIf StrComp(indic, LibIndTaxes(), vbTextCompare) = 0 Then
-        ValeurIndic = tx
-    Else
-        ValeurIndic = co + ab + tx
-    End If
+    Select Case kind
+        Case K_QTE: ValeurIndic = q
+        Case K_PRIX
+            If q > 0 Then ValeurIndic = ht / q
+        Case K_MONTANT: ValeurIndic = ttc
+        Case Else: ValeurIndic = total
+    End Select
 
 End Function
 
@@ -1128,10 +1334,18 @@ Private Sub MettreAJourListesConso(ByVal ws As Worksheet, ByRef t() As TypeLigne
     Dim i As Long, c As Long, iDeb As Long, iFin As Long, m As Long, n As Long
     Dim dic As Object
     Dim tps As Variant
-    Dim tabMois() As Variant
+    Dim tabMois() As Variant, tabMoisDesc() As Variant
+    Dim nbMoisType() As Long
     Dim lib As String, bloc As String, entetes As String, prem As String, cType As String, cDeb As String
+    Dim blocD As String, premD As String, colD As String, finMax As String
     Dim k As String, colK As String
     Dim retenue As Boolean
+    Dim tabInd() As Variant
+    Dim aConso As Boolean, aAbo As Boolean, aTaxe As Boolean
+    Dim nbInd As Long
+    Dim dicInd As Object
+    Dim cleInd As Variant
+    Dim premI As String, blocI As String
 
     ' Un bloc de colonnes par choix de type ((tous) puis chaque type) : les mois couverts par les
     ' lignes de factures de ce type, c'est-à-dire la période effectivement saisie (hors trous entre
@@ -1140,15 +1354,32 @@ Private Sub MettreAJourListesConso(ByVal ws As Worksheet, ByRef t() As TypeLigne
     ReDim g_MinType(0 To CO_NB_COL_DATES - 1)
     ReDim g_MaxType(0 To CO_NB_COL_DATES - 1)
     ReDim tabMois(1 To CO_NB_LISTE_DATES, 1 To CO_NB_COL_DATES)
+    ReDim tabMoisDesc(1 To CO_NB_LISTE_DATES, 1 To CO_NB_COL_DATES)
+    ReDim nbMoisType(0 To CO_NB_COL_DATES - 1)
+    ReDim tabInd(1 To CO_NB_LISTE_INDIC, 1 To CO_NB_COL_DATES)
 
     For c = 0 To CO_NB_COL_DATES - 1
         Set dic = CreateObject("Scripting.Dictionary")
         g_MinType(c) = -1
         g_MaxType(c) = -1
+        aConso = False: aAbo = False: aTaxe = False
+        nbInd = 0
+        Set dicInd = CreateObject("Scripting.Dictionary")
+        dicInd.CompareMode = 1
         For i = 1 To nb
             retenue = (c = 0)
             If Not retenue Then retenue = (StrComp(t(i).Typ, tps(c - 1), vbTextCompare) = 0)
             If retenue Then
+                Select Case t(i).Nat
+                    Case mod_Factures.NAT_CONSO: aConso = True
+                    Case mod_Factures.NAT_ABO: aAbo = True
+                    Case mod_Factures.NAT_TAXE: aTaxe = True
+                    Case Else
+                        If Not dicInd.Exists(t(i).Indic) And dicInd.Count < CO_NB_EXTRA Then dicInd.Add t(i).Indic, False
+                        If dicInd.Exists(t(i).Indic) Then
+                            If UniteQuantifiable(t(i).Unite) Then dicInd(t(i).Indic) = True
+                        End If
+                End Select
                 iDeb = Year(CDate(t(i).Debut)) * 12 + Month(CDate(t(i).Debut)) - 1
                 iFin = Year(CDate(t(i).Fin)) * 12 + Month(CDate(t(i).Fin)) - 1
                 If iFin - iDeb > 240 Then iFin = iDeb + 240
@@ -1173,12 +1404,58 @@ Private Sub MettreAJourListesConso(ByVal ws As Worksheet, ByRef t() As TypeLigne
                 End If
             Next m
         End If
+        nbMoisType(c) = n
+        For i = 1 To n
+            tabMoisDesc(i, c + 1) = tabMois(n - i + 1, c + 1)
+        Next i
+
+        ' Indicateurs proposés pour ce choix de type : seulement ceux qui ont des lignes de facture.
+        ' Quantité et prix n'existent que pour un type choisi (les unités diffèrent d'un type à l'autre).
+        If c = 0 Then
+            ws.Cells(1, CO_COL_LISTE_INDIC_TYPE).Value = LibTous()
+        Else
+            ws.Cells(1, CO_COL_LISTE_INDIC_TYPE + c).Value = tps(c - 1)
+        End If
+        If aConso Then
+            If c > 0 Then
+                nbInd = nbInd + 1: tabInd(nbInd, c + 1) = LibIndQuantite()
+                nbInd = nbInd + 1: tabInd(nbInd, c + 1) = LibIndPrix()
+            End If
+            nbInd = nbInd + 1: tabInd(nbInd, c + 1) = LibIndConso()
+        End If
+        If aAbo Then nbInd = nbInd + 1: tabInd(nbInd, c + 1) = LibIndAbo()
+        If aTaxe Then nbInd = nbInd + 1: tabInd(nbInd, c + 1) = LibIndTaxes()
+        ' Indicateur créé : sans quantité (m3, kWh), un seul choix (son montant) ; avec quantité, la quantité (pour un type
+        ' choisi), son prix HT (idem) et son montant.
+        For Each cleInd In dicInd.Keys
+            If dicInd(cleInd) Then
+                If c > 0 Then
+                    nbInd = nbInd + 1: tabInd(nbInd, c + 1) = CStr(cleInd)
+                    nbInd = nbInd + 1: tabInd(nbInd, c + 1) = LibPrixDe(CStr(cleInd))
+                End If
+                nbInd = nbInd + 1: tabInd(nbInd, c + 1) = LibMontantDe(CStr(cleInd))
+            Else
+                nbInd = nbInd + 1: tabInd(nbInd, c + 1) = CStr(cleInd)
+            End If
+        Next cleInd
+        If aConso Or aAbo Or aTaxe Or dicInd.Count > 0 Then nbInd = nbInd + 1: tabInd(nbInd, c + 1) = LibIndMontant()
     Next c
+
+    With ws.Range(ws.Cells(2, CO_COL_LISTE_INDIC_TYPE), ws.Cells(CO_NB_LISTE_INDIC + 1, CO_COL_LISTE_INDIC_TYPE + CO_NB_COL_DATES - 1))
+        .ClearContents
+        .Value = tabInd
+    End With
+    ws.Range(ws.Columns(CO_COL_LISTE_INDIC_TYPE), ws.Columns(CO_COL_LISTE_INDIC_TYPE + CO_NB_COL_DATES - 1)).EntireColumn.Hidden = True
 
     With ws.Range(ws.Cells(2, CO_COL_LISTE_DATES), ws.Cells(CO_NB_LISTE_DATES + 1, CO_COL_LISTE_DATES + CO_NB_COL_DATES - 1))
         .ClearContents
         .NumberFormat = "mmm yyyy"
         .Value = tabMois
+    End With
+    With ws.Range(ws.Cells(2, CO_COL_LISTE_DATES_DESC), ws.Cells(CO_NB_LISTE_DATES + 1, CO_COL_LISTE_DATES_DESC + CO_NB_COL_DATES - 1))
+        .ClearContents
+        .NumberFormat = "mmm yyyy"
+        .Value = tabMoisDesc
     End With
 
     ' Listes reposées à chaque actualisation (un classeur déjà installé les reçoit sans réinstallation).
@@ -1195,9 +1472,20 @@ Private Sub MettreAJourListesConso(ByVal ws As Worksheet, ByRef t() As TypeLigne
     colK = "INDEX(" & bloc & ",0," & k & ")"                          ' colonne des mois du type
     PoserNomConso "ListeDebutConso", "=IF(" & k & "=0,OFFSET(" & prem & "," & CO_NB_LISTE_DATES & ",0,1,1)," & _
         "OFFSET(" & prem & ",0," & k & "-1,MAX(1,COUNT(" & colK & ")),1))"
+    ' Indicateur : uniquement ceux qui ont des lignes pour le type choisi (colonne du type dans le bloc des indicateurs).
+    premI = lib & ws.Cells(2, CO_COL_LISTE_INDIC_TYPE).Address(True, True)
+    blocI = lib & ws.Range(ws.Cells(2, CO_COL_LISTE_INDIC_TYPE), ws.Cells(CO_NB_LISTE_INDIC + 1, CO_COL_LISTE_INDIC_TYPE + CO_NB_COL_DATES - 1)).Address(True, True)
+    PoserNomConso "ListeIndicConso", "=IF(" & k & "=0,OFFSET(" & premI & "," & CO_NB_LISTE_INDIC & ",0,1,1)," & _
+        "OFFSET(" & premI & ",0," & k & "-1,MAX(1,COUNTA(INDEX(" & blocI & ",0," & k & "))),1))"
+    ' Fin : liste du plus récent au plus ancien (bloc descendant). Les mois au-delà de Début + CO_NB_MOIS_MAX - 1
+    ' sont en tête de colonne : on les saute, puis on prend les mois jusqu'à Début compris.
+    premD = lib & ws.Cells(2, CO_COL_LISTE_DATES_DESC).Address(True, True)
+    blocD = lib & ws.Range(ws.Cells(2, CO_COL_LISTE_DATES_DESC), ws.Cells(CO_NB_LISTE_DATES + 1, CO_COL_LISTE_DATES_DESC + CO_NB_COL_DATES - 1)).Address(True, True)
+    colD = "INDEX(" & blocD & ",0," & k & ")"
+    finMax = "EDATE(" & cDeb & "," & (CO_NB_MOIS_MAX - 1) & ")"
     PoserNomConso "ListeFinConso", "=IF(" & k & "=0,OFFSET(" & prem & "," & CO_NB_LISTE_DATES & ",0,1,1)," & _
-        "OFFSET(" & prem & ",IFERROR(MATCH(" & cDeb & "," & colK & ",0)-1,0)," & k & "-1," & _
-        "MAX(1,COUNTIFS(" & colK & ","">=""&" & cDeb & "," & colK & ",""<=""&EDATE(" & cDeb & "," & (CO_NB_MOIS_MAX - 1) & "))),1))"
+        "OFFSET(" & premD & ",COUNTIF(" & colD & ","">""&" & finMax & ")," & k & "-1," & _
+        "MAX(1,COUNTIFS(" & colD & ","">=""&" & cDeb & "," & colD & ",""<=""&" & finMax & ")),1))"
 
     ' Mise en forme de la zone du tableau jusqu'à CO_NB_LIGNES_MAX lignes.
     mod_InstallCommun.PoserCorpsTableauLecture ws.Range(ws.Cells(CO_LIGNE_ENTETE + 1, 2), ws.Cells(CO_LIGNE_ENTETE + CO_NB_LIGNES_MAX + 1, 1 + CO_NB_COL_TABLE))
@@ -1217,7 +1505,7 @@ End Sub
 
 Private Sub ConstruireGraphiqueConso(ByVal ws As Worksheet, ByVal nbM As Long, ByVal nS As Long, _
                                      ByRef serNoms() As String, ByVal indic As String, ByVal indicSerie As String, _
-                                     ByVal forme As String, ByVal typ As String, ByVal tous As Boolean, _
+                                     ByVal kindBarres As Long, ByVal forme As String, ByVal typ As String, ByVal tous As Boolean, _
                                      ByVal unite As String)
 
     Dim co As ChartObject
@@ -1287,10 +1575,10 @@ Private Sub ConstruireGraphiqueConso(ByVal ws As Worksheet, ByVal nbM As Long, B
 
     ' Titres des axes.
     co.Chart.Axes(xlValue, xlPrimary).HasTitle = True
-    co.Chart.Axes(xlValue, xlPrimary).AxisTitle.Text = TitreAxe(indicSerie, unite)
+    co.Chart.Axes(xlValue, xlPrimary).AxisTitle.Text = TitreAxe(kindBarres, indicSerie, unite)
     If mixte Then
         co.Chart.Axes(xlValue, xlSecondary).HasTitle = True
-        co.Chart.Axes(xlValue, xlSecondary).AxisTitle.Text = TitreAxe(LibIndPrix(), unite)
+        co.Chart.Axes(xlValue, xlSecondary).AxisTitle.Text = TitreAxe(K_PRIX, LibIndPrix(), unite)
     End If
     On Error GoTo 0
 
@@ -1303,10 +1591,10 @@ Private Sub ConstruireGraphiqueConso(ByVal ws As Worksheet, ByVal nbM As Long, B
 
 End Sub
 
-Private Function TitreAxe(ByVal indic As String, ByVal unite As String) As String
-    If StrComp(indic, LibIndQuantite(), vbTextCompare) = 0 Then
+Private Function TitreAxe(ByVal kind As Long, ByVal indic As String, ByVal unite As String) As String
+    If kind = K_QTE Then
         TitreAxe = indic & IIf(unite <> "", " (" & unite & ")", "")
-    ElseIf StrComp(indic, LibIndPrix(), vbTextCompare) = 0 Then
+    ElseIf kind = K_PRIX Then
         TitreAxe = indic & " (" & SymboleEuro() & IIf(unite <> "", "/" & unite, "") & ")"
     Else
         TitreAxe = indic & " (" & SymboleEuro() & ")"
@@ -1351,10 +1639,39 @@ Private Sub MontrerEcran(ByVal nomFeuille As String)
 
 End Sub
 
-' Ouverture depuis la feuille Synthese.
+' Ouverture depuis la feuille Synthese : l'écran s'ouvre vide (la recherche précédente est oubliée).
 Public Sub AfficherConsommations()
+    ReinitialiserConsommations
     MontrerEcran mod_VarGlobales.NOM_FEUILLE_CONSO
     If Not FeuilleConso() Is Nothing Then ActualiserConsommations
+End Sub
+
+' Remet l'écran des consommations à zéro : plus de type, d'indicateur, de début ni de fin ; forme et répartition par
+' défaut ; tableau, graphique et résumé vidés. Appelée à la sortie et à l'ouverture depuis Synthese.
+Public Sub ReinitialiserConsommations()
+
+    Dim ws As Worksheet
+    Dim evtAvant As Boolean
+
+    Set ws = FeuilleConso()
+    If ws Is Nothing Then Exit Sub
+
+    evtAvant = Application.EnableEvents
+    On Error GoTo Sortie
+    Application.EnableEvents = False
+    ws.Range(CO_ADR_TYPE).MergeArea.ClearContents
+    ws.Range(CO_ADR_INDIC).MergeArea.ClearContents
+    ws.Range(CO_ADR_DEBUT).MergeArea.ClearContents
+    ws.Range(CO_ADR_FIN).MergeArea.ClearContents
+    ws.Range(CO_ADR_FORME).MergeArea.Value = LibFormeBarres()
+    ws.Range(CO_ADR_REPART).MergeArea.Value = LibRepartProrata()
+    AppliquerVisibilite ws
+    EffacerResultats ws, 0
+    ws.Range(CO_ADR_TYPE).Select
+
+Sortie:
+    Application.EnableEvents = evtAvant
+
 End Sub
 
 ' Retour sur l'écran graphique depuis une liste : il est recalculé.
@@ -1400,6 +1717,7 @@ Public Sub SortirConsommations()
     Dim i As Long
 
     EnregistrerListesSiOuvertes
+    ReinitialiserConsommations
     mod_InstallCommun.AfficherSynthese
 
     noms = Array(mod_VarGlobales.NOM_FEUILLE_CONSO, mod_VarGlobales.NOM_FEUILLE_FACTURES, mod_VarGlobales.NOM_FEUILLE_CONTRATS)

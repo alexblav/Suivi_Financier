@@ -743,7 +743,7 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 </tr>
 <tr>
 <td><strong>Indicateur</strong></td>
-<td>Consommation (quantité en m³ ou kWh), prix unitaire HT, montant consommation, abonnement, taxes ou montant total (montants en euros TTC)</td>
+<td>La liste ne propose que les indicateurs qui ont des lignes pour le type choisi : consommation (quantité en m³ ou kWh), prix unitaire HT, montant consommation, abonnement, taxes, <strong>les indicateurs que vous avez créés</strong> ou montant total (montants en euros TTC)</td>
 </tr>
 <tr>
 <td><strong>Début</strong></td>
@@ -763,7 +763,7 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 </tr>
 </tbody>
 </table></div>
-<p>Le tableau place la facture la plus récente en premier et n'affiche pas les mois sans donnée ; le graphique, lui, reste dans l'ordre chronologique et saute aussi les mois vides. Cliquez sur <strong>Actualiser</strong> après un changement. La forme « Barres + courbe du prix » permet de distinguer <em>« je consomme plus »</em> de <em>« le tarif a augmenté »</em>.</p>
+<p>Le tableau place la facture la plus récente en premier et n'affiche pas les mois sans donnée ; le graphique, lui, reste dans l'ordre chronologique et saute aussi les mois vides. Les colonnes du tableau suivent l'indicateur choisi (sa quantité et son prix, ses montants HT et TTC, puis « Autres indicateurs » et le montant total). Cliquez sur <strong>Actualiser</strong> après un changement ; en quittant l'écran avec <strong>Sortir</strong>, ou en le rouvrant depuis la Synthèse, il revient vide. La forme « Barres + courbe du prix » permet de distinguer <em>« je consomme plus »</em> de <em>« le tarif a augmenté »</em>.</p>
 <h3 id="ce-que-chaque-indicateur-lit-dans-vos-factures">Ce que chaque indicateur lit dans vos factures</h3>
 <p>Le graphique ne lit que les <strong>lignes</strong> des factures, pas les totaux. Pour qu'un indicateur soit juste, voici ce qu'il faut renseigner à la saisie.</p>
 <div class="tableau"><table>
@@ -801,18 +801,23 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <td>Montant TTC de chaque taxe</td>
 </tr>
 <tr>
+<td><strong>Indicateur créé par vous</strong></td>
+<td>Lignes des blocs affectés à cet indicateur</td>
+<td>S'il a une quantité en m³ ou kWh, la liste propose son nom (la quantité), <em>Prix HT <nom></em> et <em>Montant <nom></em> ; sinon son montant TTC seul</td>
+</tr>
+<tr>
 <td><strong>Montant total</strong></td>
-<td>Consommation + abonnement + taxes</td>
+<td>Toutes les lignes du type</td>
 <td>Rien de plus : c'est leur somme</td>
 </tr>
 </tbody>
 </table></div>
 <p>Règles à respecter :</p>
 <ul>
-<li><strong>Mettez chaque ligne dans le bon bloc.</strong> L'<em>indicateur</em> du bloc (Abonnement, Consommation, Taxes) décide de ce qui est alimenté. Les lignes dont l'indicateur est <strong>Autre</strong> ou un indicateur créé par vous comptent dans le total de la facture mais <strong>pas</strong> (pour l'instant) dans le graphique ni dans le tableau.</li>
+<li><strong>Mettez chaque ligne dans le bon bloc.</strong> L'<em>indicateur</em> du bloc (Abonnement, Consommation, Taxes) décide de ce qui est alimenté. Les lignes dont l'indicateur est <strong>Autre</strong> ou un indicateur créé par vous sont disponibles dans la liste Indicateur et comptent dans le montant total.</li>
 <li><strong>Chaque ligne a ses propres dates.</strong> Début et fin sont obligatoires (la fin ne précède pas le début) : une ligne sans date n'apparaît pas. Avec la répartition <em>Au prorata des jours</em>, une ligne est étalée sur les mois qu'elle couvre ; avec <em>Mois de fin de la ligne</em>, elle est imputée tout entière au mois de sa date de fin.</li>
 <li><strong>Le type et l'opérateur viennent de l'en-tête de la facture.</strong> C'est le type de la facture qui range ses lignes sous Eau, Électricité, Gaz… Les listes Début et Fin ne proposent que les mois couverts par les lignes de ce type.</li>
-<li><strong>Le tableau ne montre que les mois qui ont des données</strong>, le plus récent en premier. Un mois absent signifie qu'aucune ligne ne le couvre : vérifiez alors les dates de vos lignes.</li>
+<li><strong>Le tableau ne montre que les mois qui ont des données de l'indicateur choisi</strong>, le plus récent en premier (un mois qui n'a, par exemple, qu'une estimation intermédiaire n'apparaît pas pour « Consommation »). Un mois absent signifie qu'aucune ligne ne le couvre : vérifiez alors les dates de vos lignes.</li>
 <li><strong>Évitez les chevauchements</strong> : deux lignes de même indicateur qui se recouvrent s'additionnent.</li>
 </ul>
 <blockquote>

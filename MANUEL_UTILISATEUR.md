@@ -489,13 +489,13 @@ L'écran principal présente un tableau mensuel avec un graphique. Réglages :
 | Réglage | Choix |
 | --- | --- |
 | **Type** | À choisir **en premier** : *(tous)* ou un type (une courbe par opérateur). Les autres champs apparaissent au fil de la saisie : Indicateur, puis Début, puis Fin, Forme et Répartition |
-| **Indicateur** | Consommation (quantité en m³ ou kWh), prix unitaire HT, montant consommation, abonnement, taxes ou montant total (montants en euros TTC) |
+| **Indicateur** | La liste ne propose que les indicateurs qui ont des lignes pour le type choisi : consommation (quantité en m³ ou kWh), prix unitaire HT, montant consommation, abonnement, taxes, **les indicateurs que vous avez créés** ou montant total (montants en euros TTC) |
 | **Début** | Premier mois de la période, à choisir parmi les mois couverts par les factures du type choisi (la période effectivement saisie) |
 | **Fin** | Dernier mois, parmi les mêmes mois à partir du début. Facultatif : vide, la période va jusqu'au dernier mois du type |
 | **Forme du graphique** | Barres, courbes, ou barres + courbe du prix |
 | **Répartition des lignes** | *Au prorata des jours* (conseillé : étale chaque ligne de facture sur les mois qu'elle couvre) ou *Mois de fin de la ligne* (les lignes « telles que reçues ») |
 
-Le tableau place la facture la plus récente en premier et n'affiche pas les mois sans donnée ; le graphique, lui, reste dans l'ordre chronologique et saute aussi les mois vides. Cliquez sur **Actualiser** après un changement. La forme « Barres + courbe du prix » permet de distinguer *« je consomme plus »* de *« le tarif a augmenté »*.
+Le tableau place la facture la plus récente en premier et n'affiche pas les mois sans donnée ; le graphique, lui, reste dans l'ordre chronologique et saute aussi les mois vides. Les colonnes du tableau suivent l'indicateur choisi (sa quantité et son prix, ses montants HT et TTC, puis « Autres indicateurs » et le montant total). Cliquez sur **Actualiser** après un changement ; en quittant l'écran avec **Sortir**, ou en le rouvrant depuis la Synthèse, il revient vide. La forme « Barres + courbe du prix » permet de distinguer *« je consomme plus »* de *« le tarif a augmenté »*.
 
 ### Ce que chaque indicateur lit dans vos factures
 
@@ -508,14 +508,15 @@ Le graphique ne lit que les **lignes** des factures, pas les totaux. Pour qu'un 
 | **Montant consommation** | Lignes de consommation | Montant TTC en euros (calculé depuis la quantité, le prix et la TVA) |
 | **Abonnement** | Lignes d'abonnement | Montant TTC de chaque période d'abonnement |
 | **Taxes** | Lignes de taxes | Montant TTC de chaque taxe |
-| **Montant total** | Consommation + abonnement + taxes | Rien de plus : c'est leur somme |
+| **Indicateur créé par vous** | Lignes des blocs affectés à cet indicateur | S'il a une quantité en m³ ou kWh, la liste propose son nom (la quantité), *Prix HT <nom>* et *Montant <nom>* ; sinon son montant TTC seul |
+| **Montant total** | Toutes les lignes du type | Rien de plus : c'est leur somme |
 
 Règles à respecter :
 
-- **Mettez chaque ligne dans le bon bloc.** L'*indicateur* du bloc (Abonnement, Consommation, Taxes) décide de ce qui est alimenté. Les lignes dont l'indicateur est **Autre** ou un indicateur créé par vous comptent dans le total de la facture mais **pas** (pour l'instant) dans le graphique ni dans le tableau.
+- **Mettez chaque ligne dans le bon bloc.** L'*indicateur* du bloc (Abonnement, Consommation, Taxes) décide de ce qui est alimenté. Les lignes dont l'indicateur est **Autre** ou un indicateur créé par vous sont disponibles dans la liste Indicateur et comptent dans le montant total.
 - **Chaque ligne a ses propres dates.** Début et fin sont obligatoires (la fin ne précède pas le début) : une ligne sans date n'apparaît pas. Avec la répartition *Au prorata des jours*, une ligne est étalée sur les mois qu'elle couvre ; avec *Mois de fin de la ligne*, elle est imputée tout entière au mois de sa date de fin.
 - **Le type et l'opérateur viennent de l'en-tête de la facture.** C'est le type de la facture qui range ses lignes sous Eau, Électricité, Gaz… Les listes Début et Fin ne proposent que les mois couverts par les lignes de ce type.
-- **Le tableau ne montre que les mois qui ont des données**, le plus récent en premier. Un mois absent signifie qu'aucune ligne ne le couvre : vérifiez alors les dates de vos lignes.
+- **Le tableau ne montre que les mois qui ont des données de l'indicateur choisi**, le plus récent en premier (un mois qui n'a, par exemple, qu'une estimation intermédiaire n'apparaît pas pour « Consommation »). Un mois absent signifie qu'aucune ligne ne le couvre : vérifiez alors les dates de vos lignes.
 - **Évitez les chevauchements** : deux lignes de même indicateur qui se recouvrent s'additionnent.
 
 > **Attention :** une correction faite directement dans les listes de relevés ou de contrats n'est **pas contrôlée** (chevauchements, contrat). Préférez les formulaires.
