@@ -1405,6 +1405,7 @@ Public Sub RafraichirListeFactures()
 
     mod_Consommations.MettreEnFormeListeFactures dst
     MasquerColonnesListe dst
+    AjusterLargeursListe dst
     ReplacerBoutonsListe dst.Parent
     RestaurerFiltres dst, filtres
     Application.ScreenUpdating = True
@@ -1424,6 +1425,23 @@ Private Sub AssurerColonneNbOpListe(ByVal dst As ListObject)
     col.Name = FAC_COL_NBOP
     col.Range.ColumnWidth = 12
     mod_InstallCommun.PoserEnteteTableau dst.HeaderRowRange
+
+End Sub
+
+' Ajuste la largeur des colonnes affichées au contenu (en-têtes et données). Les colonnes masquées le restent ; un peu
+' d'espace est ajouté pour la flèche de filtre, et la largeur est plafonnée (un long commentaire ne doit pas tout pousser).
+Private Sub AjusterLargeursListe(ByVal dst As ListObject)
+
+    Const LARG_MAX As Double = 60
+    Dim cd As ListColumn
+
+    For Each cd In dst.ListColumns
+        If Not cd.Range.EntireColumn.Hidden Then
+            cd.Range.Columns.AutoFit
+            cd.Range.ColumnWidth = cd.Range.ColumnWidth + 3
+            If cd.Range.ColumnWidth > LARG_MAX Then cd.Range.ColumnWidth = LARG_MAX
+        End If
+    Next cd
 
 End Sub
 
