@@ -42,7 +42,9 @@ Private m_NbFac As Long
 Private m_IdFac() As Long
 Private m_TypeFac() As String
 Private m_LibFac() As String          ' libelle propose dans la liste (unique)
-Private m_DetailFac() As String       ' texte de "Facture retenue"
+Private m_DetailFac() As String       ' texte du message de confirmation (avec la date)
+Private m_BaseRetenue() As String     ' texte de "Facture retenue" sans les soldes ni la date
+Private m_IdOperation As String       ' operation en cours d'affectation (pour le solde apres validation)
 Private m_Ordre() As Long             ' index des factures, date decroissante
 
 ' Liste affichee dans le filtre "Date de la facture" : index (dans m_*Fac) de chaque ligne proposee.
@@ -63,6 +65,7 @@ Public Function AffecterFacture(ByVal idOperation As String, ByVal jourOp As Dou
     Dim idFacture As Long
     Dim reponse As VbMsgBoxResult
 
+    m_IdOperation = idOperation
     m_FeuilleRetour = feuilleRetour
     If m_FeuilleRetour = "" Then m_FeuilleRetour = mod_VarGlobales.NOM_FEUILLE_SYNTHESE
 
@@ -207,7 +210,7 @@ Private Function AfficherFormulaire(ByVal jourOp As Double, ByVal tiers As Strin
             dernierLib = CStr(ws.Range("afgFacture").Value)
             pos = PositionDansListe(dernierLib)
             If pos > 0 Then
-                ws.Range("afgFactureRetenue").Value = m_DetailFac(m_IndexListe(pos))
+                ws.Range("afgFactureRetenue").Value = TexteRetenue(m_IndexListe(pos))
             Else
                 ws.Range("afgFactureRetenue").Value = ""
             End If
@@ -328,6 +331,7 @@ Private Sub ChargerFactures()
     ReDim m_TypeFac(1 To nbL)
     ReDim m_LibFac(1 To nbL)
     ReDim m_DetailFac(1 To nbL)
+    ReDim m_BaseRetenue(1 To nbL)
     ReDim jour(1 To nbL)
     Set vus = CreateObject("Scripting.Dictionary")
 
@@ -372,6 +376,9 @@ Private Sub ChargerFactures()
             If nbLiens = 1 Then suffixe = mod_Display.FR("d{e2}j{a2} li{e2}e {a2} 1 op{e2}ration")
             If nbLiens > 1 Then suffixe = mod_Display.FR("d{e2}j{a2} li{e2}e {a2} ") & nbLiens & mod_Display.FR(" op{e2}rations")
             m_DetailFac(n) = typ & " - " & lib & " - " & suffixe
+            ' Champ "Facture retenue" : sans la date (deja lue dans "Date de la facture"), soldes ajoutes a la selection
+            m_BaseRetenue(n) = suffixe
+            If texte <> "" Then m_BaseRetenue(n) = m_BaseRetenue(n) & " - " & texte
         End If
 Suivante:
     Next i
@@ -392,6 +399,26 @@ Suivante:
     Next i
 
 End Sub
+
+' Texte du champ "Facture retenue" pour la facture d'index k de m_*Fac : rappel (sans la date) puis solde restant a regler
+' avant et apres validation (total TTC saisi - operations liees, avec l'operation en cours pour "apres").
+Private Function TexteRetenue(ByVal k As Long) As String
+
+    Dim total As Double, avant As Double, apres As Double
+    Dim euro As String
+
+    TexteRetenue = m_BaseRetenue(k)
+    euro = " " & ChrW(8364)
+    If Not mod_Factures.TotalSaisiFacture(m_IdFac(k), total) Then
+        TexteRetenue = TexteRetenue & mod_Display.FR(" - solde non calculable (total TTC non saisi)")
+        Exit Function
+    End If
+    avant = mod_Factures.Arrondi(total - mod_Factures.SommeOperationsFacture(m_IdFac(k), ""))
+    apres = mod_Factures.Arrondi(total - mod_Factures.SommeOperationsFacture(m_IdFac(k), m_IdOperation))
+    TexteRetenue = TexteRetenue & mod_Display.FR(" - solde avant : ") & Format(avant, "#,##0.00") & euro & _
+                   mod_Display.FR(" - solde apr{e1}s validation : ") & Format(apres, "#,##0.00") & euro
+
+End Function
 
 ' Texte de "Facture retenue" pour la facture idFacture (liste chargee a l'ouverture du formulaire), "" si inconnue.
 Private Function DetailDeFacture(ByVal idFacture As Long) As String

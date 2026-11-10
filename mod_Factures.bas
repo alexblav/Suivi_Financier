@@ -2214,9 +2214,7 @@ Public Sub FacAjouterBloc()
         Exit Sub
     End If
 
-    nom = Trim$(InputBox(mod_Display.FR("Nom du nouveau bloc (exemples : Redevance, Avoir, Location du compteur)." & vbCrLf & _
-                         "Pour remettre un bloc du mod{e1}le que vous avez supprim{e2}, tapez son nom : Abonnement, Consommation ou Taxes et contributions."), _
-                         mod_Display.FR("Ajouter un bloc")))
+    nom = ChoisirNomBloc()
     If nom = "" Then Exit Sub
     nom = Replace(Replace(nom, vbCr, " "), vbLf, " ")
     If Len(nom) > FF_LONG_NOM_BLOC Then
@@ -2249,6 +2247,96 @@ Public Sub FacAjouterBloc()
     ModifierStructure MODE_AJOUT_BLOC, 0, nom, indic
 
 End Sub
+
+' Liste les noms de blocs déjà utilisés dans TOUTES les factures enregistrées (colonne Bloc de TblLignes), sans
+' doublon (casse ignorée), par ordre alphabétique. Renvoie leur nombre ; noms(1..n) les contient.
+Private Function ListeNomsBlocs(ByRef noms() As String, ByRef indics() As String) As Long
+
+    Dim lo As ListObject
+    Dim vB As Variant, vFam As Variant
+    Dim d As Object
+    Dim cles As Variant
+    Dim nomB As String, tmp As String, ind As String
+    Dim i As Long, j As Long, n As Long, nb As Long
+
+    ReDim noms(0 To 0)
+    ReDim indics(0 To 0)
+    On Error GoTo Fin
+    Set lo = TableLignes()
+    If lo Is Nothing Then Exit Function
+    If mod_Consommations.TableVide(lo) Then Exit Function
+
+    Set d = CreateObject("Scripting.Dictionary")
+    d.CompareMode = vbTextCompare
+    vB = mod_Consommations.LireColonne(lo, "Bloc")
+    vFam = mod_Consommations.LireColonne(lo, "Indicateur")
+    n = lo.ListRows.Count
+    For i = 1 To n
+        nomB = Trim$(mod_DataStructure.CellText(vB(i)))
+        If nomB <> "" Then
+            ind = mod_DataStructure.CellText(vFam(i))
+            If ind = "" Then ind = NomNature(FamilleDepuisTexte(ind))
+            d(nomB) = ind          ' un bloc présent dans plusieurs factures garde l'indicateur de la plus récente
+        End If
+    Next i
+    If d.Count = 0 Then Exit Function
+
+    cles = d.Keys
+    For i = LBound(cles) To UBound(cles) - 1       ' tri alphabétique simple
+        For j = i + 1 To UBound(cles)
+            If StrComp(cles(j), cles(i), vbTextCompare) < 0 Then
+                tmp = cles(i): cles(i) = cles(j): cles(j) = tmp
+            End If
+        Next j
+    Next i
+
+    nb = d.Count
+    ReDim noms(1 To nb)
+    ReDim indics(1 To nb)
+    For i = 1 To nb
+        noms(i) = cles(LBound(cles) + i - 1)
+        indics(i) = CStr(d(noms(i)))
+    Next i
+    ListeNomsBlocs = nb
+Fin:
+End Function
+
+' Demande le nom du bloc à ajouter : liste numérotée des noms déjà utilisés dans les factures enregistrées. L'opérateur
+' tape soit le NUMÉRO d'un nom de la liste (pas de doublon involontaire), soit un NOUVEAU nom. Renvoie "" s'il annule.
+Private Function ChoisirNomBloc() As String
+
+    Dim noms() As String, indics() As String
+    Dim txt As String, ligne As String, reponse As String
+    Dim nb As Long, i As Long, nbAff As Long, choix As Long
+
+    nb = ListeNomsBlocs(noms, indics)
+    If nb = 0 Then
+        txt = mod_Display.FR("Nom du nouveau bloc (exemples : Redevance, Avoir, Location du compteur).")
+    Else
+        txt = mod_Display.FR("Blocs d{e2}j{a2} utilis{e2}s dans les factures :") & vbCrLf
+        For i = 1 To nb
+            ligne = i & " = " & noms(i) & " (" & indics(i) & ")" & vbCrLf
+            If Len(txt) + Len(ligne) > 800 Then Exit For      ' l'InputBox limite son invite (environ 1000 caract{e8}res)
+            txt = txt & ligne
+            nbAff = i
+        Next i
+        If nbAff < nb Then txt = txt & "... (" & (nb - nbAff) & mod_Display.FR(" autres : tapez leur nom)") & vbCrLf
+        txt = txt & mod_Display.FR("Tapez le num{e2}ro d'un bloc de la liste, ou le nom d'un NOUVEAU bloc.")
+    End If
+
+    reponse = Trim$(InputBox(txt, mod_Display.FR("Ajouter un bloc")))
+    If reponse = "" Then Exit Function
+
+    If nbAff > 0 And IsNumeric(reponse) Then
+        choix = CLng(Val(reponse))
+        If choix >= 1 And choix <= nbAff Then
+            ChoisirNomBloc = noms(choix)
+            Exit Function
+        End If
+    End If
+    ChoisirNomBloc = reponse
+
+End Function
 
 ' Demande l'indicateur d'un bloc : liste numérotée (indicateurs de base + ceux déjà créés) avec 0 pour en créer un nouveau,
 ' mémorisé pour les listes futures. "defautNom" est proposé par défaut. Renvoie "" si l'opérateur annule ou si la
