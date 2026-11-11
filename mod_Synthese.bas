@@ -15,8 +15,10 @@ Option Explicit
 '         cellules nommees soldeRefMontant, soldeRefDate, soldeEcart : les formules suivent) ;
 '       * a DROITE (colonnes D:H)  : les rappels, un bloc par sujet, chacun avec son titre :
 '           1. Echeances en retard                 (TblEcheances)
-'           2. Factures non liees : Eau et Electricite, gaz, chauffage (TblOperations)
-'           3. Operations de sante a traiter ou en attente (TblOperations)
+'           2. Factures a traiter : factures previsionnelles (TblFactures, colonne Previsionnelle = Oui), avec leur
+'              solde (total TTC saisi - operations liees) ; bouton "Ouvrir la facture"
+'           3. Factures non liees : Eau et Electricite, gaz, chauffage (TblOperations)
+'           4. Operations de sante a traiter ou en attente (TblOperations)
 '
 ' MACROS
 '   - CreerFeuilleSynthese : a lancer UNE FOIS (Ctrl+G). Renomme l'ancienne Synthese en Menu, cree
@@ -58,6 +60,9 @@ Private Const NOM_BOUTON_CHERCHER_OP As String = "btnChercherOperationEcheance"
 ' Prefixe des ID_Echeance ecrits dans la colonne masquee (colonne I) du bloc "Echeances en retard" :
 ' il les distingue des ID_Transaction du bloc "Factures non liees", qui partagent cette colonne.
 Private Const ECH_PREFIXE As String = "ECH:"
+' Prefixe des ID_Facture ecrits dans la meme colonne pour le bloc "Factures a traiter" (factures previsionnelles).
+Private Const FAC_PREFIXE As String = "FAC:"
+Private Const NOM_BOUTON_OUVRIR_FACTURE As String = "btnOuvrirFacturePrev"
 
 
 ' =====================================================================================
@@ -196,6 +201,7 @@ Public Sub ActualiserSynthese()
 
     ligne = SYN_LIGNE_DEBUT
     ligne = BlocEcheancesEnRetard(ws, ligne)
+    ligne = BlocFacturesATraiter(ws, ligne)
     ligne = BlocFacturesNonLiees(ws, ligne)
     ligne = BlocSante(ws, ligne)
 
@@ -349,6 +355,143 @@ End Sub
 
 
 ' =====================================================================================
+' BLOC "FACTURES A TRAITER" : FACTURES PREVISIONNELLES (colonne Previsionnelle de TblFactures = Oui)
+' =====================================================================================
+' Une facture previsionnelle est saisie a l'avance (total estime) pour recevoir les mensualites payees avant l'arrivee de
+' la vraie facture. Elle reste ici, des sa creation, jusqu'a sa cloture. Colonnes : debut de periode, operateur (type),
+' periode, SOLDE (total TTC saisi - somme des operations liees ; 0 quand toutes les mensualites sont arrivees),
+' avancement (nombre d'operations liees). Le bouton "Ouvrir la facture" ouvre la facture selectionnee en modification.
+Private Function BlocFacturesATraiter(ByVal ws As Worksheet, ByVal ligneDebut As Long) As Long
+
+    Dim lo As ListObject
+    Dim nbL As Long, i As Long, nb As Long, nbAff As Long
+    Dim vId As Variant, vTyp As Variant, vOper As Variant, vDeb As Variant, vFin As Variant, vTot As Variant
+    Dim vNbOp As Variant, vPrev As Variant
+    Dim cles() As Double, vals() As Variant
+    Dim res As Variant
+    Dim ids() As String
+    Dim idFac As Long
+    Dim total As Double, solde As Double, jourDebut As Double
+    Dim periode As String, nbOp As String
+    Dim libTitre As String, msgVide As String
+
+    libTitre = mod_Display.FR("Factures {a2} traiter : factures pr{e2}visionnelles")
+    msgVide = mod_Display.FR("Aucune facture pr{e2}visionnelle en attente.")
+
+    Set lo = mod_Factures.TableFactures()
+    If Not lo Is Nothing Then
+        If Not lo.DataBodyRange Is Nothing Then
+            nbL = lo.DataBodyRange.Rows.Count
+            vPrev = ValeursColonne(lo, mod_Factures.FAC_COL_PREV, nbL)      ' Empty tant qu'aucune facture n'a ete previsionnelle
+            If IsArray(vPrev) Then
+                vId = ValeursColonne(lo, "ID_Facture", nbL)
+                vTyp = ValeursColonne(lo, "TypeConso", nbL)
+                vOper = ValeursColonne(lo, "Operateur", nbL)
+                vDeb = ValeursColonne(lo, "DebutPeriode", nbL)
+                vFin = ValeursColonne(lo, "FinPeriode", nbL)
+                vTot = ValeursColonne(lo, "TotalFactureTTC", nbL)
+                vNbOp = ValeursColonne(lo, mod_Factures.FAC_COL_NBOP, nbL)
+                ReDim cles(1 To nbL)
+                ReDim vals(1 To nbL, 1 To SYN_NB_COL + 1)      ' derniere colonne : ID_Facture (non affiche dans D:H)
+
+                For i = 1 To nbL
+                    If mod_Factures.EstPrevisionnelle(Cellule(vPrev, i)) And IsNumeric(Cellule(vId, i)) And Not IsEmpty(Cellule(vId, i)) Then
+                        idFac = CLng(Cellule(vId, i))
+                        nb = nb + 1
+                        jourDebut = 0
+                        If IsNumeric(Cellule(vDeb, i)) And Not IsEmpty(Cellule(vDeb, i)) Then jourDebut = CDbl(Cellule(vDeb, i))
+                        cles(nb) = jourDebut
+                        total = mod_DataStructure.ToDouble(Cellule(vTot, i))
+                        solde = mod_Factures.Arrondi(total - mod_Factures.SommeOperationsFacture(idFac, ""))
+                        periode = ""
+                        If IsNumeric(Cellule(vDeb, i)) And Not IsEmpty(Cellule(vDeb, i)) Then periode = Format(CDate(Cellule(vDeb, i)), "dd/mm/yyyy")
+                        If IsNumeric(Cellule(vFin, i)) And Not IsEmpty(Cellule(vFin, i)) Then periode = periode & " - " & Format(CDate(Cellule(vFin, i)), "dd/mm/yyyy")
+                        nbOp = CStr(mod_DataStructure.ToLong(Cellule(vNbOp, i)))
+                        If jourDebut > 0 Then vals(nb, 1) = jourDebut
+                        vals(nb, 2) = mod_DataStructure.CellText(Cellule(vOper, i)) & " (" & mod_DataStructure.CellText(Cellule(vTyp, i)) & ")"
+                        vals(nb, 3) = periode
+                        vals(nb, 4) = solde
+                        vals(nb, 5) = nbOp & mod_Display.FR(" op{e2}ration(s) li{e2}e(s) - total estim{e2} ") & Format(total, "#,##0.00") & " " & ChrW(8364)
+                        vals(nb, SYN_NB_COL + 1) = FAC_PREFIXE & idFac
+                    End If
+                Next i
+            End If
+        End If
+    End If
+
+    If nb > 0 Then
+        Extraire cles, vals, nb, False, res
+        nbAff = UBound(res, 1)
+        ReDim ids(1 To nbAff)
+        For i = 1 To nbAff
+            ids(i) = res(i, SYN_NB_COL + 1)
+        Next i
+        ReDim Preserve res(1 To nbAff, 1 To SYN_NB_COL)
+    End If
+
+    BlocFacturesATraiter = EcrireBloc(ws, ligneDebut, libTitre, _
+        Array(mod_Display.FR("D{e2}but"), mod_Display.FR("Op{e2}rateur (type)"), mod_Display.FR("P{e2}riode"), "Solde", mod_Display.FR("Avancement")), _
+        res, nb, msgVide)
+
+    ' ID_Facture de chaque ligne affichee (colonne masquee, prefixe FAC:) : c'est elle qui designe la facture a ouvrir.
+    If nb > 0 Then
+        With ws.Range(ws.Cells(ligneDebut + 2, SYN_COL_ID_OPERATION), ws.Cells(ligneDebut + 1 + nbAff, SYN_COL_ID_OPERATION))
+            .NumberFormat = "@"
+            For i = 1 To nbAff
+                .Cells(i, 1).Value = ids(i)
+            Next i
+        End With
+    End If
+
+    PoserBoutonOuvrirFacture ws, ligneDebut
+
+End Function
+
+Private Sub PoserBoutonOuvrirFacture(ByVal ws As Worksheet, ByVal ligneTitre As Long)
+
+    Dim btn As Button
+    Dim cel As Range
+
+    On Error Resume Next
+    ws.Shapes(NOM_BOUTON_OUVRIR_FACTURE).Delete
+    On Error GoTo 0
+
+    Set cel = ws.Cells(ligneTitre, SYN_COL_RAPPELS + SYN_NB_COL - 1)
+    Set btn = ws.Buttons.Add(cel.Left + cel.Width - 150, cel.Top + 1, 148, cel.Height - 2)
+    btn.Caption = mod_Display.FR("Ouvrir la facture")
+    btn.OnAction = "OuvrirFacturePrevisionnelle"
+    btn.Name = NOM_BOUTON_OUVRIR_FACTURE
+
+End Sub
+
+' Bouton "Ouvrir la facture" du bloc "Factures a traiter" : ouvre la facture previsionnelle selectionnee dans le formulaire
+' de saisie (modification), pour la completer a la reception de la vraie facture.
+Public Sub OuvrirFacturePrevisionnelle()
+
+    Dim ws As Worksheet
+    Dim ligne As Long
+    Dim cle As String
+
+    Set ws = mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+    If ws Is Nothing Then Exit Sub
+    If Not ActiveSheet Is ws Then ws.Activate
+
+    If TypeName(Selection) = "Range" Then
+        If Selection.Rows.Count = 1 Then ligne = Selection.Row
+    End If
+    If ligne > 0 Then cle = mod_DataStructure.CellText(ws.Cells(ligne, SYN_COL_ID_OPERATION).Value2)
+    If Left$(cle, Len(FAC_PREFIXE)) <> FAC_PREFIXE Then
+        MsgBox mod_Display.FR("S{e2}lectionnez d'abord UNE ligne du tableau Factures {a2} traiter, puis cliquez sur le bouton."), vbInformation
+        Exit Sub
+    End If
+
+    mod_Factures.OuvrirFactureParID CLng(Val(Mid$(cle, Len(FAC_PREFIXE) + 1)))
+    ActualiserSynthese
+
+End Sub
+
+
+' =====================================================================================
 ' BLOC 2 : OPERATIONS EAU / ELECTRICITE SANS FACTURE LIEE
 ' =====================================================================================
 Private Function BlocFacturesNonLiees(ByVal ws As Worksheet, ByVal ligneDebut As Long) As Long
@@ -492,6 +635,7 @@ Public Sub AffecterFactureOperation()
     If Selection.Rows.Count > 1 Then ligne = 0
     If ligne > 0 Then idOperation = mod_DataStructure.CellText(ws.Cells(ligne, SYN_COL_ID_OPERATION).Value2)
     If Left$(idOperation, Len(ECH_PREFIXE)) = ECH_PREFIXE Then idOperation = ""      ' ligne du bloc Echeances en retard
+    If Left$(idOperation, Len(FAC_PREFIXE)) = FAC_PREFIXE Then idOperation = ""      ' ligne du bloc Factures a traiter
     If idOperation = "" Then
         MsgBox mod_Display.FR("S{e2}lectionnez d'abord UNE ligne d'op{e2}ration du tableau Factures non li{e2}es, puis cliquez sur le bouton."), vbInformation
         Exit Sub

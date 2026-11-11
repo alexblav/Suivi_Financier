@@ -1626,6 +1626,7 @@ Private Sub MontrerEcran(ByVal nomFeuille As String)
     ws.Visible = xlSheetVisible
     ws.Activate
     mod_InstallCommun.MasquerQuadrillage
+    If nomFeuille = mod_VarGlobales.NOM_FEUILLE_FACTURES Then mod_Factures.FigerEnteteListeActive
 
     noms = Array(mod_VarGlobales.NOM_FEUILLE_CONSO, mod_VarGlobales.NOM_FEUILLE_FACTURES, mod_VarGlobales.NOM_FEUILLE_CONTRATS)
     For i = LBound(noms) To UBound(noms)

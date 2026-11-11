@@ -168,6 +168,7 @@ ID\_Contrat (**PK**), TypeConso, Operateur, Unite, DateDebut, DateFin *(opt)*, A
 | TotalFactureTTC, Commentaire | | Total saisi, commentaire |
 | **ID\_Transactions** | texte | **Liste** d'ID\_Transaction séparés par « ; » : les opérations qui ont réglé la facture |
 | Cloturee | « Oui » ou vide | Toutes les opérations sont liées |
+| Previsionnelle | « Oui » ou vide | Facture saisie à l'avance (total estimé) pour recevoir des mensualités ; repasse à vide à la clôture. Colonne créée au premier besoin |
 | NbOperations | entier *(calc)* | Nombre d'éléments de la liste ci-dessus |
 
 ### LIGNE — `TblLignes` (Conso\_Lignes)
@@ -230,6 +231,7 @@ erDiagram
         text Operateur
         text ID_Transactions "liste separee par point-virgule"
         text Cloturee
+        text Previsionnelle
     }
     LIGNE {
         int ID_Facture FK
@@ -314,7 +316,7 @@ ECHEANCE      (ID_Echeance, #ID_Recurrence, Libelle, Tiers, Categorie, SousCateg
                DatePrevue, PrecisionDate, Periodicite, TolerancePct)
 CONTRAT       (ID_Contrat, TypeConso, Operateur, Unite, DateDebut, DateFin, AbonnementMensuel, Reference)
 FACTURE       (ID_Facture, TypeConso, Operateur, NumeroFacture, DateFacture, DebutPeriode, FinPeriode,
-               TotalFactureTTC, Commentaire, ID_Transactions, Cloturee, NbOperations)
+               TotalFactureTTC, Commentaire, ID_Transactions, Cloturee, Previsionnelle, NbOperations)
 LIGNE         (#ID_Facture, OrdreBloc, Bloc, #Indicateur, Libelle, DateDebut, DateFin, Quantite, Unite,
                PrixUnitaireHT, TauxTVA, MontantHT, MontantTTC)  -- sans clé primaire
 INDICATEUR    (Indicateur)

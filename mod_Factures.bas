@@ -61,6 +61,14 @@ Public Const FAC_SEP_LIENS As String = ";"
 Public Const FAC_COL_CLOTURE As String = "Cloturee"
 Public Const FAC_VAL_CLOTURE As String = "Oui"
 
+' Colonne de TblFactures qui marque la facture comme PRÉVISIONNELLE : facture saisie à l'avance (total TTC estimé, une ligne
+' provisoire) pour recevoir les mensualités payées avant l'arrivée de la vraie facture. Valeur "Oui" ; vide = facture réelle.
+' Tant qu'elle vaut Oui, la facture figure dans le bloc « Factures à traiter » de Synthese. Elle repasse à vide à la clôture
+' de la facture. Colonne créée au premier besoin (voir ColonnePrevisionnelle) : aucune réinstallation nécessaire.
+Public Const FAC_COL_PREV As String = "Previsionnelle"
+Public Const FAC_VAL_PREV As String = "Oui"
+Public Const FF_ADR_PREV As String = "I8"             ' fusion I8:J8 (étiquette en F8:H8) : Oui = facture prévisionnelle, Non = facture réelle
+
 ' Colonne de TblFactures qui mémorise le NOMBRE d'opérations liées (ajout 01/11/2026) : évite de recompter les ID_Transactions
 ' à chaque affichage de la liste. Tenue à jour par LierFacture et EnregistrerFacture ; créée au premier besoin (voir ColonneNbOperations).
 Public Const FAC_COL_NBOP As String = "NbOperations"
@@ -121,6 +129,7 @@ Public Type TypeFacture
     TotalRenseigne As Boolean
     Commentaire As String
     Cloturee As Boolean         ' Vrai = facture close (toutes ses opérations bancaires sont liées)
+    Previsionnelle As Boolean   ' Vrai = facture prévisionnelle (à compléter à la réception de la vraie facture)
 End Type
 
 ' Une ligne de facture (abonnement, consommation ou taxe).
@@ -457,9 +466,21 @@ Public Sub SaisirFacture()
     g_FacNb = 0
     ReDim g_FacLignes(1 To 1)
     f.ID = 0
+    f.Previsionnelle = DemanderPrevisionnelle()
     TerminerSaisie f
 
 End Sub
+
+' Question posée à la création ou à la copie d'une facture : est-elle prévisionnelle ? Non par défaut.
+Private Function DemanderPrevisionnelle() As Boolean
+
+    DemanderPrevisionnelle = (MsgBox(mod_Display.FR("Cette facture est-elle pr{e2}visionnelle ?") & vbCrLf & vbCrLf & _
+        mod_Display.FR("Oui : elle accueille les mensualit{e2}s pay{e2}es avant l'arriv{e2}e de la vraie facture. Elle reste dans le bloc ") & _
+        mod_Display.FR("Factures {a2} traiter de Synthese jusqu'{a2} sa cl{o2}ture.") & vbCrLf & _
+        mod_Display.FR("Non : facture r{e2}elle."), _
+        vbYesNo + vbQuestion + vbDefaultButton2, mod_Display.FR("Facture pr{e2}visionnelle")) = vbYes)
+
+End Function
 
 ' Modifie la facture sélectionnée dans la liste frm_Factures.
 Public Sub ModifierFactureSelection()
@@ -576,6 +597,7 @@ Public Sub CopierFactureSelection()
     f.TotalRenseigne = False
     f.Commentaire = ""
     f.Cloturee = False
+    f.Previsionnelle = DemanderPrevisionnelle()
     For k = 1 To g_FacNb
         g_FacLignes(k).IDFacture = 0
         g_FacLignes(k).Debut = 0
@@ -666,7 +688,7 @@ Private Function ChargerFacture(ByVal id As Long, ByRef f As TypeFacture) As Boo
     Dim lo As ListObject
     Dim i As Long, n As Long, nat As Long
     Dim v As Variant
-    Dim ord As Long, idxOrd As Long, idxClo As Long
+    Dim ord As Long, idxOrd As Long, idxClo As Long, idxPrev As Long
 
     Set lo = TableFactures()
     If lo Is Nothing Then Exit Function
@@ -693,6 +715,8 @@ Private Function ChargerFacture(ByVal id As Long, ByRef f As TypeFacture) As Boo
                     f.Commentaire = mod_DataStructure.CellText(.Cells(1, mod_Consommations.ColIdx(lo, "Commentaire")).Value2)
                     idxClo = mod_Consommations.ColIdx(lo, FAC_COL_CLOTURE)
                     If idxClo > 0 Then f.Cloturee = EstCloture(.Cells(1, idxClo).Value2)
+                    idxPrev = mod_Consommations.ColIdx(lo, FAC_COL_PREV)
+                    If idxPrev > 0 Then f.Previsionnelle = EstPrevisionnelle(.Cells(1, idxPrev).Value2)
                 End With
                 ChargerFacture = True
                 Exit For
@@ -767,6 +791,7 @@ Private Function EnregistrerFacture(ByRef f As TypeFacture) As Boolean
 
     ColonneLien lo
     ColonneCloture lo
+    ColonnePrevisionnelle lo
     ColonneNbOperations lo
     If f.ID = 0 Then
         f.ID = mod_Consommations.ProchainID(lo, "ID_Facture")
@@ -791,6 +816,10 @@ Private Function EnregistrerFacture(ByRef f As TypeFacture) As Boolean
         If f.TotalRenseigne Then .Cells(1, mod_Consommations.ColIdx(lo, "TotalFactureTTC")).Value = f.TotalSaisi
         .Cells(1, mod_Consommations.ColIdx(lo, "Commentaire")).Value = f.Commentaire
         If f.Cloturee Then .Cells(1, mod_Consommations.ColIdx(lo, FAC_COL_CLOTURE)).Value = FAC_VAL_CLOTURE
+        If f.Previsionnelle Then
+            .Cells(1, mod_Consommations.ColIdx(lo, FAC_COL_PREV)).NumberFormat = "@"
+            .Cells(1, mod_Consommations.ColIdx(lo, FAC_COL_PREV)).Value = FAC_VAL_PREV
+        End If
     End With
 
     Set lo = TableLignes()
@@ -803,8 +832,8 @@ Private Function EnregistrerFacture(ByRef f As TypeFacture) As Boolean
             If g_FacLignes(i).Indic = "" Then g_FacLignes(i).Indic = NomNature(g_FacLignes(i).Nat)
             .Cells(1, mod_Consommations.ColIdx(lo, "Indicateur")).Value = g_FacLignes(i).Indic
             .Cells(1, mod_Consommations.ColIdx(lo, "Libelle")).Value = g_FacLignes(i).Libelle
-            .Cells(1, mod_Consommations.ColIdx(lo, "DateDebut")).Value = CDate(g_FacLignes(i).Debut)
-            .Cells(1, mod_Consommations.ColIdx(lo, "DateFin")).Value = CDate(g_FacLignes(i).Fin)
+            If g_FacLignes(i).Debut > 0 Then .Cells(1, mod_Consommations.ColIdx(lo, "DateDebut")).Value = CDate(g_FacLignes(i).Debut)
+            If g_FacLignes(i).Fin > 0 Then .Cells(1, mod_Consommations.ColIdx(lo, "DateFin")).Value = CDate(g_FacLignes(i).Fin)
             .Cells(1, mod_Consommations.ColIdx(lo, "Quantite")).Value = g_FacLignes(i).Qte
             .Cells(1, mod_Consommations.ColIdx(lo, "Unite")).Value = g_FacLignes(i).Unite
             .Cells(1, mod_Consommations.ColIdx(lo, "PrixUnitaireHT")).Value = g_FacLignes(i).Prix
@@ -1107,6 +1136,64 @@ Public Function EstCloture(ByVal v As Variant) As Boolean
     EstCloture = (StrComp(mod_DataStructure.CellText(v), FAC_VAL_CLOTURE, vbTextCompare) = 0)
 End Function
 
+' Colonne « Previsionnelle » de TblFactures, créée au premier besoin comme ColonneCloture.
+Public Function ColonnePrevisionnelle(ByVal lo As ListObject) As Long
+
+    Dim col As ListColumn
+
+    ColonnePrevisionnelle = mod_Consommations.ColIdx(lo, FAC_COL_PREV)
+    If ColonnePrevisionnelle > 0 Then Exit Function
+    Set col = lo.ListColumns.Add
+    col.Name = FAC_COL_PREV
+    col.DataBodyRange.NumberFormat = "@"
+    ColonnePrevisionnelle = col.Index
+
+End Function
+
+' Vrai si la valeur d'une cellule de la colonne Previsionnelle désigne une facture prévisionnelle.
+Public Function EstPrevisionnelle(ByVal v As Variant) As Boolean
+    EstPrevisionnelle = (StrComp(mod_DataStructure.CellText(v), FAC_VAL_PREV, vbTextCompare) = 0)
+End Function
+
+' Vrai si la facture idFacture est prévisionnelle (Faux si elle est introuvable ou si la colonne n'existe pas encore).
+Public Function FactureEstPrevisionnelle(ByVal idFacture As Long) As Boolean
+
+    Dim lo As ListObject
+    Dim i As Long, idxPrev As Long
+    Dim v As Variant
+
+    Set lo = TableFactures()
+    If lo Is Nothing Then Exit Function
+    If mod_Consommations.TableVide(lo) Then Exit Function
+    idxPrev = mod_Consommations.ColIdx(lo, FAC_COL_PREV)
+    If idxPrev = 0 Then Exit Function
+    For i = 1 To lo.ListRows.Count
+        v = lo.ListColumns("ID_Facture").DataBodyRange.Cells(i, 1).Value2
+        If IsNumeric(v) And Not IsEmpty(v) Then
+            If CLng(v) = idFacture Then
+                FactureEstPrevisionnelle = EstPrevisionnelle(lo.DataBodyRange.Cells(i, idxPrev).Value2)
+                Exit Function
+            End If
+        End If
+    Next i
+
+End Function
+
+' Ouvre une facture existante dans le formulaire (modification) : utilisé par le bouton du bloc « Factures à traiter » de Synthese.
+Public Sub OuvrirFactureParID(ByVal idFacture As Long)
+
+    Dim f As TypeFacture
+
+    mod_Consommations.EnregistrerListesSiOuvertes
+    If Not FacturesInstallees() Then Exit Sub
+    If Not ChargerFacture(idFacture, f) Then
+        MsgBox mod_Display.FR("Cette facture est introuvable."), vbExclamation
+        Exit Sub
+    End If
+    TerminerSaisie f
+
+End Sub
+
 ' Total TTC SAISI de la facture (celui imprimé par le fournisseur, pas le total calculé d'après les lignes).
 ' Faux si la facture est introuvable ou si son total n'a pas été renseigné.
 Public Function TotalSaisiFacture(ByVal idFacture As Long, ByRef total As Double) As Boolean
@@ -1180,13 +1267,14 @@ End Function
 Public Function CloturerFacture(ByVal idFacture As Long, ByVal cloturer As Boolean) As Boolean
 
     Dim lo As ListObject
-    Dim i As Long, idxClo As Long
+    Dim i As Long, idxClo As Long, idxPrev As Long
     Dim v As Variant
 
     Set lo = TableFactures()
     If lo Is Nothing Then Exit Function
     If mod_Consommations.TableVide(lo) Then Exit Function
     idxClo = ColonneCloture(lo)
+    idxPrev = mod_Consommations.ColIdx(lo, FAC_COL_PREV)       ' 0 tant qu'aucune facture n'a été prévisionnelle
     For i = 1 To lo.ListRows.Count
         v = lo.ListColumns("ID_Facture").DataBodyRange.Cells(i, 1).Value2
         If IsNumeric(v) And Not IsEmpty(v) Then
@@ -1195,6 +1283,8 @@ Public Function CloturerFacture(ByVal idFacture As Long, ByVal cloturer As Boole
                     .NumberFormat = "@"
                     If cloturer Then .Value = FAC_VAL_CLOTURE Else .ClearContents
                 End With
+                ' Une facture clôturée sort de l'état prévisionnel (la confirmation est demandée par l'appelant).
+                If cloturer And idxPrev > 0 Then lo.DataBodyRange.Cells(i, idxPrev).ClearContents
                 CloturerFacture = True
                 Exit Function
             End If
@@ -1228,6 +1318,27 @@ Public Sub PoserChampCloture(ByVal ws As Worksheet)
 
 End Sub
 
+' Champ « Facture prévisionnelle » de l'en-tête de frm_Facture (étiquette F8:H8, liste Oui / Non en I8:J8). Appelée à chaque
+' ouverture du formulaire : un écran déjà installé reçoit le champ sans être reconstruit.
+Private Sub PoserChampPrevisionnelle(ByVal ws As Worksheet)
+
+    mod_InstallCommun.PoserEtiquette ws.Range("F8:H8"), mod_Display.FR("Facture pr{e2}visionnelle")
+    mod_InstallCommun.PoserChampSaisie ws.Range(FF_ADR_PREV & ":J8"), "@"
+    ws.Range(FF_ADR_PREV).HorizontalAlignment = xlCenter
+    On Error Resume Next
+    With ws.Range(FF_ADR_PREV).Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:="Oui,Non"
+        .IgnoreBlank = True
+        .InCellDropdown = True
+        .ShowInput = True
+        .InputTitle = mod_Display.FR("Facture pr{e2}visionnelle")
+        .InputMessage = mod_Display.FR("Oui : facture saisie {a2} l'avance (total estim{e2}) pour recevoir les mensualit{e2}s ; elle figure dans Synthese, bloc Factures {a2} traiter, jusqu'{a2} sa cl{o2}ture.")
+    End With
+    On Error GoTo 0
+
+End Sub
+
 ' Ouvre le formulaire de saisie d'une facture neuve, liée d'office à l'opération idTransaction.
 ' Renvoie l'ID de la facture enregistrée, 0 si l'opérateur a abandonné.
 Public Function SaisirFacturePourOperation(ByVal idTransaction As String) As Long
@@ -1243,6 +1354,7 @@ Public Function SaisirFacturePourOperation(ByVal idTransaction As String) As Lon
     g_FacNb = 0
     ReDim g_FacLignes(1 To 1)
     f.ID = 0
+    f.Previsionnelle = DemanderPrevisionnelle()
     g_LienAEnregistrer = idTransaction
     On Error GoTo Fin
     If OuvrirFormFacture(f) Then
@@ -1408,7 +1520,44 @@ Public Sub RafraichirListeFactures()
     AjusterLargeursListe dst
     ReplacerBoutonsListe dst.Parent
     RestaurerFiltres dst, filtres
+    FigerEnteteListe dst
     Application.ScreenUpdating = True
+
+End Sub
+
+' Fige les volets sous la ligne d'en-tête du tableau pour garder les intitulés visibles quand la liste s'allonge
+' (même principe que la recherche d'opérations : levée du gel et du split, retour en haut à gauche, puis gel).
+' Sans effet si la feuille de la liste n'est pas la feuille active (le gel agit sur la fenêtre active).
+' Depuis la navigation (MontrerEcran), le rafraîchissement a lieu AVANT l'activation de la feuille : le gel
+' y est donc reposé après ws.Activate via FigerEnteteListeActive.
+Public Sub FigerEnteteListeActive()
+    Dim dst As ListObject
+    Set dst = TableAffFactures()
+    If Not dst Is Nothing Then FigerEnteteListe dst
+End Sub
+
+Private Sub FigerEnteteListe(ByVal dst As ListObject)
+
+    Dim ws As Worksheet
+    Set ws = dst.Parent
+
+    On Error Resume Next
+    If ActiveSheet Is Nothing Then Exit Sub
+    If Not ActiveSheet Is ws Then Exit Sub
+
+    ' Cellule active avant l'action : elle est resélectionnée une fois les volets figés.
+    Dim adrAvant As String
+    If TypeName(Selection) = "Range" Then adrAvant = Selection.Address
+
+    ActiveWindow.FreezePanes = False
+    ActiveWindow.Split = False
+    ActiveWindow.ScrollRow = 1
+    ActiveWindow.ScrollColumn = 1
+    ws.Cells(dst.HeaderRowRange.Row + 1, 1).Select
+    ActiveWindow.FreezePanes = True
+
+    If Len(adrAvant) > 0 Then ws.Range(adrAvant).Select
+    On Error GoTo 0
 
 End Sub
 
@@ -1672,6 +1821,8 @@ Private Sub RemplirFormulaire(ByVal ws As Worksheet, ByRef f As TypeFacture)
     g_ClotureOrigine = f.Cloturee
     If f.Cloturee Then ws.Range(FF_ADR_CLOTURE).Value = "Oui" Else ws.Range(FF_ADR_CLOTURE).Value = "Non"
     ws.Range(FF_ADR_NBOP).Value = NbOperationsFacture(f.ID)
+    PoserChampPrevisionnelle ws
+    If f.Previsionnelle Then ws.Range(FF_ADR_PREV).Value = "Oui" Else ws.Range(FF_ADR_PREV).Value = "Non"
     ws.Range(FF_ADR_MESSAGE).Value = ""
     PoserListeType ws
     MettreAJourListeOperateurs ws, f.Typ
@@ -1725,8 +1876,8 @@ Private Sub RemplirFormulaire(ByVal ws As Worksheet, ByRef f As TypeFacture)
             ws.Cells(r, FF_COL_UNITE).Value = g_FacLignes(k).Unite
             ws.Cells(r, FF_COL_TVA).Value = g_FacLignes(k).Tva
             If Not g_FacLignes(k).Copie Then
-                ws.Cells(r, FF_COL_DEB).Value = CDate(g_FacLignes(k).Debut)
-                ws.Cells(r, FF_COL_FIN).Value = CDate(g_FacLignes(k).Fin)
+                If g_FacLignes(k).Debut > 0 Then ws.Cells(r, FF_COL_DEB).Value = CDate(g_FacLignes(k).Debut)
+                If g_FacLignes(k).Fin > 0 Then ws.Cells(r, FF_COL_FIN).Value = CDate(g_FacLignes(k).Fin)
                 ws.Cells(r, FF_COL_QTE).Value = g_FacLignes(k).Qte
                 ws.Cells(r, FF_COL_PRIX).Value = g_FacLignes(k).Prix
             End If
@@ -2839,6 +2990,17 @@ Public Sub FacValider()
         AfficherMessage ws, "Choisissez le type de consommation dans la liste."
         Exit Sub
     End If
+    ' Facture prévisionnelle : seul le solde (total TTC comparé à la somme des échéances) est contrôlé ; les autres
+    ' contrôles (dates, chevauchements) ne valent que pour une facture définitive. Le contrat de l'opérateur reste contrôlé.
+    Select Case LCase$(mod_DataStructure.CellText(ws.Range(FF_ADR_PREV).Value))
+        Case "oui"
+            f.Previsionnelle = True
+        Case "non", ""
+            f.Previsionnelle = False
+        Case Else
+            AfficherMessage ws, "Facture pr{e2}visionnelle : choisissez Oui ou Non."
+            Exit Sub
+    End Select
     f.Operateur = mod_DataStructure.CellText(ws.Range(FF_ADR_OPERATEUR).Value)
     If f.Operateur = "" Then
         AfficherMessage ws, "Renseignez l'op{e2}rateur (fournisseur)."
@@ -2853,7 +3015,7 @@ Public Sub FacValider()
     If Not LireDateFacultative(ws, FF_ADR_DATE, "date de la facture", f.DateFac) Then Exit Sub
     If Not LireDateFacultative(ws, FF_ADR_DEBUT, "d{e2}but de la p{e2}riode", f.Debut) Then Exit Sub
     If Not LireDateFacultative(ws, FF_ADR_FIN, "fin de la p{e2}riode", f.Fin) Then Exit Sub
-    If f.Debut > 0 And f.Fin > 0 And f.Fin < f.Debut Then
+    If Not f.Previsionnelle And f.Debut > 0 And f.Fin > 0 And f.Fin < f.Debut Then
         AfficherMessage ws, "La fin de la p{e2}riode est ant{e2}rieure {a2} son d{e2}but."
         Exit Sub
     End If
@@ -2887,7 +3049,7 @@ Public Sub FacValider()
         Exit Sub
     End If
 
-    msg = ControlerChevauchements(f)
+    If Not f.Previsionnelle Then msg = ControlerChevauchements(f) Else msg = ""
     If msg <> "" Then
         If MsgBox(mod_Display.FR(msg) & vbCrLf & vbCrLf & mod_Display.FR("Enregistrer quand m{ea}me ?"), _
                   vbYesNo + vbExclamation + vbDefaultButton2, mod_Display.FR("Chevauchement de p{e2}riodes")) = vbNo Then Exit Sub
@@ -2911,6 +3073,17 @@ Public Sub FacValider()
         If MsgBox(mod_Display.FR(msg) & vbCrLf & vbCrLf & mod_Display.FR("Oui : enregistrer la facture avec ce changement.") & vbCrLf & _
                   mod_Display.FR("Non : revenir au formulaire."), vbYesNo + vbQuestion + vbDefaultButton2, _
                   mod_Display.FR("Facture cl{o2}tur{e2}e")) = vbNo Then Exit Sub
+    End If
+
+    ' Une facture clôturée sort de l'état prévisionnel : l'opérateur le confirme (Non ramène au formulaire).
+    If f.Cloturee And f.Previsionnelle Then
+        If MsgBox(mod_Display.FR("Cette facture est encore pr{e2}visionnelle. La cl{o2}turer la fait sortir de cet {e2}tat : ") & _
+                  mod_Display.FR("elle devient une facture r{e2}elle et dispara{i2}t de Synthese (Factures {a2} traiter).") & vbCrLf & vbCrLf & _
+                  mod_Display.FR("La vraie facture est-elle bien saisie ?") & vbCrLf & _
+                  mod_Display.FR("Oui : cl{o2}turer et sortir de l'{e2}tat pr{e2}visionnel.") & vbCrLf & _
+                  mod_Display.FR("Non : revenir au formulaire."), vbYesNo + vbQuestion + vbDefaultButton2, _
+                  mod_Display.FR("Facture pr{e2}visionnelle")) = vbNo Then Exit Sub
+        f.Previsionnelle = False
     End If
 
     g_FacRes = f
@@ -2976,20 +3149,30 @@ Private Function LireLignes(ByVal ws As Worksheet, ByRef f As TypeFacture) As Bo
 
             texteLigne = NomDuBloc(nat) & ", ligne " & (i + 1) & " : "
 
-            If Not mod_Consommations.SaisieNonVide(vDeb) Or Not mod_DataStructure.TryLireDate(vDeb, dDeb) Then
+            ' Facture prévisionnelle : les dates de ligne peuvent rester vides (une date saisie doit rester valide).
+            dDeb = 0: dFin = 0
+            If f.Previsionnelle And Not mod_Consommations.SaisieNonVide(vDeb) Then
+                ' date de début laissée vide
+            ElseIf Not mod_Consommations.SaisieNonVide(vDeb) Or Not mod_DataStructure.TryLireDate(vDeb, dDeb) Then
                 AfficherMessage ws, texteLigne & "date de d{e2}but absente ou invalide."
                 Exit Function
             End If
-            If Not mod_Consommations.SaisieNonVide(vFin) Or Not mod_DataStructure.TryLireDate(vFin, dFin) Then
+            If f.Previsionnelle And Not mod_Consommations.SaisieNonVide(vFin) Then
+                ' date de fin laissée vide
+            ElseIf Not mod_Consommations.SaisieNonVide(vFin) Or Not mod_DataStructure.TryLireDate(vFin, dFin) Then
                 AfficherMessage ws, texteLigne & "date de fin absente ou invalide."
                 Exit Function
             End If
-            If dFin < dDeb Then
+            If Not f.Previsionnelle And dFin < dDeb Then
                 AfficherMessage ws, texteLigne & "la date de fin est ant{e2}rieure {a2} la date de d{e2}but."
                 Exit Function
             End If
 
-            If Not mod_Consommations.SaisieNonVide(vQte) Or Not mod_DataStructure.TryLireMontant(vQte, q, 4) Then
+            ' Facture prévisionnelle : quantité, prix HT et TVA peuvent rester vides (0 par défaut) ; une valeur saisie doit rester valide.
+            q = 0: p = 0: tv = 0
+            If f.Previsionnelle And Not mod_Consommations.SaisieNonVide(vQte) Then
+                ' quantité laissée vide
+            ElseIf Not mod_Consommations.SaisieNonVide(vQte) Or Not mod_DataStructure.TryLireMontant(vQte, q, 4) Then
                 AfficherMessage ws, texteLigne & "quantit{e2} absente ou invalide."
                 Exit Function
             End If
@@ -2997,15 +3180,18 @@ Private Function LireLignes(ByVal ws As Worksheet, ByRef f As TypeFacture) As Bo
                 AfficherMessage ws, texteLigne & "la quantit{e2} ne peut pas {ea}tre n{e2}gative."
                 Exit Function
             End If
-            If Not mod_Consommations.SaisieNonVide(vPrix) Or Not mod_DataStructure.TryLireMontant(vPrix, p, 6) Then
+            If f.Previsionnelle And Not mod_Consommations.SaisieNonVide(vPrix) Then
+                ' prix unitaire HT laissé vide
+            ElseIf Not mod_Consommations.SaisieNonVide(vPrix) Or Not mod_DataStructure.TryLireMontant(vPrix, p, 6) Then
                 AfficherMessage ws, texteLigne & "prix unitaire HT absent ou invalide (6 d{e2}cimales au maximum)."
                 Exit Function
             End If
-            If Not mod_Consommations.SaisieNonVide(vTva) Then
+            If f.Previsionnelle And Not mod_Consommations.SaisieNonVide(vTva) Then
+                ' taux de TVA laissé vide : 0 %
+            ElseIf Not mod_Consommations.SaisieNonVide(vTva) Then
                 AfficherMessage ws, texteLigne & "renseignez le taux de TVA (0 % si non applicable)."
                 Exit Function
-            End If
-            If Not mod_DataStructure.TryLireMontant(vTva, tv, 6) Then
+            ElseIf Not mod_DataStructure.TryLireMontant(vTva, tv, 6) Then
                 AfficherMessage ws, texteLigne & "taux de TVA invalide."
                 Exit Function
             End If
@@ -3018,7 +3204,7 @@ Private Function LireLignes(ByVal ws As Worksheet, ByRef f As TypeFacture) As Bo
 
             ' Garde-fou : une ligne de l'indicateur Consommation a pour unité kWh ou m³ (m3 est accepté et converti en m³).
             uniteNorm = mod_DataStructure.CellText(vUni)
-            If g_Nat(nat) = NAT_CONSO Then
+            If g_Nat(nat) = NAT_CONSO And Not (f.Previsionnelle And uniteNorm = "") Then
                 If Not UniteConsommationValide(uniteNorm, uniteNorm) Then
                     AfficherMessage ws, texteLigne & "l'unit{e2} d'une ligne de consommation doit {ea}tre m" & ChrW(179) & " ou kWh."
                     Exit Function

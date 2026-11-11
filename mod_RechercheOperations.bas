@@ -419,6 +419,12 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     Dim filtresSauvegardes As Variant
     filtresSauvegardes = MemoriserFiltresRO(tblRecherche)
 
+    ' Ajout 11/11/2026 : position du curseur avant le rechargement (comme sur frm_Factures), pour
+    ' revenir au même endroit après une action (pointage, décalage, ventilation, liaison à une
+    ' facture...). Mémorisée avant que le tableau soit vidé, rétablie tout à la fin.
+    Dim focusLigne As Long, focusColonne As Long, focusCle As String
+    If conserverFiltres Then MemoriserFocusRO ws, tblRecherche, focusLigne, focusColonne, focusCle
+
     On Error Resume Next
     If tblRecherche.ShowAutoFilter Then
         tblRecherche.AutoFilter.ShowAllData
@@ -821,6 +827,75 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ' recherche (voir RestaurerFiltresRO plus haut) -- sans ca, un filtre de colonne
     ' actif avant un "Revoir la ventilation" semblait disparaitre apres coup.
     If conserverFiltres Then RestaurerFiltresRO tblRecherche, filtresSauvegardes
+
+    If conserverFiltres Then RestaurerFocusRO tblRecherche, focusLigne, focusColonne, focusCle
+
+End Sub
+
+' Clé d'une ligne du tableau : ID_Transaction | SourceLigne | LigneVentilation. Elle distingue une opération de
+' chacune de ses parts de ventilation (qui partagent l'ID de l'opération parente).
+Private Function CleLigneRO(ByVal donnees As Variant, ByVal ligneRel As Long) As String
+    CleLigneRO = CStr(donnees(ligneRel, mod_InstallRechercheOperations.RO_COL_ID)) & "|" & _
+                 CStr(donnees(ligneRel, mod_InstallRechercheOperations.RO_COL_SOURCE)) & "|" & _
+                 CStr(donnees(ligneRel, mod_InstallRechercheOperations.RO_COL_LIGNEVEN))
+End Function
+
+' Mémorise la cellule active si elle est dans le corps du tableau : sa ligne et sa colonne (relatives au tableau)
+' et la clé de la ligne. Sans effet (ligneRel = 0) si le curseur est ailleurs.
+Private Sub MemoriserFocusRO(ByVal ws As Worksheet, ByVal tbl As ListObject, _
+                             ByRef ligneRel As Long, ByRef colRel As Long, ByRef cle As String)
+
+    Dim donnees As Variant
+
+    ligneRel = 0
+    colRel = 0
+    cle = ""
+
+    On Error GoTo Fin
+    If ActiveSheet Is Nothing Then Exit Sub
+    If Not ActiveSheet Is ws Then Exit Sub
+    If tbl.DataBodyRange Is Nothing Then Exit Sub
+    If Intersect(ActiveCell, tbl.DataBodyRange) Is Nothing Then Exit Sub
+
+    ligneRel = ActiveCell.Row - tbl.DataBodyRange.Row + 1
+    colRel = ActiveCell.Column - tbl.DataBodyRange.Column + 1
+    donnees = tbl.DataBodyRange.Value
+    cle = CleLigneRO(donnees, ligneRel)
+    Exit Sub
+
+Fin:
+    ligneRel = 0
+
+End Sub
+
+' Replace le curseur sur la ligne de même clé (ou, si elle a disparu, sur la même position, sans dépasser la
+' dernière ligne), dans la même colonne. Ne fait rien si la ligne est masquée par un filtre.
+Private Sub RestaurerFocusRO(ByVal tbl As ListObject, ByVal ligneRel As Long, ByVal colRel As Long, ByVal cle As String)
+
+    Dim donnees As Variant
+    Dim nb As Long
+    Dim i As Long
+    Dim cible As Long
+
+    If ligneRel = 0 Then Exit Sub
+    If tbl.DataBodyRange Is Nothing Then Exit Sub
+
+    On Error Resume Next
+    donnees = tbl.DataBodyRange.Value
+    nb = tbl.DataBodyRange.Rows.Count
+    For i = 1 To nb
+        If CleLigneRO(donnees, i) = cle Then
+            cible = i
+            Exit For
+        End If
+    Next i
+    If cible = 0 Then cible = ligneRel
+    If cible > nb Then cible = nb
+    If colRel > tbl.ListColumns.Count Then colRel = tbl.ListColumns.Count
+
+    If tbl.DataBodyRange.Rows(cible).EntireRow.Hidden Then Exit Sub
+    tbl.DataBodyRange.Cells(cible, colRel).Select
+    On Error GoTo 0
 
 End Sub
 

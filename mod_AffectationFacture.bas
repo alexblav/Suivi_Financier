@@ -131,6 +131,19 @@ Private Function ControlerCloture(ByVal idFacture As Long, ByVal idOperation As 
     Dim totalFacture As Double, payeTotal As Double, ecart As Double
 
     ControlerCloture = vbYes
+
+    ' Facture previsionnelle : la cloturer la fait sortir de l'etat previsionnel (elle disparait de Synthese, bloc
+    ' "Factures a traiter"). L'operateur confirme que la vraie facture est saisie.
+    If mod_Factures.FactureEstPrevisionnelle(idFacture) Then
+        ControlerCloture = MsgBox(mod_Display.FR("Cette facture est encore pr{e2}visionnelle. La cl{o2}turer la fait sortir de cet {e2}tat : elle devient une facture r{e2}elle et dispara{i2}t de Synthese (Factures {a2} traiter).") & vbCrLf & vbCrLf & _
+                                  mod_Display.FR("La vraie facture est-elle bien saisie ?") & vbCrLf & _
+                                  mod_Display.FR("Oui : cl{o2}turer et sortir de l'{e2}tat pr{e2}visionnel.") & vbCrLf & _
+                                  mod_Display.FR("Non : lier l'op{e2}ration sans cl{o2}turer la facture.") & vbCrLf & _
+                                  mod_Display.FR("Annuler : ne rien enregistrer."), _
+                                  vbYesNoCancel + vbQuestion + vbDefaultButton2, mod_Display.FR("Facture pr{e2}visionnelle"))
+        If ControlerCloture <> vbYes Then Exit Function
+    End If
+
     If Not mod_Factures.TotalSaisiFacture(idFacture, totalFacture) Then Exit Function
 
     payeTotal = mod_Factures.SommeOperationsFacture(idFacture, idOperation)
@@ -378,7 +391,6 @@ Private Sub ChargerFactures()
             m_DetailFac(n) = typ & " - " & lib & " - " & suffixe
             ' Champ "Facture retenue" : sans la date (deja lue dans "Date de la facture"), soldes ajoutes a la selection
             m_BaseRetenue(n) = suffixe
-            If texte <> "" Then m_BaseRetenue(n) = m_BaseRetenue(n) & " - " & texte
         End If
 Suivante:
     Next i

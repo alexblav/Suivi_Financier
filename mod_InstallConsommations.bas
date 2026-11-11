@@ -93,7 +93,7 @@ Private Function PreparerToutesLesDonnees() As Boolean
         Split("ID_Contrat|TypeConso|Operateur|Unite|DateDebut|DateFin|AbonnementMensuel|Reference", "|"), _
         mod_VarGlobales.NOM_FEUILLE_CONTRATS) Then Exit Function
     If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_FACTURES, mod_VarGlobales.NOM_TABLE_FACTURES, _
-        Split("ID_Facture|TypeConso|Operateur|NumeroFacture|DateFacture|DebutPeriode|FinPeriode|TotalFactureTTC|Commentaire|ID_Transactions|Cloturee|NbOperations", "|"), "") Then Exit Function
+        Split("ID_Facture|TypeConso|Operateur|NumeroFacture|DateFacture|DebutPeriode|FinPeriode|TotalFactureTTC|Commentaire|ID_Transactions|Cloturee|NbOperations|Previsionnelle", "|"), "") Then Exit Function
     ' Toutes les lignes (abonnement, consommation, taxes, blocs ajoutés) : un seul tableau.
     If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_LIGNES, mod_VarGlobales.NOM_TABLE_LIGNES, _
         Split("ID_Facture|OrdreBloc|Bloc|Indicateur|Libelle|DateDebut|DateFin|Quantite|Unite|PrixUnitaireHT|TauxTVA|MontantHT|MontantTTC", "|"), "") Then Exit Function

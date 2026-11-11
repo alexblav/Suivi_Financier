@@ -24,6 +24,7 @@ Les sections 1 à 4 ci-dessous décrivent la V1 (« relevé » = une période un
 - [ ] Clôture (02/11/2026) : total TTC obligatoire à la saisie ; Affecter une facture → Oui / Non / Annuler ; facture close absente de la liste ; écart entre le total saisi et la somme des opérations liées → alerte avec le delta manquant (ou l'excédent) et choix Oui / Non / Annuler ; remboursement de fin d'année listé dans Factures non liées et déduit de la somme ; champ Facture clôturée de frm_Facture (confirmation, Non ramène au formulaire) ; Affecter une facture depuis la recherche refusé hors catégorie Eau / Électricité, gaz, chauffage
 - [ ] Garde-fous : unité autre que m³/kWh refusée dans un bloc Consommation ; m3 converti en m³ ; bouton Indicateur : confirmation avec liste des factures impactées, changement appliqué seulement à l'enregistrement, refus si une autre facture a une unité incompatible
 - [ ] Ordre : supprimer les 3 blocs du modèle, créer deux blocs dans un ordre précis, enregistrer, rouvrir, copier : même ordre
+- [ ] Ajouter un bloc (03/11/2026) : la liste numérotée des blocs déjà utilisés s'affiche avec leur indicateur ; un numéro reprend le nom exact, un autre texte crée un nouveau bloc ; sans facture enregistrée, l'invite simple s'affiche ; liste longue coupée avec « ... (n autres) »
 - [ ] Blocs libres : ajouter un bloc, le remplir, valider ; rouvrir la facture (bloc et lignes revenus) ; copier ; supprimer le bloc ; ajouter 6 blocs puis tenter un 7e ; totaux du formulaire et de la liste
 - [ ] Installer ; vérifier que les 5 feuilles `Conso_*` existent et sont masquées, puis relancer l'installation : les données restent
 - [ ] Saisir la facture 2018 du dossier (3 abonnements, 3 consommations, 4 taxes) : total TTC calculé = 1 029,00 ; HT 869,94 ; TVA 159,06
@@ -102,6 +103,7 @@ Fonction ajoutée après la refonte (README section 16) : `mod_AffectationFactur
 
 ### Tests à faire (rien n'est consigné)
 - [ ] Affecter une opération à une facture : réponse Non puis Oui à la question de clôture
+- [ ] Facture prévisionnelle (03/11/2026) : à la création, à la création depuis « Affecter une facture » et à la copie, la question est posée (Non par défaut) et préremplit le champ Facture prévisionnelle (I8) ; la facture apparaît aussitôt dans le bloc « Factures à traiter » de Synthese avec son solde (total estimé) ; chaque mensualité affectée (réponse Non à la clôture) diminue le solde, qui vaut 0 à la dernière ; « Ouvrir la facture » ouvre la facture sélectionnée (refus d'une ligne vide ou d'une autre ligne de Synthese) ; passer Facture clôturée à Oui, ou répondre Oui à la clôture dans Affecter une facture, demande si la facture sort de l'état prévisionnel (Non = retour / lien sans clôture), puis la facture quitte le bloc et le champ passe à Non ; « Affecter une facture » sur une ligne du bloc Factures à traiter est ignoré
 - [ ] Lier une seconde opération à la même facture (échéances) ; `NbOperations` passe à 2
 - [ ] Lier une opération déjà liée : refus attendu ; lier une part de ventilation : refus attendu
 - [ ] Délier une opération d'une facture clôturée, accepter de la rouvrir
