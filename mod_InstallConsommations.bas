@@ -100,6 +100,9 @@ Private Function PreparerToutesLesDonnees() As Boolean
     ' Liste des indicateurs proposés à la création d'un bloc (les quatre de base, puis ceux créés par l'opérateur).
     If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_INDIC, mod_VarGlobales.NOM_TABLE_INDIC, Split("Indicateur", "|"), "") Then Exit Function
     SemerIndicateurs
+    ' Liste des types de consommation (les quatre de base, puis ceux ajoutés par le bouton + de frm_Contrat).
+    If Not PreparerDonnees(mod_VarGlobales.NOM_FEUILLE_DATA_TYPES, mod_VarGlobales.NOM_TABLE_TYPES, Split("TypeConso|Unite", "|"), "") Then Exit Function
+    SemerTypes
     ' Reprise des lignes des anciens tableaux (une seule fois ; voir MigrerVersLignes).
     If Not MigrerVersLignes() Then Exit Function
     PreparerToutesLesDonnees = True
@@ -208,6 +211,29 @@ Private Sub SemerIndicateurs()
     ReDim vals(1 To UBound(noms) + 1, 1 To 1)
     For i = 0 To UBound(noms)
         vals(i + 1, 1) = noms(i)
+    Next i
+    lo.Resize lo.Range.Resize(UBound(noms) + 2)
+    lo.DataBodyRange.Value2 = vals
+
+End Sub
+
+' Les quatre types de base, avec leur unité, dans un tableau des types encore vide.
+Private Sub SemerTypes()
+
+    Dim lo As ListObject
+    Dim noms As Variant
+    Dim vals() As Variant
+    Dim i As Long
+
+    Set lo = mod_Consommations.TableTypes()
+    If lo Is Nothing Then Exit Sub
+    If Not mod_Consommations.TableVide(lo) Then Exit Sub
+
+    noms = mod_Consommations.TypesDeBase()
+    ReDim vals(1 To UBound(noms) + 1, 1 To 2)
+    For i = 0 To UBound(noms)
+        vals(i + 1, 1) = noms(i)
+        vals(i + 1, 2) = mod_Consommations.UniteDefaut(CStr(noms(i)))
     Next i
     lo.Resize lo.Range.Resize(UBound(noms) + 2)
     lo.DataBodyRange.Value2 = vals
@@ -851,6 +877,10 @@ Private Function ConstruireFormulaireContrat(ByVal wsPrecedente As Worksheet) As
 
     mod_InstallCommun.PoserListeDeroulante ws.Range(mod_Consommations.CF_ADR_TYPE), "ListeTypesConso"
 
+    ' Bouton "+" à côté du champ Type : ajoute un type de consommation à la liste (TblTypesConso).
+    mod_InstallCommun.AjouterBoutonCellule ws, ws.Range("D6"), mod_InstallCommun.CapAjouter(), _
+        "AjouterTypeConso", "btnAjouterTypeConso", mod_InstallCommun.FRM_BTN_PLUS
+
     gauche = ws.Cells(1, 2).Left
     mod_InstallCommun.AjouterBoutonEntete ws, LIGNE_BOUTONS, gauche, mod_InstallCommun.CapValider(), _
         "CtrValider", "btnCtrValider", mod_InstallCommun.FRM_BTN_L
@@ -872,7 +902,8 @@ Private Function TexteInstructionsContrat() As String
     t = t & "L'op{e2}rateur et l'unit{e2} sont propos{e2}s {a2} la saisie d'une facture d'apr{e1}s ses dates."
     t = t & Chr(10) & "CHANGEMENT D'OP{E2}RATEUR :cr{e2}ez simplement le nouveau contrat avec sa [c:D{e2}but du contrat]. S'il y a un contrat en cours "
     t = t & "pour ce type, le programme propose de le cl{o2}turer la veille du nouveau. Les factures d{e2}j{a2} saisies gardent leur ancien op{e2}rateur."
-    t = t & Chr(10) & "[c:Unit{e2} de mesure] : propos{e2}e d'apr{e1}s le type (m3 pour l'eau, kWh pour l'{e2}lectricit{e2} et le gaz), modifiable. "
+    t = t & Chr(10) & "[c:Type de consommation] : choisi dans la liste ; le bouton [b:+] {a2} c{o2}t{e2} ajoute un nouveau type (par exemple une production d'{e2}lectricit{e2}) avec son unit{e2} de mesure. "
+    t = t & Chr(10) & "[c:Unit{e2} de mesure] : propos{e2}e d'apr{e1}s le type (m3 pour l'eau, kWh pour l'{e2}lectricit{e2} et le gaz, ou l'unit{e2} donn{e2}e au type cr{e2}{e2}), modifiable. "
     t = t & "[c:Fin du contrat (facultative)] : laissez vide pour un contrat en cours. "
     t = t & "[c:Abonnement mensuel] : donn{e2} {a2} titre indicatif ; l'abonnement r{e2}el est saisi sur chaque facture."
     t = t & Chr(10) & "Si un champ est incorrect, un message appara{i2}t sous le formulaire et rien n'est enregistr{e2}."

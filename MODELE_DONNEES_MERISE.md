@@ -69,6 +69,7 @@ Les tableaux d'affichage (`Tbl…Aff`, `TblRechercheOperations`) sont des **vues
 - RG13. Un **contrat** lie un type de consommation (Adduction eau, Recyclage eau, Fourniture élec, Fourniture gaz) à un opérateur entre deux dates. En ouvrir un nouveau clôture le précédent du même type.
 - RG14. Une **facture** a un en-tête et des **lignes** groupées en **blocs** ordonnés. Chaque ligne alimente un **indicateur** (Abonnement, Consommation, Taxes, Autre ou un indicateur créé). Montant HT = ROUND(quantité × prix HT ; 2), TTC = ROUND(HT × (1 + TVA) ; 2). Le total saisi est comparé au total calculé, sans blocage.
 - RG15. Une facture peut être réglée par **plusieurs** opérations, mais une opération ne règle qu'**une seule** facture (une opération déjà liée est refusée). Une facture est *clôturée* quand toutes ses opérations sont liées.
+- RG16. Une facture a un **sens** : *Achat* (par défaut ; les opérations liées sont des paiements, montants négatifs) ou *Vente* (revente d'électricité ; les opérations liées sont des encaissements, montants positifs). Le sens est proposé d'après le **type de consommation**, qui porte lui-même un sens (choisi à la création du type), puis mémorisé dans la facture. Le « payé » comparé au total TTC est la somme des opérations liées, de signe inversé pour un achat. Un signe d'opération inattendu donne un avertissement, jamais un blocage (remboursement, avoir).
 
 **Synchronisation**
 
@@ -168,6 +169,7 @@ ID\_Contrat (**PK**), TypeConso, Operateur, Unite, DateDebut, DateFin *(opt)*, A
 | TotalFactureTTC, Commentaire | | Total saisi, commentaire |
 | **ID\_Transactions** | texte | **Liste** d'ID\_Transaction séparés par « ; » : les opérations qui ont réglé la facture |
 | Cloturee | « Oui » ou vide | Toutes les opérations sont liées |
+| Sens | « Vente » ou vide (= Achat) | Facture de revente : les opérations liées sont des encaissements (RG16). Colonne créée au premier besoin ; le type de consommation (`TblTypesConso.Sens`, Achat / Vente) en propose la valeur |
 | Previsionnelle | « Oui » ou vide | Facture saisie à l'avance (total estimé) pour recevoir des mensualités ; repasse à vide à la clôture. Colonne créée au premier besoin |
 | NbOperations | entier *(calc)* | Nombre d'éléments de la liste ci-dessus |
 
@@ -186,7 +188,7 @@ Indicateur (texte, **PK**) : Abonnement, Consommation, Taxes, Autre, puis ceux c
 | TechDernierImport | A1 DateImport / B1 date-heure ; A2 NbOperations / B2 nombre ; A4… liste des ID\_Transaction du dernier import |
 | soldeRefMontant, soldeRefDate | Solde saisi et sa date (feuille Synthese), **uniques pour tout le classeur** |
 | soldeEcart | Écart constaté à la dernière saisie du solde (calculé) |
-| Types de consommation | Quatre valeurs codées en dur dans `mod_Consommations` (pas de tableau) |
+| Types de consommation | Tableau `TblTypesConso` (Conso\_Types : TypeConso, Unite), semé avec les quatre types de base ; le bouton + de frm\_Contrat en ajoute (10 au plus) |
 
 ## 4. Modèle conceptuel des données (MCD)
 
@@ -339,6 +341,7 @@ INDICATEUR    (Indicateur)
 | TblFactures | Conso\_Factures | 12 | Masquée | Oui | frm\_Factures (copie `TblFacturesAff`) |
 | TblLignes | Conso\_Lignes | 13 | Masquée | Oui | frm\_Facture |
 | TblIndicateurs | Conso\_Indicateurs | 1 | Masquée | Oui | frm\_Facture (liste) |
+| TblTypesConso | Conso\_Types | 2 | Masquée | Oui | frm\_Contrat (liste et bouton +) |
 | TechDernierImport | feuille entière | cellules | Très masquée | Oui (feuille) | frm\_RechercheOperations |
 
 **Volumétrie** (export du 11/10/2026) : 218 opérations, 88 correspondances de catégories. Le modèle est dimensionné pour quelques milliers de lignes : toutes les lectures se font par tableau en mémoire, et l'empreinte de synchronisation recalcule l'ensemble des tableaux.

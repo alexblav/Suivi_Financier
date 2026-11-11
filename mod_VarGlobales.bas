@@ -265,6 +265,10 @@ Public Const NOM_TABLE_LIGNES As String = "TblLignes"
 '' l'operateur) : une colonne Indicateur.
 Public Const NOM_FEUILLE_DATA_INDIC As String = "Conso_Indicateurs"
 Public Const NOM_TABLE_INDIC As String = "TblIndicateurs"
+'' Liste des TYPES DE CONSOMMATION (Adduction eau, Recyclage eau, Fourniture elec, Fourniture gaz + ceux ajoutes par
+'' l'operateur, par exemple une production d'electricite) : colonnes TypeConso et Unite (unite proposee par defaut).
+Public Const NOM_FEUILLE_DATA_TYPES As String = "Conso_Types"
+Public Const NOM_TABLE_TYPES As String = "TblTypesConso"
 '' Anciens tableaux de lignes (avant la fusion du 24/10/2026) : utilises UNIQUEMENT par la migration de
 '' l'installateur (mod_InstallConsommations.MigrerVersLignes). Le reste du code ne les lit plus.
 Public Const NOM_FEUILLE_DATA_BLOCS As String = "Conso_Blocs"

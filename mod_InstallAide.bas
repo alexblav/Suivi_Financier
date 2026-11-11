@@ -248,14 +248,15 @@ Private Sub Def_Contrat(ByRef titre As String, ByRef intro As String, ByRef cham
             "le programme propose de le cl{o2}turer la veille. Les factures d{e2}j{a2} saisies gardent leur ancien op{e2}rateur. " & _
             "Si un champ est incorrect, un message appara{i2}t sous le formulaire et rien n'est enregistr{e2}."
 
-    L champs, "Type de consommation", "Liste : eau, eau recycl{e2}e, {e2}lectricit{e2}, gaz."
+    L champs, "Type de consommation", "Liste : eau, eau recycl{e2}e, {e2}lectricit{e2}, gaz, puis les types que vous avez ajout{e2}s avec le bouton [b:+] (par exemple une production d'{e2}lectricit{e2})."
     L champs, "Op{e2}rateur (fournisseur)", "Nom du fournisseur."
-    L champs, "Unit{e2} de mesure", "Propos{e2}e d'apr{e1}s le type (m3 pour l'eau, kWh pour l'{e2}lectricit{e2} et le gaz), modifiable."
+    L champs, "Unit{e2} de mesure", "Propos{e2}e d'apr{e1}s le type (m3 pour l'eau, kWh pour l'{e2}lectricit{e2} et le gaz, ou l'unit{e2} donn{e2}e au type ajout{e2}), modifiable."
     L champs, "D{e2}but du contrat", "Date JJ/MM/AAAA."
     L champs, "Fin du contrat (facultative)", "Date JJ/MM/AAAA ; laissez vide pour un contrat en cours."
     L champs, "Abonnement mensuel (euros)", "Donn{e2} {a2} titre indicatif ; l'abonnement r{e2}el est saisi sur chaque facture."
     L champs, "R{e2}f{e2}rence / num{e2}ro de compteur", "Texte libre (facultatif)."
 
+    L boutons, "+", "Ajoute un type de consommation {a2} la liste (nom, puis unit{e2} de mesure par d{e2}faut) et le s{e2}lectionne. Il est ensuite propos{e2} dans les contrats, les factures et l'{e2}cran Consommations (10 types au plus)."
     L boutons, "Valider", "Enregistre le contrat puis referme le formulaire."
     L boutons, "Annuler", "Referme le formulaire sans rien enregistrer."
     L boutons, "Aide", "Ouvre cette aide, sans fermer le formulaire."

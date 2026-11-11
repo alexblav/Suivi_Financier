@@ -69,6 +69,13 @@ Public Const FAC_COL_PREV As String = "Previsionnelle"
 Public Const FAC_VAL_PREV As String = "Oui"
 Public Const FF_ADR_PREV As String = "I8"             ' fusion I8:J8 (étiquette en F8:H8) : Oui = facture prévisionnelle, Non = facture réelle
 
+' Colonne de TblFactures qui porte le SENS de la facture (ajout 11/11/2026) : "Vente" = facture émise par l'opérateur de la
+' revente (les opérations liées sont des encaissements, montants positifs) ; vide ou "Achat" = facture d'achat (les opérations
+' liées sont des paiements, montants négatifs). Proposé d'après le type de consommation à la saisie, modifiable dans la facture.
+' Colonne créée au premier besoin (voir ColonneSens) : les factures existantes restent des achats, sans migration.
+Public Const FAC_COL_SENS As String = "Sens"
+Public Const FF_ADR_SENS As String = "I9"             ' fusion I9:J9 (étiquette en F9:H9) : Achat ou Vente
+
 ' Colonne de TblFactures qui mémorise le NOMBRE d'opérations liées (ajout 01/11/2026) : évite de recompter les ID_Transactions
 ' à chaque affichage de la liste. Tenue à jour par LierFacture et EnregistrerFacture ; créée au premier besoin (voir ColonneNbOperations).
 Public Const FAC_COL_NBOP As String = "NbOperations"
@@ -130,6 +137,7 @@ Public Type TypeFacture
     Commentaire As String
     Cloturee As Boolean         ' Vrai = facture close (toutes ses opérations bancaires sont liées)
     Previsionnelle As Boolean   ' Vrai = facture prévisionnelle (à compléter à la réception de la vraie facture)
+    Vente As Boolean            ' Vrai = facture de vente (revente) : les opérations liées sont des encaissements
 End Type
 
 ' Une ligne de facture (abonnement, consommation ou taxe).
@@ -688,7 +696,7 @@ Private Function ChargerFacture(ByVal id As Long, ByRef f As TypeFacture) As Boo
     Dim lo As ListObject
     Dim i As Long, n As Long, nat As Long
     Dim v As Variant
-    Dim ord As Long, idxOrd As Long, idxClo As Long, idxPrev As Long
+    Dim ord As Long, idxOrd As Long, idxClo As Long, idxPrev As Long, idxSens As Long
 
     Set lo = TableFactures()
     If lo Is Nothing Then Exit Function
@@ -717,6 +725,8 @@ Private Function ChargerFacture(ByVal id As Long, ByRef f As TypeFacture) As Boo
                     If idxClo > 0 Then f.Cloturee = EstCloture(.Cells(1, idxClo).Value2)
                     idxPrev = mod_Consommations.ColIdx(lo, FAC_COL_PREV)
                     If idxPrev > 0 Then f.Previsionnelle = EstPrevisionnelle(.Cells(1, idxPrev).Value2)
+                    idxSens = mod_Consommations.ColIdx(lo, FAC_COL_SENS)
+                    If idxSens > 0 Then f.Vente = VenteEffective(.Cells(1, idxSens).Value2, f.Typ) Else f.Vente = VenteEffective(Empty, f.Typ)
                 End With
                 ChargerFacture = True
                 Exit For
@@ -792,6 +802,7 @@ Private Function EnregistrerFacture(ByRef f As TypeFacture) As Boolean
     ColonneLien lo
     ColonneCloture lo
     ColonnePrevisionnelle lo
+    ColonneSens lo
     ColonneNbOperations lo
     If f.ID = 0 Then
         f.ID = mod_Consommations.ProchainID(lo, "ID_Facture")
@@ -819,6 +830,12 @@ Private Function EnregistrerFacture(ByRef f As TypeFacture) As Boolean
         If f.Previsionnelle Then
             .Cells(1, mod_Consommations.ColIdx(lo, FAC_COL_PREV)).NumberFormat = "@"
             .Cells(1, mod_Consommations.ColIdx(lo, FAC_COL_PREV)).Value = FAC_VAL_PREV
+        End If
+        .Cells(1, mod_Consommations.ColIdx(lo, FAC_COL_SENS)).NumberFormat = "@"
+        If f.Vente Then
+            .Cells(1, mod_Consommations.ColIdx(lo, FAC_COL_SENS)).Value = mod_Consommations.SENS_VENTE
+        Else
+            .Cells(1, mod_Consommations.ColIdx(lo, FAC_COL_SENS)).Value = mod_Consommations.SENS_ACHAT      ' explicite : ne reprend plus le sens du type
         End If
     End With
 
@@ -1150,6 +1167,60 @@ Public Function ColonnePrevisionnelle(ByVal lo As ListObject) As Long
 
 End Function
 
+' Colonne « Sens » de TblFactures, créée au premier besoin comme ColonnePrevisionnelle.
+Public Function ColonneSens(ByVal lo As ListObject) As Long
+
+    Dim col As ListColumn
+
+    ColonneSens = mod_Consommations.ColIdx(lo, FAC_COL_SENS)
+    If ColonneSens > 0 Then Exit Function
+    Set col = lo.ListColumns.Add
+    col.Name = FAC_COL_SENS
+    col.DataBodyRange.NumberFormat = "@"
+    ColonneSens = col.Index
+
+End Function
+
+' Vrai si la valeur d'une cellule de la colonne Sens désigne une facture de vente.
+Public Function EstVente(ByVal v As Variant) As Boolean
+    EstVente = (StrComp(mod_DataStructure.CellText(v), mod_Consommations.SENS_VENTE, vbTextCompare) = 0)
+End Function
+
+' Sens effectif d'une facture : celui de sa colonne Sens ; si elle est vide (facture saisie avant l'existence du sens), celui de
+' son type de consommation (Achat pour un type d'achat, Vente pour « Revente Electricité »).
+Public Function VenteEffective(ByVal vSens As Variant, ByVal typ As String) As Boolean
+    If mod_DataStructure.CellText(vSens) = "" Then
+        VenteEffective = (StrComp(mod_Consommations.SensDuType(typ), mod_Consommations.SENS_VENTE, vbTextCompare) = 0)
+    Else
+        VenteEffective = EstVente(vSens)
+    End If
+End Function
+
+' Vrai si la facture idFacture est une facture de vente (Faux si elle est introuvable). Voir VenteEffective.
+Public Function FactureEstVente(ByVal idFacture As Long) As Boolean
+
+    Dim lo As ListObject
+    Dim i As Long, idxSens As Long
+    Dim v As Variant, vSens As Variant
+
+    Set lo = TableFactures()
+    If lo Is Nothing Then Exit Function
+    If mod_Consommations.TableVide(lo) Then Exit Function
+    idxSens = mod_Consommations.ColIdx(lo, FAC_COL_SENS)
+    For i = 1 To lo.ListRows.Count
+        v = lo.ListColumns("ID_Facture").DataBodyRange.Cells(i, 1).Value2
+        If IsNumeric(v) And Not IsEmpty(v) Then
+            If CLng(v) = idFacture Then
+                vSens = Empty
+                If idxSens > 0 Then vSens = lo.DataBodyRange.Cells(i, idxSens).Value2
+                FactureEstVente = VenteEffective(vSens, mod_DataStructure.CellText(lo.DataBodyRange.Cells(i, mod_Consommations.ColIdx(lo, "TypeConso")).Value2))
+                Exit Function
+            End If
+        End If
+    Next i
+
+End Function
+
 ' Vrai si la valeur d'une cellule de la colonne Previsionnelle désigne une facture prévisionnelle.
 Public Function EstPrevisionnelle(ByVal v As Variant) As Boolean
     EstPrevisionnelle = (StrComp(mod_DataStructure.CellText(v), FAC_VAL_PREV, vbTextCompare) = 0)
@@ -1221,9 +1292,10 @@ Public Function TotalSaisiFacture(ByVal idFacture As Long, ByRef total As Double
 
 End Function
 
-' Somme PAYÉE pour la facture : montants des opérations liées (une dépense est négative dans TblOperations, la somme
-' est donc renvoyée avec le signe inversé). idEnPlus : opération sur le point d'être liée, comptée avec les autres
-' ("" si aucune).
+' Somme PAYÉE (ou ENCAISSÉE) pour la facture : montants des opérations liées. Facture d'achat : une dépense est négative
+' dans TblOperations, la somme est donc renvoyée avec le signe inversé. Facture de vente (revente) : un encaissement est
+' positif, la somme est renvoyée telle quelle. Dans les deux cas le résultat se compare au total TTC de la facture.
+' idEnPlus : opération sur le point d'être liée, comptée avec les autres ("" si aucune).
 Public Function SommeOperationsFacture(ByVal idFacture As Long, ByVal idEnPlus As String) As Double
 
     Dim liens As Object
@@ -1231,7 +1303,10 @@ Public Function SommeOperationsFacture(ByVal idFacture As Long, ByVal idEnPlus A
     Dim colId As Range, colMontant As Range
     Dim i As Long, nbL As Long, trouvees As Long
     Dim somme As Double
+    Dim signe As Double
 
+    signe = -1
+    If FactureEstVente(idFacture) Then signe = 1
     Set liens = OperationsDeFacture(idFacture)
     If Trim$(idEnPlus) <> "" Then liens(Trim$(idEnPlus)) = True
     If liens.Count = 0 Then Exit Function
@@ -1244,7 +1319,7 @@ Public Function SommeOperationsFacture(ByVal idFacture As Long, ByVal idEnPlus A
     Set colMontant = lo.ListColumns("Montant").DataBodyRange
     For i = 1 To nbL
         If liens.Exists(mod_DataStructure.CellText(colId.Cells(i, 1).Value2)) Then
-            somme = somme - mod_DataStructure.ToDouble(colMontant.Cells(i, 1).Value2)
+            somme = somme + signe * mod_DataStructure.ToDouble(colMontant.Cells(i, 1).Value2)
             trouvees = trouvees + 1
             If trouvees >= liens.Count Then Exit For
         End If
@@ -1313,6 +1388,27 @@ Public Sub PoserChampCloture(ByVal ws As Worksheet)
         .ShowInput = True
         .InputTitle = mod_Display.FR("Facture cl{o2}tur{e2}e")
         .InputMessage = mod_Display.FR("Oui : toutes les op{e2}rations de cette facture sont li{e2}es, elle n'est plus propos{e2}e {a2} l'affectation. Une confirmation est demand{e2}e {a2} la validation.")
+    End With
+    On Error GoTo 0
+
+End Sub
+
+' Champ « Sens de la facture » de l'en-tête de frm_Facture (étiquette F9:H9, liste Achat / Vente en I9:J9). Appelée à chaque
+' ouverture du formulaire : un écran déjà installé reçoit le champ sans être reconstruit.
+Private Sub PoserChampSens(ByVal ws As Worksheet)
+
+    mod_InstallCommun.PoserEtiquette ws.Range("F9:H9"), mod_Display.FR("Sens de la facture")
+    mod_InstallCommun.PoserChampSaisie ws.Range(FF_ADR_SENS & ":J9"), "@"
+    ws.Range(FF_ADR_SENS).HorizontalAlignment = xlCenter
+    On Error Resume Next
+    With ws.Range(FF_ADR_SENS).Validation
+        .Delete
+        .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, Formula1:=mod_Consommations.SENS_ACHAT & "," & mod_Consommations.SENS_VENTE
+        .IgnoreBlank = True
+        .InCellDropdown = True
+        .ShowInput = True
+        .InputTitle = mod_Display.FR("Sens de la facture")
+        .InputMessage = mod_Display.FR("Achat : vous payez un fournisseur (op{e2}rations n{e2}gatives). Vente : vous {e2}mettez la facture et encaissez le paiement, par exemple la revente d'{e2}lectricit{e2} (op{e2}rations positives). Propos{e2} d'apr{e1}s le type de consommation.")
     End With
     On Error GoTo 0
 
@@ -1823,6 +1919,8 @@ Private Sub RemplirFormulaire(ByVal ws As Worksheet, ByRef f As TypeFacture)
     ws.Range(FF_ADR_NBOP).Value = NbOperationsFacture(f.ID)
     PoserChampPrevisionnelle ws
     If f.Previsionnelle Then ws.Range(FF_ADR_PREV).Value = "Oui" Else ws.Range(FF_ADR_PREV).Value = "Non"
+    PoserChampSens ws
+    If f.Vente Then ws.Range(FF_ADR_SENS).Value = mod_Consommations.SENS_VENTE Else ws.Range(FF_ADR_SENS).Value = mod_Consommations.SENS_ACHAT
     ws.Range(FF_ADR_MESSAGE).Value = ""
     PoserListeType ws
     MettreAJourListeOperateurs ws, f.Typ
@@ -2950,6 +3048,8 @@ Public Sub FacTraiterChangement(ByVal ws As Worksheet, ByVal Target As Range)
     If typ = "" Then GoTo Sortie
     MettreAJourListeOperateurs ws, typ
     RemplirTvaDefaut ws, typ
+    ' Le sens de la facture est proposé d'après celui du type (modifiable ensuite dans le champ).
+    ws.Range(FF_ADR_SENS).Value = mod_Consommations.SensDuType(typ)
     If mod_DataStructure.CellText(ws.Range(FF_ADR_OPERATEUR).Value) = "" Then
         d = mod_Consommations.VersJour(ws.Range(FF_ADR_DEBUT).Value)
         If d = 0 Then d = CDbl(Date)
@@ -2999,6 +3099,15 @@ Public Sub FacValider()
             f.Previsionnelle = False
         Case Else
             AfficherMessage ws, "Facture pr{e2}visionnelle : choisissez Oui ou Non."
+            Exit Sub
+    End Select
+    Select Case LCase$(mod_DataStructure.CellText(ws.Range(FF_ADR_SENS).Value))
+        Case "vente"
+            f.Vente = True
+        Case "achat", ""
+            f.Vente = False
+        Case Else
+            AfficherMessage ws, "Sens de la facture : choisissez Achat ou Vente."
             Exit Sub
     End Select
     f.Operateur = mod_DataStructure.CellText(ws.Range(FF_ADR_OPERATEUR).Value)

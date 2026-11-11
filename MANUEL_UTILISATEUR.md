@@ -444,7 +444,7 @@ Un contrat = un type de consommation chez un opérateur. Bouton **Contrats**, pu
 
 | Champ | À renseigner |
 | --- | --- |
-| **Type de consommation** | Adduction eau, Recyclage eau, Fourniture élec, Fourniture gaz |
+| **Type de consommation** | Adduction eau, Recyclage eau, Fourniture élec, Fourniture gaz, ou un type ajouté avec le bouton **+** à côté du champ (par exemple *Production électricité* : le programme demande son nom puis son unité de mesure ; 10 types au plus) |
 | **Opérateur** | Le fournisseur (il sert de légende au graphique) |
 | **Unité de mesure** | Proposée selon le type (m³, kWh), modifiable |
 | **Début du contrat** | Date de début |
@@ -636,6 +636,13 @@ Une facture peut être payée par **plusieurs** opérations ; une opération, el
 5. Le classeur compare alors le total TTC réel aux prélèvements liés. Un **écart** est normal : c'est la régularisation (solde à payer ou trop-perçu). Si vous l'avez réglé par une dernière opération, affectez-la à la facture. Si c'est un trop-perçu déduit de la facture suivante, suivez l'exemple précédent, ou répondez **Oui** à l'alerte pour clôturer quand même.
 
 > **À savoir :** n'ouvrez pas une seconde facture pour la vraie facture de décembre : vous obtiendriez une alerte de chevauchement de périodes, et les prélèvements resteraient liés à la facture provisoire. Complétez toujours la facture provisoire.
+
+**Facture de vente (revente d'électricité).** Une facture que vous *émettez* se règle par un **encaissement** (montant positif) et non par un paiement. Le champ **Sens de la facture** de l'en-tête (*Achat* ou *Vente*) en tient compte : pour une vente, les opérations liées s'ajoutent au total au lieu de s'en retrancher, si bien que l'alerte de clôture et le solde ne signalent aucun écart quand l'encaissement égale le total TTC.
+
+- **Le sens vient du type.** À la création d'un type de consommation (bouton **+** de l'écran Contrat), le classeur demande s'il s'agit d'une **revente** ; le sens est ensuite proposé automatiquement dès que vous choisissez ce type dans la facture, et reste modifiable. Pour un type existant, lancez la macro **ModifierSensTypeConso**. Le type *Revente Electricité* est reconnu comme une vente à la première utilisation.
+- **Affecter l'encaissement.** Les opérations de revente apparaissent dans **Factures non liées** comme les autres ; la liste des factures proposées marque les ventes d'un « | vente ». Plusieurs encaissements peuvent être liés à une même facture de vente.
+- **Avertissement.** Si le signe de l'opération ne correspond pas au sens de la facture (une entrée d'argent sur un achat, une sortie sur une vente), le classeur le signale et demande confirmation : c'est normal pour un remboursement ou un avoir.
+- Les factures déjà saisies restent des achats.
 
 **Voir les opérations d'une facture.** Dans la liste **Voir les factures**, la colonne *NbOperations* donne le nombre d'opérations liées ; un **double-clic** sur ce nombre ouvre l'écran de recherche sur ces opérations.
 

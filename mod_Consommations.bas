@@ -67,11 +67,11 @@ Public Const CO_COL_LISTE_TYPE As Long = 40     ' AN
 Public Const CO_COL_LISTE_INDIC As Long = 41
 Public Const CO_COL_LISTE_FORME As Long = 43
 Public Const CO_COL_LISTE_REPART As Long = 44
-Public Const CO_COL_LISTE_DATES As Long = 46    ' AT à AX : mois disponibles en base, une colonne par choix de type (listes Début et Fin)
-Public Const CO_NB_COL_DATES As Long = 5        ' (tous) + les 4 types
-Public Const CO_COL_LISTE_DATES_DESC As Long = 51   ' AY à BC : les mêmes mois, du plus récent au plus ancien (liste Fin)
+Public Const CO_COL_LISTE_DATES As Long = 46    ' AT à BD : mois disponibles en base, une colonne par choix de type (listes Début et Fin)
+Public Const CO_NB_COL_DATES As Long = 11       ' (tous) + au plus 10 types de consommation
+Public Const CO_COL_LISTE_DATES_DESC As Long = 57   ' une colonne par choix de type : les mêmes mois, du plus récent au plus ancien (liste Fin)
 Public Const CO_NB_LISTE_DATES As Long = 200    ' mois au plus dans chaque colonne
-Public Const CO_COL_LISTE_INDIC_TYPE As Long = 56   ' BD à BH : indicateurs réellement alimentés, une colonne par choix de type (liste Indicateur)
+Public Const CO_COL_LISTE_INDIC_TYPE As Long = 68   ' une colonne par choix de type : indicateurs réellement alimentés, une colonne par choix de type (liste Indicateur)
 Public Const CO_NB_LISTE_INDIC As Long = 50    ' indicateurs au plus dans chaque colonne
 Public Const CO_NB_EXTRA As Long = 12           ' indicateurs créés par l'opérateur suivis au plus dans le calcul (les suivants sont regroupés dans le dernier)
 
@@ -84,6 +84,14 @@ Public Const CF_ADR_FIN As String = "C10"
 Public Const CF_ADR_ABO As String = "C11"
 Public Const CF_ADR_REFERENCE As String = "C12"
 Public Const CF_ADR_MESSAGE As String = "B14"           ' zone fusionnée B14:E14
+
+' --- Sens d'un type de consommation (ajout 11/11/2026) ---
+' Un type est un ACHAT (valeur par défaut : on paie le fournisseur, l'opération bancaire est négative) ou une VENTE (revente
+' d'électricité : on encaisse, l'opération est positive). Le sens du type est proposé à la saisie d'une facture, qui le
+' mémorise dans sa propre colonne Sens (voir mod_Factures.FAC_COL_SENS). Colonne de TblTypesConso créée au premier besoin.
+Public Const SENS_ACHAT As String = "Achat"
+Public Const SENS_VENTE As String = "Vente"
+Public Const TYPE_COL_SENS As String = "Sens"
 
 ' Un contrat tel que saisi dans le formulaire.
 Public Type TypeContrat
@@ -163,9 +171,134 @@ Public Function TypeGaz() As String
     TypeGaz = "Fourniture gaz"
 End Function
 
-Public Function TypesConso() As Variant
-    TypesConso = Array(TypeAdduction(), TypeRecyclage(), TypeElec(), TypeGaz())
+' Types de base : proposés tant que le tableau TblTypesConso n'existe pas (avant la réinstallation) et semés dedans.
+Public Function TypesDeBase() As Variant
+    TypesDeBase = Array(TypeAdduction(), TypeRecyclage(), TypeElec(), TypeGaz())
 End Function
+
+' Les types de consommation : ceux de TblTypesConso (feuille masquée Conso_Types), dans l'ordre du tableau, au plus
+' CO_NB_COL_DATES - 1 (un bloc de colonnes techniques par type dans frm_Consommations). Tableau de base 0.
+Public Function TypesConso() As Variant
+
+    Dim lo As ListObject
+    Dim vTyp() As Variant
+    Dim res() As Variant
+    Dim i As Long, nbTyp As Long
+    Dim s As String
+
+    Set lo = TableTypes()
+    If Not lo Is Nothing Then
+        If Not TableVide(lo) Then
+            vTyp = LireColonne(lo, "TypeConso")
+            ReDim res(0 To lo.ListRows.Count - 1)
+            For i = 1 To lo.ListRows.Count
+                s = mod_DataStructure.CellText(vTyp(i))
+                If s <> "" And nbTyp < CO_NB_COL_DATES - 1 Then
+                    res(nbTyp) = s
+                    nbTyp = nbTyp + 1
+                End If
+            Next i
+        End If
+    End If
+
+    If nbTyp = 0 Then
+        TypesConso = TypesDeBase()
+    Else
+        ReDim Preserve res(0 To nbTyp - 1)
+        TypesConso = res
+    End If
+
+End Function
+
+Public Function TableTypes() As ListObject
+    Set TableTypes = ObtenirTable(mod_VarGlobales.NOM_FEUILLE_DATA_TYPES, mod_VarGlobales.NOM_TABLE_TYPES)
+End Function
+
+' --- Sens d'un type de consommation (ajout 11/11/2026) ---
+' Un type est un ACHAT ou une VENTE : voir les constantes SENS_ACHAT et SENS_VENTE en tête de module.
+
+' Colonne « Sens » de TblTypesConso, créée au premier besoin. À la création, les types dont le nom contient « vente »
+' (Revente Electricité...) reçoivent le sens Vente, les autres le sens Achat.
+Public Function ColonneSensType(ByVal lo As ListObject) As Long
+
+    Dim col As ListColumn
+    Dim i As Long, idxTyp As Long
+
+    ColonneSensType = ColIdx(lo, TYPE_COL_SENS)
+    If ColonneSensType > 0 Then Exit Function
+    Set col = lo.ListColumns.Add
+    col.Name = TYPE_COL_SENS
+    ColonneSensType = col.Index
+    If lo.DataBodyRange Is Nothing Then Exit Function
+    col.DataBodyRange.NumberFormat = "@"
+    idxTyp = ColIdx(lo, "TypeConso")
+    For i = 1 To lo.ListRows.Count
+        If InStr(1, mod_DataStructure.CellText(lo.DataBodyRange.Cells(i, idxTyp).Value2), "vente", vbTextCompare) > 0 Then
+            lo.DataBodyRange.Cells(i, ColonneSensType).Value = SENS_VENTE
+        ElseIf mod_DataStructure.CellText(lo.DataBodyRange.Cells(i, idxTyp).Value2) <> "" Then
+            lo.DataBodyRange.Cells(i, ColonneSensType).Value = SENS_ACHAT
+        End If
+    Next i
+
+End Function
+
+' Sens (SENS_ACHAT ou SENS_VENTE) mémorisé avec un type ; Achat si le type est inconnu ou sans sens.
+Public Function SensDuType(ByVal typ As String) As String
+
+    Dim lo As ListObject
+    Dim i As Long, idxTyp As Long, idxSens As Long
+
+    SensDuType = SENS_ACHAT
+    Set lo = TableTypes()
+    If lo Is Nothing Then Exit Function
+    idxSens = ColonneSensType(lo)
+    If TableVide(lo) Then Exit Function
+    idxTyp = ColIdx(lo, "TypeConso")
+    For i = 1 To lo.ListRows.Count
+        If StrComp(mod_DataStructure.CellText(lo.DataBodyRange.Cells(i, idxTyp).Value2), typ, vbTextCompare) = 0 Then
+            If StrComp(mod_DataStructure.CellText(lo.DataBodyRange.Cells(i, idxSens).Value2), SENS_VENTE, vbTextCompare) = 0 Then SensDuType = SENS_VENTE
+            Exit Function
+        End If
+    Next i
+
+End Function
+
+' Macro (Alt+F8) : change le sens (achat / vente) d'un type de consommation existant. N'agit que sur les factures
+' saisies ensuite : chaque facture garde le sens qu'elle a enregistré.
+Public Sub ModifierSensTypeConso()
+
+    Dim lo As ListObject
+    Dim nomType As String
+    Dim i As Long, idxTyp As Long, idxSens As Long
+    Dim rep As VbMsgBoxResult
+
+    Set lo = TableTypes()
+    If lo Is Nothing Then
+        MsgBox mod_Display.FR("La liste des types de consommation n'existe pas encore. Ex{e2}cutez d'abord la macro InstallerConsommations."), vbExclamation
+        Exit Sub
+    End If
+    idxSens = ColonneSensType(lo)
+    idxTyp = ColIdx(lo, "TypeConso")
+    nomType = Trim$(InputBox(mod_Display.FR("Nom du type de consommation {a2} modifier (par exemple Revente Electricit{e2}) :"), _
+                             mod_Display.FR("Sens d'un type de consommation")))
+    If nomType = "" Then Exit Sub
+    If TableVide(lo) Then Exit Sub
+    For i = 1 To lo.ListRows.Count
+        If StrComp(mod_DataStructure.CellText(lo.DataBodyRange.Cells(i, idxTyp).Value2), nomType, vbTextCompare) = 0 Then
+            rep = MsgBox(mod_Display.FR("Type : ") & mod_DataStructure.CellText(lo.DataBodyRange.Cells(i, idxTyp).Value2) & vbCrLf & _
+                         mod_Display.FR("Sens actuel : ") & SensDuType(nomType) & vbCrLf & vbCrLf & _
+                         mod_Display.FR("Oui : VENTE (revente, les op{e2}rations li{e2}es sont des encaissements).") & vbCrLf & _
+                         mod_Display.FR("Non : ACHAT (consommation, les op{e2}rations li{e2}es sont des paiements).") & vbCrLf & _
+                         mod_Display.FR("Annuler : ne rien changer."), vbYesNoCancel + vbQuestion, mod_Display.FR("Sens d'un type de consommation"))
+            If rep = vbCancel Then Exit Sub
+            lo.DataBodyRange.Cells(i, idxSens).NumberFormat = "@"
+            If rep = vbYes Then lo.DataBodyRange.Cells(i, idxSens).Value = SENS_VENTE Else lo.DataBodyRange.Cells(i, idxSens).Value = SENS_ACHAT
+            Exit Sub
+        End If
+    Next i
+    MsgBox mod_Display.FR("Type introuvable : ") & nomType, vbExclamation, mod_Display.FR("Sens d'un type de consommation")
+
+End Sub
 
 Public Function LibTous() As String
     LibTous = "(tous)"
@@ -223,8 +356,32 @@ Public Function LibAutres() As String
     LibAutres = "Autres"
 End Function
 
-' Unité proposée par défaut selon le type (modifiable dans le contrat).
+' Unité mémorisée avec un type dans TblTypesConso ("" si le type n'y est pas ou n'a pas d'unité).
+Private Function UniteDuTypeMemorisee(ByVal typ As String) As String
+
+    Dim lo As ListObject
+    Dim vTyp() As Variant, vUni() As Variant
+    Dim i As Long
+
+    Set lo = TableTypes()
+    If lo Is Nothing Then Exit Function
+    If TableVide(lo) Then Exit Function
+    If ColIdx(lo, "Unite") = 0 Then Exit Function
+    vTyp = LireColonne(lo, "TypeConso")
+    vUni = LireColonne(lo, "Unite")
+    For i = 1 To lo.ListRows.Count
+        If StrComp(mod_DataStructure.CellText(vTyp(i)), typ, vbTextCompare) = 0 Then
+            UniteDuTypeMemorisee = mod_DataStructure.CellText(vUni(i))
+            Exit Function
+        End If
+    Next i
+
+End Function
+
+' Unité proposée par défaut selon le type (modifiable dans le contrat) : celle du tableau des types, sinon m3 pour l'eau et kWh.
 Public Function UniteDefaut(ByVal typ As String) As String
+    UniteDefaut = UniteDuTypeMemorisee(typ)
+    If UniteDefaut <> "" Then Exit Function
     If StrComp(typ, TypeAdduction(), vbTextCompare) = 0 Or StrComp(typ, TypeRecyclage(), vbTextCompare) = 0 Then
         UniteDefaut = "m" & ChrW(179)
     Else
@@ -232,8 +389,23 @@ Public Function UniteDefaut(ByVal typ As String) As String
     End If
 End Function
 
+' Vrai si l'unité est une de celles proposées automatiquement (m3, kWh ou l'unité d'un type de la liste) :
+' elle peut alors être remplacée quand on change de type.
 Private Function EstUniteDefaut(ByVal u As String) As Boolean
+
+    Dim tps As Variant
+    Dim i As Long
+
     EstUniteDefaut = (StrComp(u, "m" & ChrW(179), vbTextCompare) = 0 Or StrComp(u, "kWh", vbTextCompare) = 0)
+    If EstUniteDefaut Then Exit Function
+    tps = TypesConso()
+    For i = 0 To UBound(tps)
+        If StrComp(UniteDuTypeMemorisee(CStr(tps(i))), u, vbTextCompare) = 0 Then
+            EstUniteDefaut = True
+            Exit Function
+        End If
+    Next i
+
 End Function
 
 Public Function TypeConnu(ByVal typ As String) As Boolean
@@ -410,7 +582,18 @@ Public Function NouvelleLigne(ByVal lo As ListObject) As ListRow
     ElseIf TableVide(lo) Then
         Set NouvelleLigne = lo.ListRows(1)
     Else
+        ' ListRows.Add échoue (erreur 50290) dans certains contextes, par exemple appelé depuis un bouton pendant
+        ' qu'un formulaire attend (boucle DoEvents) : on agrandit alors le tableau d'une ligne par Resize.
+        On Error Resume Next
         Set NouvelleLigne = lo.ListRows.Add
+        If Err.Number <> 0 Then
+            Err.Clear
+            Set NouvelleLigne = Nothing
+            lo.Resize lo.Range.Resize(lo.Range.Rows.Count + 1)
+            If Err.Number = 0 Then Set NouvelleLigne = lo.ListRows(lo.ListRows.Count)
+        End If
+        On Error GoTo 0
+        If NouvelleLigne Is Nothing Then Set NouvelleLigne = lo.ListRows.Add     ' l'erreur d'origine remonte
     End If
 End Function
 
@@ -1328,6 +1511,57 @@ Private Function ValeurIndic(ByVal kind As Long, ByVal q As Double, ByVal ht As 
 
 End Function
 
+' Liste du paramètre Type de l'écran : (tous) puis les types de consommation, reposée à chaque actualisation
+' (un type ajouté depuis frm_Contrat y apparaît sans réinstallation).
+Private Sub PoserListeTypeGraph(ByVal ws As Worksheet, ByVal tps As Variant)
+
+    Dim i As Long
+    Dim adr As String
+
+    ws.Range(ws.Cells(2, CO_COL_LISTE_TYPE), ws.Cells(CO_NB_COL_DATES + 1, CO_COL_LISTE_TYPE)).ClearContents
+    ws.Cells(2, CO_COL_LISTE_TYPE).Value = LibTous()
+    For i = 0 To UBound(tps)
+        ws.Cells(3 + i, CO_COL_LISTE_TYPE).Value = tps(i)
+    Next i
+    adr = "='" & ws.Name & "'!" & ws.Range(ws.Cells(2, CO_COL_LISTE_TYPE), ws.Cells(2 + UBound(tps) + 1, CO_COL_LISTE_TYPE)).Address(True, True)
+    On Error Resume Next
+    ThisWorkbook.Names("ListeTypeConsoGraph").RefersTo = adr
+    If Err.Number <> 0 Then
+        Err.Clear
+        ThisWorkbook.Names.Add Name:="ListeTypeConsoGraph", RefersTo:=adr
+    End If
+    On Error GoTo 0
+
+End Sub
+
+' Liste des types de la plage nommée ListeTypesConso (listes déroulantes de frm_Contrat, frm_Contrats et frm_Facture) :
+' réécrite depuis TblTypesConso, dans la colonne technique masquée de frm_Facture.
+Public Sub RafraichirListeTypes()
+
+    Dim ws As Worksheet
+    Dim tps As Variant
+    Dim i As Long
+    Dim adr As String
+
+    Set ws = mod_InstallCommun.TrouverFeuille(mod_VarGlobales.NOM_FEUILLE_FACTURE)
+    If ws Is Nothing Then Exit Sub
+    tps = TypesConso()
+    ws.Range(ws.Cells(1, mod_Factures.FF_COL_AIDE_TYPE), ws.Cells(20, mod_Factures.FF_COL_AIDE_TYPE)).ClearContents
+    ws.Cells(1, mod_Factures.FF_COL_AIDE_TYPE).Value = "Types"
+    For i = 0 To UBound(tps)
+        ws.Cells(2 + i, mod_Factures.FF_COL_AIDE_TYPE).Value = tps(i)
+    Next i
+    adr = "='" & ws.Name & "'!" & ws.Range(ws.Cells(2, mod_Factures.FF_COL_AIDE_TYPE), ws.Cells(2 + UBound(tps), mod_Factures.FF_COL_AIDE_TYPE)).Address(True, True)
+    On Error Resume Next
+    ThisWorkbook.Names("ListeTypesConso").RefersTo = adr
+    If Err.Number <> 0 Then
+        Err.Clear
+        ThisWorkbook.Names.Add Name:="ListeTypesConso", RefersTo:=adr
+    End If
+    On Error GoTo 0
+
+End Sub
+
 ' Mois disponibles en base (listes Début et Fin) et mise en forme du tableau.
 Private Sub MettreAJourListesConso(ByVal ws As Worksheet, ByRef t() As TypeLigne, ByVal nb As Long)
 
@@ -1351,6 +1585,8 @@ Private Sub MettreAJourListesConso(ByVal ws As Worksheet, ByRef t() As TypeLigne
     ' lignes de factures de ce type, c'est-à-dire la période effectivement saisie (hors trous entre
     ' deux factures). Ils alimentent les listes Début et Fin, qui suivent donc le type choisi.
     tps = TypesConso()
+    PoserListeTypeGraph ws, tps
+    RafraichirListeTypes
     ReDim g_MinType(0 To CO_NB_COL_DATES - 1)
     ReDim g_MaxType(0 To CO_NB_COL_DATES - 1)
     ReDim tabMois(1 To CO_NB_LISTE_DATES, 1 To CO_NB_COL_DATES)
@@ -1368,7 +1604,9 @@ Private Sub MettreAJourListesConso(ByVal ws As Worksheet, ByRef t() As TypeLigne
         dicInd.CompareMode = 1
         For i = 1 To nb
             retenue = (c = 0)
-            If Not retenue Then retenue = (StrComp(t(i).Typ, tps(c - 1), vbTextCompare) = 0)
+            If Not retenue Then
+                If c - 1 <= UBound(tps) Then retenue = (StrComp(t(i).Typ, tps(c - 1), vbTextCompare) = 0)
+            End If
             If retenue Then
                 Select Case t(i).Nat
                     Case mod_Factures.NAT_CONSO: aConso = True
@@ -1392,8 +1630,10 @@ Private Sub MettreAJourListesConso(ByVal ws As Worksheet, ByRef t() As TypeLigne
         Next i
         If c = 0 Then
             ws.Cells(1, CO_COL_LISTE_DATES).Value = LibTous()
-        Else
+        ElseIf c - 1 <= UBound(tps) Then
             ws.Cells(1, CO_COL_LISTE_DATES + c).Value = tps(c - 1)
+        Else
+            ws.Cells(1, CO_COL_LISTE_DATES + c).ClearContents      ' colonne de type non utilisée
         End If
         n = 0
         If g_MinType(c) >= 0 Then
@@ -1413,8 +1653,10 @@ Private Sub MettreAJourListesConso(ByVal ws As Worksheet, ByRef t() As TypeLigne
         ' Quantité et prix n'existent que pour un type choisi (les unités diffèrent d'un type à l'autre).
         If c = 0 Then
             ws.Cells(1, CO_COL_LISTE_INDIC_TYPE).Value = LibTous()
-        Else
+        ElseIf c - 1 <= UBound(tps) Then
             ws.Cells(1, CO_COL_LISTE_INDIC_TYPE + c).Value = tps(c - 1)
+        Else
+            ws.Cells(1, CO_COL_LISTE_INDIC_TYPE + c).ClearContents
         End If
         If aConso Then
             If c > 0 Then
@@ -1445,7 +1687,7 @@ Private Sub MettreAJourListesConso(ByVal ws As Worksheet, ByRef t() As TypeLigne
         .ClearContents
         .Value = tabInd
     End With
-    ws.Range(ws.Columns(CO_COL_LISTE_INDIC_TYPE), ws.Columns(CO_COL_LISTE_INDIC_TYPE + CO_NB_COL_DATES - 1)).EntireColumn.Hidden = True
+    ws.Range(ws.Columns(CO_COL_H_LIB), ws.Columns(CO_COL_LISTE_INDIC_TYPE + CO_NB_COL_DATES - 1)).EntireColumn.Hidden = True
 
     With ws.Range(ws.Cells(2, CO_COL_LISTE_DATES), ws.Cells(CO_NB_LISTE_DATES + 1, CO_COL_LISTE_DATES + CO_NB_COL_DATES - 1))
         .ClearContents
@@ -1828,6 +2070,7 @@ Private Function OuvrirFormContrat(ByRef c As TypeContrat, ByRef ligneAClore As 
     ws.Range(CF_ADR_TYPE).Select
 
     On Error Resume Next
+    RafraichirListeTypes
     mod_InstallCommun.PoserListeDeroulante ws.Range(CF_ADR_TYPE), "ListeTypesConso", True
     On Error GoTo Erreur
 
@@ -1881,6 +2124,81 @@ Sortie:
     numErr = Err.Number
     Application.EnableEvents = True
     If numErr <> 0 Then MsgBox mod_Display.FR("Erreur lors du changement de type : ") & Err.Description, vbExclamation
+
+End Sub
+
+' Bouton « + » du champ Type de frm_Contrat : ajoute un type de consommation à la liste (par exemple « Production
+' électricité »), avec son unité de mesure par défaut, et le sélectionne dans le formulaire.
+Public Sub AjouterTypeConso()
+
+    Dim ws As Worksheet
+    Dim lo As ListObject
+    Dim lr As ListRow
+    Dim tps As Variant
+    Dim nomType As String, uniteType As String
+    Dim i As Long, idxSens As Long
+    Dim sensRep As VbMsgBoxResult
+
+    If Not g_CtrEnCours Then Exit Sub
+    Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_CONTRAT)
+
+    Set lo = TableTypes()
+    If lo Is Nothing Then
+        MsgBox mod_Display.FR("La liste des types de consommation n'existe pas encore. Ex{e2}cutez d'abord la macro InstallerConsommations."), vbExclamation
+        Exit Sub
+    End If
+
+    tps = TypesConso()
+    If UBound(tps) + 1 >= CO_NB_COL_DATES - 1 Then
+        MsgBox mod_Display.FR("La liste est pleine : ") & (CO_NB_COL_DATES - 1) & mod_Display.FR(" types au plus."), vbExclamation, mod_Display.FR("Nouveau type de consommation")
+        Exit Sub
+    End If
+
+    nomType = Trim$(InputBox(mod_Display.FR("Nom du nouveau type de consommation (par exemple Production {e2}lectricit{e2}). ") & _
+                             mod_Display.FR("Il sera propos{e2} dans les listes des contrats et des factures :"), _
+                             mod_Display.FR("Nouveau type de consommation")))
+    If nomType = "" Then Exit Sub
+    nomType = Replace(Replace(nomType, vbCr, " "), vbLf, " ")
+    If Len(nomType) > 40 Then
+        MsgBox mod_Display.FR("Le nom du type est limit{e2} {a2} 40 caract{e1}res."), vbExclamation, mod_Display.FR("Nouveau type de consommation")
+        Exit Sub
+    End If
+    If StrComp(nomType, LibTous(), vbTextCompare) = 0 Then
+        MsgBox mod_Display.FR("Ce nom est r{e2}serv{e2} : choisissez-en un autre."), vbExclamation, mod_Display.FR("Nouveau type de consommation")
+        Exit Sub
+    End If
+
+    ' Un type déjà connu n'est pas recréé : on le sélectionne simplement (même orthographe que dans la liste).
+    For i = 0 To UBound(tps)
+        If StrComp(CStr(tps(i)), nomType, vbTextCompare) = 0 Then
+            MsgBox mod_Display.FR("Ce type existe d{e2}j{a2} : il est s{e2}lectionn{e2}."), vbInformation, mod_Display.FR("Nouveau type de consommation")
+            ws.Range(CF_ADR_TYPE).Value = CStr(tps(i))
+            Exit Sub
+        End If
+    Next i
+
+    uniteType = Trim$(InputBox(mod_Display.FR("Unit{e2} de mesure de ce type (kWh, m") & ChrW(179) & mod_Display.FR(", litres...). Elle sera propos{e2}e par d{e2}faut dans les contrats et les factures :"), _
+                               mod_Display.FR("Nouveau type de consommation"), "kWh"))
+    If uniteType = "" Then Exit Sub
+    uniteType = Replace(Replace(uniteType, vbCr, " "), vbLf, " ")
+
+    ' Sens du type : achat (on paie un fournisseur) ou vente (on encaisse, par exemple la revente d'électricité).
+    sensRep = MsgBox(mod_Display.FR("Ce type est-il une REVENTE (vous {e2}mettez les factures et encaissez les paiements) ?") & vbCrLf & vbCrLf & _
+                     mod_Display.FR("Oui : vente (les op{e2}rations li{e2}es aux factures sont des encaissements).") & vbCrLf & _
+                     mod_Display.FR("Non : achat / consommation (les op{e2}rations li{e2}es sont des paiements).") & vbCrLf & _
+                     mod_Display.FR("Annuler : ne pas cr{e2}er le type."), _
+                     vbYesNoCancel + vbQuestion + vbDefaultButton2, mod_Display.FR("Nouveau type de consommation"))
+    If sensRep = vbCancel Then Exit Sub
+
+    idxSens = ColonneSensType(lo)
+    Set lr = NouvelleLigne(lo)
+    lr.Range.Cells(1, ColIdx(lo, "TypeConso")).Value = nomType
+    lr.Range.Cells(1, ColIdx(lo, "Unite")).Value = uniteType
+    lr.Range.Cells(1, idxSens).NumberFormat = "@"
+    If sensRep = vbYes Then lr.Range.Cells(1, idxSens).Value = SENS_VENTE Else lr.Range.Cells(1, idxSens).Value = SENS_ACHAT
+
+    RafraichirListeTypes
+    ws.Range(CF_ADR_TYPE).Value = nomType       ' déclenche la proposition de l'unité (CtrTraiterChangement)
 
 End Sub
 

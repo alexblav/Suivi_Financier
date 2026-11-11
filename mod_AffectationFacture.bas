@@ -82,6 +82,20 @@ Public Function AffecterFacture(ByVal idOperation As String, ByVal jourOp As Dou
         suite = AfficherFormulaire(jourOp, tiers, categorie, montantOp, idFacture)
         Select Case suite
             Case "Valider"
+                ' Garde-fou du sens (non bloquant) : un encaissement sur une facture d'achat ou un paiement sur une facture de
+                ' vente est possible (remboursement, avoir) mais le plus souvent c'est une erreur de facture.
+                If mod_Factures.FactureEstVente(idFacture) And montantOp < 0 Then
+                    If MsgBox(mod_Display.FR("Cette facture est une facture de VENTE (on attend un encaissement), mais l'op{e2}ration est une sortie d'argent (") & _
+                              Format(montantOp, "#,##0.00") & " " & ChrW(8364) & mod_Display.FR(").") & vbCrLf & vbCrLf & _
+                              mod_Display.FR("Lier quand m{ea}me ?"), vbYesNo + vbExclamation + vbDefaultButton2, _
+                              mod_Display.FR("Sens de la facture")) = vbNo Then Exit Do
+                ElseIf Not mod_Factures.FactureEstVente(idFacture) And montantOp > 0 Then
+                    If MsgBox(mod_Display.FR("Cette facture est une facture d'ACHAT (on attend un paiement), mais l'op{e2}ration est une entr{e2}e d'argent (") & _
+                              Format(montantOp, "#,##0.00") & " " & ChrW(8364) & mod_Display.FR(").") & vbCrLf & _
+                              mod_Display.FR("C'est normal pour un remboursement ou un avoir ; sinon, v{e2}rifiez le sens de la facture (champ Sens de la facture).") & vbCrLf & vbCrLf & _
+                              mod_Display.FR("Lier quand m{ea}me ?"), vbYesNo + vbExclamation + vbDefaultButton2, _
+                              mod_Display.FR("Sens de la facture")) = vbNo Then Exit Do
+                End If
                 ' Cloture : l'operateur dit si toutes les operations de la facture sont desormais liees. Annuler n'ecrit rien.
                 reponse = MsgBox(mod_Display.FR("Facture retenue : ") & DetailDeFacture(idFacture) & vbCrLf & vbCrLf & _
                                  mod_Display.FR("Toutes les op{e2}rations qui ont r{e2}gl{e2} cette facture sont-elles li{e2}es, avec celle-ci ?") & vbCrLf & vbCrLf & _
@@ -316,7 +330,7 @@ Private Sub ChargerFactures()
     Dim lo As ListObject
     Dim v As Variant
     Dim i As Long, j As Long, n As Long, nbL As Long
-    Dim cId As Long, cTyp As Long, cOper As Long, cNum As Long, idxDateFac As Long, cTot As Long, cLien As Long, idxClo As Long
+    Dim cId As Long, cTyp As Long, cOper As Long, cNum As Long, idxDateFac As Long, cTot As Long, cLien As Long, idxClo As Long, idxSens As Long
     Dim jour() As Double
     Dim texte As String, oper As String, num As String, liens As String, typ As String, lib As String, suffixe As String
     Dim nbLiens As Long
@@ -339,6 +353,7 @@ Private Sub ChargerFactures()
     cTot = mod_Consommations.ColIdx(lo, "TotalFactureTTC")
     cLien = mod_Consommations.ColIdx(lo, mod_Factures.FAC_COL_LIEN)
     idxClo = mod_Consommations.ColIdx(lo, mod_Factures.FAC_COL_CLOTURE)       ' 0 tant qu'aucune facture n'a ete cloturee
+    idxSens = mod_Consommations.ColIdx(lo, mod_Factures.FAC_COL_SENS)         ' 0 tant qu'aucune facture n'a eu de sens
 
     ReDim m_IdFac(1 To nbL)
     ReDim m_TypeFac(1 To nbL)
@@ -373,6 +388,11 @@ Private Sub ChargerFactures()
             If texte <> "" Then lib = lib & " | " & texte
             If mod_Consommations.SaisieNonVide(v(i, cTot)) Then
                 lib = lib & " | " & Format(mod_DataStructure.ToDouble(v(i, cTot)), "#,##0.00") & " " & ChrW(8364)
+            End If
+            If idxSens > 0 Then
+                If mod_Factures.VenteEffective(v(i, idxSens), typ) Then lib = lib & " | vente"
+            Else
+                If mod_Factures.VenteEffective(Empty, typ) Then lib = lib & " | vente"
             End If
             If vus.Exists(lib) Then lib = lib & " #" & m_IdFac(n)       ' deux factures identiques : on les distingue
             vus.Add lib, True

@@ -111,6 +111,20 @@ Fonction ajoutée après la refonte (README section 16) : `mod_AffectationFactur
 - [ ] Facture dont un ID de `ID_Transactions` n'existe plus dans `TblOperations`
 - [ ] Deux postes qui lient la même facture avant synchronisation (la liste est une seule cellule : conflit)
 
+### Factures de revente (11/11/2026)
+Colonne `Sens` de `TblFactures` (Achat / Vente, vide = Achat) et de `TblTypesConso` ; `mod_Factures.SommeOperationsFacture` inverse le signe selon le sens ; sens demandé à la création d'un type (bouton « + » de frm_Contrat) ; macro `ModifierSensTypeConso` pour un type existant ; champ « Sens de la facture » en I9 de frm_Facture ; avertissement non bloquant à l'affectation si le signe de l'opération ne correspond pas.
+- [ ] Type existant « Revente Electricité » : à la première ouverture, `Sens` = Vente (nom contenant « vente ») ; les autres types = Achat
+- [ ] Facture de vente 100 € + opération +100 € : écart 0 à la clôture, solde 0 dans l'affectation (avant : écart 200 €)
+- [ ] Facture d'achat avec opération positive (remboursement) : avertissement, réponse Oui lie et réduit le payé
+- [ ] Changer le type dans frm_Facture : le champ Sens se met à jour ; rouvrir une facture : le sens enregistré est conservé ; copier une facture de vente : reste une vente
+- [ ] Liste d'affectation : les factures de vente portent « | vente » ; plusieurs encaissements sur une facture de vente
+- [ ] Facture de vente prévisionnelle : le solde dans Synthese est correct
+- [ ] Synchronisation : la nouvelle colonne `Sens` (TblFactures et TblTypesConso) est reprise
+
+### Idée reportée : compensation achat / vente (11/11/2026)
+Cas : le même acteur te fournit (facture d'achat, ex. 130 €) et rachète ta production (facture de vente, ex. 100 €) et ne prélève que la différence (−30 € en banque). Une seule opération règle alors **deux** factures, ce qui contredit RG15 (une opération ne règle qu'une facture). Pistes : autoriser une opération à se répartir sur plusieurs factures (montant imputé par facture, à la manière de TblVentilations), ou créer une facture de compensation. À traiter seulement si le cas se présente ; couplé au point 7.1 de `MODELE_DONNEES_MERISE.md` (colonne `ID_Facture` dans `TblOperations`, qui deviendrait une table de liaison avec montant imputé).
+- [ ] Afficher la colonne `Sens` dans la liste frm_Factures (non faite : la liste n'est pas reconstruite)
+
 ### À étudier
 - [ ] Remplacer la liste `ID_Transactions` par une colonne `ID_Facture` dans `TblOperations` (relation 1-N ; voir `MODELE_DONNEES_MERISE.md`, point 7.1)
 - [ ] Proposer automatiquement la facture probable (montant TTC proche du montant de l'opération, date proche)
