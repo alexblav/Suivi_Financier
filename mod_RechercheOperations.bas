@@ -56,6 +56,10 @@ Private Const CATEGORIE_VENTILE As String = "Ventil" ' + « é » accentué, voi
 Private g_ROPrefiltreActif As String
 Private g_ROParamActif As Variant
 
+' Étape en cours de RechercherOperationsCoeur (ajout 11/11/2026) : citée dans le message d'erreur pour localiser une erreur
+' sans passer en débogage.
+Private m_ROEtape As String
+
 ' Ajout 29/10/2026 (prefiltre "FacturesNonLiees") : ID_Transaction deja cites par une facture
 ' (mod_Synthese.ChargerLiensFactures), charges une fois par recherche.
 Private liensFacturesRO As Object
@@ -260,7 +264,7 @@ Public Sub RechercherOperations(Optional ByVal prefiltre As String = "", Optiona
 Erreur:
     Application.EnableEvents = True
     MsgBox mod_Display.FR("Erreur pendant l'affichage des op{e2}rations.") & vbLf & _
-           "Erreur " & Err.Number & " : " & Err.Description, vbExclamation, _
+           "Erreur " & Err.Number & " : " & Err.Description & vbLf & "Etape : " & m_ROEtape, vbExclamation, _
            mod_Display.FR("Recherche des op{e2}rations")
  
 End Sub
@@ -318,8 +322,9 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ' recharger l'écran dans le MÊME contexte après une modification.
     g_ROPrefiltreActif = prefiltre
     g_ROParamActif = param
- 
-    Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RECHERCHE)
+    m_ROEtape = "1 chargement des tableaux"
+
+    Set ws =ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_RECHERCHE)
     Set tblRecherche = ws.ListObjects(mod_VarGlobales.NOM_TABLE_RECHERCHE)
     nbColRO = tblRecherche.ListColumns.Count
     colPointeRO = IndexColRO(tblRecherche, mod_VarGlobales.NOM_COL_POINTE)
@@ -341,6 +346,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
 
     ' --- PHASE 6 : préparation spécifique au préfiltre -------------------
     showTypeDetail = ""
+    m_ROEtape = "2 preparation du prefiltre " & prefiltre
     Select Case prefiltre
         Case "DernierImport"
             Set listeDernierImport = ChargerListeDernierImportRO()
@@ -417,6 +423,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ' AVANT le gel des volets ci-dessous. Gelé avec un filtre encore actif, le volet ne
     ' restait pas sous la ligne d'en-tête une fois le filtre retiré.
     Dim filtresSauvegardes As Variant
+    m_ROEtape = "3 memorisation des filtres"
     filtresSauvegardes = MemoriserFiltresRO(tblRecherche)
 
     ' Ajout 11/11/2026 : position du curseur avant le rechargement (comme sur frm_Factures), pour
@@ -449,6 +456,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ' sélectionnée juste après : la barre de séparation restait visible, mais
     ' l'en-tête n'était pas forcément dans la zone figée. D'où le caractère
     ' intermittent du symptôme (ça dépendait de l'état de la fenêtre à l'instant T).
+    m_ROEtape = "4 gel des volets"
     ActiveWindow.FreezePanes = False
     ActiveWindow.Split = False
     ActiveWindow.ScrollRow = 1
@@ -457,6 +465,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ActiveWindow.FreezePanes = True
 
     ' --- On vide le tableau de recherche (seul l'en-tête est conservé) ---
+    m_ROEtape = "5 vidage du tableau"
     If Not tblRecherche.DataBodyRange Is Nothing Then
         tblRecherche.DataBodyRange.Delete
         With tblRecherche.Sort
@@ -474,6 +483,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ' dimensionner resultat à la bonne taille. C'est plus simple et plus sûr
     ' que ReDim Preserve sur la première dimension d'un tableau 2D, impossible
     ' en VBA. ----------------------------------------------------------------
+    m_ROEtape = "6 selection des lignes (prefiltre)"
     nbIndicesOp = 0
     For i = 1 To n
         If LigneOpRetenuePourPrefiltre(i, prefiltre, showTypeDetail, listeDernierImport) Then
@@ -538,6 +548,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
         Exit Sub
     End If
 
+    m_ROEtape = "7 construction du resultat"
     ReDim resultat(1 To nbTotal, 1 To nbColRO)
     ReDim cleVerrouillee(1 To nbTotal)
     ReDim jourTri(1 To nbTotal)
@@ -692,11 +703,22 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     TrierResultatParDateRO resultat, cleVerrouillee, jourTri, nbTotal, nbColRO
 
     ' --- Redimensionner le tableau, puis écrire les données en bloc ---
+    m_ROEtape = "8a redimensionnement du tableau (" & nbTotal & " ligne(s))"
     tblRecherche.Resize tblRecherche.HeaderRowRange.Resize(nbTotal + 1, nbColRO)
+    ' Correctif 11/11/2026 : avec UNE seule ligne (facture de vente = un seul encaissement), Excel peut laisser le tableau
+    ' sans corps (DataBodyRange = Nothing, erreur 91 aux lignes suivantes) : on lui ajoute alors sa ligne de données.
+    If tblRecherche.DataBodyRange Is Nothing Then
+        m_ROEtape = "8a bis tableau sans corps : ajout d'une ligne (" & nbTotal & " ligne(s))"
+        tblRecherche.ListRows.Add
+        tblRecherche.Resize tblRecherche.HeaderRowRange.Resize(nbTotal + 1, nbColRO)
+    End If
+    m_ROEtape = "8b format Texte des colonnes ID et cheque"
     tblRecherche.ListColumns("ID_Transaction").DataBodyRange.NumberFormat = "@"   ' <- ajout : AVANT l'écriture, sinon Excel convertit les longs ID en nombre
     If colChequeRO <> 0 Then tblRecherche.ListColumns(colChequeRO).DataBodyRange.NumberFormat = "@"   ' avant l'écriture
+    m_ROEtape = "8c ecriture des donnees"
     tblRecherche.DataBodyRange.value = resultat
 
+    m_ROEtape = "8d formats des colonnes Date, Montant, Budget, Date_consult"
     tblRecherche.ListColumns("Date").DataBodyRange.NumberFormat = "dd/mm/yyyy"
     tblRecherche.ListColumns("Montant").DataBodyRange.NumberFormat = "#,##0.00"
     tblRecherche.ListColumns("Budget").DataBodyRange.NumberFormat = "dd/mm/yyyy"
@@ -707,6 +729,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
     ' modifiables), sauf les colonnes que l'opérateur remplit (Notes, cette
     ' dernière redevenant grise ligne par ligne quand sa clé santé est verrouillée,
     ' voir la boucle plus bas).
+    m_ROEtape = "9 mise en forme du tableau"
     With tblRecherche.DataBodyRange
         .Interior.Color = mod_InstallCommun.CoulFondLecture()
         .Borders.LineStyle = xlContinuous
@@ -801,6 +824,7 @@ Private Sub RechercherOperationsCoeur(Optional ByVal prefiltre As String = "", O
            mod_Display.FR(" ligne(s) de ventilation). Utilise les fl{e2}ches de filtre dans l'en-t{ea}te pour restreindre la liste."), _
            vbInformation
 
+    m_ROEtape = "10 colonnes visibles et phrase du filtre"
     mod_InstallRechercheOperations.DefinirColonnesVisibles ws, prefiltre
 
     ' --- Ajout 02/10/2026 : phrase de rappel du filtre actif, ecrite juste
