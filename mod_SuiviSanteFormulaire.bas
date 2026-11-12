@@ -509,7 +509,16 @@ Private Sub AfficherCasCourant(ws As Worksheet)
         ws.Range("ssRemb2Montant").value = 0   ' 0 et non vide : nécessaire pour que la formule du solde reste juste
     End If
 
-    ws.Range("ssBeneficiaire").value = cas.beneficiaireActuel
+    ' Bénéficiaire : valeur de la colonne; si vide, on la déduit du segment 3 de la clé Notes
+    ' ("AAAAMMJJ;Spécialité;Bénéficiaire;Montant"). L'opérateur valide ensuite le cas comme d'habitude.
+    Dim beneficiaireAffiche As String
+    beneficiaireAffiche = cas.beneficiaireActuel
+    If Trim(beneficiaireAffiche) = "" Then
+        If mod_ImportOFX.EstDateValide(mod_ImportOFX.SegmentTexte(cas.notesCtx, ";", 0)) Then
+            beneficiaireAffiche = Trim(mod_ImportOFX.SegmentTexte(cas.notesCtx, ";", 2))
+        End If
+    End If
+    ws.Range("ssBeneficiaire").value = beneficiaireAffiche
     If (Application.WorksheetFunction.CountIf(Range("Praticiens"), cas.tiersDepense) > 0) Then
         ws.Range("ssTiersCorrige").value = cas.tiersDepense
     Else

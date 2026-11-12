@@ -38,6 +38,7 @@ Private Const COL_ANNEE_BUDGET As Integer = 12
 Private Const COL_DATE_CONSULT As Integer = 13
 Private Const COL_SPE_CONSULT As Integer = 14
 Private Const COL_COM_SANTE As String = 18
+Private Const COL_BENEFICIAIRE As Integer = 20   ' derniere colonne de COLONNES_SUIVI_SANTE
 Private Const NB_COLONNES As Integer = 20
 
 Private Const NOM_TABLE As String = "TblOperations"
@@ -401,6 +402,14 @@ Public Sub ImporterOperationsOFX()
                 resultats(i, COL_COM_SANTE) = speConsult
             Else
                 resultats(i, COL_SPE_CONSULT) = speConsult
+            End If
+            ' Bénéficiaire = segment 3 de la clé ("AAAAMMJJ;Spécialité;Bénéficiaire;Montant"),
+            ' comme le fait AppliquerNouvelleCle (mod_FormulairesNotes) : sans cela la colonne
+            ' restait vide et frm_SuiviSante n'affichait aucun bénéficiaire.
+            If EstDateValide(segment0) Then
+                If SegmentTexte(libelleFinal, ";", 2) <> "" Then
+                    resultats(i, COL_BENEFICIAIRE) = Trim(SegmentTexte(libelleFinal, ";", 2))
+                End If
             End If
         Else
             dateConsult = Empty
