@@ -439,17 +439,11 @@ Public Function ChargerLignes(ByRef t() As TypeLigne, Optional ByVal sauf As Lon
 End Function
 
 
-' Vrai si l'unité convient à l'indicateur Consommation : kWh ou m³ (sans tenir compte des majuscules ; « m3 » est
-' accepté). "norm" reçoit l'écriture normalisée (kWh, m³).
+' Vrai si l'unité convient à l'indicateur Consommation : une unité de consommation de la liste gérée par mod_Unites
+' (kWh et m³ au départ, plus celles ajoutées ; sans tenir compte des majuscules, « m3 » est accepté).
+' "norm" reçoit l'écriture normalisée.
 Private Function UniteConsommationValide(ByVal u As String, ByRef norm As String) As Boolean
-    Select Case LCase$(Trim$(u))
-        Case "kwh"
-            norm = "kWh"
-            UniteConsommationValide = True
-        Case "m3", "m" & ChrW(179)
-            norm = "m" & ChrW(179)
-            UniteConsommationValide = True
-    End Select
+    UniteConsommationValide = mod_Unites.EstUniteConso(u, norm)
 End Function
 
 ' Arrondi à 2 décimales comme la fonction ARRONDI d'Excel (le Round de VBA arrondit au pair).
@@ -1437,7 +1431,10 @@ End Sub
 
 ' Ouvre le formulaire de saisie d'une facture neuve, liée d'office à l'opération idTransaction.
 ' Renvoie l'ID de la facture enregistrée, 0 si l'opérateur a abandonné.
-Public Function SaisirFacturePourOperation(ByVal idTransaction As String) As Long
+' jourOp et montantOp (facultatifs) pré-remplissent « Date de la facture » et « Total TTC » : l'opérateur les corrige au besoin.
+' Le total est repris en valeur absolue (une facture d'achat se règle par une opération négative).
+Public Function SaisirFacturePourOperation(ByVal idTransaction As String, Optional ByVal jourOp As Double = 0, _
+                                           Optional ByVal montantOp As Double = 0) As Long
 
     Dim f As TypeFacture
 
@@ -1451,6 +1448,11 @@ Public Function SaisirFacturePourOperation(ByVal idTransaction As String) As Lon
     ReDim g_FacLignes(1 To 1)
     f.ID = 0
     f.Previsionnelle = DemanderPrevisionnelle()
+    If jourOp > 0 Then f.DateFac = Int(jourOp)
+    If montantOp <> 0 Then
+        f.TotalSaisi = Abs(montantOp)
+        f.TotalRenseigne = True
+    End If
     g_LienAEnregistrer = idTransaction
     On Error GoTo Fin
     If OuvrirFormFacture(f) Then
@@ -2084,7 +2086,9 @@ Private Sub MettreAJourListeUnites(ByVal ws As Worksheet)
     Dim deja As Boolean
     Dim u As String
 
-    base = Array("kWh", "m" & ChrW(179), ChrW(8364), "MWh", "L", "jours", "mois", "M", "MM")
+    ' Unités gérées (mod_Unites) : les unités de contrats et de types y sont d'abord ajoutées si elles manquent.
+    mod_Unites.SynchroniserUnites
+    base = mod_Unites.ListeUnites(False)
     ReDim liste(1 To UBound(base) + 1 + 60)
     For i = 0 To UBound(base)
         n = n + 1
@@ -2654,8 +2658,8 @@ Public Sub FacModifierIndicateur()
     nbImp = FacturesImpactees(g_NomBloc(b), g_IdEnEdition, controle, liste, conflits)
 
     If conflits <> "" Then
-        MsgBox mod_Display.FR("Le bloc '") & g_NomBloc(b) & mod_Display.FR("' ne peut pas passer {a2} l'indicateur Consommation : des factures l'utilisent avec une unit{e2} autre que m") & ChrW(179) & _
-               mod_Display.FR(" ou kWh (factures n") & ChrW(176) & " " & conflits & mod_Display.FR("). Corrigez d'abord ces factures."), vbExclamation, mod_Display.FR("Indicateur du bloc")
+        MsgBox mod_Display.FR("Le bloc '") & g_NomBloc(b) & mod_Display.FR("' ne peut pas passer {a2} l'indicateur Consommation : des factures l'utilisent avec une unit{e2} qui n'est pas une unit{e2} de consommation") & _
+               mod_Display.FR(" (factures n") & ChrW(176) & " " & conflits & mod_Display.FR("). Corrigez d'abord ces factures."), vbExclamation, mod_Display.FR("Indicateur du bloc")
         Exit Sub
     End If
 
@@ -2972,6 +2976,8 @@ End Sub
 Public Sub PoserGardeFousBloc(ByVal ws As Worksheet, ByVal b As Long)
 
     Dim l1 As Long, l2 As Long, r As Long
+    Dim uConso As Variant
+    Dim k As Long, nbUConso As Long
 
     l1 = BlocL1(b)
     l2 = l1 + BlocN(b) - 1
@@ -2983,21 +2989,25 @@ Public Sub PoserGardeFousBloc(ByVal ws As Worksheet, ByVal b As Long)
         PoserAidePrix ws.Cells(r, FF_COL_PRIX)
     Next r
     If g_Nat(b) = NAT_CONSO Then
-        ' Indicateur Consommation : l'unité est obligatoirement kWh ou m³ (liste stricte).
+        ' Indicateur Consommation : l'unité est obligatoirement une unité de consommation (liste stricte, gérée par mod_Unites).
+        uConso = mod_Unites.ListeUnites(True)
         ws.Columns(FF_COL_AIDE_UNITE_CONSO).Hidden = True
+        ws.Range(ws.Cells(1, FF_COL_AIDE_UNITE_CONSO), ws.Cells(100, FF_COL_AIDE_UNITE_CONSO)).ClearContents
         ws.Cells(1, FF_COL_AIDE_UNITE_CONSO).Value = "UnitesConso"
-        ws.Cells(2, FF_COL_AIDE_UNITE_CONSO).Value = "kWh"
-        ws.Cells(3, FF_COL_AIDE_UNITE_CONSO).Value = "m" & ChrW(179)
+        For k = 0 To UBound(uConso)
+            If k < 98 Then ws.Cells(2 + k, FF_COL_AIDE_UNITE_CONSO).Value = uConso(k)
+        Next k
+        If UBound(uConso) > 97 Then nbUConso = 98 Else nbUConso = UBound(uConso) + 1
         On Error Resume Next
         With ws.Range(ws.Cells(l1, FF_COL_UNITE), ws.Cells(l2, FF_COL_UNITE)).Validation
             .Delete
             .Add Type:=xlValidateList, AlertStyle:=xlValidAlertStop, _
-                 Formula1:="=" & ws.Range(ws.Cells(2, FF_COL_AIDE_UNITE_CONSO), ws.Cells(3, FF_COL_AIDE_UNITE_CONSO)).Address(True, True)
+                 Formula1:="=" & ws.Range(ws.Cells(2, FF_COL_AIDE_UNITE_CONSO), ws.Cells(1 + nbUConso, FF_COL_AIDE_UNITE_CONSO)).Address(True, True)
             .IgnoreBlank = True
             .InCellDropdown = True
             .ShowError = True
             .ErrorTitle = mod_Display.FR("Unit{e2} de consommation")
-            .ErrorMessage = mod_Display.FR("Une ligne de consommation a pour unit{e2} m") & ChrW(179) & mod_Display.FR(" ou kWh.")
+            .ErrorMessage = mod_Display.FR("Une ligne de consommation a pour unit{e2} une unit{e2} de consommation de la liste. Pour en ajouter une : bouton G{e2}rer de frm_Contrat.")
         End With
         On Error GoTo 0
     ElseIf g_NbUnites > 0 Then
@@ -3311,11 +3321,11 @@ Private Function LireLignes(ByVal ws As Worksheet, ByRef f As TypeFacture) As Bo
                 Exit Function
             End If
 
-            ' Garde-fou : une ligne de l'indicateur Consommation a pour unité kWh ou m³ (m3 est accepté et converti en m³).
+            ' Garde-fou : une ligne de l'indicateur Consommation a pour unité une unité de consommation (voir mod_Unites ; m3 est accepté et converti en m³).
             uniteNorm = mod_DataStructure.CellText(vUni)
             If g_Nat(nat) = NAT_CONSO And Not (f.Previsionnelle And uniteNorm = "") Then
                 If Not UniteConsommationValide(uniteNorm, uniteNorm) Then
-                    AfficherMessage ws, texteLigne & "l'unit{e2} d'une ligne de consommation doit {ea}tre m" & ChrW(179) & " ou kWh."
+                    AfficherMessage ws, texteLigne & "l'unit{e2} d'une ligne de consommation doit {ea}tre une unit{e2} de consommation de la liste (" & Join(mod_Unites.ListeUnites(True), ", ") & "). Pour en ajouter une : bouton G{e2}rer de frm_Contrat."
                     Exit Function
                 End If
             End If

@@ -125,7 +125,7 @@ Public Function AffecterFacture(ByVal idOperation As String, ByVal jourOp As Dou
                 Exit Do
             Case "Nouvelle"
                 ' Le formulaire est deja ferme. Facture abandonnee : on revient ici, sur la meme operation.
-                If mod_Factures.SaisirFacturePourOperation(idOperation) <> 0 Then
+                If mod_Factures.SaisirFacturePourOperation(idOperation, jourOp, montantOp) <> 0 Then
                     AffecterFacture = True
                     Exit Do
                 End If

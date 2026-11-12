@@ -810,7 +810,7 @@ Private Function TexteInstructionsFacture() As String
     t = t & "Les dates sont facultatives. Le [c:Total TTC de la facture] est OBLIGATOIRE : il est compar{e2} au total calcul{e2} d'apr{e1}s les lignes et sert {a2} contr{o2}ler la cl{o2}ture (somme des op{e2}rations li{e2}es)."
     t = t & Chr(10) & "[c:Boutons + et -] (en haut {a2} droite de chaque bloc) : + ajoute une ligne au bloc et d{e2}cale les blocs suivants vers le bas ; - retire la derni{e1}re ligne si elle est vide. Chaque bloc commence avec 3 lignes. Le taux de [c:TVA] est pr{e2}rempli (celui de la derni{e1}re facture du m{ea}me type, sinon un taux usuel) et reste modifiable ; [c:Unit{e2}] se choisit dans une liste, et une unit{e2} nouvelle peut {ea}tre saisie apr{e1}s confirmation."
     t = t & Chr(10) & "[c:Lignes] : une ligne par p{e2}riode de prix. [c:D{e2}but] et [c:Fin] : dates libres, fin incluse. "
-    t = t & "[c:Quantit{e2}] et [c:Unit{e2}] se saisissent dans les trois blocs : jours ou mois pour l'abonnement, kWh ou m3 pour la consommation, kWh ou euros (base d'une taxe) pour les taxes. L'unit{e2} se choisit dans une liste. "
+    t = t & "[c:Quantit{e2}] et [c:Unit{e2}] se saisissent dans les trois blocs : jours ou mois pour l'abonnement, une unit{e2} de consommation (kWh, m3, st{e1}re...) pour la consommation, kWh ou euros (base d'une taxe) pour les taxes. L'unit{e2} se choisit dans une liste. "
     t = t & "[c:Prix HT] : prix unitaire hors taxes (jusqu'{a2} 6 d{e2}cimales). [c:TVA] : taux de la ligne (5,5 % ou 20 %, par exemple)."
     t = t & Chr(10) & "[c:Montant HT] = quantit{e2} x prix, arrondi au centime ; [c:Montant TTC] = HT x (1 + TVA), arrondi au centime. Ils se calculent en direct. "
     t = t & "Les lignes vides sont ignor{e2}es. Le r{e2}capitulatif du bas est indicatif : un {e2}cart avec la facture n'emp{ea}che jamais l'enregistrement."
@@ -819,7 +819,7 @@ Private Function TexteInstructionsFacture() As String
     t = t & "Si une p{e2}riode de consommation ou d'abonnement en chevauche une autre du m{ea}me type, une confirmation est demand{e2}e."
     t = t & Chr(10) & "[b:Ajouter un bloc] : cr{e2}e, sous les blocs existants, un bloc de m{ea}me forme (m{ea}mes colonnes) dont vous donnez le nom (exemple : Redevance, Avoir), puis l'indicateur qu'il alimente, choisi dans une liste ou cr{e2}{e2} {a2} la vol{e2}e (il sera propos{e2} ensuite dans les listes). Le titre de chaque bloc rappelle son indicateur entre parenth{e1}ses. Il se remplit comme les autres blocs. Ses lignes sont enregistr{e2}es avec le nom du bloc et comptent dans les totaux de la facture. Pour remettre un bloc du mod{e1}le supprim{e2}, tapez son nom (Abonnement, Consommation ou Taxes et contributions)."
     t = t & Chr(10) & "[c:Titre d'un bloc] : il indique toujours l'indicateur aliment{e2}, entre parenth{e1}ses (par exemple Abonnement (Abonnement), Redevance (Autre)). Le bouton [b:Indicateur] de chaque bloc corrige un indicateur affect{e2} par erreur : si ce bloc figure dans d'autres factures, elles sont list{e2}es et une confirmation est demand{e2}e ; le changement leur est appliqu{e2} quand vous validez la facture en cours."
-    t = t & Chr(10) & "[c:Unit{e2}] : une ligne d'un bloc d'indicateur Consommation a obligatoirement pour unit{e2} m3 ou kWh (la validation convertit m3 en m" & ChrW(179) & " et refuse toute autre unit{e2}) ; la liste de la cellule se limite {a2} ces deux valeurs."
+    t = t & Chr(10) & "[c:Unit{e2}] : une ligne d'un bloc d'indicateur Consommation a obligatoirement pour unit{e2} une unit{e2} de consommation (kWh et m" & ChrW(179) & " au d{e2}part, plus celles que vous ajoutez avec le bouton G{e2}rer les unit{e2}s de frm_Contrat) ; la liste de la cellule s'y limite, m3 est converti en m" & ChrW(179) & "."
     t = t & Chr(10) & "[b:x] (titre de chaque bloc) : supprime le bloc, y compris un bloc du mod{e1}le, pour que le formulaire corresponde {a2} la facture r{e2}elle. Seule la facture en cours est concern{e2}e : le mod{e1}le des nouvelles factures (trois blocs de trois lignes) ne change pas. Quand vous modifiez ou copiez une facture, le formulaire reprend exactement sa structure : seuls ses blocs, avec leur nombre de lignes."
     t = t & Chr(10) & "Boutons :"
     t = t & Chr(10) & "- [b:Valider] : enregistre la facture puis referme le formulaire."
@@ -881,6 +881,10 @@ Private Function ConstruireFormulaireContrat(ByVal wsPrecedente As Worksheet) As
     mod_InstallCommun.AjouterBoutonCellule ws, ws.Range("D6"), mod_InstallCommun.CapAjouter(), _
         "AjouterTypeConso", "btnAjouterTypeConso", mod_InstallCommun.FRM_BTN_PLUS
 
+    ' Bouton "Gérer" à côté du champ Unité : ajouter, supprimer des unités et dire lesquelles sont des unités de consommation.
+    mod_InstallCommun.AjouterBoutonCellule ws, ws.Range("D8"), mod_Display.FR("G{e2}rer les unit{e2}s"), _
+        "GererUnites", "btnGererUnites", 110
+
     gauche = ws.Cells(1, 2).Left
     mod_InstallCommun.AjouterBoutonEntete ws, LIGNE_BOUTONS, gauche, mod_InstallCommun.CapValider(), _
         "CtrValider", "btnCtrValider", mod_InstallCommun.FRM_BTN_L
@@ -903,6 +907,7 @@ Private Function TexteInstructionsContrat() As String
     t = t & Chr(10) & "CHANGEMENT D'OP{E2}RATEUR :cr{e2}ez simplement le nouveau contrat avec sa [c:D{e2}but du contrat]. S'il y a un contrat en cours "
     t = t & "pour ce type, le programme propose de le cl{o2}turer la veille du nouveau. Les factures d{e2}j{a2} saisies gardent leur ancien op{e2}rateur."
     t = t & Chr(10) & "[c:Type de consommation] : choisi dans la liste ; le bouton [b:+] {a2} c{o2}t{e2} ajoute un nouveau type (par exemple une production d'{e2}lectricit{e2}) avec son unit{e2} de mesure. "
+    t = t & Chr(10) & "[b:G{e2}rer les unit{e2}s] : ajoute ou supprime une unit{e2} (impossible si un contrat, un type ou une facture l'utilise) et indique si c'est une unit{e2} de consommation. Une unit{e2} nouvelle saisie dans le champ Unit{e2} est ajout{e2}e {a2} la validation, apr{e1}s avoir demand{e2} s'il s'agit d'une unit{e2} de consommation. "
     t = t & Chr(10) & "[c:Unit{e2} de mesure] : propos{e2}e d'apr{e1}s le type (m3 pour l'eau, kWh pour l'{e2}lectricit{e2} et le gaz, ou l'unit{e2} donn{e2}e au type cr{e2}{e2}), modifiable. "
     t = t & "[c:Fin du contrat (facultative)] : laissez vide pour un contrat en cours. "
     t = t & "[c:Abonnement mensuel] : donn{e2} {a2} titre indicatif ; l'abonnement r{e2}el est saisi sur chaque facture."
@@ -1041,10 +1046,10 @@ Private Function TexteInstructionsConso() As String
     t = "Cet {e2}cran suit l'{e2}volution des consommations d'eau, d'{e2}lectricit{e2} et de gaz, mois apr{e1}s mois, d'apr{e1}s les lignes des factures. "
     t = t & "[b:Actualiser] recalcule le tableau et le graphique apr{e1}s un changement de param{e1}tre."
     t = t & Chr(10) & "Les champs apparaissent au fil de la saisie. [c:Type] : un type de consommation, ou (tous) pour comparer les montants. "
-    t = t & "[c:Indicateur] : Consommation (la quantit{e2} consomm{e2}e, en m3 ou kWh), Prix unitaire HT "
+    t = t & "[c:Indicateur] : Consommation (la quantit{e2} consomm{e2}e, dans une unit{e2} de consommation : m3, kWh, st{e1}re...), Prix unitaire HT "
     t = t & "(moyenne pond{e2}r{e2}e par les quantit{e2}s, abonnement et taxes exclus), Montant consommation, Abonnement, Taxes (montants TTC en euros), les indicateurs que vous avez cr{e2}{e2}s, ou Montant total (leur somme). "
     t = t & "La liste ne propose que les indicateurs qui ont des lignes de facture pour le type choisi. Pour (tous), seuls les montants sont comparables. "
-    t = t & "Un indicateur cr{e2}{e2} dont les lignes ont une quantit{e2} en m3 ou kWh propose trois choix : sa quantit{e2} (son nom), [c:Prix HT <nom>] et [c:Montant <nom>]; sinon son montant TTC."
+    t = t & "Un indicateur cr{e2}{e2} dont les lignes ont une quantit{e2} dans une unit{e2} de consommation propose trois choix : sa quantit{e2} (son nom), [c:Prix HT <nom>] et [c:Montant <nom>]; sinon son montant TTC."
     t = t & Chr(10) & "Les colonnes du tableau suivent l'indicateur choisi : sa quantit{e2} et son prix HT, son montant HT et TTC, puis les autres indicateurs (le reste du total) et le montant total des lignes du type."
     t = t & Chr(10) & "[c:D{e2}but] : un mois couvert par les factures du type choisi ; [c:Fin] : un mois du type {a1} partir du d{e2}but (vide : jusqu'au dernier mois). "
     t = t & "Seuls les mois qui ont des donn{e2}es sont affich{e2}s : le tableau montre la facture la plus r{e2}cente en premier, le graphique reste dans l'ordre chronologique."

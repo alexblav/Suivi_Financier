@@ -1374,10 +1374,14 @@ End Sub
 
 ' Vrai si l'unité est une vraie quantité consommée (m3, kWh...) : l'indicateur a alors une quantité et un prix unitaire.
 Private Function UniteQuantifiable(ByVal u As String) As Boolean
+    Dim norm As String
     u = LCase$(Trim$(u))
     Select Case u
         Case "m3", "m" & ChrW(179), "kwh", "mwh", "l", "litre", "litres"
             UniteQuantifiable = True
+        Case Else
+            ' Unité de consommation ajoutée par l'opérateur (par exemple stère).
+            If u <> "" Then UniteQuantifiable = mod_Unites.EstUniteConso(u, norm)
     End Select
 End Function
 
@@ -2180,7 +2184,7 @@ Public Sub AjouterTypeConso()
     uniteType = Trim$(InputBox(mod_Display.FR("Unit{e2} de mesure de ce type (kWh, m") & ChrW(179) & mod_Display.FR(", litres...). Elle sera propos{e2}e par d{e2}faut dans les contrats et les factures :"), _
                                mod_Display.FR("Nouveau type de consommation"), "kWh"))
     If uniteType = "" Then Exit Sub
-    uniteType = Replace(Replace(uniteType, vbCr, " "), vbLf, " ")
+    uniteType = mod_Unites.DeclarerUnite(uniteType, True)     ' unité nouvelle : ajoutée à la liste (consommation ou non ?)
 
     ' Sens du type : achat (on paie un fournisseur) ou vente (on encaisse, par exemple la revente d'électricité).
     sensRep = MsgBox(mod_Display.FR("Ce type est-il une REVENTE (vous {e2}mettez les factures et encaissez les paiements) ?") & vbCrLf & vbCrLf & _
@@ -2300,6 +2304,8 @@ Public Sub CtrValider()
     e.Operateur = oper
     e.Unite = mod_DataStructure.CellText(ws.Range(CF_ADR_UNITE).Value)
     If e.Unite = "" Then e.Unite = UniteDefaut(typ)
+    ' Une unité nouvelle (par exemple stère) est ajoutée à la liste des unités, après avoir demandé si c'est une unité de consommation.
+    e.Unite = mod_Unites.DeclarerUnite(e.Unite, True)
     e.Debut = CDate(dDeb)
     If dFin <> 0 Then e.Fin = CDate(dFin)
     e.AboMensuel = nAbo
