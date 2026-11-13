@@ -1031,6 +1031,10 @@ Private Function DecrireFiltreActifRO(ByVal prefiltre As String, ByVal param As 
             texte = FR("Factures non li{e2}es -- d{e2}penses Eau et {E2}lectricit{e2} - gaz - chauffage qu'aucune facture ne cite encore (parts ventil{e2}es exclues, tous mois confondus) -- ") & _
                     nbTotal & FR(" ligne(s). S{e2}lectionnez une ligne puis [Affecter une facture].")
 
+        Case "SyntheseSante"
+            texte = FR("Sant{e2} : op{e2}rations {a2} traiter ou en attente (statut KO, hors d{e2}passement d'honoraires, parts ventil{e2}es exclues, tous mois confondus) -- ") & _
+                    nbTotal & FR(" ligne(s).")
+
         Case "OperationsFacture"
             texte = FR("Op{e2}rations li{e2}es {a2} la facture ") & mod_Factures.DescriptionFacture(mod_DataStructure.ToLong(param)) & " -- " & _
                     nbTotal & FR(" ligne(s). Pour corriger une erreur d'affectation, s{e2}lectionnez l'op{e2}ration puis [D{e2}lier de la facture].")
@@ -1124,6 +1128,25 @@ Private Function LigneOpRetenuePourPrefiltre(ByVal i As Long, ByVal prefiltre As
                 End If
                 If factureEligible Then
                     LigneOpRetenuePourPrefiltre = Not liensFacturesRO.Exists(mod_DataStructure.CellText(tblData(i, colID)))
+                End If
+            End If
+        Case "SyntheseSante"
+            ' Meme regle que mod_Synthese.BlocSante : StatutSante = KO, hors depassement d'honoraires,
+            ' categorie ou sous-categorie Sante (parts ventilees exclues).
+            If colStatutSante <> 0 Then
+                If UCase$(mod_DataStructure.CellText(tblData(i, colStatutSante))) = "KO" Then
+                    If colDepassementHoraires = 0 Then
+                        factureEligible = True
+                    Else
+                        factureEligible = Not mod_Synthese.EstVrai(tblData(i, colDepassementHoraires))
+                    End If
+                    If factureEligible Then
+                        If mod_DataStructure.CellText(tblData(i, colCategorie)) = mod_VarGlobales.CATEGORIE_SANTE Then
+                            LigneOpRetenuePourPrefiltre = True
+                        ElseIf colSousCategorie <> 0 Then
+                            LigneOpRetenuePourPrefiltre = (mod_DataStructure.CellText(tblData(i, colSousCategorie)) = mod_VarGlobales.SOUS_CATEGORIE_SANTE)
+                        End If
+                    End If
                 End If
             End If
         Case "OperationsFacture"
@@ -1726,7 +1749,7 @@ Public Sub SortirRechercheOperations()
     End If
     ' Ajout 29/10/2026 : ouvert depuis le bloc "Factures non liees" -> retour sur Synthese
     ' (son affichage la recalcule : les operations affectees n'y figurent plus).
-    If g_ROPrefiltreActif = "FacturesNonLiees" Or g_ROPrefiltreActif = "PourEcheance" Then
+    If g_ROPrefiltreActif = "FacturesNonLiees" Or g_ROPrefiltreActif = "PourEcheance" Or g_ROPrefiltreActif = "SyntheseSante" Then
         mod_Aide.MasquerFormulaire ws
         mod_InstallCommun.ActiverFeuille mod_VarGlobales.NOM_FEUILLE_SYNTHESE
         Exit Sub

@@ -66,6 +66,26 @@ Private Sub L(ByRef liste As String, ByVal nom As String, ByVal description As S
     liste = liste & nom & "|" & description
 End Sub
 
+' TABLEAUX D'EXEMPLES (12/11/2026) : texte optionnel, écrit sous la liste des boutons de la
+' feuille d'aide (voir mod_InstallCommun.EcrireTableauxAide). Une ligne (séparée par Chr(10)) est :
+'   "#Titre"            titre d'un tableau
+'   "!Col1|Col2|..."    ligne d'en-tête (2 à 5 colonnes)
+'   "Val1|Val2|..."     ligne de données
+'   "=Texte"            remarque sur toute la largeur
+' Même balises et mêmes marqueurs d'accents que les listes de champs et de boutons.
+' Une cellule ne doit pas contenir de "|".
+Public Function ChargerExemples(ByVal nomForm As String) As String
+    Select Case nomForm
+        Case "frm_SuiviSante": ChargerExemples = Exemples_SuiviSante()
+        Case Else:             ChargerExemples = ""
+    End Select
+End Function
+
+Private Sub AjouterLigneExemple(ByRef texte As String, ByVal ligneExemple As String)
+    If Len(texte) > 0 Then texte = texte & Chr(10)
+    texte = texte & ligneExemple
+End Sub
+
 ' Pointé : même fonctionnement sur tous les formulaires qui l'affichent.
 Private Sub LPointe(ByRef liste As String)
     L liste, "Point{e2}", "Oui si l'op{e2}ration est d{e2}j{a2} analys{e2}e, vide sinon. Le changement est enregistr{e2} tout de suite ; retirer un pointage demande une confirmation."
@@ -550,8 +570,8 @@ Private Sub Def_SuiviSante(ByRef titre As String, ByRef intro As String, ByRef c
     L champs, "Solde actuel", "Lecture seule : d{e2}pense moins remboursements. Nul = sold{e2}e."
     L champs, "B{e2}n{e2}ficiaire", "Liste : la personne concern{e2}e. Utilisez [b:+] si elle manque."
     L champs, "Tiers corrig{e2}", "Liste : {a2} renseigner si le tiers import{e2} n'est pas correct. Utilisez [b:+] si le praticien manque."
-    L champs, "Franchise", "Montant retenu par l'assurance (0 si aucune)."
-    L champs, "D{e2}passement valid{e2} ?", "Accessible d{e1}s que le solde n'est pas nul. Oui : vous consid{e2}rez ce solde comme d{e2}finitif et normal ({a2} expliquer dans le commentaire) ; la d{e2}pense ne sera plus jamais repropos{e2}e. Vide ou Non : la d{e2}pense sera repropos{e2}e au prochain passage (un remboursement peut encore arriver)."
+    L champs, "Franchise", "Montant retenu par l'assurance (0 ou vide si aucune). Saisissez UNIQUEMENT la franchise : le reste du solde est un d{e2}passement d'honoraires, {a2} accepter avec [c:Valid{e2} (OUI/NON)] (voir les exemples ci-dessous). Le [c:Solde actuel] se recalcule tout de suite."
+    L champs, "Valid{e2} (OUI/NON)", "Facultatif, et utile seulement si le solde n'est pas nul. OUI : vous acceptez ce solde comme d{e2}finitif et normal ({a2} expliquer dans le commentaire) ; la d{e2}pense ne sera plus jamais repropos{e2}e. Vide ou NON (c'est la m{ea}me chose) : la d{e2}pense sera repropos{e2}e au prochain traitement, un remboursement pouvant encore arriver. Voir les tableaux d'exemples ci-dessous."
     L champs, "Commentaire", "Texte libre (facultatif)."
     LPointe champs
 
@@ -562,6 +582,53 @@ Private Sub Def_SuiviSante(ByRef titre As String, ByRef intro As String, ByRef c
     L boutons, "Aide", "Ouvre cette aide, sans fermer le formulaire."
 
 End Sub
+
+' Exemples du formulaire de suivi sante. Verifies sur le code de mod_SuiviSante (calcul du solde
+' et du statut) et de mod_SuiviSanteFormulaire (cas proposes, controles, ecriture, pointage).
+Private Function Exemples_SuiviSante() As String
+
+    Dim t As String
+
+    ' --- 1. Champs obligatoires ---
+    AjouterLigneExemple t, "#Quels champs faut-il remplir ?"
+    AjouterLigneExemple t, "!Champ|Obligatoire ?|Si vous le laissez vide"
+    AjouterLigneExemple t, "B{e2}n{e2}ficiaire|OUI|[b:Valider] est refus{e2} : choisissez la personne concern{e2}e."
+    AjouterLigneExemple t, "Tiers corrig{e2}|Seulement si le [c:Tiers import{e2}] n'est pas reconnu (champ jaune)|[b:Valider] est refus{e2} dans ce cas. Si le tiers import{e2} est reconnu, ce champ n'est pas utilis{e2}."
+    AjouterLigneExemple t, "Franchise|NON|Compt{e2}e comme 0."
+    AjouterLigneExemple t, "Valid{e2} (OUI/NON)|NON|Compt{e2} comme NON (voir le tableau suivant)."
+    AjouterLigneExemple t, "Commentaire|NON|Rien n'est enregistr{e2} ; conseill{e2} si vous r{e2}pondez OUI."
+    AjouterLigneExemple t, "=Le [c:B{e2}n{e2}ficiaire] est pr{e2}rempli {a2} partir de la cl{e2} Notes (AAAAMMJJ;Sp{e2}cialit{e2};B{e2}n{e2}ficiaire;Montant) quand elle est valide : v{e2}rifiez-le avant de valider."
+
+    ' --- 2. Le champ Valide ---
+    AjouterLigneExemple t, "#Comment fonctionne le champ Valid{e2} (OUI/NON)"
+    AjouterLigneExemple t, "!Valeur choisie|Si le solde est nul apr{e1}s votre saisie|Si le solde n'est pas nul apr{e1}s votre saisie"
+    AjouterLigneExemple t, "Vide (on peut le laisser vide)|Statut OK : la d{e2}pense est sold{e2}e et ne sera plus propos{e2}e. Le champ n'a aucun effet.|Statut KO. Trait{e2} comme NON : la d{e2}pense sera repropos{e2}e au prochain traitement et reste compt{e2}e {a2} traiter dans [f:Synthese]."
+    AjouterLigneExemple t, "NON|Statut OK, comme ci-dessus : le champ n'a aucun effet.|Statut KO, exactement comme si le champ {e2}tait vide : la d{e2}pense sera repropos{e2}e et reste compt{e2}e dans [f:Synthese]."
+    AjouterLigneExemple t, "OUI|Statut OK. Le OUI est inutile (rien n'est {a2} accepter).|Le statut reste KO, mais vous acceptez le solde : la d{e2}pense n'est plus jamais propos{e2}e et n'est plus compt{e2}e dans [f:Synthese]. Si un remboursement ult{e2}rieur solde la d{e2}pense, elle passe quand m{ea}me {a2} OK."
+    AjouterLigneExemple t, "=Le champ est toujours vide {a2} l'affichage d'un cas : un NON donn{e2} lors d'un passage pr{e2}c{e2}dent n'est pas r{e2}affich{e2}, vous pouvez donc r{e2}pondre OUI quand vous jugez le solde d{e2}finitif."
+
+    ' --- 3. Franchise et depassement d'honoraires ---
+    AjouterLigneExemple t, "#Saisir une franchise et un d{e2}passement d'honoraires"
+    AjouterLigneExemple t, "=[c:Solde actuel] = Montant - Remb. 1 - Remb. 2 - Franchise. Tous les montants ci-dessous sont en euros."
+    AjouterLigneExemple t, "!Situation|Solde avant saisie|Franchise {a2} saisir|Valid{e2} (OUI/NON)|R{e2}sultat"
+    AjouterLigneExemple t, "Le solde est de 10, dont 3 de franchise : les 7 restants sont un d{e2}passement d'honoraires|10,00|3,00 seulement|OUI|[c:Solde actuel] = 7,00. Le statut reste KO mais est accept{e2} : la d{e2}pense n'est plus propos{e2}e. Le solde de 7,00 reste enregistr{e2}."
+    AjouterLigneExemple t, "{a2} {e2}viter : saisir tout le solde en franchise (10 au lieu de 3)|10,00|10,00|sans objet|[c:Solde actuel] = 0,00 : statut OK. Le d{e2}passement de 7,00 dispara{i2}t du suivi, puisque le solde enregistr{e2} est nul."
+    AjouterLigneExemple t, "Franchise seule : 30 pay{e2}s, 29 rembours{e2}s, 1 de franchise|1,00|1,00|sans objet|[c:Solde actuel] = 0,00 : statut OK, la d{e2}pense est sold{e2}e."
+    AjouterLigneExemple t, "Remboursement pas encore arriv{e2} : d{e2}pense de 100, aucun remboursement|100,00|0 ou vide (ou la franchise si vous la connaissez)|vide ou NON|Statut KO, la d{e2}pense sera repropos{e2}e. La franchise saisie est m{e2}moris{e2}e et r{e2}affich{e2}e au prochain passage."
+    AjouterLigneExemple t, "Un remboursement, pas de franchise : d{e2}pense de 60, rembours{e2}s 40|20,00|0 ou vide|OUI si les 20 restants sont d{e2}finitifs|[c:Solde actuel] = 20,00 : d{e2}passement accept{e2} avec OUI, sinon la d{e2}pense sera repropos{e2}e."
+    AjouterLigneExemple t, "Deux remboursements, une franchise et un d{e2}passement : d{e2}pense de 50, rembours{e2}s 30 puis 10|10,00|2,00|OUI|[c:Solde actuel] = 8,00 : accept{e2}, la d{e2}pense n'est plus propos{e2}e."
+    AjouterLigneExemple t, "Remboursement sup{e2}rieur {a2} la d{e2}pense : d{e2}pense de 20, rembours{e2}s 25|n{e2}gatif : -5,00|0 (une franchise ne peut pas {ea}tre n{e2}gative)|OUI, avec explication en [c:Commentaire]|Le solde -5,00 n'est pas nul : statut KO. Avec OUI, le trop-per{c2}u est accept{e2} et le cas n'est plus propos{e2}."
+
+    ' --- 4. Boutons ---
+    AjouterLigneExemple t, "#Ce qui est enregistr{e2} selon le bouton"
+    AjouterLigneExemple t, "!Bouton|Ce qui est enregistr{e2}|Ce qui se passe ensuite"
+    AjouterLigneExemple t, "Valider|B{e2}n{e2}ficiaire, Franchise, Valid{e2} (OUI/NON), Commentaire, et Tiers corrig{e2} si le tiers import{e2} n'{e2}tait pas reconnu. La d{e2}pense et ses remboursements passent aussi {a2} Point{e2} = Oui, que la r{e2}ponse soit OUI, NON ou vide.|Le statut et le solde sont recalcul{e2}s, puis le cas suivant s'affiche."
+    AjouterLigneExemple t, "Passer|Rien.|Le cas suivant s'affiche ; la d{e2}pense sera repropos{e2}e au prochain traitement."
+    AjouterLigneExemple t, "Sortir|Rien pour le cas affich{e2} (les cas d{e2}j{a2} valid{e2}s restent enregistr{e2}s).|Le formulaire se ferme."
+
+    Exemples_SuiviSante = t
+
+End Function
 
 
 ' =====================================================================================

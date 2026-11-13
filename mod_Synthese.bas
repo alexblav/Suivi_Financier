@@ -57,6 +57,12 @@ Private Const NOM_BOUTON_ACTUALISER As String = "btnActualiserSynthese"
 Private Const NOM_BOUTON_AFFECTER As String = "btnAffecterFacture"
 Private Const NOM_BOUTON_AFFICHER_TOUT As String = "btnAfficherToutFactures"
 Private Const NOM_BOUTON_CHERCHER_OP As String = "btnChercherOperationEcheance"
+Private Const NOM_BOUTON_AFFICHER_TOUT_SANTE As String = "btnAfficherToutSante"
+' Nombre reel d'elements des blocs concernes lors de la derniere actualisation (comparé a SYN_NB_MAX par les boutons "Afficher tout").
+Private m_NbNonLiees As Long
+Private m_NbSante As Long
+Private Const NOM_BOUTON_NOTES_ERREUR As String = "btnNotesErreurSante"
+Private Const NOM_BOUTON_TRAITER_SANTE As String = "btnTraiterDonneesSante"
 ' Prefixe des ID_Echeance ecrits dans la colonne masquee (colonne I) du bloc "Echeances en retard" :
 ' il les distingue des ID_Transaction du bloc "Factures non liees", qui partagent cette colonne.
 Private Const ECH_PREFIXE As String = "ECH:"
@@ -559,6 +565,7 @@ Private Function BlocFacturesNonLiees(ByVal ws As Worksheet, ByVal ligneDebut As
         ReDim Preserve res(1 To nbAff, 1 To SYN_NB_COL)
     End If
 
+    m_NbNonLiees = nb
     BlocFacturesNonLiees = EcrireBloc(ws, ligneDebut, libTitre, _
         Array("Date", "Tiers", mod_Display.FR("Cat{e2}gorie"), "Montant", "Facture"), _
         res, nb, msgVide)
@@ -603,7 +610,14 @@ End Sub
 ' Bouton "Afficher tout" : toutes les operations du bloc (sans la limite de SYN_NB_MAX lignes) dans
 ' frm_RechercheOperations, ou elles peuvent aussi etre reliees a une facture (bouton "Affecter une facture").
 Public Sub AfficherToutesFacturesNonLiees()
+    If m_NbNonLiees <= SYN_NB_MAX Then Exit Sub      ' tout est deja affiche dans le bloc
     mod_RechercheOperations.RechercherOperations "FacturesNonLiees"
+End Sub
+
+' Bouton "Afficher tout" du bloc Sante : meme principe, prefiltre "SyntheseSante".
+Public Sub AfficherToutesOperationsSante()
+    If m_NbSante <= SYN_NB_MAX Then Exit Sub         ' tout est deja affiche dans le bloc
+    mod_RechercheOperations.RechercherOperations "SyntheseSante"
 End Sub
 
 ' =====================================================================================
@@ -710,7 +724,7 @@ Private Function BlocSante(ByVal ws As Worksheet, ByVal ligneDebut As Long) As L
     Dim lo As ListObject
     Dim nbL As Long, i As Long, nb As Long
     Dim vDate As Variant, vTiers As Variant, vCat As Variant, vSous As Variant, vMont As Variant
-    Dim vStatut As Variant, vSolde As Variant, vDepass As Variant
+    Dim vStatut As Variant, vSolde As Variant, vDepass As Variant, vNotes As Variant
     Dim cles() As Double, vals() As Variant
     Dim res As Variant
     Dim catTexte As String, sousTexte As String
@@ -733,6 +747,7 @@ Private Function BlocSante(ByVal ws As Worksheet, ByVal ligneDebut As Long) As L
         vStatut = ValeursColonne(lo, "StatutSante", nbL)
         vSolde = ValeursColonne(lo, "SoldeSante", nbL)
         vDepass = ValeursColonne(lo, "DepassementHoraires", nbL)
+        vNotes = ValeursColonne(lo, "Notes", nbL)
         ReDim cles(1 To nbL)
         ReDim vals(1 To nbL, 1 To SYN_NB_COL)
 
@@ -745,11 +760,7 @@ Private Function BlocSante(ByVal ws As Worksheet, ByVal ligneDebut As Long) As L
                     If IsNumeric(Cellule(vDate, i)) And Not IsEmpty(Cellule(vDate, i)) Then cles(nb) = CDbl(Cellule(vDate, i))
                     vals(nb, 1) = cles(nb)
                     vals(nb, 2) = mod_DataStructure.CellText(Cellule(vTiers, i))
-                    If sousTexte <> "" And sousTexte <> catTexte Then
-                        vals(nb, 3) = catTexte & " / " & sousTexte
-                    Else
-                        vals(nb, 3) = catTexte
-                    End If
+                    vals(nb, 3) = mod_DataStructure.CellText(Cellule(vNotes, i))
                     vals(nb, 4) = mod_DataStructure.ToDouble(Cellule(vMont, i))
                     soldeSante = mod_DataStructure.ToDouble(Cellule(vSolde, i))
                     If soldeSante > 0.005 Then
@@ -764,13 +775,57 @@ Private Function BlocSante(ByVal ws As Worksheet, ByVal ligneDebut As Long) As L
 
     If nb > 0 Then Extraire cles, vals, nb, False, res
 
+    m_NbSante = nb
     BlocSante = EcrireBloc(ws, ligneDebut, libTitre, _
-        Array("Date", "Tiers", mod_Display.FR("Cat{e2}gorie"), "Montant", "Statut"), _
+        Array("Date", "Tiers", "Notes", "Montant", "Statut"), _
         res, nb, msgVide)
+
+    PoserBoutonsSante ws, ligneDebut
 
 End Function
 
-Private Function EstVrai(ByVal v As Variant) As Boolean
+Private Sub PoserBoutonsSante(ByVal ws As Worksheet, ByVal ligneTitre As Long)
+
+    Dim btn As Button
+    Dim cel As Range
+
+    On Error Resume Next
+    ws.Shapes(NOM_BOUTON_NOTES_ERREUR).Delete
+    ws.Shapes(NOM_BOUTON_TRAITER_SANTE).Delete
+    ws.Shapes(NOM_BOUTON_AFFICHER_TOUT_SANTE).Delete
+    On Error GoTo 0
+
+    Set cel = ws.Cells(ligneTitre, SYN_COL_RAPPELS + SYN_NB_COL - 1)
+    Set btn = ws.Buttons.Add(cel.Left + cel.Width - 150, cel.Top + 1, 148, cel.Height - 2)
+    btn.Caption = mod_Display.FR("Traiter les donn{e2}es de sant{e2}")
+    btn.OnAction = "TraiterDonneesSanteSynthese"
+    btn.Name = NOM_BOUTON_TRAITER_SANTE
+
+    Set btn = ws.Buttons.Add(cel.Left + cel.Width - 150 - 152, cel.Top + 1, 150, cel.Height - 2)
+    btn.Caption = mod_Display.FR("Traiter les notes en erreur")
+    btn.OnAction = "TraiterNotesErreurSynthese"
+    btn.Name = NOM_BOUTON_NOTES_ERREUR
+
+    Set btn = ws.Buttons.Add(cel.Left + cel.Width - 150 - 152 - 92, cel.Top + 1, 90, cel.Height - 2)
+    btn.Caption = "Afficher tout"
+    btn.OnAction = "AfficherToutesOperationsSante"
+    btn.Name = NOM_BOUTON_AFFICHER_TOUT_SANTE
+
+End Sub
+
+' Boutons du bloc Sante : ouvrent respectivement le traitement des notes en erreur
+' (mod_FormulairesNotes) et celui des donnees de sante (mod_SuiviSanteFormulaire).
+Public Sub TraiterNotesErreurSynthese()
+    mod_FormulairesNotes.VerifierNotesSante
+    ActualiserSynthese
+End Sub
+
+Public Sub TraiterDonneesSanteSynthese()
+    mod_SuiviSanteFormulaire.TraiterCasSuiviSante
+    ActualiserSynthese
+End Sub
+
+Public Function EstVrai(ByVal v As Variant) As Boolean
     If VarType(v) = vbBoolean Then
         EstVrai = v
     Else

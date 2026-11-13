@@ -364,6 +364,89 @@ On les lance après l'import (questions finales) ou à tout moment avec le bouto
 
 **Cas particulier :** une clé dont la spécialité vaut « non reprise historique » passe directement en OK. Elle sert à neutraliser les anciennes opérations qu'on ne veut pas rapprocher.
 
+### Exemple pas à pas : ce qui s'écrit dans Import\_data
+
+On suit une consultation du 15/09/2026 (30 €, franchise de 1 €). Les trois lignes portent la même clé Notes `20260915;Généraliste;Alexandre;30` et la sous-catégorie « Frais, remb santé ». Seules les colonnes santé sont montrées (« — » = cellule vide) ; la valeur de `DepassementHoraires` s'écrit FAUX/VRAI, notée ici Non/Oui.
+
+**Qui écrit quoi ?**
+
+| Colonne | Écrite par | Sur quelle ligne du groupe |
+| --- | --- | --- |
+| Date\_consult, Spe\_Consult, Beneficiaire | l'import, à partir de la clé Notes | toutes les lignes |
+| StatutSante | `CalculerSuiviSante` | toutes les lignes (la même valeur) |
+| SoldeSante | `CalculerSuiviSante` | la ligne de **dépense** seulement |
+| DepassementHoraires | `CalculerSuiviSante` (Non par défaut), puis vous dans frm\_SuiviSante | la ligne de dépense seulement |
+| Franchise, CommentaireSante, Beneficiaire corrigé, Tiers corrigé | vous, dans frm\_SuiviSante | la ligne de dépense seulement |
+
+**Étape 1 : juste après l'import de la dépense** (rien n'est encore calculé)
+
+| Ligne | Montant | Date\_consult | Spe\_Consult | StatutSante | SoldeSante | DepassementHoraires | Franchise | Beneficiaire |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| DR MARTIN | -30,00 | 15/09/2026 | Généraliste | — | — | — | — | Alexandre |
+
+**Étape 2 : après `CalculerSuiviSante`** : la dépense est seule, le solde est 30. **Elle passe à KO et s'affiche dans frm\_SuiviSante.**
+
+| Ligne | Montant | Date\_consult | Spe\_Consult | StatutSante | SoldeSante | DepassementHoraires | Franchise | Beneficiaire |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| DR MARTIN | -30,00 | 15/09/2026 | Généraliste | **KO** | 30,00 | Non | — | Alexandre |
+
+**Étape 3 : la CPAM rembourse 20 €** (nouvel import, puis recalcul). La ligne CPAM reçoit le même statut que la dépense. Solde : 30 − 20 = 10, toujours KO.
+
+| Ligne | Montant | Date\_consult | Spe\_Consult | StatutSante | SoldeSante | DepassementHoraires | Franchise | Beneficiaire |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| DR MARTIN | -30,00 | 15/09/2026 | Généraliste | KO | 10,00 | Non | — | Alexandre |
+| CPAM | 20,00 | 15/09/2026 | Généraliste | KO | — | — | — | Alexandre |
+
+**Étape 4 : la mutuelle rembourse 9 €.** Solde : 30 − 29 = 1, toujours KO : il reste 1 € non expliqué (la franchise). Le cas s'affiche avec ses deux remboursements.
+
+| Ligne | Montant | Date\_consult | Spe\_Consult | StatutSante | SoldeSante | DepassementHoraires | Franchise | Beneficiaire |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| DR MARTIN | -30,00 | 15/09/2026 | Généraliste | KO | 1,00 | Non | — | Alexandre |
+| CPAM | 20,00 | 15/09/2026 | Généraliste | KO | — | — | — | Alexandre |
+| MUTUELLE | 9,00 | 15/09/2026 | Généraliste | KO | — | — | — | Alexandre |
+
+**Étape 5a : vous saisissez Franchise = 1 dans frm\_SuiviSante et validez.** Solde : 30 − 29 − 1 = 0, **le groupe passe à OK** sur ses trois lignes et ne s'affiche plus. Il n'est plus jamais recalculé.
+
+| Ligne | Montant | Date\_consult | Spe\_Consult | StatutSante | SoldeSante | DepassementHoraires | Franchise | Beneficiaire |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| DR MARTIN | -30,00 | 15/09/2026 | Généraliste | **OK** | 0,00 | Non | 1 | Alexandre |
+| CPAM | 20,00 | 15/09/2026 | Généraliste | **OK** | — | — | — | Alexandre |
+| MUTUELLE | 9,00 | 15/09/2026 | Généraliste | **OK** | — | — | — | Alexandre |
+
+**Étape 5b (variante) : vous répondez « Dépassement d'honoraires = Oui »** au lieu de saisir une franchise. Le groupe **reste KO** (le reste à charge est accepté), mais il n'est plus proposé. Si un remboursement ultérieur le solde, il passera quand même à OK.
+
+| Ligne | Montant | Date\_consult | Spe\_Consult | StatutSante | SoldeSante | DepassementHoraires | Franchise | Beneficiaire |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| DR MARTIN | -30,00 | 15/09/2026 | Généraliste | KO | 1,00 | **Oui** | 0 | Alexandre |
+
+### Quand une ligne s'affiche-t-elle dans frm\_SuiviSante ?
+
+frm\_SuiviSante présente **une fiche par groupe** (par clé Notes), à partir de sa ligne de dépense. Le fichier `mod_SuiviSanteFormulaire` retient un groupe si **les quatre conditions** sont vraies :
+
+1. la ligne a la sous-catégorie « Frais, remb santé » (dans TblOperations ou TblVentilations) ;
+2. le groupe contient au moins une ligne de **dépense** (Montant négatif) : un groupe de remboursements seuls est KO mais n'est jamais proposé ;
+3. **StatutSante = KO sur la ligne de dépense** (le statut des lignes de remboursement n'est pas lu) ;
+4. **DepassementHoraires de la dépense n'est pas VRAI**.
+
+Pour ne **pas** voir une ligne dans frm\_SuiviSante, il suffit donc qu'une seule de ces conditions soit fausse. Les autres colonnes ne jouent aucun rôle dans l'affichage :
+
+| Colonne | Faut-il la remplir pour que la ligne ne s'affiche pas ? |
+| --- | --- |
+| StatutSante | **Oui, indirectement** : seul « KO » provoque l'affichage. Il est écrit par le calcul (OK si solde nul), pas à la main |
+| DepassementHoraires | **Oui, c'est l'autre moyen** : VRAI (Oui) retire un cas KO de la liste |
+| Date\_consult | **Non** : elle n'est pas testée. Une date 02/01/1900 (clé illisible) n'empêche pas l'affichage ; elle déclenche en revanche frm\_RapprochementNotes (étape 1) et l'écran « Erreurs santé » |
+| Spe\_Consult | Non |
+| Beneficiaire | Non pour l'affichage. Il est en revanche **obligatoire pour valider** le cas (pré-rempli depuis la clé Notes si elle est lisible) |
+| Franchise | Non pour l'affichage, mais elle entre dans le solde : c'est elle qui permet de passer à OK |
+| CommentaireSante, Tiers | Non (le Tiers corrigé n'est exigé qu'à la validation) |
+| SoldeSante | Non : c'est un résultat du calcul, pas une condition |
+
+À savoir :
+
+- **Notes vide** : toutes les lignes santé sans Notes forment un seul groupe (la clé « vide »), ce qui fausse le solde. Ces lignes doivent d'abord passer par frm\_RapprochementNotes.
+- Le statut n'existe qu'après un calcul : avant `CalculerSuiviSante` la colonne est vide et rien ne s'affiche. `TraiterCasSuiviSante` lance ce calcul avant d'ouvrir le formulaire.
+- Un groupe OK n'est jamais rouvert, même si vous modifiez ensuite sa Franchise dans Import\_data : pour le rouvrir, effacez son StatutSante.
+
 ### Consulter et corriger : l'écran « Suivi santé »
 
 Le bouton de suivi santé du Menu (macro `Synthese_Care`, module `Mod_SyntheseCare`) ouvre l'écran de recherche (section 6) avec le préfiltre **SuiviSante**. Il remplace l'ancien écran frm\_Resultat, qui ne trouvait plus aucune ligne depuis le passage aux deux niveaux de catégorie.

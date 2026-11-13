@@ -118,7 +118,11 @@ Public Sub RemedierDepuisOFX()
 
     cheminOFX = mod_ImportOFX.ChoisirFichier("Fichiers OFX (*.ofx), *.ofx", _
         "Selectionner un OFX recemment exporte (comparaison avec le classeur)")
-    If cheminOFX = "" Then Exit Sub
+    If cheminOFX = "" Then
+        MsgBox "Le fichier OFX est obligatoire : aucun fichier n'a ete selectionne." & vbCrLf & _
+               "L'operation est arretee.", vbExclamation, "Remediation OFX"
+        Exit Sub
+    End If
 
     Set m_lo = mod_DonneesTable.GetOperationsTable()
     If m_lo Is Nothing Then Exit Sub

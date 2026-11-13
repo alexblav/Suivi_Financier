@@ -725,6 +725,8 @@ Private Sub CreerFeuilleAide(ByVal wsForm As Worksheet, ByVal texteSource As Str
     Dim gauche As Double
     Dim titre As String, intro As String, champs As String, boutons As String
     Dim ligne As Long
+    Dim exemples As String
+    Dim derCol As Long
 
     If Not mod_InstallAide.ChargerAide(wsForm.Name, titre, intro, champs, boutons) Then
         titre = "Aide - " & wsForm.Name
@@ -732,6 +734,11 @@ Private Sub CreerFeuilleAide(ByVal wsForm As Worksheet, ByVal texteSource As Str
         champs = ""
         boutons = ""
     End If
+
+    ' Tableaux d'exemples facultatifs (12/11/2026) : ils demandent plusieurs colonnes ; la
+    ' feuille passe alors de 2 colonnes (B, C) a 5 (B a F), les textes courants etant fusionnes.
+    exemples = mod_InstallAide.ChargerExemples(wsForm.Name)
+    If Len(exemples) > 0 Then derCol = 6 Else derCol = 3
 
     nom = NomFeuilleAide(wsForm.Name)
     Set wsAide = TrouverFeuille(nom)
@@ -749,15 +756,20 @@ Private Sub CreerFeuilleAide(ByVal wsForm As Worksheet, ByVal texteSource As Str
         wsAide.Columns.UseStandardWidth = True
     End If
 
-    ' A marge ; B noms (étiquette "Instructions", champs, boutons) ; C textes.
-    MettreEnForme wsAide, Array(2, 32, 105), 20
+    ' A marge ; B noms (étiquette "Instructions", champs, boutons) ; C textes. Avec des
+    ' tableaux d'exemples : C a F de 26 points chacune (105 en tout, comme C seule).
+    If derCol = 6 Then
+        MettreEnForme wsAide, Array(2, 32, 26.25, 26.25, 26.25, 26.25), 20
+    Else
+        MettreEnForme wsAide, Array(2, 32, 105), 20
+    End If
 
     wsAide.Rows(1).RowHeight = FRM_H_MARGE
     wsAide.Rows(2).RowHeight = FRM_H_BOUTONS
     wsAide.Rows(3).RowHeight = FRM_H_SEP
 
     ' Ligne 4 : titre
-    With wsAide.Range("B4:C4")
+    With wsAide.Range(wsAide.Cells(4, 2), wsAide.Cells(4, derCol))
         .Merge
         .NumberFormat = "@"
         .Value = mod_Display.FR(titre)
@@ -774,12 +786,13 @@ Private Sub CreerFeuilleAide(ByVal wsForm As Worksheet, ByVal texteSource As Str
     wsAide.Rows(5).RowHeight = FRM_H_SEP
 
     ' Ligne 6 : introduction ; ligne 7 : séparation
-    EcrireBlocInstructions wsAide, 6, 2, 2, 3, 3, intro
+    EcrireBlocInstructions wsAide, 6, 2, 2, 3, derCol, intro
     wsAide.Rows(7).RowHeight = FRM_H_SEP
 
     ligne = 8
-    If Len(champs) > 0 Then ligne = EcrireListeAide(wsAide, ligne, "Champs", champs, False)
-    If Len(boutons) > 0 Then ligne = EcrireListeAide(wsAide, ligne, "Boutons", boutons, True)
+    If Len(champs) > 0 Then ligne = EcrireListeAide(wsAide, ligne, "Champs", champs, False, derCol)
+    If Len(boutons) > 0 Then ligne = EcrireListeAide(wsAide, ligne, "Boutons", boutons, True, derCol)
+    If Len(exemples) > 0 Then ligne = EcrireTableauxAide(wsAide, ligne, exemples, derCol)
 
     gauche = wsAide.Cells(1, 2).Left
     AjouterBoutonEntete wsAide, 2, gauche, CapSortir(), "SortirAide", "btnSortirAide", FRM_BTN_L
@@ -795,7 +808,8 @@ End Sub
 ' description dans la colonne C), puis une fine ligne vide. Renvoie la ligne suivante.
 ' Les noms de champs sont en vert, ceux de boutons en rouge (comme dans les instructions).
 Private Function EcrireListeAide(ByVal ws As Worksheet, ByVal ligne As Long, ByVal titreBloc As String, _
-                                 ByVal liste As String, ByVal sontDesBoutons As Boolean) As Long
+                                 ByVal liste As String, ByVal sontDesBoutons As Boolean, _
+                                 Optional ByVal derCol As Long = 3) As Long
 
     Dim elements() As String
     Dim i As Long
@@ -803,8 +817,9 @@ Private Function EcrireListeAide(ByVal ws As Worksheet, ByVal ligne As Long, ByV
     Dim nomElt As String, desc As String
     Dim brutDesc As String
     Dim hNom As Double, hDesc As Double
+    Dim zoneDesc As Range
 
-    PoserTitreBloc ws.Range(ws.Cells(ligne, 2), ws.Cells(ligne, 3)), titreBloc
+    PoserTitreBloc ws.Range(ws.Cells(ligne, 2), ws.Cells(ligne, derCol)), titreBloc
     ws.Rows(ligne).RowHeight = FRM_H_LIGNE
     ligne = ligne + 1
 
@@ -832,11 +847,13 @@ Private Function EcrireListeAide(ByVal ws As Worksheet, ByVal ligne As Long, ByV
                 .Borders.Color = CoulBordureLecture()
             End With
 
-            ws.Cells(ligne, 3).NumberFormat = "@"
-            brutDesc = EcrireCelluleTexte(ws.Cells(ligne, 3), desc)
+            Set zoneDesc = ws.Range(ws.Cells(ligne, 3), ws.Cells(ligne, derCol))
+            zoneDesc.NumberFormat = "@"
+            If derCol > 3 Then zoneDesc.Merge
+            brutDesc = EcrireCelluleTexte(zoneDesc, desc)
 
             hNom = HauteurTexte(ws, mod_Display.FR(nomElt), ws.Cells(ligne, 2).Width, 10, True)
-            hDesc = HauteurTexte(ws, brutDesc, ws.Cells(ligne, 3).Width)
+            hDesc = HauteurTexte(ws, brutDesc, zoneDesc.Width)
             If hNom > hDesc Then ws.Rows(ligne).RowHeight = hNom Else ws.Rows(ligne).RowHeight = hDesc
             ligne = ligne + 1
         End If
@@ -844,6 +861,101 @@ Private Function EcrireListeAide(ByVal ws As Worksheet, ByVal ligne As Long, ByV
 
     ws.Rows(ligne).RowHeight = FRM_H_SEP
     EcrireListeAide = ligne + 1
+
+End Function
+
+' Ecrit les tableaux d'exemples d'une feuille d'aide (format : voir mod_InstallAide.ChargerExemples)
+' a partir de "ligne", sur les colonnes B a derCol. Les colonnes d'un tableau se partagent la
+' largeur : la premiere occupe la colonne B, les suivantes se repartissent les colonnes C a derCol
+' (celles en trop sont fusionnees avec la derniere colonne). Renvoie la ligne suivante.
+Private Function EcrireTableauxAide(ByVal ws As Worksheet, ByVal ligne As Long, ByVal texte As String, _
+                                    ByVal derCol As Long) As Long
+
+    Dim lignesTexte() As String
+    Dim cellulesTexte() As String
+    Dim i As Long, c As Long
+    Dim nbCol As Long, nbSuite As Long
+    Dim colDebut As Long, largeurCol As Long
+    Dim partBase As Long, partReste As Long
+    Dim zone As Range
+    Dim contenu As String
+    Dim brut As String
+    Dim h As Double, hMax As Double
+    Dim estEntete As Boolean
+    Dim tableauOuvert As Boolean
+
+    lignesTexte = Split(texte, Chr(10))
+
+    For i = LBound(lignesTexte) To UBound(lignesTexte)
+        contenu = lignesTexte(i)
+
+        If Left$(contenu, 1) = "#" Then
+            ' Titre d'un tableau (une fine ligne vide separe du tableau precedent).
+            If tableauOuvert Then
+                ws.Rows(ligne).RowHeight = FRM_H_SEP
+                ligne = ligne + 1
+            End If
+            PoserTitreBloc ws.Range(ws.Cells(ligne, 2), ws.Cells(ligne, derCol)), mod_Display.FR(Mid$(contenu, 2))
+            ws.Rows(ligne).RowHeight = FRM_H_LIGNE
+            ligne = ligne + 1
+            tableauOuvert = True
+
+        ElseIf Left$(contenu, 1) = "=" Then
+            ' Remarque sur toute la largeur.
+            Set zone = ws.Range(ws.Cells(ligne, 2), ws.Cells(ligne, derCol))
+            zone.NumberFormat = "@"
+            zone.Merge
+            brut = EcrireCelluleTexte(zone, Mid$(contenu, 2))
+            ws.Rows(ligne).RowHeight = HauteurTexte(ws, brut, zone.Width)
+            ligne = ligne + 1
+
+        ElseIf Len(contenu) > 0 Then
+            estEntete = (Left$(contenu, 1) = "!")
+            If estEntete Then contenu = Mid$(contenu, 2)
+            cellulesTexte = Split(contenu, "|")
+            nbCol = UBound(cellulesTexte) + 1
+            If nbCol > derCol - 1 Then nbCol = derCol - 1
+            nbSuite = nbCol - 1                 ' colonnes du tableau autres que la premiere
+            If nbSuite > 0 Then
+                partBase = (derCol - 2) \ nbSuite
+                partReste = (derCol - 2) Mod nbSuite
+            End If
+
+            colDebut = 2
+            hMax = FRM_H_LIGNE
+            For c = 1 To nbCol
+                If nbSuite = 0 Then
+                    largeurCol = derCol - 1
+                ElseIf c = 1 Then
+                    largeurCol = 1
+                Else
+                    largeurCol = partBase
+                    If c - 1 > nbSuite - partReste Then largeurCol = largeurCol + 1
+                End If
+
+                Set zone = ws.Range(ws.Cells(ligne, colDebut), ws.Cells(ligne, colDebut + largeurCol - 1))
+                zone.NumberFormat = "@"
+                If largeurCol > 1 Then zone.Merge
+                brut = EcrireCelluleTexte(zone, cellulesTexte(c - 1))
+                If estEntete Then
+                    zone.Font.Bold = True
+                    zone.Font.Color = CoulEtiquette()
+                ElseIf c = 1 Then
+                    zone.Font.Bold = True
+                End If
+
+                h = HauteurTexte(ws, brut, zone.Width, 9, (estEntete Or c = 1))
+                If h > hMax Then hMax = h
+                colDebut = colDebut + largeurCol
+            Next c
+
+            ws.Rows(ligne).RowHeight = hMax
+            ligne = ligne + 1
+        End If
+    Next i
+
+    ws.Rows(ligne).RowHeight = FRM_H_SEP
+    EcrireTableauxAide = ligne + 1
 
 End Function
 

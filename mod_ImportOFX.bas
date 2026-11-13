@@ -70,8 +70,9 @@ Public Sub ImporterOperationsOFX()
     ' --- ÉTAPE 1 : sélection des deux fichiers à importer ---------------------
     cheminOFX = ChoisirFichier("Fichiers OFX (*.ofx), *.ofx", "Selectionner l'export bancaire OFX")
     If cheminOFX = "" Then
-        MsgBox "Importation impossible : le fichier OFX n'a pas ete selectionne." & vbCrLf & _
-               "Les deux fichiers (OFX et CSV) sont necessaires.", vbExclamation, "Import annule"
+        MsgBox "Le fichier OFX est obligatoire : aucun fichier n'a ete selectionne." & vbCrLf & _
+               "L'importation est arretee, aucune donnee n'a ete modifiee." & vbCrLf & _
+               "Relancez l'import et selectionnez le fichier OFX (puis le CSV).", vbExclamation, "Import annule"
         Exit Sub
     End If
 
@@ -800,12 +801,14 @@ End Function
 
 ' Ouvre la boîte de dialogue de sélection de fichier. Renvoie "" si l'opération est annulée.
 Public Function ChoisirFichier(filtre As String, Titre As String) As String
-    Dim chemin As String
-    chemin = Application.GetOpenFilename(filtre, , Titre)
-    If chemin = "False" Then
+    ' GetOpenFilename renvoie le booléen False à l'annulation : ne JAMAIS le stocker dans un
+    ' String (il devient "Faux" en Excel français et le test = "False" échoue).
+    Dim v As Variant
+    v = Application.GetOpenFilename(filtre, , Titre)
+    If VarType(v) = vbBoolean Then
         ChoisirFichier = ""
     Else
-        ChoisirFichier = chemin
+        ChoisirFichier = CStr(v)
     End If
 End Function
 

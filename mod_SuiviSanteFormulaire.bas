@@ -553,7 +553,7 @@ End Sub
 
 ' =====================================================================================
 ' AppliquerEtatChampsConditionnels : grise ou déverrouille les champs "Tiers
-' corrigé" et "Dépassement d'honoraires" selon leur pertinence pour le cas affiché.
+' corrigé" et "Validé (OUI/NON)" selon leur pertinence pour le cas affiché.
 ' =====================================================================================
 Private Sub AppliquerEtatChampsConditionnels(ws As Worksheet, cas As TCasSuiviSante)
 
@@ -783,7 +783,7 @@ Public Sub ValiderCasSuiviSante()
             tbl.ListColumns("Tiers").DataBodyRange.rows(cas.ligneDepense).value = tiersCorrige
         End If
 
-        If depassementTexte = "Oui" Then
+        If UCase$(depassementTexte) = "OUI" Then
             tbl.ListColumns("DepassementHoraires").DataBodyRange.rows(cas.ligneDepense).value = True
         Else
             tbl.ListColumns("DepassementHoraires").DataBodyRange.rows(cas.ligneDepense).value = False
@@ -801,7 +801,7 @@ Public Sub ValiderCasSuiviSante()
             tbl.ListColumns("Tiers").DataBodyRange.rows(cas.parentLigneOp).value = tiersCorrige
         End If
 
-        If depassementTexte = "Oui" Then
+        If UCase$(depassementTexte) = "OUI" Then
             tblVen.ListColumns("DepassementHoraires").DataBodyRange.rows(cas.ligneDepense).value = True
         Else
             tblVen.ListColumns("DepassementHoraires").DataBodyRange.rows(cas.ligneDepense).value = False

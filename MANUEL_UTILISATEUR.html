@@ -661,7 +661,7 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <tbody>
 <tr>
 <td><strong>Type de consommation</strong></td>
-<td>Adduction eau, Recyclage eau, Fourniture élec, Fourniture gaz</td>
+<td>Adduction eau, Recyclage eau, Fourniture élec, Fourniture gaz, ou un type ajouté avec le bouton <strong>+</strong> à côté du champ (par exemple <em>Production électricité</em> : le programme demande son nom puis son unité de mesure ; 10 types au plus)</td>
 </tr>
 <tr>
 <td><strong>Opérateur</strong></td>
@@ -991,6 +991,13 @@ h2{break-after:avoid}figure,.tableau,pre{break-inside:avoid}body{background:#fff
 <blockquote>
 <p><strong>À savoir :</strong> n'ouvrez pas une seconde facture pour la vraie facture de décembre : vous obtiendriez une alerte de chevauchement de périodes, et les prélèvements resteraient liés à la facture provisoire. Complétez toujours la facture provisoire.</p>
 </blockquote>
+<p><strong>Facture de vente (revente d'électricité).</strong> Une facture que vous <em>émettez</em> se règle par un <strong>encaissement</strong> (montant positif) et non par un paiement. Le champ <strong>Sens de la facture</strong> de l'en-tête (<em>Achat</em> ou <em>Vente</em>) en tient compte : pour une vente, les opérations liées s'ajoutent au total au lieu de s'en retrancher, si bien que l'alerte de clôture et le solde ne signalent aucun écart quand l'encaissement égale le total TTC.</p>
+<ul>
+<li><strong>Le sens vient du type.</strong> À la création d'un type de consommation (bouton <strong>+</strong> de l'écran Contrat), le classeur demande s'il s'agit d'une <strong>revente</strong> ; le sens est ensuite proposé automatiquement dès que vous choisissez ce type dans la facture, et reste modifiable. Pour un type existant, lancez la macro <strong>ModifierSensTypeConso</strong>. Le type <em>Revente Electricité</em> est reconnu comme une vente à la première utilisation.</li>
+<li><strong>Affecter l'encaissement.</strong> Les opérations de revente apparaissent dans <strong>Factures non liées</strong> comme les autres ; la liste des factures proposées marque les ventes d'un « | vente ». Plusieurs encaissements peuvent être liés à une même facture de vente.</li>
+<li><strong>Avertissement.</strong> Si le signe de l'opération ne correspond pas au sens de la facture (une entrée d'argent sur un achat, une sortie sur une vente), le classeur le signale et demande confirmation : c'est normal pour un remboursement ou un avoir.</li>
+<li>Les factures déjà saisies restent des achats.</li>
+</ul>
 <p><strong>Voir les opérations d'une facture.</strong> Dans la liste <strong>Voir les factures</strong>, la colonne <em>NbOperations</em> donne le nombre d'opérations liées ; un <strong>double-clic</strong> sur ce nombre ouvre l'écran de recherche sur ces opérations.</p>
 <p><strong>Corriger.</strong></p>
 <ul>

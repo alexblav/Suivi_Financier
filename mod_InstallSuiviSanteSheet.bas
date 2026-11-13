@@ -157,10 +157,10 @@ Private Function SS_TexteInstructions() As String
     t = t & Chr(10) & "1. Choisissez le [c:B{e2}n{e2}ficiaire] dans la liste."
     t = t & Chr(10) & "2. Si le [c:Tiers import{e2}] n'est pas correct, choisissez la bonne valeur dans [c:Tiers corrig{e2}]."
     t = t & Chr(10) & "3. Indiquez le montant de [c:Franchise] retenu par l'assurance (0 si aucune)."
-    t = t & Chr(10) & "4. Le champ [c:D{e2}passement valid{e2} ?] est accessible d{e1}s que le [c:Solde actuel] n'est pas nul, que 1 ou 2 "
+    t = t & Chr(10) & "4. Le champ [c:Valid{e2} (OUI/NON)] ne sert que si le [c:Solde actuel] n'est pas nul, que 1 ou 2 "
     t = t & "remboursements soient arriv{e2}s. Si vous consid{e2}rez ce solde comme d{e2}finitif et normal ({a2} expliquer dans [c:Commentaire]), "
-    t = t & "r{e2}pondez Oui : la d{e2}pense ne sera plus jamais repropos{e2}e, m{ea}me si son statut reste affich{e2} KO. "
-    t = t & "Si un remboursement suppl{e2}mentaire doit encore arriver, laissez ce champ vide (ou r{e2}pondez Non) : la d{e2}pense sera repropos{e2}e au prochain passage."
+    t = t & "r{e2}pondez OUI : la d{e2}pense ne sera plus jamais repropos{e2}e, m{ea}me si son statut reste KO. "
+    t = t & "Si un remboursement suppl{e2}mentaire doit encore arriver, laissez ce champ vide (ou r{e2}pondez NON) : la d{e2}pense sera repropos{e2}e au prochain passage."
     t = t & Chr(10) & "5. Ajoutez un [c:Commentaire] si besoin, puis cliquez sur [b:Valider]."
     t = t & Chr(10) & "Boutons :"
     t = t & Chr(10) & "- [c:Point{e2}] : indique si l'op{e2}ration est d{e2}j{a2} analys{e2}e (Oui). Il se modifie ici et s'enregistre tout de suite "
@@ -301,10 +301,12 @@ Private Sub SS_ConstruireBlocSaisie(ByVal ws As Worksheet)
     mod_InstallCommun.PoserNom ws, "ssFranchise", rng
 
     ' --- Dépassement validé ? (liste Oui/Non, pertinent seulement si le solde n'est pas nul) ---
-    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_DEPASSEMENT), mod_Display.FR("D{e2}passement valid{e2} ?")
+    ' Libelle "Valide (OUI/NON)" (12/11/2026, avant : "Depassement valide ?"). Le nom defini
+    ' ssDepassement et la colonne DepassementHoraires sont inchanges.
+    mod_InstallCommun.PoserEtiquette ws.Range(SS_COL_LIBELLE_1 & SS_LIGNE_DEPASSEMENT), mod_Display.FR("Valid{e2} (OUI/NON)")
     Set rng = ws.Range(SS_COL_VALEUR_1 & SS_LIGNE_DEPASSEMENT)
     mod_InstallCommun.PoserChampSaisie rng
-    SS_AppliquerListeDeroulanteTexte rng, "Oui,Non"
+    SS_AppliquerListeDeroulanteTexte rng, "OUI,NON"
     mod_InstallCommun.PoserNom ws, "ssDepassement", rng
 
     ' --- Commentaire (texte libre, sur 2 lignes) ---
