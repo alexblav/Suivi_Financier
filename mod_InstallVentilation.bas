@@ -187,7 +187,7 @@ Public Sub PreparerTableVentilations()
         End If
     Next i
 
-    ws.Visible = xlSheetHidden
+    ws.Visible = xlSheetVeryHidden
 
 End Sub
 

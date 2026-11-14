@@ -381,6 +381,64 @@ Public Sub TerminerFeuille(ByVal ws As Worksheet, ByVal wsPrecedente As Workshee
     On Error GoTo 0
 End Sub
 
+' AJOUT 13/11/2026 : etat de visibilite "normal" du classeur, applique a l'ouverture ET a la
+' fermeture (ThisWorkbook). Seules les feuilles Accueil, Synthese et Menu sont visibles ; TOUTES
+' les autres (donnees, parametres, formulaires, aides, feuilles techniques) sont tres masquees
+' (xlSheetVeryHidden), donc absentes de "clic droit > Afficher". Une feuille laissee ouverte par
+' un formulaire interrompu est ainsi remasquee automatiquement.
+Public Sub NormaliserVisibiliteFeuilles()
+    Dim ws As Worksheet
+    Dim nomCentral As Variant
+    Dim wsActive As Object
+
+    On Error Resume Next
+
+    ' 1. Les trois feuilles centrales d'abord (Excel refuse de masquer la derniere feuille visible).
+    For Each nomCentral In Array("Accueil", mod_VarGlobales.NOM_FEUILLE_SYNTHESE, mod_VarGlobales.NOM_FEUILLE_MENU)
+        Set ws = Nothing
+        Set ws = ThisWorkbook.Worksheets(CStr(nomCentral))
+        If Not ws Is Nothing Then
+            If ws.Visible <> xlSheetVisible Then ws.Visible = xlSheetVisible
+        End If
+    Next nomCentral
+
+    ' 2. Si la feuille active n'est pas l'une des trois, on se replace sur Synthese (ou Accueil)
+    '    avant de masquer, pour ne pas laisser Excel choisir une feuille au hasard.
+    Set wsActive = ThisWorkbook.ActiveSheet
+    If Not wsActive Is Nothing Then
+        If Not EstFeuilleCentrale(wsActive.Name) Then
+            Set ws = Nothing
+            Set ws = ThisWorkbook.Worksheets(mod_VarGlobales.NOM_FEUILLE_SYNTHESE)
+            If ws Is Nothing Then Set ws = ThisWorkbook.Worksheets("Accueil")
+            If Not ws Is Nothing Then ws.Activate
+        End If
+    End If
+
+    ' 3. Toutes les autres feuilles : tres masquees.
+    For Each ws In ThisWorkbook.Worksheets
+        If Not EstFeuilleCentrale(ws.Name) Then
+            If ws.Visible <> xlSheetVeryHidden Then ws.Visible = xlSheetVeryHidden
+        End If
+    Next ws
+
+    On Error GoTo 0
+End Sub
+
+Private Function EstFeuilleCentrale(ByVal nomFeuille As String) As Boolean
+    EstFeuilleCentrale = (StrComp(nomFeuille, "Accueil", vbTextCompare) = 0 _
+                       Or StrComp(nomFeuille, mod_VarGlobales.NOM_FEUILLE_SYNTHESE, vbTextCompare) = 0 _
+                       Or StrComp(nomFeuille, mod_VarGlobales.NOM_FEUILLE_MENU, vbTextCompare) = 0)
+End Function
+
+' Outil developpeur (Ctrl+G) : rend visibles TOUTES les feuilles pour la maintenance. Elles seront
+' remasquees automatiquement a la prochaine ouverture ou a la fermeture du classeur.
+Public Sub AfficherToutesLesFeuilles()
+    Dim ws As Worksheet
+    For Each ws In ThisWorkbook.Worksheets
+        ws.Visible = xlSheetVisible
+    Next ws
+End Sub
+
 
 ' =====================================================================================
 ' EN-TÊTE COMMUN : positions des lignes

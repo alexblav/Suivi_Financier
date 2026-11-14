@@ -189,7 +189,7 @@ Private Function PreparerDonnees(ByVal nomData As String, ByVal nomTable As Stri
     Next i
     ws.Columns.AutoFit
 
-    ws.Visible = xlSheetHidden
+    ws.Visible = xlSheetVeryHidden
     Application.ScreenUpdating = True
     PreparerDonnees = True
 
@@ -420,7 +420,7 @@ Private Function MigrerVersLignes() As Boolean
                 nom = CStr(noms(k - 1)) & "_ancien" & i
             Loop
             ws.Name = nom
-            ws.Visible = xlSheetHidden
+            ws.Visible = xlSheetVeryHidden
         End If
     Next k
     Application.ScreenUpdating = True

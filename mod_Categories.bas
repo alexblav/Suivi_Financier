@@ -433,7 +433,7 @@ Public Sub MasquerParam()
     ThisWorkbook.Worksheets("Accueil").Activate
     On Error GoTo 0
 
-    wsParam.Visible = xlSheetHidden
+    wsParam.Visible = xlSheetVeryHidden
 
 End Sub
 

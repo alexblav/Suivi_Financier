@@ -751,8 +751,31 @@ Private Function BlocSante(ByVal ws As Worksheet, ByVal ligneDebut As Long) As L
         ReDim cles(1 To nbL)
         ReDim vals(1 To nbL, 1 To SYN_NB_COL)
 
+        ' Statut, depassement d'honoraires et solde ne sont portes que par la ligne de DEPENSE d'un groupe
+        ' (meme valeur de Notes) ; les lignes de remboursement n'ont ni solde ni drapeau. On repere donc
+        ' d'abord la depense de chaque groupe, pour juger les remboursements sur elle (comme le fait
+        ' "Traiter les donnees de sante") : un groupe dont le depassement est valide ne doit pas reapparaitre.
+        Dim depGroupe As Object, notesTxt As String, r As Long
+        Set depGroupe = CreateObject("Scripting.Dictionary")
         For i = 1 To nbL
-            If UCase$(mod_DataStructure.CellText(Cellule(vStatut, i))) = "KO" And Not EstVrai(Cellule(vDepass, i)) Then
+            notesTxt = mod_DataStructure.CellText(Cellule(vNotes, i))
+            If notesTxt <> "" Then
+                If mod_DataStructure.ToDouble(Cellule(vMont, i)) < 0 Then
+                    If mod_DataStructure.CellText(Cellule(vCat, i)) = mod_VarGlobales.CATEGORIE_SANTE _
+                       Or mod_DataStructure.CellText(Cellule(vSous, i)) = mod_VarGlobales.SOUS_CATEGORIE_SANTE Then
+                        If Not depGroupe.Exists(notesTxt) Then depGroupe.Add notesTxt, i
+                    End If
+                End If
+            End If
+        Next i
+
+        For i = 1 To nbL
+            r = i
+            notesTxt = mod_DataStructure.CellText(Cellule(vNotes, i))
+            If notesTxt <> "" And mod_DataStructure.ToDouble(Cellule(vMont, i)) >= 0 Then
+                If depGroupe.Exists(notesTxt) Then r = depGroupe(notesTxt)
+            End If
+            If UCase$(mod_DataStructure.CellText(Cellule(vStatut, r))) = "KO" And Not EstVrai(Cellule(vDepass, r)) Then
                 catTexte = mod_DataStructure.CellText(Cellule(vCat, i))
                 sousTexte = mod_DataStructure.CellText(Cellule(vSous, i))
                 If catTexte = mod_VarGlobales.CATEGORIE_SANTE Or sousTexte = mod_VarGlobales.SOUS_CATEGORIE_SANTE Then
@@ -762,7 +785,7 @@ Private Function BlocSante(ByVal ws As Worksheet, ByVal ligneDebut As Long) As L
                     vals(nb, 2) = mod_DataStructure.CellText(Cellule(vTiers, i))
                     vals(nb, 3) = mod_DataStructure.CellText(Cellule(vNotes, i))
                     vals(nb, 4) = mod_DataStructure.ToDouble(Cellule(vMont, i))
-                    soldeSante = mod_DataStructure.ToDouble(Cellule(vSolde, i))
+                    soldeSante = mod_DataStructure.ToDouble(Cellule(vSolde, r))
                     If soldeSante > 0.005 Then
                         vals(nb, 5) = mod_Display.FR("En attente de remboursement (reste ") & Format(soldeSante, "#,##0.00") & ")"
                     Else

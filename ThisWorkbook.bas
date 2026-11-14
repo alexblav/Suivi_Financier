@@ -131,6 +131,9 @@ End Sub
 Private Sub Workbook_Open()
     mod_Synchro.SynchroniserALOuverture
     mod_Echeancier.MettreAJourEcheancier
+    ' AJOUT 13/11/2026 : a l'ouverture, seules Accueil, Synthese et Menu sont visibles ; toutes les
+    ' autres feuilles sont tres masquees (apres la synchro, qui peut afficher frm_Passphrase).
+    mod_InstallCommun.NormaliserVisibiliteFeuilles
     PositionnerSurSynthese
 End Sub
 
@@ -149,6 +152,9 @@ End Sub
 ' AJOUT 11/10/2026 : à la fermeture, envoi des données vers le fichier central. Si la
 ' synchronisation échoue et que l'opérateur refuse de fermer sans elle, la fermeture est annulée.
 Private Sub Workbook_BeforeClose(Cancel As Boolean)
+    ' AJOUT 13/11/2026 : les feuilles restees ouvertes sont masquees AVANT la synchro, car celle-ci
+    ' enregistre le classeur (l'etat masque est donc celui qui sera present a la prochaine ouverture).
+    mod_InstallCommun.NormaliserVisibiliteFeuilles
     If Not mod_Synchro.SynchroniserALaFermeture() Then Cancel = True
 End Sub
 

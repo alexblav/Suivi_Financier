@@ -97,7 +97,7 @@ Private Function CreerTableUnites() As ListObject
     lo.Resize ws.Range(ws.Cells(1, 1), ws.Cells(n + 1, 2))
     lo.DataBodyRange.Value2 = vals
     ws.Columns("A:B").AutoFit
-    ws.Visible = xlSheetHidden
+    ws.Visible = xlSheetVeryHidden
 
     If Not wsPrec Is Nothing Then wsPrec.Activate
     Application.EnableEvents = evt

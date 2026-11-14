@@ -76,10 +76,10 @@ Un point de vocabulaire utile dès le départ : un **tableau Excel** (ou *ListOb
 | Accueil | Bouton d'import | Lancer l'import des relevés | Oui |
 | Menu | Critères (année, mois, seuil…), tous les boutons | Point de départ de toutes les consultations (ancienne feuille « Synthese » avant le 28/10/2026) | Oui |
 | Synthese | Bloc « Prévisionnel de trésorerie » (A:B) et trois rappels (D:H) | Tableau de bord : ce qui demande une action ; feuille d'ouverture du classeur (section 7) | Oui |
-| Import\_data | **TblOperations** | La base : toutes les opérations importées | Oui |
-| Ventilations | **TblVentilations** | Les parts des opérations ventilées | Oui |
-| Param | **TblCategories** (K:N), **TblDecalagesBudget** (S:V), **TblComptes** (Y:Z), listes Spécialités, Praticiens, Bénéficiaires, Mois, Années | Réglages modifiables sans toucher au code | Masquée en temps normal |
-| Conso\_Factures, Conso\_Lignes, Conso\_Indicateurs, Conso\_Contrats | **TblFactures**, **TblLignes**, **TblIndicateurs**, **TblContrats** | Données du suivi des consommations (section 10) | Masquées |
+| Import\_data | **TblOperations** | La base : toutes les opérations importées | Très masquée (technique) |
+| Ventilations | **TblVentilations** | Les parts des opérations ventilées | Très masquée (technique) |
+| Param | **TblCategories** (K:N), **TblDecalagesBudget** (S:V), **TblComptes** (Y:Z), listes Spécialités, Praticiens, Bénéficiaires, Mois, Années | Réglages modifiables sans toucher au code | Très masquée |
+| Conso\_Factures, Conso\_Lignes, Conso\_Indicateurs, Conso\_Contrats | **TblFactures**, **TblLignes**, **TblIndicateurs**, **TblContrats** | Données du suivi des consommations (section 10) | Très masquées |
 | frm\_ChoixEcheance | Formulaire | Désigner à la main l'échéance correspondant à une opération pendant le contrôle de l'import | Pendant le contrôle |
 | frm\_AffectationFacture | Formulaire | Relier une opération bancaire à la facture qui l'a réglée (section 16) | À la demande |
 | frm\_Remediation\_OFX | Tableau d'écarts | Comparer un OFX récent aux opérations enregistrées (section 1) | À la demande |
